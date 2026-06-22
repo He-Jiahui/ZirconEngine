@@ -1,6 +1,7 @@
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
 use super::super::render_framework_state::RenderFrameworkState;
+use super::super::viewport_record::ViewportRecord;
 use super::frame_submission_context::FrameSubmissionContext;
 
 pub(super) fn validate_viewport_generation(
@@ -23,4 +24,18 @@ pub(super) fn validate_viewport_generation(
         });
     }
     Ok(())
+}
+
+pub(super) fn viewport_record_mut_after_generation_check<'a>(
+    state: &'a mut RenderFrameworkState,
+    viewport: RenderViewportHandle,
+    context: &FrameSubmissionContext,
+) -> Result<&'a mut ViewportRecord, RenderFrameworkError> {
+    validate_viewport_generation(state, viewport, context)?;
+    state
+        .viewports
+        .get_mut(&viewport)
+        .ok_or(RenderFrameworkError::UnknownViewport {
+            viewport: viewport.raw(),
+        })
 }

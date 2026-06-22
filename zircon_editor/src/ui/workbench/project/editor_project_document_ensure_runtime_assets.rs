@@ -8,7 +8,7 @@ use super::constants::{
 };
 use super::editor_project_document::EditorProjectDocument;
 use super::project_root_path::project_root_path;
-use super::runtime_asset_helpers::{
+use super::runtime_asset_resolution::{
     default_material_asset, default_shader_meta_document, parse_asset_uri, write_if_missing,
 };
 
@@ -57,7 +57,9 @@ impl EditorProjectDocument {
                 .join("default.zmaterial"),
             default_material_asset()?
                 .to_toml_string()
-                .map_err(|error| super::runtime_asset_helpers::invalid_data(error.to_string()))?,
+                .map_err(|error| {
+                    super::runtime_asset_resolution::invalid_data(error.to_string())
+                })?,
         )?;
         write_if_missing(
             paths.assets_root().join("models").join("cube.obj"),

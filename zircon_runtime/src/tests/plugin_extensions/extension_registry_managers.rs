@@ -60,22 +60,24 @@ fn runtime_extension_registry_rejects_duplicate_manager_contributions() {
 #[test]
 fn runtime_plugin_catalog_reports_duplicate_manager_contributions() {
     let left = ManagerRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather_left",
             "Weather Left",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_left_runtime",
         )
-        .with_capability("runtime.plugin.weather_left"),
+        .with_capability("runtime.plugin.weather_left")
+        .build(),
     };
     let right = ManagerRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather_right",
             "Weather Right",
             RuntimePluginId::HybridGi,
             "zircon_plugin_weather_right_runtime",
         )
-        .with_capability("runtime.plugin.weather_right"),
+        .with_capability("runtime.plugin.weather_right")
+        .build(),
     };
     let catalog = RuntimePluginCatalog::from_plugins([
         &left as &dyn RuntimePlugin,
@@ -112,6 +114,9 @@ impl RuntimePlugin for ManagerRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_manager(self.descriptor().package_id.clone(), weather_manager())
+        registry.register_manager(
+            self.descriptor().package_id().to_string(),
+            weather_manager(),
+        )
     }
 }

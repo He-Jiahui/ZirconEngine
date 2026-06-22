@@ -24,6 +24,8 @@ related_code:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -37,6 +39,9 @@ related_code:
   - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/management.rs
@@ -62,6 +67,8 @@ implementation_files:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -73,6 +80,9 @@ implementation_files:
   - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 plan_sources:
   - user: 2026-05-08 implement Bevy-Style Asset Stack Completion Plan M1
   - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
@@ -94,6 +104,7 @@ tests:
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/core/resource/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
   - cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing warnings only)
   - cargo test -p zircon_runtime --lib importer_capability_report_marks_diagnostic_only_backends --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 asset parity implementation: timed out during Windows test build/link before Rust test diagnostics)
@@ -184,6 +195,8 @@ Runtime plan 04 uses this table as the authority for what Zircon intentionally k
 
 Loading and status queries are split across manager/facade/service surfaces. `ProjectAssetManager` owns project-aware typed loading and state queries, `Assets<TAsset>` owns typed resource-store reads for callers that already hold the resource manager, and the object-safe `AssetManager` service trait owns project/tooling status queries across the core service boundary.
 
+Runtime 10 F18 keeps manager resolution shape consistent with the generic core service path. `resolve_asset_manager(core)` returns `Result<Arc<AssetManagerHandle>, CoreError>` and leaves object-safe access to `AssetManagerHandle::shared()`, so callers choose the trait-object boundary explicitly. The status anchor is `runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed`, guarded by `review_f18_asset_manager_resolution_returns_registered_handle`.
+
 Keep `manager` / `facade` naming. Runtime 04 intentionally does not introduce an asset server vocabulary, even though Bevy uses `server/` as the reference package name. `runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free` locks this split by checking the current query methods and rejecting `AssetServer` / `asset_server` source reintroductions.
 
 M2 adds dependency graph behavior without moving authority out of `ResourceManager`. `ImportedAssetEntry.dependencies` is persisted into the project meta document as locator data for each root or labeled subasset entry, then the completed `ProjectManager` registry resolves those locators to `ResourceRecord.dependency_ids`. This two-phase resolution lets forward references within a project scan resolve to the target asset's UUID-derived `ResourceId` instead of a locator-derived fallback ID. Unresolved dependency locators become `ResourceDiagnostic::error("unresolved asset dependency ...")` on the owning record.
@@ -216,7 +229,7 @@ Serialized typed events are snapshot DTOs, not a replay log contract. They prese
 
 `zircon_runtime/src/asset/tests/facade.rs` covers typed handle kind mismatch, typed payload access, acquire/release residency behavior, event filtering across kinds including removed events, rename/reload/remove event ordering, load-state mapping, direct and recursive dependency graph state, missing dependency failure, wrong concrete payload residency, failed reload preserving last-good payload, `Assets<TAsset>::insert/remove_by_locator`, and `ProjectAssetManager` generic load/handle/state/event entry points. `zircon_runtime/src/asset/tests/facade/handle_lifecycle.rs::dangling_handle_queries_report_not_loaded_instead_of_panicking` is the Runtime 04 M1.1 regression for Zircon's retained handle divergence: a `Handle<TAsset>` is only a typed ID, and querying an unknown ID through both `Assets<TAsset>` and `ProjectAssetManager` reports `NotLoaded` instead of panicking or implying residency. `zircon_runtime/src/asset/tests/facade/failure_reason.rs::failed_asset_exposes_failure_reason_through_facade` verifies that failed typed assets expose the current resource diagnostic through both `ProjectAssetManager::failure_reason(...)` and `Assets<TAsset>::failure_reason(...)`. `zircon_runtime/src/asset/facade/event.rs::tests::typed_asset_events_roundtrip_for_tooling_snapshots` verifies JSON roundtrips for typed added and renamed asset events, including handle id, locator, previous locator, snake-case variant, revision, `AssetEventKind`, and the read-only event metadata accessors. The load-state convergence coverage includes `load_states_separate_root_direct_and_recursive_dependency_state`, `dependency_load_state_applies_direct_precedence_and_missing_records`, `load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads`, and `asset_load_state_projection_matches_resource_record_matrix`, which verify `AssetLoadStates`, `DependencyLoadState`, missing and wrong-kind root mapping, non-resident root read-only behavior, direct versus recursive aggregation, `ResourceState`/runtime-state/payload projection, and the `is_loaded*` predicates. `zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_states_classification_helpers_cover_tooling_status_rows` covers the metadata-only classification helpers used by tool status rows.
 
-The Runtime 04 `asset_pipeline_boundary` structural audit now mirrors the facade/query/resource-state anchors together with worker, watcher, artifact, and pending Cargo-gate anchors. Its current focused evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this facade doc, Runtime 04, the runtime index, worker/watcher/artifact/core-resource docs, M0 review, and runtime-interface convergence aligned with those structure-audit counts. Broader `asset::` / `worker_pool` Cargo filters are still pending.
+The Runtime 04 `asset_pipeline_source_inventory.py` now owns source/guard file inventory and expected source/guard, worker diagnostic, artifact roundtrip, and watcher acceptance counts; `asset_pipeline_anchor_inventory.py` owns facade/query/resource-state anchors together with worker, watcher, artifact, behavior-test, doc, and pending Cargo-gate anchors. `asset_pipeline_boundary.py` remains the audit reader, missing-anchor checker, and risk classifier at 328 lines; `asset_pipeline_markdown.py` owns Markdown rendering at 117 lines. Current focused evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this facade doc, Runtime 04, the runtime index, worker/watcher/artifact/core-resource docs, M0 review, and runtime-interface convergence aligned with those structure-audit counts. Broader `asset::` / `worker_pool` Cargo filters are still pending.
 
 The readiness diagnostics coverage includes `readiness_report_exposes_loaded_dependency_rows_and_record_diagnostics`, `readiness_report_and_load_states_roundtrip_for_tooling_snapshots`, `readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payloads`, `readiness_report_marks_missing_dependency_records_as_failed_rows`, and `readiness_report_keeps_shallowest_direct_dependency_row_and_terminates_cycles`. These tests verify root and dependency diagnostics, synthetic missing and wrong-kind diagnostics, read-only non-resident root behavior, missing dependency rows, shallowest/direct row merging, cycle termination, JSON roundtrips for readiness reports, and snake-case state field output for tooling snapshots. `zircon_runtime/src/core/resource/tests.rs::register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics` verifies that runtime ready registration preserves current diagnostics while allowing clean reimports to clear stale diagnostics.
 

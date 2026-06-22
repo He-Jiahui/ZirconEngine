@@ -1,5 +1,5 @@
 use super::super::super::super::data::FrameRect;
-use super::super::template_alert_glyphs::ALERT_ICON_SIZE;
+use super::super::super::template_alert_glyphs::ALERT_ICON_SIZE;
 use super::common::centered_rect;
 use super::metrics::{ALERT_ICON_LEFT, ALERT_LINE_HEIGHT, ALERT_TEXT_GAP, ALERT_TEXT_RIGHT_INSET};
 

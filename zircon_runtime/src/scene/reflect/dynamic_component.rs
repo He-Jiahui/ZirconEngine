@@ -148,7 +148,7 @@ fn write_field(
     world
         .set_dynamic_component_property(entity, &property_path, value)
         .map_err(|error| ReflectError::UnsupportedConversion {
-            source: error,
+            source: error.to_string(),
             target: format!("dynamic JSON property `{type_path}.{field_name}`"),
         })
 }
@@ -158,7 +158,7 @@ fn remove(world: &mut World, entity: EntityId, type_path: &str) -> Result<bool, 
     world
         .remove_dynamic_component(entity, type_path)
         .map_err(|error| ReflectError::UnsupportedConversion {
-            source: error,
+            source: error.to_string(),
             target: format!("dynamic component `{type_path}` removal"),
         })
 }

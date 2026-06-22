@@ -1,5 +1,6 @@
 //! Stable convenience imports for runtime-facing Zircon applications and modules.
 
+pub use crate::asset::prelude::*;
 pub use crate::builtin::{
     default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
     runtime_core_modules, runtime_modules_for_runtime_profile,
@@ -57,6 +58,7 @@ pub use crate::engine_module::{
     EngineModule, EnginePlugin, EngineService, ManagerContract, PluginContract,
 };
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
+pub use crate::graphics::prelude::*;
 pub use crate::input::{
     ButtonInputState, CursorGrabMode, CursorHostRequest, CursorPosition, DefaultInputActionManager,
     DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisInput, GamepadAxisSettings,
@@ -91,3 +93,5 @@ pub use crate::plugin::{
     RuntimePluginAvailabilityReport, RuntimeProfileDescriptor, RuntimeProfileId,
     RuntimeProfilePluginSelection,
 };
+pub use crate::scene::prelude::*;
+pub use crate::ui::prelude::*;

@@ -6,6 +6,8 @@ use crate::ui::layouts::windows::workbench_host_window::{
 };
 use crate::ui::retained_host as host_contract;
 
+use super::model_projection::map_model_rc;
+
 const ROW_HEIGHT: f32 = 24.0;
 const ROW_GAP: f32 = 4.0;
 const ROW_PADDING: f32 = 8.0;
@@ -27,13 +29,10 @@ pub(crate) fn to_host_contract_performance_timeline_pane_from_host_pane(
 
     host_contract::PerformanceTimelinePaneData {
         nodes: model_rc(nodes),
-        frame_rows: super::map_model_rc(&native.frame_rows, to_host_contract_frame_row),
-        span_rows: super::map_model_rc(&native.span_rows, to_host_contract_span_row),
-        hotspot_rows: super::map_model_rc(&native.hotspot_rows, to_host_contract_hotspot_row),
-        capture_controls: super::map_model_rc(
-            &native.capture_controls,
-            to_host_contract_capture_control,
-        ),
+        frame_rows: map_model_rc(&native.frame_rows, to_host_contract_frame_row),
+        span_rows: map_model_rc(&native.span_rows, to_host_contract_span_row),
+        hotspot_rows: map_model_rc(&native.hotspot_rows, to_host_contract_hotspot_row),
+        capture_controls: map_model_rc(&native.capture_controls, to_host_contract_capture_control),
         summary: native.summary.clone(),
         session_label: native.session_label.clone(),
         output_label: native.output_label.clone(),

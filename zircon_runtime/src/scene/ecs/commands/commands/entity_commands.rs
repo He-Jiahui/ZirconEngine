@@ -27,7 +27,7 @@ impl<'world> EntityCommands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::InsertBundle,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });
@@ -44,7 +44,7 @@ impl<'world> EntityCommands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::Remove,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });

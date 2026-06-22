@@ -54,13 +54,31 @@ COOK_ASSETS_REPORT_REQUIRED_NON_FATAL_BOOL_FIELDS = ("generated_from_project",)
 def cook_assets_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
     diagnostics: list[str] = []
     for field in COOK_ASSETS_REPORT_STRING_FIELDS:
-        if field in report and report.get(field) is not None:
+        value = report.get(field)
+        if field in report and value is not None:
             diagnostics.extend(
                 validate_string_schema_diagnostics(
                     f"cook_assets report {field}",
-                    report.get(field),
+                    value,
                 )
             )
+            if isinstance(value, str):
+                if (
+                    field in COOK_ASSETS_REPORT_REQUIRED_NON_FATAL_STRING_FIELDS
+                    and (not value.strip() or value.strip() != value)
+                ):
+                    diagnostics.append(
+                        f"cook_assets report {field} "
+                        "must be a non-empty trimmed string"
+                    )
+                elif (
+                    field in COOK_ASSETS_REPORT_OPTIONAL_STRING_FIELDS
+                    and (not value.strip() or value.strip() != value)
+                ):
+                    diagnostics.append(
+                        f"cook_assets report {field} "
+                        "must be a non-empty trimmed string when present"
+                    )
     for field in COOK_ASSETS_REPORT_INTEGER_FIELDS:
         if field in report:
             diagnostics.extend(

@@ -7,6 +7,11 @@ related_code:
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_manager_asset_editor.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/binding.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/designer.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/document.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/presentation.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/style.rs
   - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/project_access.rs
@@ -56,9 +61,11 @@ related_code:
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
   - zircon_editor/src/ui/asset_editor/session/session_state.rs
   - zircon_editor/src/ui/asset_editor/session/hierarchy_projection.rs
@@ -107,7 +114,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
@@ -161,6 +168,11 @@ implementation_files:
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_manager_asset_editor.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/binding.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/designer.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/document.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/presentation.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_editor/style.rs
   - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/project_access.rs
@@ -212,9 +224,11 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
   - zircon_editor/src/ui/asset_editor/session/session_state.rs
   - zircon_editor/src/ui/asset_editor/session/hierarchy_projection.rs
@@ -262,7 +276,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
@@ -279,6 +293,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
+  - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
+  - zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs
 plan_sources:
   - user: 2026-04-20 目前zircon_editor有两套ui相关代码 一套在core里面需要迁移回ui
   - user: 2026-04-20 要求加载入口不允许放入src
@@ -460,6 +477,7 @@ doc_type: module-detail
 
 - `EditorUiHost` 作为统一宿主 owner，真实持有 `CoreHandle`、`ViewRegistry`、`LayoutManager`、`WindowHostManager`、`EditorSessionState` 和 UI asset session 账本
 - `EditorManager` 退化为薄 façade，只暴露 editor-facing API 并把状态访问委托给 `EditorUiHost`
+- `editor_manager_asset_editor.rs` 只保留 UI Asset Editor façade wiring，具体转发面按 `binding`、`designer`、`document`、`style`、`presentation` 子模块分 owner，避免单个 manager façade 文件重新越过 oversized 上限
 - `module.rs` 作为 `EditorModule`、service-name 常量和 `module_descriptor()` 的唯一 owner
 - `editor_asset_manager/` 与 `resource_access.rs` 也已经并入 `ui::host`，负责 asset workspace catalog/details/reference/preview sidecar 与宿主资源句柄解析
 - builtin view 和 builtin layout 注册
@@ -524,6 +542,18 @@ M5 的 workspace owner 现在也收口在 host 层，而不是塞回 `UiAssetEdi
 - import asset change 会尝试重新收集 imported widget/style documents；解析失败、kind mismatch 或 missing file 会变成 stale import diagnostic，并保留 last-good preview/session，直到 import 恢复后清空 stale state
 
 对外 editor manager 只新增薄 façade 方法：`reload_ui_asset_editor_from_disk`、`keep_ui_asset_editor_local_and_save`、`revert_ui_asset_editor_to_last_valid`、`save_ui_asset_editor_local_copy`、`save_ui_asset_editor_local_copy_next_to_source`、`refresh_ui_asset_workspace_for_changes`、`poll_ui_asset_workspace_watcher`，以及 crate 内诊断用的 diff snapshot accessor。UI shell 可以通过 pane presentation 决定是否展示 reload/keep-local/revert/save-local-copy/diff/stale import 操作，但真正的冲突裁决和 emergency recovery 仍由 host workspace pipeline 执行。
+
+### Host Manager Asset Editor Façade Split
+
+2026-06-22 的 Editor UI 10 M2 结构切片把 `zircon_editor/src/ui/host/editor_manager_asset_editor.rs` 从 1023 行的单文件 façade 收束为 5 行 wiring 文件。原有 117 个 `EditorManager` UI Asset Editor 转发方法没有改变对外名称或调用路径，只按职责进入子模块：
+
+- `binding.rs` 拥有 binding 选择、新增、事件/action kind、route/action target、payload 和 suggestion 转发。
+- `designer.rs` 拥有 widget/detail inspector、root-class policy、slot/layout sizing、designer tool mode、locale preview 与 slot/layout semantic 转发。
+- `document.rs` 拥有 undo/redo、mode、hierarchy/source outline、node move/reparent/wrap、palette drag/drop、source update 与 promotion command 转发。
+- `style.rs` 拥有 theme source、theme refactor、theme promotion fields、style tokens、stylesheet rules、declarations、pseudo-state 和 class 转发。
+- `presentation.rs` 拥有 reflection/pane presentation、open selected reference/theme source、open editor by path/id、preview preset/index、preview mock value/nested entry 和 save 转发。
+
+该切片跟随 Slint/Fyrox/Godot 的 editor host 分区思路：宿主 façade 继续作为外部 API 入口，但文件路径表达 authoring 子域，根文件只声明模块。验证证据为 `cargo fmt -p zircon_editor --check` 通过、`audit_editor_structure.py --json` 通过并显示 `oversized_production_file_count = 10` / `migration_debt_count = 10`、新增子文件行数 132/209/223/155/209。后续同轮 `cargo check -p zircon_editor --lib --locked --message-format short --color never` 已通过，仅有既有 warning，说明该 folder-backed manager façade 在当前 editor lib 下可编译。
 
 ### Emergency Shell And Last-Valid Recovery
 
@@ -625,7 +655,7 @@ The retained boundary deliberately keeps `workbench_host_window` on editor-owned
 
 Editor panes get their structural frames from `.ui.toml` assets and runtime/shared UI projection, not from generated source files. `ui_asset_editor.v2.ui.toml`, the pane assets under `zircon_editor/assets/ui/editor`, and host assets under `zircon_editor/assets/ui/editor/host` are the current structure authorities; retained host projection consumes their shared-surface frames.
 
-The focused retained evidence for this boundary lives in `workbench_projection_cutover.rs`, `template_assets.rs`, the pane-specific `bootstrap_assets.rs` tests, `retained_host/ui/tests.rs`, `retained_detail_pointer`, `retained_list_pointer`, and the `workbench_retained*` integration-contract readers.
+The focused retained evidence for this boundary lives in `workbench_projection_cutover.rs`, `template_assets.rs`, the pane-specific `bootstrap_assets.rs` tests, `retained_host/ui/tests/host_scene_projection.rs`, `retained_detail_pointer`, `retained_list_pointer`, and the `workbench_retained*` integration-contract readers.
 
 ## Historical Slint Entry Boundary
 
@@ -660,7 +690,7 @@ The practical split is:
 - [`apply_presentation.rs`](../../zircon_editor/src/ui/retained_host/ui/apply_presentation.rs) owns the final presentation apply step into `HostWindowPresentationData`.
 - [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs) owns conversion from workbench pane data to retained host-contract panes.
 - [`host_contract/data/panes.rs`](../../zircon_editor/src/ui/retained_host/host_contract/data/panes.rs), [`host_contract/data/ui_asset.rs`](../../zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs), [`host_contract/window.rs`](../../zircon_editor/src/ui/retained_host/host_contract/window.rs), and [`host_contract/globals.rs`](../../zircon_editor/src/ui/retained_host/host_contract/globals.rs) are the host-facing data seam.
-- [`retained_host/ui/tests.rs`](../../zircon_editor/src/ui/retained_host/ui/tests.rs) validates that host-owned panes convert to host-contract panes, including non-default shell-layout samples.
+- [`retained_host/ui/tests/host_scene_projection.rs`](../../zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs) validates that host-owned panes convert to host-contract panes, including non-default shell-layout samples.
 
 This keeps `workbench_host_window` from importing retained host DTO declarations directly and prevents the retained host from becoming the owner of editor business sessions. The only data that crosses into the retained host is already shaped as presentation or host-contract data.
 
@@ -681,7 +711,7 @@ The current source guards lock this authority split instead of preserving old ge
 - [`workbench_projection_cutover.rs`](../../zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs) rejects workbench-host imports of retained/generated pane DTO families and checks direct owner paths.
 - [`template_assets.rs`](../../zircon_editor/src/tests/ui/boundary/template_assets.rs) rejects fallback to deleted hardcoded pane geometry by checking the `.ui.toml` shell regions that each pane must consume.
 - Pane bootstrap tests under `src/tests/ui/*/bootstrap_assets.rs` assert each authored asset exports the required shell regions or mount nodes.
-- [`retained_host/ui/tests.rs`](../../zircon_editor/src/ui/retained_host/ui/tests.rs) checks host-scene projection into host-contract panes.
+- [`retained_host/ui/tests/host_scene_projection.rs`](../../zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs) checks host-scene projection into host-contract panes.
 - Retained pointer tests under `src/tests/host/retained_detail_pointer` and `src/tests/host/retained_list_pointer` keep scroll/list/detail surfaces on shared pointer/template callback contracts rather than restoring pane-specific callback ABI.
 
 The accepted focused gates for this boundary are the pane bootstrap tests, `tests::ui::boundary::template_assets`, `tests::ui::boundary::workbench_projection_cutover`, retained detail/list pointer tests, `host_scene_projection_converts_host_owned_panes_to_host_contract_panes`, `workbench_host_window_keeps_retained_shell_dtos_at_ui_boundary_only`, and `cargo check -p zircon_editor --lib --locked` when the surrounding workspace is not blocked by unrelated active lanes.
@@ -844,7 +874,7 @@ Host 层的 UI Asset Editor session 构造现在按 source schema 分流。`edit
 
 `style_state.rs` 现在提供选中节点 `props` / `state` literal patch 入口，`inspector_fields.rs` 负责把点分路径写入或删除到节点 `props` 与 legacy-projection `params`。在 v2 session 中，这些修改继续走 schema-aware `apply_document_edit`，canonical save 会把 `params` 重新映射为 v2 `[nodes.*].state`。这让复合组件作者态可以先通过稳定 session API 修改组件参数与状态，后续只需要把可视化 inspector 控件接到同一 API 上。
 
-选中节点的 props/state 现在同时投影到 summary 流和 dedicated inspector 通道。`inspector_fields.rs` 会把嵌套 table 展平成结构化 `UiAssetEditorWidgetPropStateItem { kind, path, value, display }` 行，`presentation_state.rs` 把这些行写入 `inspector_widget_prop_state_rows`，retained host 合约通过 `UiAssetInspectorWidgetData.prop_state_rows` 暴露给 v2 inspector 控件；`display` 同时写入 `prop_state_items` 并并入 `inspector_items` 作为兼容 summary。retained 转换层的 `ui_asset_detail_fields.rs` 会在 Widget/Slot/Layout/Binding inspector section 下按行追加 Material 输入节点：Widget 先投影 control id、text、component root class policy，再投影通用 props/state 行；Slot 投影 mount、padding、尺寸约束和可见的线性/overlay/grid/flow slot 字段；Layout 投影尺寸、semantic、box/scroll/virtualization/clip 字段；Binding 投影 id、event、route、route target、action target。每个 section 会按实际行数增高自身并顺移后续 section，避免动态输入覆盖静态布局。动态详情输入现在使用 `dispatch_kind = "commit_only"`：按键阶段只更新本地 text focus 并重绘输入框 damage region，真正的 `ui_asset_detail|<instance>|<detail>|<action>|<index>` 提交只在 Enter/commit 发生；对应 draft edit id 使用 `ui_asset_detail_draft|...`，防止每个键盘输入都进入资产 patch 与 presentation rebuild。`pane_surface_actions.rs` 会识别 commit binding 并复用通用 `dispatch_ui_asset_detail_event`，最终走 `asset_editor` component adapter 或已有 detail handler 的 field patch API；因此可视化字段不需要从普通说明文本里反查组件参数，也不需要为每个 prop/state 增加一个硬编码 editor action。
+选中节点的 props/state 现在同时投影到 summary 流和 dedicated inspector 通道。`inspector_fields.rs` 会把嵌套 table 展平成结构化 `UiAssetEditorWidgetPropStateItem { kind, path, value, display }` 行，`presentation_state.rs` 把这些行写入 `inspector_widget_prop_state_rows`，retained host 合约通过 `UiAssetInspectorWidgetData.prop_state_rows` 暴露给 v2 inspector 控件；`display` 同时写入 `prop_state_items` 并并入 `inspector_items` 作为兼容 summary。retained 转换层的 `ui_asset_detail_fields/` owner 会在 Widget/Slot/Layout/Binding inspector section 下按行追加 Material 输入节点：Widget 先投影 control id、text、component root class policy，再投影通用 props/state 行；Slot 投影 mount、padding、尺寸约束和可见的线性/overlay/grid/flow slot 字段；Layout 投影尺寸、semantic、box/scroll/virtualization/clip 字段；Binding 投影 id、event、route、route target、action target。每个 section 会按实际行数增高自身并顺移后续 section，避免动态输入覆盖静态布局。动态详情输入现在使用 `dispatch_kind = "commit_only"`：按键阶段只更新本地 text focus 并重绘输入框 damage region，真正的 `ui_asset_detail|<instance>|<detail>|<action>|<index>` 提交只在 Enter/commit 发生；对应 draft edit id 使用 `ui_asset_detail_draft|...`，防止每个键盘输入都进入资产 patch 与 presentation rebuild。`pane_surface_actions.rs` 会识别 commit binding 并复用通用 `dispatch_ui_asset_detail_event`，最终走 `asset_editor` component adapter 或已有 detail handler 的 field patch API；因此可视化字段不需要从普通说明文本里反查组件参数，也不需要为每个 prop/state 增加一个硬编码 editor action。
 
 v2 component authoring projection 也不再吞掉坏图。`lifecycle.rs` 在把 flat v2 graph 投影为 authoring tree 时会显式检查 root/child 节点是否存在，并用 active-path set 拒绝 component 子图环；缺失 component root 或循环引用会返回 v2 asset error，而不是把组件从 palette/hierarchy 中静默跳过。这个约束让 UI Asset Editor 的 authoring 状态和 runtime v2 compiler 保持同一类失败语义，也避免坏组件图在编辑器打开阶段形成无限投影。
 

@@ -103,6 +103,25 @@ def table_required_non_empty_string_schema_diagnostics(
     return diagnostics
 
 
+def table_required_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() != value
+        ):
+            diagnostics.append(
+                f"{label}.{field} must be a non-empty trimmed string"
+            )
+    return diagnostics
+
+
 def table_sha256_hex_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -111,7 +130,12 @@ def table_sha256_hex_string_schema_diagnostics(
     diagnostics: list[str] = []
     for field in fields:
         value = table.get(field)
-        if isinstance(value, str) and value.strip() and not is_sha256_hex(value):
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() == value
+            and not is_sha256_hex(value)
+        ):
             diagnostics.append(f"{label}.{field} must be a SHA-256 hex digest")
     return diagnostics
 
@@ -127,6 +151,7 @@ def table_safe_relative_path_string_schema_diagnostics(
         if (
             isinstance(value, str)
             and value.strip()
+            and value.strip() == value
             and not is_safe_relative_path(normalize_relative_path(value))
         ):
             diagnostics.append(f"{label}.{field} must be a safe relative path")
@@ -161,6 +186,29 @@ def object_array_required_non_empty_string_schema_diagnostics(
             continue
         diagnostics.extend(
             table_required_non_empty_string_schema_diagnostics(
+                f"{label} {field}[{index}]",
+                entry,
+                fields,
+            )
+        )
+    return diagnostics
+
+
+def object_array_required_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        diagnostics.extend(
+            table_required_trimmed_non_empty_string_schema_diagnostics(
                 f"{label} {field}[{index}]",
                 entry,
                 fields,
@@ -267,6 +315,8 @@ def object_array_unique_string_field_schema_diagnostics(
         field_value = entry.get(value_field)
         if not isinstance(field_value, str):
             return []
+        if not field_value.strip() or field_value.strip() != field_value:
+            continue
         entries.append(field_value)
 
     return string_array_unique_entries_schema_diagnostics(
@@ -292,6 +342,14 @@ def platform_bundle_native_plugins_package_report_payload_files_schema_diagnosti
     )
     diagnostics.extend(
         object_array_required_non_empty_string_schema_diagnostics(
+            payload_label,
+            payload,
+            "files",
+            NATIVE_DYNAMIC_FILE_MANIFEST_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        object_array_required_trimmed_non_empty_string_schema_diagnostics(
             payload_label,
             payload,
             "files",
@@ -353,6 +411,13 @@ def platform_bundle_native_plugins_package_report_payload_schema_diagnostics(
     )
     diagnostics.extend(
         table_required_non_empty_string_schema_diagnostics(
+            payload_label,
+            payload,
+            NATIVE_DYNAMIC_PACKAGE_REPORT_PAYLOAD_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_required_trimmed_non_empty_string_schema_diagnostics(
             payload_label,
             payload,
             NATIVE_DYNAMIC_PACKAGE_REPORT_PAYLOAD_REQUIRED_STRING_FIELDS,
@@ -453,6 +518,13 @@ def platform_bundle_native_plugins_package_report_abi_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        table_required_trimmed_non_empty_string_schema_diagnostics(
+            abi_label,
+            abi,
+            NATIVE_DYNAMIC_PACKAGE_REPORT_ABI_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
         table_string_schema_diagnostics(
             abi_label,
             abi,
@@ -484,6 +556,13 @@ def platform_bundle_native_plugins_package_report_schema_diagnostics(
     )
     diagnostics.extend(
         table_required_non_empty_string_schema_diagnostics(
+            label,
+            package_report,
+            NATIVE_DYNAMIC_PACKAGE_REPORT_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_required_trimmed_non_empty_string_schema_diagnostics(
             label,
             package_report,
             NATIVE_DYNAMIC_PACKAGE_REPORT_REQUIRED_STRING_FIELDS,

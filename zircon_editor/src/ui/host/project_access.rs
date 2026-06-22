@@ -68,7 +68,9 @@ impl EditorUiHost {
     }
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
-        resolve_asset_manager(&self.core).map_err(|error| EditorError::Project(error.to_string()))
+        resolve_asset_manager(&self.core)
+            .map(|manager| manager.shared())
+            .map_err(|error| EditorError::Project(error.to_string()))
     }
 
     pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {

@@ -234,7 +234,7 @@ fn runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover() {
             "pub use bundle::Bundle;",
             &[
                 "pub trait Bundle: 'static + Send + Sync",
-                "fn insert_into(self, world: &mut World, entity: EntityId) -> Result<(), String>;",
+                "fn insert_into(self, world: &mut World, entity: EntityId) -> SceneResult<()>;",
                 "tuple_bundle!(A, B, C, D, E, F, G, H);",
             ],
         ),

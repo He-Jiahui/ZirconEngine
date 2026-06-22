@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "texture"
 version = "0.1.0"
 display_name = "Texture"
@@ -6,6 +7,7 @@ sdk_api_version = "0.1.0"
 category = "runtime"
 maturity = "stable"
 supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.texture"]
 default_packaging = ["source_template", "library_embed"]
 

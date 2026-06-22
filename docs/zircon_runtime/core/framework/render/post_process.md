@@ -143,8 +143,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
@@ -283,8 +283,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs

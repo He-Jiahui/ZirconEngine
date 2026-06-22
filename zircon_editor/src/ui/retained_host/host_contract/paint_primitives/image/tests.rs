@@ -1,5 +1,7 @@
 use super::super::super::paint_frame::HostRecordedPaintKind;
 use super::*;
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 
 #[test]
 fn draw_rgba_image_clipped_copies_opaque_identity_rows_inside_clip() {
@@ -104,7 +106,9 @@ fn draw_rgba_image_clipped_records_content_scoped_resource_keys() {
 
     assert_eq!(resource_keys.len(), 2);
     assert_ne!(resource_keys[0], resource_keys[1]);
-    assert!(resource_keys.iter().all(|key| key.starts_with("rgba:1x1:")));
+    assert!(resource_keys
+        .iter()
+        .all(|key| key.as_str().starts_with("rgba:1x1:")));
 }
 
 #[test]

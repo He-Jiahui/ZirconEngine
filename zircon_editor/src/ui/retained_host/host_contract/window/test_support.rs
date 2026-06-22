@@ -1,9 +1,12 @@
 use winit::event::KeyEvent;
+use winit::event::WindowEvent;
 use winit::keyboard::ModifiersState;
+use zircon_runtime::ui::platform_input::{translate_winit_modifiers, translate_winit_window_event};
 use zircon_runtime_interface::ui::dispatch::{
-    UiInputEventMetadata, UiInputSequence, UiInputTimestamp, UiWindowId,
+    UiInputEvent, UiInputEventMetadata, UiInputSequence, UiInputTimestamp, UiWindowId,
 };
 use zircon_runtime_interface::ui::surface::UiPointerButton;
+use zircon_runtime_interface::ui::window::{UiWindowInputContext, UiWindowInputPumpEvent};
 
 use super::super::native_keyboard::{
     dispatch_workbench_popup_keyboard_command, dispatch_workbench_popup_text_search,
@@ -31,12 +34,8 @@ impl UiHostWindow {
         event: KeyEvent,
         modifiers: ModifiersState,
     ) -> NativePointerDispatchResult {
-        self.dispatch_native_keyboard_event(
-            &event,
-            modifiers,
-            native_keyboard_test_metadata(),
-            true,
-        )
+        let keyboard = native_keyboard_test_input(&event, modifiers);
+        self.dispatch_keyboard_event(&event, keyboard)
     }
 
     pub(crate) fn dispatch_native_pointer_move_for_test(
@@ -168,4 +167,25 @@ fn native_keyboard_test_metadata() -> UiInputEventMetadata {
         UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));
     metadata.window_id = Some(UiWindowId::new(NATIVE_HOST_WINDOW_ID));
     metadata
+}
+
+fn native_keyboard_test_input(
+    event: &KeyEvent,
+    modifiers: ModifiersState,
+) -> Option<zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent> {
+    let platform_event = WindowEvent::KeyboardInput {
+        device_id: None,
+        event: event.clone(),
+        is_synthetic: true,
+    };
+    let context = UiWindowInputContext {
+        metadata: native_keyboard_test_metadata(),
+    }
+    .with_modifiers(translate_winit_modifiers(modifiers));
+    let Some(UiWindowInputPumpEvent::Input(UiInputEvent::Keyboard(keyboard))) =
+        translate_winit_window_event(context, &platform_event)
+    else {
+        return None;
+    };
+    Some(keyboard)
 }

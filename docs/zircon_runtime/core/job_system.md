@@ -14,6 +14,10 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/tests/runtime_absorption/job_system.rs
   - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
 implementation_files:
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
@@ -30,6 +34,9 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
 plan_sources:
   - user: 2026-06-13 implement runtime architecture plan code
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
@@ -51,7 +58,7 @@ tests:
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture
   - runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass
   - runtime_11_job_system_mirror_docs_match_structure_audit_counts
-  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 12, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
+  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
   - runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending static checks passed 2026-06-16
 doc_type: module-detail
 ---
@@ -64,7 +71,7 @@ Runtime 11 extends the existing Bevy-style task pools into a small JobSystem lay
 
 This document records the M0 model decision before the M1 code surface: `JobHandle`, dependency scheduling, explicit synchronization points, a `parallel_for` primitive, and the first scheduler diagnostics surface. It also records which candidate primitives are intentionally not implemented yet.
 
-The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
+The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. The 2026-06-21 `job_system_inventory_split_static_passed_cargo_deferred_tests_deferred` slice moved the source/Rayon inventory to `job_system_source_inventory.py` and the declaration/API/test/doc anchors to `job_system_anchor_inventory.py`; the follow-up `job_system_markdown_split_static_passed_cargo_deferred_tests_deferred` slice keeps `job_system_boundary.py` as the 193-line audit reader, missing-anchor calculator, and risk aggregator while `job_system_markdown.py` owns the 64-line Markdown renderer. The `worker_wait_assist_static_passed_cargo_deferred` slice keeps Rayon work-assist encapsulated in `pool.rs` through `assist_current_thread_once(...)`, while `JobHandle::wait()` uses that helper to avoid single-worker self-deadlock when a runtime worker waits on a child handle. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
 
 ## Consumer Matrix
 
@@ -86,7 +93,7 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 | Serial domain | No dedicated pipe in the core semantic model | `FPipe` FIFO serial pipe | No pipe in M1. Existing consumers can express serial order as dependencies; add a named pipe only if asset or editor workloads produce evidence that dependency chains are insufficient. |
 | Data parallelism | `IJobParallelFor` with inner-loop batch count | `ParallelFor` with minimum batch size and worker limits | `parallel_for(pool, items, chunk_size, f)` wraps rayon chunk execution through a runtime-owned `TaskPool`. It is blocking and intended for per-frame CPU transforms such as culling or batch-local ECS work. |
 | Concurrency limit | Not part of the minimal semantic surface | `FTaskConcurrencyLimiter` | Not implemented in M1. Runtime 04 backpressure and asset diagnostics are the first valid trigger. |
-| Worker wait | Unity discourages worker-side completion waits | Godot and UE both include explicit deadlock avoidance paths | M1 avoids dependency-wait deadlocks by not scheduling dependent work until prerequisites complete. Direct `wait()` from arbitrary worker code is not a new scheduling primitive and should remain a main-thread or owner-controlled sync point until a work-assist design is proven. |
+| Worker wait | Unity discourages worker-side completion waits | Godot and UE both include explicit deadlock avoidance paths | M1 avoids dependency-wait deadlocks by not scheduling dependent work until prerequisites complete. Direct `wait()` from arbitrary worker code remains discouraged as a gameplay-facing primitive, but Runtime 11 now has a proven wait-assist fallback: when called from a Rayon worker, `JobHandle::wait()` asks the current pool to execute one pending task before parking briefly. |
 
 ## Thread Budget
 
@@ -100,6 +107,8 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 ## API Contract
 
 `JobScheduler::spawn` remains fire-and-forget. `JobScheduler::schedule` returns a `JobHandle`. `JobScheduler::schedule_after` returns a handle for the dependent task without blocking a worker while dependencies are outstanding. `JobHandle::combine` creates a synchronization handle that completes when all child handles complete. `JobScheduler::wait_all(...)` is the scheduler-owned multi-handle synchronization point; it combines the provided handles and records the explicit wait against the scheduler diagnostics state.
+
+`JobHandle::wait()` is deadlock-resistant when invoked from a runtime worker. The handle wait loop drops its state lock, calls the task-pool-owned `assist_current_thread_once(...)`, and only parks briefly when the current Rayon worker finds no ready task. This keeps direct Rayon calls in the existing `pool.rs` owner and prevents a single-worker scheduler from blocking forever while the only worker waits on a child job it just queued.
 
 Handle-backed scheduled tasks are panic-safe at the synchronization boundary. If a scheduled task panics, its `JobHandle` still reaches a terminal state, wakes waiters, and `wait()` reports the task panic on the caller thread. `schedule_after` and `JobHandle::combine` propagate dependency panic state to their returned handles without running dependent task bodies, so a failed prerequisite cannot leave a synchronization point waiting forever.
 
@@ -117,7 +126,7 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors. `job_system_boundary` now keeps `behavior_test_anchor_count = 12` with `missing_behavior_test_anchors = []` so those names cannot silently drift while Cargo validation is pending. `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
+`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors. `job_system_boundary` now keeps `behavior_test_anchor_count = 13` with `missing_behavior_test_anchors = []` so those names cannot silently drift while Cargo validation is pending. `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
 
 - `job_handle_wait_blocks_until_task_completes`
 - `job_handle_wait_reports_task_panic_without_leaking_completion`
@@ -125,6 +134,7 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 - `schedule_after_propagates_dependency_panic_without_running_dependent_task`
 - `combined_handle_completes_when_all_children_complete`
 - `schedule_after_does_not_consume_worker_while_waiting_on_dependencies`
+- `worker_thread_wait_does_not_deadlock_scheduler`
 - `job_diagnostics_track_schedule_complete_and_wait_times`
 - `deep_dependency_chain_completes_in_order`
 - `wide_fanout_combine_waits_for_all`
@@ -145,5 +155,9 @@ Cargo execution reached package compilation but did not reach the task tests on 
 The 2026-06-20 lightweight guard pass confirms the static boundary while Cargo remains pending: standalone `job_system.rs` passed 1/1, standalone `rayon_boundary.rs` passed 3/3, standalone `asset_worker_policy.rs` passed 1/1, and `asset_worker_policy.rs` passed rustfmt. The asset worker guard was tightened to inspect the `impl AssetWorkerPool` block for the retired `AssetWorkerPool::new(worker_count)` signature while still requiring `AssetWorkerPoolOptions` to own worker-count configuration, so the guard no longer mistakes the valid `AssetWorkerPoolOptions::new(worker_count)` constructor for the retired pool API.
 
 The core-min window added another lightweight evidence pass before status sync: `job_system_boundary.py` compiled, direct `job_system_boundary_audit` reported `expected_module_count = 9`, `direct_rayon_paths = 2`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, and `risks = []`, and standalone `job_system.rs` 1/1 plus standalone `rayon_boundary.rs` 3/3 passed.
+
+The 2026-06-21 inventory split compiled `job_system_boundary.py`, `job_system_source_inventory.py`, and `job_system_anchor_inventory.py`; direct `job_system_boundary_audit` continued to report task owner modules 9/9, direct Rayon paths 2/2, diagnostic anchors 4/4, behavior-test anchors 12/12, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. The follow-up Markdown renderer split also compiled `job_system_markdown.py`, moved `render_job_system_boundary_markdown` out of `job_system_boundary.py`, and left the direct audit counts unchanged at `risks = []`.
+
+The 2026-06-21 worker wait-assist slice adds `worker_thread_wait_does_not_deadlock_scheduler`, bringing Runtime 11 behavior-test anchors to 13/13. `pool.rs` remains one of the two direct-Rayon owners and now exposes `assist_current_thread_once(...)`; `job_handle.rs` uses that helper plus `WORKER_WAIT_IDLE_PARK` to avoid self-deadlock without adding another Rayon owner path. Standalone `job_system.rs` 1/1, standalone `rayon_boundary.rs` 3/3, and standalone `plan_status.rs` 33/33 remain the lightweight guards for this lane until package-level `tasks/ecs_schedule/worker_pool/rayon` Cargo gates can run.
 
 `runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass` keeps the `tasks/ecs_schedule/worker_pool/rayon` validation lane visible across Runtime 11, the runtime index, Runtime 05 closeout, this module doc, and the M0 review. The render-owned `parallel_frustum.rs` direct-Rayon cutover is complete at static/source level, but Runtime 11 remains `in_progress` until the declared package filters have real Cargo evidence.

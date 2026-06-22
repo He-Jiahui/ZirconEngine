@@ -87,14 +87,15 @@ struct InvalidModulePlugin {
 impl InvalidModulePlugin {
     fn new(module: ModuleDescriptor) -> Self {
         Self {
-            descriptor: RuntimePluginDescriptor::new(
+            descriptor: RuntimePluginDescriptor::builder(
                 "weather",
                 "Weather",
                 RuntimePluginId::Particles,
                 "zircon_plugin_weather_runtime",
             )
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
-            .with_capability("runtime.plugin.weather"),
+            .with_capability("runtime.plugin.weather")
+            .build(),
             module,
         }
     }

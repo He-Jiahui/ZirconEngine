@@ -1,13 +1,13 @@
 mod manifest;
 mod rows;
 
-use super::super::RuntimePluginDescriptor;
+use super::BuiltinCatalogDescriptorBuilder;
 use manifest::rendering_feature;
 use rows::RENDERING_FEATURE_ROWS;
 
 pub(super) fn attach_rendering_features(
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     RENDERING_FEATURE_ROWS
         .iter()
         .fold(descriptor, |descriptor, row| {

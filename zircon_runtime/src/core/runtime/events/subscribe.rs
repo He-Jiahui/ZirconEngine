@@ -12,7 +12,7 @@ impl EventBus {
     pub fn subscribe(&self, topic: impl Into<String>) -> ChannelReceiver<EngineEvent> {
         let topic = topic.into();
         let (tx, rx) = unbounded();
-        let mut subscribers = self.subscribers.lock().unwrap();
+        let mut subscribers = self.lock_subscribers();
         match subscribers.entry(topic) {
             Entry::Vacant(entry) => {
                 entry.insert(Arc::<[ChannelSender<EngineEvent>]>::from([tx]));

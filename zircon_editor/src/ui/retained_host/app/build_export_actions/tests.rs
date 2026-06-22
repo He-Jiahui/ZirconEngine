@@ -1,4 +1,6 @@
 use super::*;
+use std::path::{Path, PathBuf};
+use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::plugin::{ExportPackagingStrategy, ExportTargetPlatform};
 

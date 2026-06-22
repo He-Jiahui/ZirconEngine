@@ -109,6 +109,18 @@ impl EditorUiHostRuntime {
             .map_err(EditorUiHostRuntimeError::from)
     }
 
+    pub fn register_v2_template_document_files<P, I>(
+        &mut self,
+        document_id: impl Into<String>,
+        paths: I,
+    ) -> Result<(), EditorUiHostRuntimeError>
+    where
+        P: AsRef<std::path::Path>,
+        I: IntoIterator<Item = P>,
+    {
+        self.register_v2_document_files(document_id, paths)
+    }
+
     pub fn register_document_source(
         &mut self,
         document_id: impl Into<String>,
@@ -304,11 +316,23 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
+        self.register_v2_document_files(document_id, std::iter::once(path))
+    }
+
+    fn register_v2_document_files<P, I>(
+        &mut self,
+        document_id: impl Into<String>,
+        paths: I,
+    ) -> Result<(), EditorUiHostRuntimeError>
+    where
+        P: AsRef<std::path::Path>,
+        I: IntoIterator<Item = P>,
+    {
         let document_id = document_id.into();
         let outcome = v2_template_file_cache()
             .lock()
             .expect("v2 template file cache mutex should not be poisoned")
-            .load_store(std::iter::once(path.as_ref().to_path_buf()))?;
+            .load_store(paths)?;
         self.v2_documents.insert(
             document_id,
             EditorUiHostV2Document {

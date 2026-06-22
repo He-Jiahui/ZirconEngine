@@ -1,71 +1,38 @@
-#[cfg(test)]
-use crate::asset::{TextureAsset, TexturePayload};
 use crate::core::framework::render::{
     AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
     RenderPluginRendererOutputs,
 };
-#[cfg(test)]
-use crate::core::framework::render::{
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderColorLutReadbackReport,
-    RenderImageDescriptor, RenderPostProcessEffectStackSettings, RenderSceneVelocityReadbackReport,
-};
 use crate::graphics::backend::OffscreenTarget;
-#[cfg(test)]
-use crate::graphics::backend::{read_texture_rgba, read_texture_rgba16float_3d};
-use crate::graphics::debug_markers::{
-    insert_marker, pop_group, push_group, RENDERDOC_MARKER_FRAME_EXTRACT,
-    RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
-};
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
-    RenderPassExecutorRegistry, RenderPassPostProcessStackContext,
+    RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::{
     build_mesh_pass_command_buffers_cached, prepare_mesh_queue, MeshDrawReplayStatsAccumulator,
-    MeshIndirectArgsReadback, MeshPassIndirectDrawExecutions,
+    MeshPassIndirectDrawExecutions,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::visibility::{
-    HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
-};
 use crate::graphics::CompiledRenderPipeline;
 use crate::render_graph::RenderGraphResourceAccessKind;
-#[cfg(test)]
-use crate::rhi::TextureFormat;
 
 use super::super::super::scene_renderer_core::{
     merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
-use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
-use super::bind_frame_graph_resources::bind_frame_graph_resources;
-use super::bind_history_graph_resources::{
-    bind_history_graph_resources, HistoryGraphResourceBindingFlags,
+use super::bind_compiled_scene_graph_resources::{
+    bind_compiled_scene_graph_resources, CompiledSceneGraphResourceBindingFlags,
 };
-use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
-use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
-use super::final_target_output::select_final_target_output;
+use super::execute_compiled_scene_graph_stages::CompiledSceneGraphStageContext;
+use super::execute_graph_stage::RenderGraphStageExecution;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
-
-const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
-    RenderPassStage::DepthPrepass,
-    RenderPassStage::Shadow,
-    RenderPassStage::AmbientOcclusion,
-];
-
-const LATE_GRAPH_STAGES: &[RenderPassStage] = &[
-    RenderPassStage::Ui,
-    RenderPassStage::Overlay,
-    RenderPassStage::Debug,
-];
+use super::submit_compiled_scene_frame::CompiledSceneFrameSubmissionContext;
 
 const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::Opaque2d,
@@ -247,53 +214,28 @@ impl SceneRendererCore {
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
         self.transient_resource_pool.begin_frame();
-        let final_target_output = select_final_target_output(streamer, frame);
-        let imported_final_target = final_target_output.imported_resource().map(|resource| {
-            RenderGraphImportedFinalTarget {
-                view: resource.view(),
-            }
-        });
-        bind_frame_graph_resources(
-            &pipeline.graph,
-            &mut graph_resources,
-            target,
-            imported_final_target,
-            Some(&self.shadow_atlas_resources),
-        );
-        bind_history_graph_resources(
-            &pipeline.graph,
-            &mut graph_resources,
-            history_textures.as_deref(),
-            HistoryGraphResourceBindingFlags {
-                taa_scene_color: taa_history_enabled,
-                screen_space_reflection: history_available
-                    && screen_space_reflection_history_enabled,
-                hzb: history_available && hzb_history_enabled,
-                hybrid_global_illumination: history_available
-                    && runtime_features.hybrid_global_illumination_enabled,
-                exposure: exposure_history_enabled,
-            },
-        );
-        graph_resources
-            .materialize_transient_resources_with_pool(
-                device,
-                &pipeline.graph,
-                &mut self.transient_resource_pool,
-            )
-            .map_err(GraphicsError::Asset)?;
-        bind_execution_owned_graph_resources(
+        let final_target_output = bind_compiled_scene_graph_resources(
             device,
-            &pipeline.graph,
+            pipeline,
+            streamer,
+            frame,
+            target,
+            history_textures.as_deref(),
+            CompiledSceneGraphResourceBindingFlags {
+                taa_history_enabled,
+                screen_space_reflection_history_enabled,
+                hzb_history_enabled,
+                exposure_history_enabled,
+                history_available,
+                runtime_features,
+            },
             &mut graph_resources,
+            &mut self.transient_resource_pool,
             mesh_draw_lists,
             self.hzb_occlusion_culler.as_ref(),
-        );
-        bind_plugin_graph_resources(
-            device,
-            &pipeline.graph,
+            &self.shadow_atlas_resources,
             advanced_plugin_readbacks.external_buffer_bindings(),
-            &mut graph_resources,
-        );
+        )?;
         let materialization_report = graph_resources
             .validate_materialized_graph_resources(&pipeline.graph)
             .map_err(GraphicsError::Asset)?;
@@ -307,271 +249,40 @@ impl SceneRendererCore {
             &mut graph_execution_record,
             &mut graph_plugin_outputs,
         );
-        self.scene_clear.record_frame_clear(
-            queue,
-            &mut encoder,
-            &target.scene_color_view,
-            &target.depth_view,
-            frame,
-        );
-        let early_post_process_stack = RenderPassPostProcessStackContext::new(
-            &self.post_process,
-            &*target,
-            streamer,
-            runtime_features,
-            history_textures.as_deref(),
-            history_available,
-        )
-        .with_material_gbuffer_valid(material_gbuffer_valid);
-        for stage in EARLY_GRAPH_STAGES {
-            let is_depth_prepass = *stage == RenderPassStage::DepthPrepass;
-            let is_shadow = *stage == RenderPassStage::Shadow;
-            if is_depth_prepass {
-                push_group(&mut encoder, RENDERDOC_MARKER_PREPASS);
-            }
-            let overlay_renderer = if is_depth_prepass {
-                Some(&mut self.overlay_renderer)
-            } else {
-                None
-            };
-            let depth_prepass_streamer = is_depth_prepass.then_some(streamer);
-            let depth_prepass_mesh_pipelines = if is_depth_prepass {
-                Some(&mut self.mesh_pipelines)
-            } else {
-                None
-            };
-            let stage_result = execute_graph_stage(
-                pipeline,
-                render_pass_executors,
-                *stage,
-                device,
-                queue,
-                &mut encoder,
-                frame,
-                &self.scene_bind_group_layout,
-                self.target_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
-                Some(early_post_process_stack),
-                overlay_renderer,
-                None,
-                is_depth_prepass.then_some(&self.normal_prepass),
-                None,
-                None,
-                None,
-                depth_prepass_streamer,
-                depth_prepass_mesh_pipelines,
-                (is_depth_prepass || is_shadow).then_some(mesh_draw_lists),
-                self.hzb_occlusion_culler.as_ref(),
-                is_shadow.then_some(&self.shadow_map_renderer),
-                Some(&self.shadow_atlas_resources),
-                is_shadow.then_some(&shadow_frame_plan),
-                &mut graph_execution,
-            );
-            if is_depth_prepass {
-                pop_group(&mut encoder);
-            }
-            stage_result?;
-        }
-        if !runtime_features.deferred_lighting_enabled {
-            execute_graph_stage(
-                pipeline,
-                render_pass_executors,
-                RenderPassStage::Lighting,
-                device,
-                queue,
-                &mut encoder,
-                frame,
-                &self.scene_bind_group_layout,
-                self.target_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
-                Some(early_post_process_stack),
-                None, // overlay renderer
-                None, // prepared overlays
-                None, // prepass
-                None, // deferred resources
-                None, // particle renderer
-                None, // sprite renderer
-                None, // resource streamer
-                None, // mesh pipeline cache
-                None, // mesh draw lists
-                None, // HZB occlusion culler
-                None, // shadow map renderer
-                Some(&self.shadow_atlas_resources),
-                None,
-                &mut graph_execution,
-            )?;
-        }
-        self.render_scene_passes(
+        self.execute_compiled_scene_graph_stages(CompiledSceneGraphStageContext {
             device,
             queue,
-            &mut encoder,
+            encoder: &mut encoder,
             streamer,
             frame,
             target,
-            runtime_features,
             pipeline,
             render_pass_executors,
-            &mut graph_execution,
+            runtime_features,
+            graph_execution: &mut graph_execution,
             mesh_draw_lists,
-            history_textures.as_deref(),
-            history_available,
-        )?;
-        let mut runtime_frame = frame.clone();
-        if !history_available {
-            runtime_frame.extract.post_process.stack = runtime_frame
-                .extract
-                .post_process
-                .stack
-                .without_history_resources();
-            runtime_frame.extract.post_process.graph =
-                runtime_frame.extract.post_process.stack.validated_graph();
-        }
-        insert_marker(&mut encoder, RENDERDOC_MARKER_POST_PROCESS);
-        let post_process_stack = RenderPassPostProcessStackContext::new(
-            &self.post_process,
-            &*target,
-            streamer,
-            runtime_features,
-            history_textures.as_deref(),
-            history_available,
-        )
-        .with_material_gbuffer_valid(material_gbuffer_valid);
-        execute_graph_stage(
-            pipeline,
-            render_pass_executors,
-            RenderPassStage::PostProcess,
-            device,
-            queue,
-            &mut encoder,
-            &runtime_frame,
-            &self.scene_bind_group_layout,
-            self.target_format,
-            self.depth_format,
-            &self.scene_bind_group,
-            &mut self.screen_space_ui_renderer,
-            Some(post_process_stack),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(streamer),
-            Some(&mut self.mesh_pipelines),
-            Some(mesh_draw_lists),
-            self.hzb_occlusion_culler.as_ref(),
-            None,
-            Some(&self.shadow_atlas_resources),
-            None,
-            &mut graph_execution,
-        )?;
-        graph_execution.record_post_process_graph(&runtime_frame.extract.post_process.graph);
-        let history_copy_required = history_textures_present
-            && (taa_history_enabled
-                || runtime_features.hybrid_global_illumination_enabled
-                || runtime_features.ssao_enabled
-                || screen_space_reflection_history_enabled
-                || hzb_history_enabled
-                || exposure_history_enabled);
-        if history_copy_required {
-            insert_marker(&mut encoder, RENDERDOC_MARKER_HISTORY_COPY);
-        }
-        let history_copy_report = self.copy_history_textures(
-            &mut encoder,
-            target,
-            runtime_frame.render_region(),
-            &*graph_execution.resources,
             history_textures,
-            runtime_features,
+            history_available,
+            material_gbuffer_valid,
             taa_history_enabled,
             screen_space_reflection_history_enabled,
             hzb_history_enabled,
             exposure_history_enabled,
-        );
-        graph_execution
-            .record
-            .set_history_copy_report(history_copy_report);
-        for stage in active_late_graph_stages(pipeline) {
-            let overlay_stage = matches!(stage, RenderPassStage::Overlay | RenderPassStage::Debug);
-            let overlay_renderer = if overlay_stage {
-                Some(&mut self.overlay_renderer)
-            } else {
-                None
-            };
-            let prepared_overlay_buffers = overlay_stage.then_some(&prepared_overlays);
-            execute_graph_stage(
-                pipeline,
-                render_pass_executors,
-                stage,
-                device,
-                queue,
-                &mut encoder,
-                frame,
-                &self.scene_bind_group_layout,
-                self.target_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                &mut self.screen_space_ui_renderer,
-                None,
-                overlay_renderer,
-                prepared_overlay_buffers,
-                None, // prepass
-                None, // deferred resources
-                None, // particle renderer
-                None, // sprite renderer
-                None, // resource streamer
-                None, // mesh pipeline cache
-                None, // mesh draw lists
-                None, // HZB occlusion culler
-                None, // shadow map renderer
-                Some(&self.shadow_atlas_resources),
-                None,
-                &mut graph_execution,
-            )?;
-        }
+            shadow_frame_plan: &shadow_frame_plan,
+            prepared_overlays: &prepared_overlays,
+        })?;
         drop(graph_execution);
-        let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
-            device,
-            &mut encoder,
-            &mesh_pass_indirect_draws,
-            &graph_execution_record,
-        );
-        queue.submit([encoder.finish()]);
-        #[cfg(test)]
-        attach_scene_velocity_readback_stats(
+
+        self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext {
             device,
             queue,
-            &graph_resources,
-            &mut graph_execution_record,
-        );
-        #[cfg(test)]
-        attach_color_lut_readback_stats(
-            device,
-            queue,
+            encoder,
             streamer,
             frame,
-            &graph_resources,
-            &mut graph_execution_record,
-        );
-        if let Some(hzb_occlusion_culler) = self.hzb_occlusion_culler.as_ref() {
-            attach_hzb_occlusion_readback_stats(
-                hzb_occlusion_culler,
-                device,
-                hzb_occlusion_indirect_args_readbacks,
-                &mut graph_execution_record,
-            );
-        }
-        graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
-        self.transient_resource_pool.end_frame();
-        graph_execution_record.set_resource_report(
-            graph_execution_record
-                .resource_report()
-                .with_transient_pool_report(self.transient_resource_pool.last_frame_report()),
-        );
+            graph_resources: &mut graph_resources,
+            graph_execution_record: &mut graph_execution_record,
+            mesh_pass_indirect_draws: &mesh_pass_indirect_draws,
+        });
 
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
@@ -599,371 +310,11 @@ impl SceneRendererCore {
     }
 }
 
-#[cfg(test)]
-fn attach_scene_velocity_readback_stats(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    graph_resources: &RenderGraphExecutionResources,
-    graph_execution_record: &mut RenderGraphExecutionRecord,
-) {
-    let resource_name = PostProcessGraphResourceNames::SCENE_VELOCITY;
-    let Some(texture) = graph_resources.owned_texture(resource_name) else {
-        return;
-    };
-    let Some(desc) = graph_resources.owned_texture_desc(resource_name) else {
-        return;
-    };
-    if desc.format != TextureFormat::Rg16Float || desc.sample_count != 1 || desc.depth != 1 {
-        return;
-    }
-    let size = crate::core::math::UVec2::new(desc.width, desc.height);
-    if size.x == 0 || size.y == 0 {
-        return;
-    }
-    let Ok(bytes) = read_texture_rgba(device, queue, texture, size) else {
-        return;
-    };
-    graph_execution_record.set_scene_velocity_readback_report(
-        RenderSceneVelocityReadbackReport::from_raw_rg16_float_bytes(size, &bytes),
-    );
-}
-
-#[cfg(test)]
-fn attach_color_lut_readback_stats(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    streamer: &ResourceStreamer,
-    frame: &ViewportRenderFrame,
-    graph_resources: &RenderGraphExecutionResources,
-    graph_execution_record: &mut RenderGraphExecutionRecord,
-) {
-    let resource_name = PostProcessGraphResourceNames::COLOR_LUT;
-    let Some(texture) = graph_resources.owned_texture(resource_name) else {
-        return;
-    };
-    let Some(desc) = graph_resources.owned_texture_desc(resource_name) else {
-        return;
-    };
-    if desc.format != TextureFormat::Rgba16Float || desc.sample_count != 1 {
-        return;
-    }
-    let size = [desc.width, desc.height, desc.depth];
-    if size.iter().any(|extent| *extent == 0) {
-        return;
-    }
-    let Ok(bytes) = read_texture_rgba16float_3d(device, queue, texture, size) else {
-        return;
-    };
-    graph_execution_record.set_color_lut_readback_report(color_lut_readback_report_for_frame(
-        streamer, frame, size, &bytes,
-    ));
-}
-
-#[cfg(test)]
-fn color_lut_readback_report_for_frame(
-    streamer: &ResourceStreamer,
-    frame: &ViewportRenderFrame,
-    size: [u32; 3],
-    bytes: &[u8],
-) -> RenderColorLutReadbackReport {
-    if let Some(reference) = UserColorLutReadbackReference::from_frame(streamer, frame, size) {
-        return RenderColorLutReadbackReport::from_raw_rgba16_float_user_lut_bytes(
-            size,
-            bytes,
-            |source_color| reference.expected_rgb(source_color),
-        );
-    }
-
-    RenderColorLutReadbackReport::from_raw_rgba16_float_identity_bytes(size, bytes)
-}
-
-#[cfg(test)]
-struct UserColorLutReadbackReference {
-    rgba: Vec<u8>,
-    width: u32,
-    height: u32,
-    mode: UserColorLutReadbackMode,
-    intensity: f32,
-}
-
-#[cfg(test)]
-#[derive(Clone, Copy)]
-enum UserColorLutReadbackMode {
-    Texture2d,
-    Texture2dStrip { size: u32 },
-    Texture3d { size: u32 },
-}
-
-#[cfg(test)]
-impl UserColorLutReadbackMode {
-    fn rgba_byte_len(self, width: u32, height: u32) -> Option<usize> {
-        match self {
-            Self::Texture2d | Self::Texture2dStrip { .. } => rgba8_len(width, height),
-            Self::Texture3d { size } => (size as usize)
-                .checked_mul(size as usize)?
-                .checked_mul(size as usize)?
-                .checked_mul(4),
-        }
-    }
-}
-
-#[cfg(test)]
-impl UserColorLutReadbackReference {
-    fn from_frame(
-        streamer: &ResourceStreamer,
-        frame: &ViewportRenderFrame,
-        readback_size: [u32; 3],
-    ) -> Option<Self> {
-        let effect_stack = frame.extract.post_process.effect_stack;
-        if !user_lut_readback_supports_effect_stack(effect_stack) {
-            return None;
-        }
-        Self::from_settings(streamer, effect_stack.color_lookup, readback_size)
-    }
-
-    fn from_settings(
-        streamer: &ResourceStreamer,
-        settings: RenderColorLookupSettings,
-        readback_size: [u32; 3],
-    ) -> Option<Self> {
-        let texture_id = settings
-            .is_enabled()
-            .then(|| settings.texture.map(|texture| texture.id()))
-            .flatten()?;
-        let texture = streamer
-            .asset_manager()
-            .load_texture_asset(texture_id)
-            .ok()?;
-        let descriptor = texture.render_image_descriptor();
-        let mode = user_lut_readback_mode(
-            streamer,
-            texture_id,
-            settings.texture_layout,
-            &descriptor,
-            readback_size,
-        )?;
-        let TextureAsset {
-            rgba,
-            width,
-            height,
-            payload,
-            ..
-        } = texture;
-        if payload != TexturePayload::Rgba8 || rgba.len() < mode.rgba_byte_len(width, height)? {
-            return None;
-        }
-
-        Some(Self {
-            rgba,
-            width,
-            height,
-            mode,
-            intensity: (settings.render_intensity() as f32).clamp(0.0, 1.0),
-        })
-    }
-
-    fn expected_rgb(&self, source_color: [f32; 3]) -> [f32; 3] {
-        let user_color = self.sample(source_color);
-        [
-            mix_channel(source_color[0], user_color[0], self.intensity),
-            mix_channel(source_color[1], user_color[1], self.intensity),
-            mix_channel(source_color[2], user_color[2], self.intensity),
-        ]
-    }
-
-    fn sample(&self, color: [f32; 3]) -> [f32; 3] {
-        match self.mode {
-            UserColorLutReadbackMode::Texture2d => [
-                self.sample_1d_channel(color[0]),
-                self.sample_1d_channel(color[1]),
-                self.sample_1d_channel(color[2]),
-            ],
-            UserColorLutReadbackMode::Texture2dStrip { size } => {
-                let red = lut_axis_index(color[0], size);
-                let green = lut_axis_index(color[1], size);
-                let blue = lut_axis_index(color[2], size);
-                let x = blue.saturating_mul(size).saturating_add(red);
-                self.texel_rgb(x.min(self.width.saturating_sub(1)), green.min(size - 1))
-            }
-            UserColorLutReadbackMode::Texture3d { size } => {
-                let red = lut_axis_index(color[0], size);
-                let green = lut_axis_index(color[1], size);
-                let blue = lut_axis_index(color[2], size);
-                let x = red.min(self.width.saturating_sub(1));
-                let y = green.min(self.height.saturating_sub(1));
-                let z_offset = blue.saturating_mul(self.width.saturating_mul(self.height));
-                self.texel_rgb_by_flat_index(z_offset.saturating_add(y * self.width + x))
-            }
-        }
-    }
-
-    fn sample_1d_channel(&self, value: f32) -> f32 {
-        let x = lut_axis_index(value, self.width);
-        self.texel_rgb(x.min(self.width.saturating_sub(1)), 0)[0]
-    }
-
-    fn texel_rgb(&self, x: u32, y: u32) -> [f32; 3] {
-        self.texel_rgb_by_flat_index(y.saturating_mul(self.width).saturating_add(x))
-    }
-
-    fn texel_rgb_by_flat_index(&self, flat_index: u32) -> [f32; 3] {
-        let offset = flat_index as usize * 4;
-        if offset + 2 >= self.rgba.len() {
-            return [0.0; 3];
-        }
-        [
-            self.rgba[offset] as f32 / 255.0,
-            self.rgba[offset + 1] as f32 / 255.0,
-            self.rgba[offset + 2] as f32 / 255.0,
-        ]
-    }
-}
-
-#[cfg(test)]
-fn user_lut_readback_supports_effect_stack(
-    effect_stack: RenderPostProcessEffectStackSettings,
-) -> bool {
-    effect_stack.tonemap == Default::default()
-}
-
-#[cfg(test)]
-fn user_lut_readback_mode(
-    streamer: &ResourceStreamer,
-    texture_id: crate::core::resource::ResourceId,
-    layout: RenderColorLookupTextureLayout,
-    descriptor: &RenderImageDescriptor,
-    readback_size: [u32; 3],
-) -> Option<UserColorLutReadbackMode> {
-    let lut_size = readback_size[0];
-    if readback_size != [lut_size; 3] || lut_size == 0 {
-        return None;
-    }
-    if streamer
-        .prepared_post_process_lut_3d_view(texture_id, layout)
-        .is_some()
-        && layout.matches_texture_3d(descriptor)
-        && descriptor.width == lut_size
-        && descriptor.height == lut_size
-        && descriptor.depth_or_array_layers == lut_size
-    {
-        return Some(UserColorLutReadbackMode::Texture3d { size: lut_size });
-    }
-    if let Some((_, is_strip)) = streamer.prepared_post_process_lut_2d_view(texture_id, layout) {
-        if is_strip
-            && layout.matches_texture_2d_strip(descriptor)
-            && descriptor.width == lut_size.saturating_mul(lut_size)
-            && descriptor.height == lut_size
-        {
-            return Some(UserColorLutReadbackMode::Texture2dStrip { size: lut_size });
-        }
-        if !is_strip && descriptor.width == lut_size && descriptor.height > 0 {
-            return Some(UserColorLutReadbackMode::Texture2d);
-        }
-    }
-    None
-}
-
-#[cfg(test)]
-fn lut_axis_index(value: f32, size: u32) -> u32 {
-    let max_index = size.max(1) - 1;
-    (value.clamp(0.0, 1.0) * max_index as f32)
-        .round()
-        .min(max_index as f32) as u32
-}
-
-#[cfg(test)]
-fn mix_channel(a: f32, b: f32, t: f32) -> f32 {
-    a * (1.0 - t) + b * t
-}
-
-#[cfg(test)]
-fn rgba8_len(width: u32, height: u32) -> Option<usize> {
-    (width as usize)
-        .checked_mul(height as usize)?
-        .checked_mul(4)
-}
-
-fn attach_hzb_occlusion_readback_stats(
-    culler: &HzbOcclusionCuller,
-    device: &wgpu::Device,
-    indirect_args_readbacks: Vec<MeshIndirectArgsReadback>,
-    graph_execution_record: &mut RenderGraphExecutionRecord,
-) {
-    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
-        return;
-    };
-    let mut report = if report.dispatched_phase_count == 0 {
-        report
-            .with_readback_stats(HzbOcclusionCullReadbackStats::default())
-            .with_indirect_args_readback(HzbOcclusionIndirectArgsReadbackSummary::default())
-    } else {
-        if let Some(readback_stats) = culler.collect_last_readback_stats(device) {
-            report.with_readback_stats(readback_stats)
-        } else {
-            report
-        }
-    };
-    if report.dispatched_phase_count > 0 {
-        if let Some(summary) =
-            collect_hzb_occlusion_indirect_args_readback_summary(device, indirect_args_readbacks)
-        {
-            report = report.with_indirect_args_readback(summary);
-        }
-    }
-    graph_execution_record.set_hzb_occlusion_cull_report(report);
-}
-
-fn encode_hzb_occlusion_indirect_args_readbacks(
-    device: &wgpu::Device,
-    encoder: &mut wgpu::CommandEncoder,
-    indirect_draws: &MeshPassIndirectDrawExecutions,
-    graph_execution_record: &RenderGraphExecutionRecord,
-) -> Vec<MeshIndirectArgsReadback> {
-    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
-        return Vec::new();
-    };
-    if report.dispatched_phase_count == 0 {
-        return Vec::new();
-    }
-
-    indirect_draws.copy_hzb_occlusion_args_to_readbacks(
-        device,
-        encoder,
-        "zircon-hzb-occlusion-indirect-args-readback",
-    )
-}
-
-fn collect_hzb_occlusion_indirect_args_readback_summary(
-    device: &wgpu::Device,
-    readbacks: Vec<MeshIndirectArgsReadback>,
-) -> Option<HzbOcclusionIndirectArgsReadbackSummary> {
-    let mut summary = HzbOcclusionIndirectArgsReadbackSummary::default();
-    for readback in readbacks {
-        let snapshot = readback.collect(device)?;
-        summary.add_assign(HzbOcclusionIndirectArgsReadbackSummary::new(
-            snapshot.args_count(),
-            snapshot.compacted_draw_count(),
-            snapshot.zero_instance_arg_count(),
-            snapshot.remaining_instance_count(),
-        ));
-    }
-    Some(summary)
-}
-
 fn active_sprite_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
     SPRITE_GRAPH_STAGES
         .iter()
         .copied()
         .filter(|stage| pipeline_has_active_sprite_stage(pipeline, *stage))
-        .collect()
-}
-
-fn active_late_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
-    pipeline
-        .stages
-        .iter()
-        .copied()
-        .filter(|stage| LATE_GRAPH_STAGES.contains(stage))
         .collect()
 }
 
@@ -1002,61 +353,20 @@ fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &s
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        active_late_graph_stages, active_sprite_graph_stages, EARLY_GRAPH_STAGES,
-        LATE_GRAPH_STAGES, SPRITE_GRAPH_STAGES,
-    };
+    use super::{active_sprite_graph_stages, SPRITE_GRAPH_STAGES};
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
     use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
-    use crate::render_graph::{QueueLane, RenderGraphBuilder};
+    use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
     #[test]
-    fn compiled_scene_graph_stage_lists_cover_core2d_product_stages() {
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Opaque2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Transparent2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Deferred));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Lighting));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Ui));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Overlay));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Debug));
-    }
-
-    #[test]
-    fn active_late_graph_stages_follow_compiled_pipeline_order() {
-        let default_3d = compiled_pipeline_with_stages(vec![
-            RenderPassStage::DepthPrepass,
-            RenderPassStage::PostProcess,
-            RenderPassStage::Overlay,
-            RenderPassStage::Debug,
-            RenderPassStage::Ui,
-        ]);
-        assert_eq!(
-            active_late_graph_stages(&default_3d),
-            vec![
-                RenderPassStage::Overlay,
-                RenderPassStage::Debug,
-                RenderPassStage::Ui
-            ]
-        );
-
-        let core2d = compiled_pipeline_with_stages(vec![
-            RenderPassStage::Opaque2d,
-            RenderPassStage::PostProcess,
-            RenderPassStage::Ui,
-            RenderPassStage::Overlay,
-            RenderPassStage::Debug,
-        ]);
-        assert_eq!(
-            active_late_graph_stages(&core2d),
-            vec![
-                RenderPassStage::Ui,
-                RenderPassStage::Overlay,
-                RenderPassStage::Debug
-            ]
-        );
+    fn compiled_scene_sprite_stage_list_owns_core2d_product_stages() {
+        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Opaque2d));
+        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask2d));
+        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Transparent2d));
+        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Deferred));
+        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Lighting));
+        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
     }
 
     #[test]
@@ -1083,7 +393,18 @@ mod tests {
         let mut graph = RenderGraphBuilder::new("sprite-stage-test");
         let mut pass_stages = Vec::new();
         for (stage, pass_name, executor_id) in passes {
-            graph.add_pass_with_executor(pass_name, QueueLane::Graphics, Some(executor_id));
+            let pass =
+                graph.add_pass_with_executor(pass_name, QueueLane::Graphics, Some(executor_id));
+            // This fixture tests stage filtering only, so synthetic passes are rooted directly.
+            graph
+                .set_pass_flags(
+                    pass,
+                    PassFlags {
+                        has_side_effects: true,
+                        ..PassFlags::default()
+                    },
+                )
+                .expect("sprite stage test root");
             pass_stages.push(CompiledRenderPipelinePassStage::new(pass_name, stage));
         }
 
@@ -1098,23 +419,6 @@ mod tests {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             graph: graph.compile().expect("sprite stage test graph"),
-        }
-    }
-
-    fn compiled_pipeline_with_stages(stages: Vec<RenderPassStage>) -> CompiledRenderPipeline {
-        CompiledRenderPipeline {
-            handle: RenderPipelineHandle::new(100),
-            name: "stage-order-test".to_string(),
-            renderer_name: "stage-order-test".to_string(),
-            stages,
-            pass_stages: Vec::new(),
-            enabled_features: Vec::new(),
-            required_extract_sections: Vec::new(),
-            capability_requirements: Vec::new(),
-            history_bindings: Vec::new(),
-            graph: RenderGraphBuilder::new("stage-order-test")
-                .compile()
-                .expect("stage order test graph"),
         }
     }
 }

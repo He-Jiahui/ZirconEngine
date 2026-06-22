@@ -10,6 +10,8 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
@@ -24,6 +26,8 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - zircon_runtime/src/core/runtime/mod.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
@@ -70,5 +74,5 @@ The 2026-06-12 M2.1 migration evidence includes:
 - source scans found no remaining `core::channel_util`, `core::types`, root `spawn_named_thread`, root `ChannelSender`, root `ChannelReceiver`, or root `ServiceObject` imports under `zircon_runtime/src`.
 - `rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs` passed with 4 tests.
 - `cargo check -p zircon_runtime --lib --locked` passed with pre-existing warnings.
-- Runtime 11 M1/M3 static slices add handle/dependency/parallel-for, scheduler `wait_all`, diagnostics, dependency-chain, and fanout tests in `zircon_runtime/src/tests/tasks.rs`; Cargo execution is pending a clean validation window because other cargo/rustc lanes were active.
-- `job_system_boundary` now provides a static structure mirror for the task owner: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The behavior anchors now include panic-safe handle completion for scheduled jobs and dependent jobs.
+- Runtime 11 M1/M3 static slices add handle/dependency/parallel-for, scheduler `wait_all`, diagnostics, worker-side wait assist, dependency-chain, and fanout tests in `zircon_runtime/src/tests/tasks.rs`; Cargo execution is pending a clean validation window because other cargo/rustc lanes were active.
+- `job_system_boundary` now provides a static structure mirror for the task owner: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The 2026-06-21 `job_system_inventory_split_static_passed_cargo_deferred_tests_deferred` slice moves source/Rayon ownership into `job_system_source_inventory.py` and API/test/doc anchor ownership into `job_system_anchor_inventory.py`, leaving `job_system_boundary.py` as the audit reader and renderer. The behavior anchors now include panic-safe handle completion for scheduled jobs, dependent jobs, and worker-side wait assist through the task-pool-owned `assist_current_thread_once(...)` helper.

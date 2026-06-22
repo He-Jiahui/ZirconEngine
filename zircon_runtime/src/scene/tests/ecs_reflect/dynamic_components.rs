@@ -6,7 +6,7 @@ use zircon_runtime_interface::reflect::{
 };
 
 use crate::plugin::ComponentTypeDescriptor;
-use crate::scene::{NodeKind, World};
+use crate::scene::{NodeKind, SceneError, World};
 
 #[test]
 fn dynamic_component_descriptor_registers_reflected_json_component() {
@@ -259,10 +259,9 @@ fn dynamic_component_descriptor_duplicate_uses_reflection_preflight_error() {
 
     assert_eq!(
         duplicate,
-        ReflectError::DuplicateTypePath {
+        SceneError::Reflect(ReflectError::DuplicateTypePath {
             type_path: "weather.Component.CloudLayer".to_string(),
-        }
-        .to_string()
+        })
     );
     assert_eq!(world.component_type_descriptors().len(), 1);
     assert_eq!(
@@ -440,6 +439,7 @@ fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
         .ensure_plugin_components_can_unload("weather")
         .expect_err("plugin unload should still see dynamic component instances");
 
+    let blocked = blocked.to_string();
     assert!(blocked.contains("weather.Component.CloudLayer"));
     assert!(blocked.contains(&format!("entity {entity}")));
     assert_eq!(world.dynamic_component_count_for_plugin("weather"), 1);

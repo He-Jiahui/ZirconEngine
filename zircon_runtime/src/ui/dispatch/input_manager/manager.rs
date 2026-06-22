@@ -67,22 +67,27 @@ impl UiInputManager {
         Ok(result)
     }
 
-    pub fn dispatch_window_event(
+    pub fn dispatch_window_input_pump_event(
         &mut self,
         surface: &mut UiSurface,
         event: UiWindowInputPumpEvent,
     ) -> Result<UiInputDispatchResult, UiTreeError> {
-        input::dispatch_window_input_pump_event(surface, &self.pointer, &self.navigation, event)
+        match event {
+            UiWindowInputPumpEvent::Input(input) => self.dispatch_input_event(surface, input),
+            UiWindowInputPumpEvent::Window(window) => {
+                input::dispatch_window_event(surface, &self.pointer, &self.navigation, window)
+            }
+        }
     }
 
-    pub fn dispatch_window_batch(
+    pub fn dispatch_window_input_pump_batch(
         &mut self,
         surface: &mut UiSurface,
         batch: UiWindowInputPumpBatch,
     ) -> Result<UiInputDispatchOutcome, UiTreeError> {
         let mut results = Vec::with_capacity(batch.events.len());
         for event in batch.events {
-            results.push(self.dispatch_window_event(surface, event)?);
+            results.push(self.dispatch_window_input_pump_event(surface, event)?);
         }
         Ok(UiInputDispatchOutcome::from_results(surface, results))
     }

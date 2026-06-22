@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/mod.rs
@@ -17,7 +17,7 @@ implementation_files:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md

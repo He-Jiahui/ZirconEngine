@@ -24,11 +24,13 @@ use super::template_status_glyphs::{warning_mark_segments, StatusIconKind};
 use chips::status_chip_text_color;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_status_control_commands;
 #[cfg(test)]
+use identity::{status_control_kind, StatusControlKind};
+#[cfg(test)]
 use signals::{
     status_signal_icon_fill, status_signal_mark_color, status_signal_mark_width,
     status_signal_text_color,
 };
 
 #[cfg(test)]
-#[path = "template_status_controls_tests.rs"]
+#[path = "template_status_controls_tests/mod.rs"]
 mod tests;

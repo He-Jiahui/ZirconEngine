@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::resource::{ResourceId, ResourceLocator, ResourceRecord};
+use crate::core::{CoreError, CoreResult};
 
 #[derive(Clone, Debug, Default)]
 pub struct ResourceRegistry {
@@ -43,14 +44,17 @@ impl ResourceRegistry {
         &mut self,
         from: &ResourceLocator,
         to: ResourceLocator,
-    ) -> Result<ResourceRecord, String> {
-        let Some(id) = self.id_by_locator.remove(from) else {
-            return Err(format!("missing resource record for {from}"));
+    ) -> CoreResult<ResourceRecord> {
+        let Some(id) = self.id_by_locator.get(from).copied() else {
+            return Err(CoreError::MissingResourceRecordForLocator {
+                locator: from.to_string(),
+            });
         };
         let Some(record) = self.by_id.get_mut(&id) else {
-            return Err(format!("missing resource record for id {id}"));
+            return Err(CoreError::MissingResourceRecordForId { id: id.to_string() });
         };
         record.primary_locator = to.clone();
+        self.id_by_locator.remove(from);
         self.id_by_locator.insert(to, id);
         Ok(record.clone())
     }

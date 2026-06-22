@@ -3,6 +3,13 @@ related_code:
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/presentation.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/assets/ui/editor/animation_editor.ui.toml
   - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
   - zircon_editor/src/ui/layouts/views/mod.rs
@@ -22,7 +29,7 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
@@ -35,6 +42,13 @@ implementation_files:
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/presentation.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/assets/ui/editor/animation_editor.ui.toml
   - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
   - zircon_editor/src/ui/layouts/views/mod.rs
@@ -54,7 +68,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
@@ -64,7 +78,7 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/tests/editor_event/animation_runtime.rs
   - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
@@ -79,6 +93,7 @@ tests:
   - cargo test -p zircon_editor --lib save_graph_session_persists_parameter_changes_and_clears_dirty -- --nocapture
   - cargo test -p zircon_editor --lib save_state_machine_session_persists_entry_state_changes_and_clears_dirty -- --nocapture
   - cargo test -p zircon_editor --lib editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metadata -- --nocapture
+  - cargo test -p zircon_editor --lib animation_editor --locked --target-dir E:\cargo-targets\zircon-editor-ui-animation-session-0622 --message-format short --color never -- --test-threads=1
 doc_type: module-detail
 ---
 
@@ -101,11 +116,26 @@ doc_type: module-detail
 `zircon_editor/src/ui/animation_editor/` 现在是 animation pane 本体的领域 owner：
 
 - `session.rs`
+  - 保留 `AnimationEditorSession`、session error、私有 document enum/type、常量和 test gate
+  - 只声明 child modules，不再承载 sequence/graph/state-machine 行为实现
+- `session/lifecycle.rs`
   - 从 `.sequence.zranim`、`.graph.zranim`、`.state_machine.zranim` 直接加载资产
+  - 暴露 `asset_path()`、`is_dirty()` 和 `save()`
+- `session/presentation.rs`
+  - 拥有 `display_name()` 与 `pane_presentation()`，把三种文档模式收敛到 retained host DTO
+- `session/sequence.rs`
   - 维护 sequence 当前帧、timeline 范围、选中 span、播放状态
+  - 负责 track/key/timeline/playback authoring 变更
+- `session/graph.rs`
   - 维护 graph parameter/node 摘要
+  - 负责 node 增删、连接/断开和 parameter 写入
+- `session/state_machine.rs`
   - 维护 state-machine state/transition 摘要
-  - 负责 `CreateTrack`、`AddKey`、`CreateTransition` 之类 session 内变更
+  - 负责 state、entry state、transition 和 condition authoring 变更
+- `session/parameters.rs`
+  - 拥有 parameter value label 与 scalar/bool/trigger/vector literal parsing
+- `session/support.rs`
+  - 拥有共享 document accessor、sequence timing、track lookup、document serialization 和 fallback title/path 清洗 helper
 - `presentation.rs`
   - 定义 `AnimationEditorPanePresentation`
   - 把 sequence / graph / state-machine 三种文档模式收敛到同一份 retained host DTO
@@ -265,6 +295,10 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - `cargo test -p zircon_editor --lib save_graph_session_persists_parameter_changes_and_clears_dirty -- --nocapture`
 - `cargo test -p zircon_editor --lib save_state_machine_session_persists_entry_state_changes_and_clears_dirty -- --nocapture`
 - `cargo test -p zircon_editor --lib editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metadata -- --nocapture`
+- `cargo test -p zircon_editor --lib animation_editor --locked --target-dir E:\cargo-targets\zircon-editor-ui-animation-session-0622 --message-format short --color never -- --test-threads=1`（2026-06-22 session owner split：24 passed，2045 filtered out）
+- `cargo test -p zircon_editor --lib structure_convention --locked --target-dir E:\cargo-targets\zircon-editor-structure-0622 --message-format short --color never -- --test-threads=1`（2026-06-22 session owner split：3 passed，2066 filtered out）
+- `cargo check -p zircon_editor --lib --locked --message-format short --color never`（2026-06-22 session owner split：passed，仅有既有 warning）
+- `python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json`（2026-06-22 session owner split：`oversized_production_file_count = 9`，`migration_debt_count = 9`）
 
 它覆盖了几类关键验收：
 
@@ -277,6 +311,7 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - retained host-contract pane data now exposes the animation pane view, so the current build path no longer depends on generated pane imports
 - retained source guards lock the animation pane against returning to deleted `64px` header、`y: 140px` graph node band、`y: 148px` transition band 壳层公式
 - host -> host-contract 投影回归已经证明 animation shell layout 会穿过 `host_data.rs` / `pane_data_conversion/mod.rs` 边界，而不是重新把这份几何留在 host leaf layer
+- 2026-06-22 session owner split 把 `session.rs` 收口到 48 行根文件，并把 lifecycle/presentation/sequence/graph/state-machine/parameters/support 分成 folder-backed child owner；结构测试同步读取 folder-backed manager wrapper，避免回到单文件 façade 假设
 - sequence/graph authoring 的关键防御分支现在也被直接回归覆盖，包括：
   - 重复 rebind 不会删源轨道
   - 删除选中轨道会清掉悬空选区

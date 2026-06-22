@@ -8,6 +8,7 @@ mod component_type_registry;
 mod derived_state;
 mod dirty_state;
 mod dynamic_components;
+mod error;
 mod events;
 mod hierarchy;
 mod identity;
@@ -27,5 +28,6 @@ mod world;
 
 pub use component_type_registry::ComponentTypeRegistry;
 pub use dynamic_components::DynamicComponentInstance;
+pub use error::{SceneError, SceneResult};
 pub use project_io::SceneProjectError;
 pub use world::World;

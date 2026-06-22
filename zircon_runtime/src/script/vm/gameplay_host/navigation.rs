@@ -88,7 +88,9 @@ pub(super) fn move_entity_with_navigation(
         agent.update_rotation = true;
         agent.destination = Some(target.to_array());
         let value = serde_json::to_value(agent).map_err(|error| error.to_string())?;
-        world.set_dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE, value)?;
+        world
+            .set_dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE, value)
+            .map_err(|error| error.to_string())?;
         navigation
             .tick_world_agent(world, entity, dt)
             .map_err(|error| error.to_string())

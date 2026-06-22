@@ -5,11 +5,13 @@ use std::{
 };
 
 use crate::asset::pack::{
-    ZrPackDeltaInstallError, ZrPackDeltaInstaller, ZrPackDeltaReader, ZrPackDeltaWriter,
+    zrpack_content_hash, ZrPackAssetEntry, ZrPackDeltaDocumentManifest, ZrPackDeltaInstallError,
+    ZrPackDeltaInstaller, ZrPackDeltaReader, ZrPackDeltaWriter, ZrPackDocumentManifest,
     ZrPackError, ZrPackInputAsset, ZrPackPromotionMethod, ZrPackReader, ZrPackTrimConfig,
-    ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReason, ZrPackWriter,
-    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
+    ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReason, ZrPackWriter, ZRPACK_DELTA_MAGIC,
+    ZRPACK_FORMAT_VERSION, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION, ZRPACK_MAGIC,
 };
+use crate::core::framework::net::{ZrChunkEntry, ZrPackManifest};
 
 #[test]
 fn pack_round_trip() {
@@ -59,6 +61,484 @@ fn deterministic_pack_double_run_byte_identical() {
     assert_eq!(first.bytes, second.bytes);
     assert!(first.manifest.pack.is_complete_byte_plan());
     assert!(second.manifest.pack.is_complete_byte_plan());
+}
+
+#[test]
+fn pack_writer_rejects_unsafe_asset_paths() {
+    let cases = [
+        "",
+        " ",
+        "/textures/hero.bin",
+        "../escape.bin",
+        "textures//hero.bin",
+        "textures/./hero.bin",
+        "textures/../hero.bin",
+        "C:/absolute.bin",
+    ];
+
+    for path in cases {
+        let error =
+            ZrPackWriter::write([ZrPackInputAsset::new(path, b"data".to_vec())]).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("zrpack asset path {path} must be a safe relative asset path")
+        );
+    }
+}
+
+#[test]
+fn pack_writer_rejects_unnormalized_asset_paths() {
+    let cases = [
+        (" textures/hero.bin ", "textures/hero.bin"),
+        ("textures\\hero.bin", "textures/hero.bin"),
+    ];
+
+    for (path, normalized) in cases {
+        let error =
+            ZrPackWriter::write([ZrPackInputAsset::new(path, b"data".to_vec())]).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "zrpack asset path {path} must use normalized relative asset path {normalized}"
+            )
+        );
+    }
+}
+
+#[test]
+fn pack_reader_rejects_manifest_asset_path_schema() {
+    let cases = [
+        (
+            "../escape.bin",
+            "zrpack asset path ../escape.bin must be a safe relative asset path".to_string(),
+        ),
+        (
+            "textures\\hero.bin",
+            "zrpack asset path textures\\hero.bin must use normalized relative asset path textures/hero.bin"
+                .to_string(),
+        ),
+    ];
+
+    for (path, expected) in cases {
+        let bytes = malformed_pack_bytes_with_assets(vec![pack_asset_entry(path)]);
+
+        let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+        assert_eq!(error.to_string(), expected);
+    }
+}
+
+#[test]
+fn pack_reader_rejects_duplicate_manifest_asset_paths() {
+    let bytes = malformed_pack_bytes_with_assets(vec![
+        pack_asset_entry("scenes/main.zscene"),
+        pack_asset_entry("scenes/main.zscene"),
+    ]);
+
+    let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(
+        error,
+        ZrPackError::DuplicateAssetPath("scenes/main.zscene".to_string())
+    );
+}
+
+#[test]
+fn pack_reader_rejects_unsorted_manifest_asset_paths() {
+    let bytes = malformed_pack_bytes_with_assets(vec![
+        pack_asset_entry("textures/hero.png"),
+        pack_asset_entry("scenes/main.zscene"),
+    ]);
+
+    let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "zrpack asset paths must be sorted by asset path"
+    );
+}
+
+#[test]
+fn pack_reader_rejects_manifest_pack_version_mismatch() {
+    let mut manifest =
+        pack_document_manifest_with_assets(vec![pack_asset_entry("textures/hero.bin")]);
+    manifest.pack.version = ZRPACK_FORMAT_VERSION + 1;
+
+    let error = ZrPackReader::from_bytes(malformed_pack_bytes(manifest)).unwrap_err();
+
+    assert_eq!(
+        error,
+        ZrPackError::UnsupportedVersion(ZRPACK_FORMAT_VERSION + 1)
+    );
+}
+
+#[test]
+fn pack_reader_rejects_manifest_chunk_table_shape() {
+    let mut duplicate = pack_document_manifest_with_assets(vec![
+        pack_asset_entry_with_payload("meshes/a.bin", b"a"),
+        pack_asset_entry_with_payload("textures/b.bin", b"b"),
+    ]);
+    duplicate.pack.chunks.push(duplicate.pack.chunks[0].clone());
+    let duplicate_error = ZrPackReader::from_bytes(malformed_pack_bytes(duplicate)).unwrap_err();
+    assert_eq!(duplicate_error, ZrPackError::DuplicateChunkHash);
+
+    let mut unsorted = pack_document_manifest_with_assets(vec![
+        pack_asset_entry_with_payload("meshes/a.bin", b"a"),
+        pack_asset_entry_with_payload("textures/b.bin", b"b"),
+    ]);
+    unsorted.pack.chunks.reverse();
+    let unsorted_error = ZrPackReader::from_bytes(malformed_pack_bytes(unsorted)).unwrap_err();
+    assert_eq!(unsorted_error, ZrPackError::UnsortedChunkHashes);
+}
+
+#[test]
+fn pack_reader_rejects_manifest_total_size_mismatch() {
+    let mut manifest =
+        pack_document_manifest_with_assets(vec![pack_asset_entry("textures/hero.bin")]);
+    manifest.pack.total_size += 1;
+
+    let error = ZrPackReader::from_bytes(malformed_pack_bytes(manifest)).unwrap_err();
+
+    assert_eq!(error, ZrPackError::PackTotalSizeMismatch);
+}
+
+#[test]
+fn pack_reader_rejects_manifest_asset_chunk_mismatch() {
+    let mut missing_chunk =
+        pack_document_manifest_with_assets(vec![pack_asset_entry("textures/hero.bin")]);
+    missing_chunk.assets[0].chunk_hash = zrpack_content_hash(b"missing");
+    let missing_error = ZrPackReader::from_bytes(malformed_pack_bytes(missing_chunk)).unwrap_err();
+    assert_eq!(
+        missing_error,
+        ZrPackError::MissingChunk("textures/hero.bin".to_string())
+    );
+
+    let mut size_mismatch =
+        pack_document_manifest_with_assets(vec![pack_asset_entry("textures/hero.bin")]);
+    size_mismatch.assets[0].size += 1;
+    let size_error = ZrPackReader::from_bytes(malformed_pack_bytes(size_mismatch)).unwrap_err();
+    assert_eq!(
+        size_error,
+        ZrPackError::ChunkOutOfBounds("textures/hero.bin".to_string())
+    );
+}
+
+#[test]
+fn pack_reader_rejects_manifest_extra_unreferenced_chunks() {
+    let mut manifest =
+        pack_document_manifest_with_assets(vec![pack_asset_entry("textures/hero.bin")]);
+    manifest.pack.chunks.push(ZrChunkEntry::new(
+        zrpack_content_hash(b"extra"),
+        ZRPACK_TEST_HEADER_SIZE as u64 + manifest.pack.total_size,
+        5,
+    ));
+    manifest
+        .pack
+        .chunks
+        .sort_by(|left, right| left.hash.cmp(&right.hash));
+    manifest.pack.total_size = total_chunk_size(&manifest.pack.chunks);
+
+    let error = ZrPackReader::from_bytes(malformed_pack_bytes(manifest)).unwrap_err();
+
+    assert_eq!(error, ZrPackError::PackChunkTableMismatch);
+}
+
+#[test]
+fn pack_reader_rejects_chunk_payload_hash_mismatch() {
+    let report =
+        ZrPackWriter::write([ZrPackInputAsset::new("textures/hero.bin", b"hero".to_vec())])
+            .unwrap();
+    let mut bytes = report.bytes;
+    bytes[ZRPACK_TEST_HEADER_SIZE] ^= 0xff;
+
+    let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(
+        error,
+        ZrPackError::ChunkHashMismatch("textures/hero.bin".to_string())
+    );
+}
+
+#[test]
+fn pack_reader_rejects_payload_manifest_gap() {
+    let report =
+        ZrPackWriter::write([ZrPackInputAsset::new("textures/hero.bin", b"hero".to_vec())])
+            .unwrap();
+    let bytes = bytes_with_manifest_gap(report.bytes, b"gap");
+
+    let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(error, ZrPackError::PayloadExtentMismatch);
+}
+
+#[test]
+fn pack_reader_rejects_manifest_trailing_bytes() {
+    let report =
+        ZrPackWriter::write([ZrPackInputAsset::new("textures/hero.bin", b"hero".to_vec())])
+            .unwrap();
+    let bytes = bytes_with_manifest_trailing_bytes(report.bytes, b"trail");
+
+    let error = ZrPackReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(error, ZrPackError::ManifestTrailingBytes);
+}
+
+#[test]
+fn delta_reader_rejects_nested_pack_manifest_asset_path_schema() {
+    let cases = [
+        (
+            vec![pack_asset_entry("../base.bin")],
+            Vec::new(),
+            "zrpack asset path ../base.bin must be a safe relative asset path".to_string(),
+        ),
+        (
+            Vec::new(),
+            vec![pack_asset_entry("textures\\target.bin")],
+            "zrpack asset path textures\\target.bin must use normalized relative asset path textures/target.bin"
+                .to_string(),
+        ),
+    ];
+
+    for (base_assets, target_assets, expected) in cases {
+        let manifest =
+            delta_manifest_with_assets(base_assets, target_assets, Vec::new(), Vec::new());
+
+        let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+        assert_eq!(error.to_string(), expected);
+    }
+}
+
+#[test]
+fn delta_reader_rejects_changed_asset_path_schema() {
+    let manifest = delta_manifest_with_assets(
+        Vec::new(),
+        Vec::new(),
+        vec![pack_asset_entry("textures\\changed.bin")],
+        Vec::new(),
+    );
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "zrpack asset path textures\\changed.bin must use normalized relative asset path textures/changed.bin"
+    );
+}
+
+#[test]
+fn delta_reader_rejects_removed_asset_path_schema() {
+    let manifest = delta_manifest_with_assets(
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        vec!["../removed.bin".to_string()],
+    );
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "zrpack asset path ../removed.bin must be a safe relative asset path"
+    );
+}
+
+#[test]
+fn delta_reader_rejects_duplicate_changed_and_removed_asset_paths() {
+    let cases = [
+        (
+            delta_manifest_with_assets(
+                Vec::new(),
+                Vec::new(),
+                vec![
+                    pack_asset_entry("textures/changed.bin"),
+                    pack_asset_entry("textures/changed.bin"),
+                ],
+                Vec::new(),
+            ),
+            "textures/changed.bin",
+        ),
+        (
+            delta_manifest_with_assets(
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                vec![
+                    "textures/removed.bin".to_string(),
+                    "textures/removed.bin".to_string(),
+                ],
+            ),
+            "textures/removed.bin",
+        ),
+    ];
+
+    for (manifest, expected_path) in cases {
+        let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+        assert_eq!(
+            error,
+            ZrPackError::DuplicateAssetPath(expected_path.to_string())
+        );
+    }
+}
+
+#[test]
+fn delta_reader_rejects_unsorted_changed_and_removed_asset_paths() {
+    let cases = [
+        delta_manifest_with_assets(
+            Vec::new(),
+            Vec::new(),
+            vec![
+                pack_asset_entry("textures/z.bin"),
+                pack_asset_entry("textures/a.bin"),
+            ],
+            Vec::new(),
+        ),
+        delta_manifest_with_assets(
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            vec!["textures/z.bin".to_string(), "textures/a.bin".to_string()],
+        ),
+    ];
+
+    for manifest in cases {
+        let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "zrpack asset paths must be sorted by asset path"
+        );
+    }
+}
+
+#[test]
+fn delta_reader_rejects_delta_manifest_format_version_mismatch() {
+    let mut manifest = delta_manifest_with_assets(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    manifest.format_version = ZRPACK_FORMAT_VERSION + 1;
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(
+        error,
+        ZrPackError::UnsupportedVersion(ZRPACK_FORMAT_VERSION + 1)
+    );
+}
+
+#[test]
+fn delta_reader_rejects_removed_asset_set_mismatch() {
+    let keep = pack_asset_entry_with_payload("meshes/keep.bin", b"keep");
+    let removed = pack_asset_entry_with_payload("textures/removed.bin", b"removed");
+    let manifest = delta_manifest_with_assets(
+        vec![keep.clone(), removed],
+        vec![keep],
+        Vec::new(),
+        Vec::new(),
+    );
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(error, ZrPackError::DeltaRemovedAssetsMismatch);
+}
+
+#[test]
+fn delta_reader_rejects_changed_asset_set_mismatch() {
+    let keep = pack_asset_entry_with_payload("meshes/keep.bin", b"keep");
+    let changed = pack_asset_entry_with_payload("textures/changed.bin", b"new");
+    let manifest = delta_manifest_with_assets(
+        vec![keep.clone()],
+        vec![keep, changed],
+        Vec::new(),
+        Vec::new(),
+    );
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(error, ZrPackError::DeltaChangedAssetsMismatch);
+}
+
+#[test]
+fn delta_reader_rejects_delta_chunk_table_mismatch() {
+    let changed = pack_asset_entry_with_payload("textures/changed.bin", b"new");
+    let mut manifest =
+        delta_manifest_with_assets(Vec::new(), vec![changed.clone()], vec![changed], Vec::new());
+    manifest.chunks.clear();
+
+    let error = ZrPackDeltaReader::from_bytes(malformed_delta_bytes(manifest)).unwrap_err();
+
+    assert_eq!(error, ZrPackError::DeltaChunkTableMismatch);
+}
+
+#[test]
+fn delta_reader_rejects_changed_chunk_payload_hash_mismatch() {
+    let base = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"old".to_vec(),
+    )])
+    .unwrap();
+    let target = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"new".to_vec(),
+    )])
+    .unwrap();
+    let base_reader = ZrPackReader::from_bytes(base.bytes).unwrap();
+    let target_reader = ZrPackReader::from_bytes(target.bytes).unwrap();
+    let delta = ZrPackDeltaWriter::write(&base_reader, &target_reader).unwrap();
+    let mut bytes = delta.bytes;
+    bytes[ZRPACK_TEST_HEADER_SIZE] ^= 0xff;
+
+    let error = ZrPackDeltaReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(
+        error,
+        ZrPackError::ChunkHashMismatch("textures/changed.bin".to_string())
+    );
+}
+
+#[test]
+fn delta_reader_rejects_payload_manifest_gap() {
+    let base = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"old".to_vec(),
+    )])
+    .unwrap();
+    let target = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"new".to_vec(),
+    )])
+    .unwrap();
+    let base_reader = ZrPackReader::from_bytes(base.bytes).unwrap();
+    let target_reader = ZrPackReader::from_bytes(target.bytes).unwrap();
+    let delta = ZrPackDeltaWriter::write(&base_reader, &target_reader).unwrap();
+    let bytes = bytes_with_manifest_gap(delta.bytes, b"gap");
+
+    let error = ZrPackDeltaReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(error, ZrPackError::PayloadExtentMismatch);
+}
+
+#[test]
+fn delta_reader_rejects_manifest_trailing_bytes() {
+    let base = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"old".to_vec(),
+    )])
+    .unwrap();
+    let target = ZrPackWriter::write([ZrPackInputAsset::new(
+        "textures/changed.bin",
+        b"new".to_vec(),
+    )])
+    .unwrap();
+    let base_reader = ZrPackReader::from_bytes(base.bytes).unwrap();
+    let target_reader = ZrPackReader::from_bytes(target.bytes).unwrap();
+    let delta = ZrPackDeltaWriter::write(&base_reader, &target_reader).unwrap();
+    let bytes = bytes_with_manifest_trailing_bytes(delta.bytes, b"trail");
+
+    let error = ZrPackDeltaReader::from_bytes(bytes).unwrap_err();
+
+    assert_eq!(error, ZrPackError::ManifestTrailingBytes);
 }
 
 #[test]
@@ -673,6 +1153,124 @@ fn duplicate_trim_input_path_is_reported() {
         ["asset scenes/main.zscene is duplicated in trim input"]
     );
 }
+
+fn pack_asset_entry(path: impl Into<String>) -> ZrPackAssetEntry {
+    pack_asset_entry_with_payload(path, b"data")
+}
+
+fn pack_asset_entry_with_payload(path: impl Into<String>, payload: &[u8]) -> ZrPackAssetEntry {
+    ZrPackAssetEntry::new(
+        path,
+        zrpack_content_hash(payload),
+        u64::try_from(payload.len()).unwrap(),
+    )
+}
+
+fn chunks_for_asset_entries(assets: &[ZrPackAssetEntry]) -> Vec<ZrChunkEntry> {
+    let mut unique_chunks = std::collections::BTreeMap::new();
+    for asset in assets {
+        unique_chunks
+            .entry(asset.chunk_hash)
+            .or_insert_with(|| u32::try_from(asset.size).unwrap());
+    }
+    let mut offset = ZRPACK_TEST_HEADER_SIZE as u64;
+    unique_chunks
+        .into_iter()
+        .map(|(hash, size)| {
+            let entry = ZrChunkEntry::new(hash, offset, size);
+            offset += u64::from(size);
+            entry
+        })
+        .collect()
+}
+
+fn total_chunk_size(chunks: &[ZrChunkEntry]) -> u64 {
+    chunks.iter().map(|chunk| u64::from(chunk.size)).sum()
+}
+
+fn payload_bytes_for_chunks(chunks: &[ZrChunkEntry]) -> Vec<u8> {
+    vec![0; usize::try_from(total_chunk_size(chunks)).unwrap()]
+}
+
+fn malformed_pack_bytes_with_assets(assets: Vec<ZrPackAssetEntry>) -> Vec<u8> {
+    malformed_pack_bytes(pack_document_manifest_with_assets(assets))
+}
+
+fn malformed_pack_bytes(manifest: ZrPackDocumentManifest) -> Vec<u8> {
+    let payload = payload_bytes_for_chunks(&manifest.pack.chunks);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    let manifest_offset = (ZRPACK_TEST_HEADER_SIZE + payload.len()) as u64;
+    let manifest_size = manifest_bytes.len() as u64;
+    let mut bytes = vec![0; ZRPACK_TEST_HEADER_SIZE];
+    bytes.extend_from_slice(&payload);
+    bytes.extend_from_slice(&manifest_bytes);
+    bytes[0..4].copy_from_slice(&ZRPACK_MAGIC);
+    bytes[4..8].copy_from_slice(&ZRPACK_FORMAT_VERSION.to_le_bytes());
+    bytes[8..16].copy_from_slice(&manifest_offset.to_le_bytes());
+    bytes[16..24].copy_from_slice(&manifest_size.to_le_bytes());
+    bytes
+}
+
+fn delta_manifest_with_assets(
+    base_assets: Vec<ZrPackAssetEntry>,
+    target_assets: Vec<ZrPackAssetEntry>,
+    changed_assets: Vec<ZrPackAssetEntry>,
+    removed_assets: Vec<String>,
+) -> ZrPackDeltaDocumentManifest {
+    let chunks = chunks_for_asset_entries(&changed_assets);
+    ZrPackDeltaDocumentManifest {
+        format_version: ZRPACK_FORMAT_VERSION,
+        base: pack_document_manifest_with_assets(base_assets),
+        target: pack_document_manifest_with_assets(target_assets),
+        chunks,
+        changed_assets,
+        removed_assets,
+    }
+}
+
+fn malformed_delta_bytes(manifest: ZrPackDeltaDocumentManifest) -> Vec<u8> {
+    let payload = payload_bytes_for_chunks(&manifest.chunks);
+    let manifest_bytes = serde_json::to_vec(&manifest).unwrap();
+    let manifest_offset = (ZRPACK_TEST_HEADER_SIZE + payload.len()) as u64;
+    let manifest_size = manifest_bytes.len() as u64;
+    let mut bytes = vec![0; ZRPACK_TEST_HEADER_SIZE];
+    bytes.extend_from_slice(&payload);
+    bytes.extend_from_slice(&manifest_bytes);
+    bytes[0..4].copy_from_slice(&ZRPACK_DELTA_MAGIC);
+    bytes[4..8].copy_from_slice(&ZRPACK_FORMAT_VERSION.to_le_bytes());
+    bytes[8..16].copy_from_slice(&manifest_offset.to_le_bytes());
+    bytes[16..24].copy_from_slice(&manifest_size.to_le_bytes());
+    bytes
+}
+
+fn bytes_with_manifest_gap(mut bytes: Vec<u8>, gap: &[u8]) -> Vec<u8> {
+    let manifest_offset =
+        usize::try_from(u64::from_le_bytes(bytes[8..16].try_into().unwrap())).unwrap();
+    bytes.splice(manifest_offset..manifest_offset, gap.iter().copied());
+    let new_manifest_offset = u64::try_from(manifest_offset + gap.len()).unwrap();
+    bytes[8..16].copy_from_slice(&new_manifest_offset.to_le_bytes());
+    bytes
+}
+
+fn bytes_with_manifest_trailing_bytes(mut bytes: Vec<u8>, trailing_bytes: &[u8]) -> Vec<u8> {
+    bytes.extend_from_slice(trailing_bytes);
+    bytes
+}
+
+fn pack_document_manifest_with_assets(assets: Vec<ZrPackAssetEntry>) -> ZrPackDocumentManifest {
+    let chunks = chunks_for_asset_entries(&assets);
+    let total_size = total_chunk_size(&chunks);
+    ZrPackDocumentManifest::new(
+        ZrPackManifest {
+            version: ZRPACK_FORMAT_VERSION,
+            chunks,
+            total_size,
+        },
+        assets,
+    )
+}
+
+const ZRPACK_TEST_HEADER_SIZE: usize = 24;
 
 fn unique_pack_temp_dir(label: &str) -> PathBuf {
     let nanos = SystemTime::now()

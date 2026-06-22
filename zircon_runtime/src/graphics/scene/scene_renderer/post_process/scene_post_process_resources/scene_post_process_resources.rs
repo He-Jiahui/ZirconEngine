@@ -104,8 +104,6 @@ pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer) velocity_camera_params_buffer: wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::post_process) post_process_params_buffer:
-        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) light_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) hybrid_gi_probe_buffer:
         wgpu::Buffer,

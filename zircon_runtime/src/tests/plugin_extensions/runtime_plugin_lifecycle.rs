@@ -136,14 +136,15 @@ struct OptionalDependencyProbe {
 impl Default for OptionalDependencyProbe {
     fn default() -> Self {
         Self {
-            descriptor: RuntimePluginDescriptor::new(
+            descriptor: RuntimePluginDescriptor::builder(
                 "sound",
                 "Sound",
                 RuntimePluginId::Sound,
                 "zircon_plugin_sound_runtime",
             )
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
-            .with_capability("runtime.plugin.sound"),
+            .with_capability("runtime.plugin.sound")
+            .build(),
             result: Cell::new(None),
         }
     }
@@ -181,14 +182,15 @@ struct LifecycleOrderPlugin<'a> {
 impl<'a> LifecycleOrderPlugin<'a> {
     fn new(log: &'a RefCell<Vec<&'static str>>) -> Self {
         Self {
-            descriptor: RuntimePluginDescriptor::new(
+            descriptor: RuntimePluginDescriptor::builder(
                 "sound",
                 "Sound",
                 RuntimePluginId::Sound,
                 "zircon_plugin_sound_runtime",
             )
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
-            .with_capability("runtime.plugin.sound"),
+            .with_capability("runtime.plugin.sound")
+            .build(),
             log,
         }
     }

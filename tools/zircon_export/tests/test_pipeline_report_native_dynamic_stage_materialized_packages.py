@@ -20,6 +20,59 @@ from tools.zircon_export.tests.native_dynamic_stage_report_test_support import (
 
 
 class PipelineReportNativeDynamicStageMaterializedPackageTests(unittest.TestCase):
+    def test_report_stage_rejects_native_dynamic_materialized_package_non_string_loadable_artifact_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = write_native_dynamic_reports(out)
+            native_report = json.loads(native_report_path.read_text(encoding="utf-8"))
+            materialized_packages = native_report["materialized_packages"]
+            self.assertIsInstance(materialized_packages, list)
+            package = materialized_packages[0]
+            self.assertIsInstance(package, dict)
+            package["loadable_artifacts"] = [
+                "plugins/animation/native/zircon_plugin_animation.dll",
+                42,
+            ]
+            package["loadable_artifact_count"] = 2
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report materialized_packages[0]."
+                    "loadable_artifacts[1] must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_dynamic report materialized_packages[0]."
+                    "loadable_artifacts must be a string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_dynamic report loadable_artifacts are not present"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_stage_rejects_native_dynamic_package_report_id_mismatch(
         self,
     ) -> None:
@@ -153,9 +206,8 @@ class PipelineReportNativeDynamicStageMaterializedPackageTests(unittest.TestCase
             self.assertIn("NativeDynamic", report["fatal_stages"])
             self.assertTrue(
                 any(
-                    "native_dynamic report materialized_packages[0] "
-                    "source must be a non-empty string for NativeDynamic "
-                    "stage materialized packages"
+                    "native_dynamic report materialized_packages[0].source "
+                    "must be a non-empty string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -254,6 +306,70 @@ class PipelineReportNativeDynamicStageMaterializedPackageTests(unittest.TestCase
                 report["diagnostics"],
             )
 
+    def test_report_stage_rejects_native_dynamic_package_source_manifest_padded_id_before_package_match(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = write_native_dynamic_reports(out)
+            source_manifest = out / "zircon_plugins" / "animation" / "plugin.toml"
+            source_manifest.write_text(
+                'id = " animation "\n',
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report materialized_packages[0] "
+                    "source manifest id must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "source manifest id  animation  does not match "
+                    "materialized package animation"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_package_source_manifest_non_string_id_before_missing_id(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = write_native_dynamic_reports(out)
+            source_manifest = out / "zircon_plugins" / "animation" / "plugin.toml"
+            source_manifest.write_text(
+                "id = 42\n",
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertIn(
+                "native_dynamic report materialized_packages[0] "
+                "source manifest id must be a string",
+                diagnostics,
+            )
+            self.assertNotIn(
+                "source manifest id must be a non-empty string",
+                diagnostics,
+            )
+
     def test_report_stage_rejects_native_dynamic_package_source_manifest_parse_error(
         self,
     ) -> None:
@@ -332,9 +448,8 @@ class PipelineReportNativeDynamicStageMaterializedPackageTests(unittest.TestCase
             self.assertIn("NativeDynamic", report["fatal_stages"])
             self.assertTrue(
                 any(
-                    "native_dynamic report materialized_packages[0] "
-                    "package_report must be a non-empty string for "
-                    "NativeDynamic stage materialized packages"
+                    "native_dynamic report materialized_packages[0].package_report "
+                    "must be a non-empty string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),

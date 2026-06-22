@@ -9,7 +9,8 @@ use identity::shell_panel_kind;
 use surface::push_shell_panel_surface;
 
 #[cfg(test)]
-use identity::ShellPanelKind;
+#[path = "template_shell_panels_tests/mod.rs"]
+mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_shell_panel_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -30,7 +31,3 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
     push_shell_panel_surface(commands, node, kind, &rect, clip, order, opacity);
     true
 }
-
-#[cfg(test)]
-#[path = "template_shell_panels_tests.rs"]
-mod tests;

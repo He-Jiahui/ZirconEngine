@@ -58,7 +58,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
@@ -72,7 +72,7 @@ related_code:
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
-  - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
+  - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
@@ -106,7 +106,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
@@ -152,7 +152,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
-  - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
+  - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
   - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
   - zircon_editor/src/ui/layouts/views/asset_browser.rs

@@ -26,8 +26,8 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_state.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
@@ -163,7 +163,7 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
@@ -284,8 +284,8 @@ implementation_files:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_state.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs

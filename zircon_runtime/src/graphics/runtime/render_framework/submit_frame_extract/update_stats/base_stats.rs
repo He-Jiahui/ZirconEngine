@@ -1,12 +1,14 @@
 use std::collections::BTreeSet;
 
 use crate::core::framework::render::{
-    PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
-    RenderGraphExecutionCoverageReport, RenderLightReadinessReport,
-    RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
-    RenderPostProcessEffectStackSettings, RenderShadowExecutionReport, RenderStats,
+    PostProcessGraphResourceNames, PostProcessPassGraph, RenderGraphExecutionCoverageReport,
+    RenderLightReadinessReport, RenderPostProcessEffectStackReport,
+    RenderPostProcessEffectStackResourceStatus, RenderPostProcessEffectStackSettings,
+    RenderShadowExecutionReport, RenderStats,
 };
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
+use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
 use crate::graphics::visibility::{
     FrameVisibility, HzbBuilder, HzbOcclusionCullReport, VisibilityStaticIndexReport,
 };
@@ -136,6 +138,7 @@ pub(super) fn update_base_stats(
         state.renderer.last_render_graph_stage_execution_report();
     state.stats.last_scene_velocity_readback_report =
         state.renderer.last_scene_velocity_readback_report();
+    state.stats.last_exposure_readback_report = state.renderer.last_exposure_readback_report();
     state.stats.last_color_lut_readback_report = state.renderer.last_color_lut_readback_report();
     let post_process_graph = state
         .renderer
@@ -181,12 +184,16 @@ pub(super) fn update_base_stats(
         context.anti_alias_fallback().effective_graph_sample_count();
     state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
-    state.stats.last_anti_alias_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "post.fxaa")
-            + count_executor_prefix(
-                &state.stats.last_graph_executed_executor_ids,
-                "temporal.taa-resolve",
-            );
+    state.stats.last_anti_alias_graph_executed_pass_count = count_executor_prefix(
+        &state.stats.last_graph_executed_executor_ids,
+        FXAA_EXECUTOR_ID,
+    ) + count_executor_prefix(
+        &state.stats.last_graph_executed_executor_ids,
+        SMAA_EXECUTOR_ID,
+    ) + count_executor_prefix(
+        &state.stats.last_graph_executed_executor_ids,
+        "temporal.taa-resolve",
+    );
     let hzb_plan = HzbBuilder::new(context.render_size()).build_plan();
     state.stats.last_hzb_mip_count = hzb_plan.mip_count as usize;
     state.stats.last_hzb_graph_executed_pass_count = count_executor_prefix(
@@ -400,14 +407,34 @@ pub(super) fn update_base_stats(
     state.stats.last_rect_light_count = light_readiness.rect.total_count;
     state.stats.last_rect_light_ready_count = light_readiness.rect.ready_count;
     state.stats.last_rect_light_degraded_count = light_readiness.rect.degraded_count;
+    let shadowed_light_count = shadow_casting_atlas_light_count(context);
     state.stats.last_shadow_execution_report = RenderShadowExecutionReport::new(
         state.stats.last_shadow_graph_executed_pass_count,
         shadow_atlas_write_count,
         shadow_atlas_read_count,
         state.stats.last_mesh_shadow_caster_draw_count,
         state.stats.last_mesh_alpha_mask_shadow_caster_draw_count,
+        shadowed_light_count,
         state.stats.last_directional_light_ready_count,
     );
+}
+
+fn shadow_casting_atlas_light_count(context: &FrameSubmissionContext) -> usize {
+    context
+        .scene_directional_lights()
+        .iter()
+        .filter(|light| matches!(light.shadow, Some(shadow) if shadow.casts_shadow))
+        .count()
+        + context
+            .scene_point_lights()
+            .iter()
+            .filter(|light| matches!(light.shadow, Some(shadow) if shadow.casts_shadow))
+            .count()
+        + context
+            .scene_spot_lights()
+            .iter()
+            .filter(|light| matches!(light.shadow, Some(shadow) if shadow.casts_shadow))
+            .count()
 }
 
 fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
@@ -635,11 +662,9 @@ fn effect_stack_uses_resource(
     resource_name: &str,
 ) -> bool {
     post_process_graph.nodes.iter().any(|node| {
-        node.kind == PostProcessEffectKind::Uber
-            && node
-                .required_inputs
-                .iter()
-                .any(|resource| resource == resource_name)
+        node.required_inputs
+            .iter()
+            .any(|resource| resource == resource_name)
     })
 }
 
@@ -953,6 +978,34 @@ mod tests {
         assert!(!status.motion_vector_tile_max_coarse_available);
         assert!(!status.motion_vector_neighbor_max_available);
         assert!(!status.motion_vector_prepass_available);
+    }
+
+    #[test]
+    fn effect_stack_resource_status_detects_split_motion_blur_node_motion_vectors() {
+        let graph = PostProcessPassGraph::from_ordered_nodes(
+            vec![
+                PostProcessPassNode::new("motion-blur", PostProcessEffectKind::MotionBlur)
+                    .with_required_inputs(vec![
+                        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+                    ]),
+                PostProcessPassNode::new("uber", PostProcessEffectKind::Uber),
+            ],
+            Vec::new(),
+            None,
+        );
+        let executed = vec![
+            "temporal.velocity-camera".to_string(),
+            "temporal.velocity-object".to_string(),
+            "post.motion-vector-tile-max".to_string(),
+            "post.motion-vector-tile-max-coarse".to_string(),
+            "post.motion-vector-neighbor-max".to_string(),
+        ];
+
+        let status =
+            effect_stack_resource_status(&graph, &executed, MotionVectorCameraStatus::Ready);
+
+        assert!(status.motion_vector_available);
+        assert!(status.motion_vector_prepass_available);
     }
 
     #[test]

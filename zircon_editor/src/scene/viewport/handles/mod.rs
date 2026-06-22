@@ -12,11 +12,11 @@ mod handle_tool_registry_default;
 mod handle_tool_registry_ops;
 mod helpers;
 mod move_handle_tool;
-mod move_handle_tool_impl;
+mod move_handle_tool_behavior;
 mod rotate_handle_tool;
-mod rotate_handle_tool_impl;
+mod rotate_handle_tool_behavior;
 mod scale_handle_tool;
-mod scale_handle_tool_impl;
+mod scale_handle_tool_behavior;
 mod transform_handle_drag_session;
 
 pub(crate) use handle_drag_session::HandleDragSession;

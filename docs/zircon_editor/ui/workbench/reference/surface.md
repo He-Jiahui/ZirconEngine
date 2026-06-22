@@ -116,7 +116,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/options.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
@@ -222,12 +225,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/docks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/native_panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/welcome.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_impl.md
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome.rs
+  - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_renderer.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
@@ -302,7 +305,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/template_hover.rs
@@ -310,7 +313,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
@@ -389,7 +392,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/options.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
@@ -518,12 +524,12 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/docks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/native_panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/welcome.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_impl.md
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome.rs
+  - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_renderer.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
@@ -628,7 +634,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/template_hover.rs
@@ -636,7 +642,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
@@ -656,6 +662,12 @@ implementation_files:
   - zircon_runtime_interface/src/ui/component/descriptor/component_model.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs
 plan_sources:
   - user: 2026-06-01 Start approximating the zirconEngine editor effect from basic rendering, interaction response, and layout system
   - docs/ui-and-layout/workbench.png
@@ -742,10 +754,10 @@ tests:
   - host_contract source scan for old painter geometry/primitives/text/diagnostics imports and modules (2026-06-17 after paint software replay neutralization: clean)
   - cargo check -p zircon_editor --lib --locked --jobs 1 (2026-06-17 after paint software replay neutralization: passed with existing warning noise only after an initial non-diagnostic 304s timeout)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint primitive image ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after paint primitive image responsibility split: passed with existing warning noise only; image draw/recording/scaling helpers live in `paint_primitives/image.rs`, `paint_primitives.rs` is 510 lines, and `paint_primitives/image.rs` is 420 lines)
-  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench welcome ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench welcome paint responsibility split: passed with existing warning noise only; `WELCOME_*`, `draw_welcome_*`, `welcome_node_frame`, `inset_frame`, and `constrain_welcome_content` live in `paint_workbench_impl/welcome.rs`, `paint_workbench_impl.rs` is 1428 lines, and `paint_workbench_impl/welcome.rs` is 564 lines)
-  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench menu ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench menu paint responsibility split: passed with existing warning noise only; menu label, popup, submenu, row geometry, constraint, and scroll helpers live in `paint_workbench_impl/menus.rs`, `paint_workbench_impl.rs` is 1159 lines, and `paint_workbench_impl/menus.rs` is 287 lines)
-  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench native pane ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench native pane paint responsibility split: passed with existing warning noise only; viewport image, diagnostics overlay, native pane dispatch, hierarchy rows, and asset tree hover helpers live in `paint_workbench_impl/native_panes.rs`, `paint_workbench_impl.rs` is 894 lines, `paint_workbench_impl/native_panes.rs` is 222 lines, `paint_workbench_impl/menus.rs` is 287 lines, and `paint_workbench_impl/welcome.rs` is 564 lines)
-  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench dock/pane ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench dock/pane paint responsibility split: passed with existing warning noise only; dock/pane/floating body helpers live in `paint_workbench_impl/docks.rs`, `paint_workbench_impl.rs` is 434 lines, `paint_workbench_impl/docks.rs` is 516 lines, `paint_workbench_impl/native_panes.rs` is 233 lines, `paint_workbench_impl/menus.rs` is 287 lines, and `paint_workbench_impl/welcome.rs` is 564 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench welcome ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench welcome paint responsibility split: passed with existing warning noise only; `WELCOME_*`, `draw_welcome_*`, `welcome_node_frame`, `inset_frame`, and `constrain_welcome_content` live in `paint_workbench_renderer/welcome.rs`, `paint_workbench_renderer.rs` is 1428 lines, and `paint_workbench_renderer/welcome.rs` is 564 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench menu ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench menu paint responsibility split: passed with existing warning noise only; menu label, popup, submenu, row geometry, constraint, and scroll helpers live in `paint_workbench_renderer/menus.rs`, `paint_workbench_renderer.rs` is 1159 lines, and `paint_workbench_renderer/menus.rs` is 287 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench native pane ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench native pane paint responsibility split: passed with existing warning noise only; viewport image, diagnostics overlay, native pane dispatch, hierarchy rows, and asset tree hover helpers live in `paint_workbench_renderer/native_panes.rs`, `paint_workbench_renderer.rs` is 894 lines, `paint_workbench_renderer/native_panes.rs` is 222 lines, `paint_workbench_renderer/menus.rs` is 287 lines, and `paint_workbench_renderer/welcome.rs` is 564 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; workbench dock/pane ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after workbench dock/pane paint responsibility split: passed with existing warning noise only; dock/pane/floating body helpers live in `paint_workbench_renderer/docks.rs`, `paint_workbench_renderer.rs` is 434 lines, `paint_workbench_renderer/docks.rs` is 516 lines, `paint_workbench_renderer/native_panes.rs` is 233 lines, `paint_workbench_renderer/menus.rs` is 287 lines, and `paint_workbench_renderer/welcome.rs` is 564 lines)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer routing/redraw ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer routing/redraw responsibility split: passed with existing warning noise only; hit routing lives in `native_pointer/routing.rs`, redraw-result wrappers live in `native_pointer/redraw_result.rs`, `native_pointer.rs` is 907 lines, `native_pointer/routing.rs` is 497 lines, and `native_pointer/redraw_result.rs` is 122 lines)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer drag/resize ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer drag/resize responsibility split: passed with existing warning noise only; resize and tab-drag state lives in `native_pointer/drag_resize.rs`, `native_pointer.rs` is 732 lines, `native_pointer/drag_resize.rs` is 242 lines, `native_pointer/routing.rs` is 521 lines, and `native_pointer/redraw_result.rs` is 132 lines)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; window event-loop/template-hover ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after host window responsibility split: passed with existing warning noise only; winit event-loop handling lives in `window/event_loop.rs`, cloned template-hover presentation mutation lives in `window/template_hover.rs`, `window.rs` is 801 lines, `window/event_loop.rs` is 361 lines, and `window/template_hover.rs` is 159 lines)
@@ -759,13 +771,13 @@ tests:
   - host_contract source scan for old painter Workbench entry re-exports/imports and direct draw-host entry calls (2026-06-17 after Workbench paint entry neutralization: clean)
   - cargo check -p zircon_editor --lib --locked --jobs 1 (2026-06-17 after Workbench paint entry neutralization and legacy implementation entry narrowing: passed with existing warning noise only)
   - cargo fmt -p zircon_editor --check (2026-06-17 after Workbench painter module hard cutover: passed)
-  - host_contract source scan and file probes for deleted `painter/workbench.rs`, new `paint_workbench_impl.rs`, old `painter::workbench` imports, and `mod workbench;` (2026-06-17 after Workbench painter module hard cutover: clean)
+  - host_contract source scan and file probes for deleted `painter/workbench.rs`, new `paint_workbench_renderer.rs`, old `painter::workbench` imports, and `mod workbench;` (2026-06-17 after Workbench painter module hard cutover: clean)
   - cargo check -p zircon_editor --lib --locked --jobs 1 (2026-06-17 after Workbench painter module hard cutover: passed with existing warning noise only)
   - cargo fmt -p zircon_editor (2026-06-17 after paint helper neutralization: applied formatting)
   - host_contract source scan and file probes for deleted painter close-prompt/debug-overlay helpers and new neutral paint helpers (2026-06-17 after paint helper neutralization: clean)
   - cargo check -p zircon_editor --lib --locked --jobs 1 (2026-06-17 after paint helper neutralization: passed with existing warning noise only)
   - cargo fmt -p zircon_editor --check (2026-06-17 after template-node paint entry neutralization: passed)
-  - host_contract source scan for `paint_workbench_impl.rs` direct painter imports, old template-node re-exports from `painter/mod.rs`, and deleted Workbench/helper painter files (2026-06-17 after template-node paint entry neutralization: clean; `paint_template_nodes.rs` exists)
+  - host_contract source scan for `paint_workbench_renderer.rs` direct painter imports, old template-node re-exports from `painter/mod.rs`, and deleted Workbench/helper painter files (2026-06-17 after template-node paint entry neutralization: clean; `paint_template_nodes.rs` exists)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after template-node paint entry neutralization: passed with existing warning noise only)
   - cargo fmt -p zircon_runtime -p zircon_editor; cargo fmt -p zircon_editor --check; cargo fmt -p zircon_runtime --check (2026-06-17 after template paint family hard cutover: passed)
   - file probes and source scans for deleted `host_contract/painter/`, new `host_contract/paint_template_nodes/mod.rs`, and old painter module/path references (2026-06-17 after template paint family hard cutover: clean)
@@ -878,9 +890,9 @@ tests:
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after template segmented-control geometry/test responsibility split: passed with existing warning noise only)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/app/helpers.rs (2026-06-16 after document callback workspace fallback: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-16 after document callback workspace fallback: passed with existing warning noise only)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/ui/tests.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs (2026-06-16 after status-bar layout frame cutover: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs (2026-06-16 after status-bar layout frame cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-16 after status-bar layout frame cutover: passed with existing warning noise only)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/ui/tests.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs (2026-06-16 after main layout frame cutover: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs (2026-06-16 after main layout frame cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-16 after main layout frame cutover: passed with existing warning noise only)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/app/viewport.rs (2026-06-16 after viewport toolbar fallback frame cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-16 after viewport toolbar fallback frame cutover: passed with existing warning noise only)
@@ -918,9 +930,9 @@ tests:
   - cargo check -p zircon_editor --lib --locked (2026-06-17 after shell pointer merged-root helper removal: first 244s run timed out with no Rust diagnostics and no residual cargo/rustc/rustdoc process; 600s rerun passed with existing warning noise only)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/drawer_resize.rs zircon_editor/src/ui/retained_host/tab_drag.rs zircon_editor/src/ui/retained_host/tab_drag/bridge.rs zircon_editor/src/tests/host/retained_drawer_resize/pointer_bridge.rs zircon_editor/src/tests/host/retained_drawer_resize/resize_target.rs zircon_editor/src/tests/host/retained_tab_drag/drag_target_groups.rs zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs zircon_editor/src/tests/host/retained_tab_drag/surface_contract.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs (2026-06-17 after shell pointer center/document/status root fallback hard-cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-17 after shell pointer center/document/status root fallback hard-cutover: blocked by pre-existing dirty `zircon_runtime/src/scene/ecs/query/query_state/read_only.rs` lifetime error E0309 in `QueryState::single`; editor UI sources were not reached)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/app/viewport.rs zircon_editor/src/ui/retained_host/app/helpers.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/ui/tests.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs (2026-06-17 after host presentation/viewport root fallback hard-cutover: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/app/viewport.rs zircon_editor/src/ui/retained_host/app/helpers.rs zircon_editor/src/ui/retained_host/ui/apply_presentation.rs zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs (2026-06-17 after host presentation/viewport root fallback hard-cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-17 after host presentation/viewport root fallback hard-cutover: blocked by the same pre-existing dirty `zircon_runtime/src/scene/ecs/query/query_state/read_only.rs` lifetime error E0309 in `QueryState::single`; editor UI sources were not reached)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/mod.rs zircon_editor/src/ui/retained_host/ui/tests.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs (2026-06-17 after root-shell projection module removal: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/mod.rs zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs (2026-06-17 after root-shell projection module removal: passed)
   - retained_host source scan for `root_shell_projection`, `resolve_root_center_band_frame`, `resolve_root_status_bar_frame`, `resolve_root_document_region_frame`, and `resolve_root_viewport_content_frame` (2026-06-17 after root-shell projection module removal: clean)
   - cargo check -p zircon_editor --lib --locked (2026-06-17 after root-shell projection module removal: blocked by the same pre-existing dirty `zircon_runtime/src/scene/ecs/query/query_state/read_only.rs` lifetime error E0309 in `QueryState::single`; editor UI sources were not reached)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup text-search keyboard baseline)
@@ -1124,7 +1136,7 @@ tests:
   - trailing-whitespace scan over all touched outside-click popup-dismiss Rust/docs/session files including new modules (2026-06-02 after outside-click popup dismissal: passed)
   - focused Cargo for native_workbench_dropdown_option_primary_press_keeps_selection_path, native_workbench_popup_menu_item_primary_press_keeps_menu_selection_path, native_workbench_dropdown_outside_primary_press_dispatches_popup_cancel, and native_workbench_popup_menu_outside_primary_press_dispatches_popup_cancel was attempted with cargo test -p zircon_editor --lib primary_press --locked --jobs 1 --message-format short --color never -- --nocapture and CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-popup-dismiss; the command timed out after 1204 seconds without a compiler diagnostic, and the owned cargo/rustc child processes were stopped while unrelated workspace/runtime validation lanes remained active
   - rustfmt --edition 2021 --check over template_popup_layout.rs, surface_hit_test/template_node.rs, painter/template_popup_rows.rs, painter/template_nodes.rs, native_keyboard.rs, and native_popup_dismiss.rs (2026-06-02 after bounded dropdown popup geometry: passed)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14 after popup shell role/projected frame geometry baseline: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14 after popup shell role/projected frame geometry baseline: passed)
   - git diff --check over the tracked bounded dropdown popup geometry Rust/docs files (2026-06-02 after bounded dropdown popup geometry: passed; Git reported only LF-to-CRLF working-tree warnings for existing Rust files)
   - trailing-whitespace scan over all touched bounded dropdown popup geometry Rust/docs/session files (2026-06-02 after bounded dropdown popup geometry: passed)
   - focused Cargo for dropdown_option_popup_frame_within_opens_above_when_below_overflows, workbench_hit_test_routes_dropdown_option_rows_above_control_when_bottom_clipped, and template_nodes_paint_open_dropdown_option_rows_above_control_when_below_clipped was deferred on 2026-06-02 because an unrelated workspace Cargo validation lane was still running; no new compiler diagnostic was produced by this slice
@@ -1984,26 +1996,26 @@ separator, text-marker, and shared pixel helpers in `host_contract/paint_primiti
 identity-row copy, scaled sampling, alpha blending, and image-specific regressions.
 
 The Workbench welcome paint responsibility split keeps window/pane dispatch in
-`host_contract/paint_workbench_impl.rs`, while
-`host_contract/paint_workbench_impl/welcome.rs` owns Welcome pane native content painting, recent
+`host_contract/paint_workbench_renderer.rs`, while
+`host_contract/paint_workbench_renderer/welcome.rs` owns Welcome pane native content painting, recent
 project rows, new-project form fields, status/validation text, action buttons, and welcome-specific
 template frame fallback geometry.
 
 The Workbench menu paint responsibility split keeps host-scene orchestration in
-`host_contract/paint_workbench_impl.rs`, while `host_contract/paint_workbench_impl/menus.rs` owns
+`host_contract/paint_workbench_renderer.rs`, while `host_contract/paint_workbench_renderer/menus.rs` owns
 top-bar menu labels, open menu popups, submenu popup chaining, popup row text/shortcut/hover paint,
 row frame geometry, viewport constraints, and menu-bar scroll frame adjustment.
 
 The Workbench native pane paint responsibility split keeps pane orchestration in
-`host_contract/paint_workbench_impl.rs`, while
-`host_contract/paint_workbench_impl/native_panes.rs` owns viewport image paint, the
+`host_contract/paint_workbench_renderer.rs`, while
+`host_contract/paint_workbench_renderer/native_panes.rs` owns viewport image paint, the
 RuntimeDiagnostics overlay, native pane dispatch for Welcome/Hierarchy/Assets/AssetBrowser,
 hierarchy row paint and viewport frame lookup, plus asset tree hover overlay geometry and paint.
 
 The Workbench dock/pane split then moves the remaining legacy dock body implementation into
-`host_contract/paint_workbench_impl/docks.rs`. That child owns side/document/bottom dock shells,
+`host_contract/paint_workbench_renderer/docks.rs`. That child owns side/document/bottom dock shells,
 panel headers, viewport toolbar chrome, template-node pane selection, pane fallback labels,
-activity-rail active markers, and floating-window body paint. `paint_workbench_impl.rs` is now
+activity-rail active markers, and floating-window body paint. `paint_workbench_renderer.rs` is now
 the window-level orchestration owner for root skeleton, host-scene order, resize layer, root
 overlay, and root-frame fallback.
 
@@ -2020,15 +2032,15 @@ The Workbench paint entry neutralization moves the remaining draw-entry orchestr
 Workbench surface or the non-componentized root fallback, owns the test-only full-frame and damage
 region paint entry points, and is the only module called by `paint_recording.rs` for Workbench
 presentation drawing. The concrete implementation was then hard-cut from
-`host_contract/painter/workbench.rs` to neutral `host_contract/paint_workbench_impl.rs`; the old
-painter submodule no longer exists. `paint_workbench_impl.rs` exposes only
+`host_contract/painter/workbench.rs` to neutral `host_contract/paint_workbench_renderer.rs`; the old
+painter submodule no longer exists. `paint_workbench_renderer.rs` exposes only
 `draw_componentized_workbench_window(...)`, `draw_legacy_workbench_window(...)`, and a profiled
 legacy helper to the neutral entry, while `resolve_root_frames(...)`, `draw_root_skeleton(...)`,
 `draw_host_scene(...)`, and `RootFrames` stay private to the concrete implementation.
 
 The paint-helper neutralization removes two of those explicit painter dependencies. Close-prompt
 drawing now lives in `host_contract/paint_close_prompt.rs`, and debug-reflector overlay drawing now
-lives in `host_contract/paint_debug_reflector_overlay.rs`. `paint_workbench_impl.rs` imports both
+lives in `host_contract/paint_debug_reflector_overlay.rs`. `paint_workbench_renderer.rs` imports both
 through neutral paint modules.
 
 The template-node paint entry neutralization moves that Workbench-facing dependency behind

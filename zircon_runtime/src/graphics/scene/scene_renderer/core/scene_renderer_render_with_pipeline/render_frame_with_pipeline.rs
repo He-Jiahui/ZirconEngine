@@ -405,6 +405,12 @@ impl SceneRenderer {
         self.last_render_graph_execution.color_lut_readback_report()
     }
 
+    pub(crate) fn last_exposure_readback_report(
+        &self,
+    ) -> crate::core::framework::render::RenderExposureReadbackReport {
+        self.last_render_graph_execution.exposure_readback_report()
+    }
+
     pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {
         self.last_render_graph_execution
             .executed_queue_fallback_count()

@@ -404,6 +404,23 @@ fn material_validation_diagnostic_row(
                 message: format!("lighting model `{value}` is not supported"),
             }
         }
+        RenderMaterialValidationError::RenderQueueAlphaModeConflict {
+            source,
+            path,
+            alpha_mode,
+            render_queue,
+            expected,
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: Some(*source),
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: path.clone(),
+            message: format!(
+                "alpha mode `{alpha_mode}` uses render queue {render_queue}, expected {expected}"
+            ),
+        },
         RenderMaterialValidationError::UnregisteredShadingModel { path, token } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),

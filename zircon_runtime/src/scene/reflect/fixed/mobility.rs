@@ -82,7 +82,7 @@ fn write_field(
     match world.set_mobility(entity, parse_mobility(&kind)?) {
         Ok(changed) => Ok(changed),
         Err(error) => Err(ReflectError::UnsupportedConversion {
-            source: error,
+            source: error.to_string(),
             target: shared::field_target(TYPE_PATH, field_name),
         }),
     }

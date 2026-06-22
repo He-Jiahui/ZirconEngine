@@ -14,6 +14,7 @@ members = [
     "asset_importers/shader/runtime",
     "asset_importers/data/runtime",
     "first_party_runtime_catalog",
+    "plugin_sdk",
     "ai/runtime",
     "physics/runtime",
     "physics/editor",
@@ -88,3 +89,9 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+zircon_editor = { path = "../zircon_editor" }
+zircon_plugin_sdk = { path = "plugin_sdk", default-features = false }
+zircon_runtime = { path = "../zircon_runtime", default-features = false }
+zircon_runtime_interface = { path = "../zircon_runtime_interface" }

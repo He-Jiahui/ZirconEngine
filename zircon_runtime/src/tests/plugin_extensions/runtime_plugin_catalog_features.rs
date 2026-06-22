@@ -8,7 +8,7 @@ use crate::plugin::{
 
 #[test]
 fn runtime_plugin_catalog_completes_owner_feature_selections_as_disabled_by_default() {
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -19,7 +19,8 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_as_disabled_by_defa
         RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.sound")
-    .with_optional_feature(sound_timeline_feature_manifest())]);
+    .with_optional_feature(sound_timeline_feature_manifest())
+    .build()]);
     let completed = catalog.complete_project_manifest(&ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,
@@ -55,7 +56,7 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_in_declaration_orde
     let first = PluginFeatureBundleManifest::new("sound.first_feature", "First Feature", "sound");
     let second =
         PluginFeatureBundleManifest::new("sound.second_feature", "Second Feature", "sound");
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -63,7 +64,8 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_in_declaration_orde
     )
     .with_capability("runtime.plugin.sound")
     .with_optional_feature(first)
-    .with_optional_feature(second)]);
+    .with_optional_feature(second)
+    .build()]);
     let completed = catalog.complete_project_manifest(&ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,
@@ -92,7 +94,7 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_in_declaration_orde
 #[test]
 fn runtime_plugin_catalog_reports_optional_feature_dependency_status() {
     let catalog = RuntimePluginCatalog::from_descriptors([
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
@@ -103,8 +105,9 @@ fn runtime_plugin_catalog_reports_optional_feature_dependency_status() {
             RuntimeTargetMode::EditorHost,
         ])
         .with_capability("runtime.plugin.sound")
-        .with_optional_feature(sound_timeline_feature_manifest()),
-        RuntimePluginDescriptor::new(
+        .with_optional_feature(sound_timeline_feature_manifest())
+        .build(),
+        RuntimePluginDescriptor::builder(
             "animation",
             "Animation",
             RuntimePluginId::Animation,
@@ -115,7 +118,8 @@ fn runtime_plugin_catalog_reports_optional_feature_dependency_status() {
             RuntimeTargetMode::EditorHost,
         ])
         .with_capability("runtime.plugin.animation")
-        .with_capability("runtime.feature.animation.timeline_event_track"),
+        .with_capability("runtime.feature.animation.timeline_event_track")
+        .build(),
     ]);
     let mut manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
@@ -288,7 +292,7 @@ fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency() {
     ))
     .with_capability("runtime.feature.sound.invalid_extra_primary");
     let catalog = RuntimePluginCatalog::from_descriptors([
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
@@ -299,8 +303,9 @@ fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency() {
             RuntimeTargetMode::EditorHost,
         ])
         .with_capability("runtime.plugin.sound")
-        .with_optional_feature(invalid_feature),
-        RuntimePluginDescriptor::new(
+        .with_optional_feature(invalid_feature)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "animation",
             "Animation",
             RuntimePluginId::Animation,
@@ -310,7 +315,8 @@ fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency() {
             RuntimeTargetMode::ClientRuntime,
             RuntimeTargetMode::EditorHost,
         ])
-        .with_capability("runtime.feature.animation.timeline_event_track"),
+        .with_capability("runtime.feature.animation.timeline_event_track")
+        .build(),
     ]);
     let manifest = ProjectPluginManifest {
         selections: vec![
@@ -349,7 +355,7 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
                 .with_target_modes([RuntimeTargetMode::ServerRuntime])
                 .with_capabilities(["runtime.feature.sound.server_only"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -360,7 +366,8 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
         RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.sound")
-    .with_optional_feature(server_only_feature)]);
+    .with_optional_feature(server_only_feature)
+    .build()]);
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,
@@ -421,7 +428,7 @@ fn runtime_plugin_catalog_reports_feature_capability_cycles() {
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.feature_b"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -430,7 +437,8 @@ fn runtime_plugin_catalog_reports_feature_capability_cycles() {
     .with_target_modes([RuntimeTargetMode::EditorHost])
     .with_capability("runtime.plugin.rendering")
     .with_optional_feature(feature_a)
-    .with_optional_feature(feature_b)]);
+    .with_optional_feature(feature_b)
+    .build()]);
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Rendering,
@@ -487,7 +495,7 @@ fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capabilit
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.feature_b"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -496,7 +504,8 @@ fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capabilit
     .with_target_modes([RuntimeTargetMode::EditorHost])
     .with_capability("runtime.plugin.rendering")
     .with_optional_feature(feature_a)
-    .with_optional_feature(feature_b)]);
+    .with_optional_feature(feature_b)
+    .build()]);
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Rendering,
@@ -544,7 +553,7 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.self_cycle"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -552,7 +561,8 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
     )
     .with_target_modes([RuntimeTargetMode::EditorHost])
     .with_capability("runtime.plugin.rendering")
-    .with_optional_feature(feature)]);
+    .with_optional_feature(feature)
+    .build()]);
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Rendering,

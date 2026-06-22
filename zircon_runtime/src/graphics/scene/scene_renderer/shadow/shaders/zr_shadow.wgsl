@@ -22,6 +22,8 @@ const ZR_SHADOW_SLOT_PCF_QUALITY_MASK: u32 = 0x00000300u;
 const ZR_SHADOW_PCF_QUALITY_LOW: u32 = 0u;
 const ZR_SHADOW_PCF_QUALITY_MEDIUM: u32 = 1u;
 const ZR_SHADOW_PCF_QUALITY_HIGH: u32 = 2u;
+const ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS: i32 = 1;
+const ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS: i32 = 8;
 const ZR_SHADOW_EPSILON: f32 = 0.000001;
 
 fn zr_shadow_slot_flags(slot: ZrShadowSlot) -> u32 {
@@ -71,10 +73,10 @@ fn zr_sample_shadow_slot_low(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receiver_d
 fn zr_sample_shadow_slot_medium(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receiver_depth: f32) -> f32 {
     let offsets = array<vec2<i32>, 5>(
         vec2<i32>(0, 0),
-        vec2<i32>(-1, 0),
-        vec2<i32>(1, 0),
-        vec2<i32>(0, -1),
-        vec2<i32>(0, 1),
+        vec2<i32>(-ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS, 0),
+        vec2<i32>(ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS, 0),
+        vec2<i32>(0, -ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS),
+        vec2<i32>(0, ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS),
     );
     var lit = 0.0;
     for (var i = 0u; i < 5u; i = i + 1u) {
@@ -85,15 +87,15 @@ fn zr_sample_shadow_slot_medium(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receive
 
 fn zr_sample_shadow_slot_high(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receiver_depth: f32) -> f32 {
     let offsets = array<vec2<i32>, 9>(
-        vec2<i32>(-1, -1),
-        vec2<i32>(0, -1),
-        vec2<i32>(1, -1),
-        vec2<i32>(-1, 0),
+        vec2<i32>(-ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, -ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
+        vec2<i32>(0, -ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
+        vec2<i32>(ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, -ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
+        vec2<i32>(-ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, 0),
         vec2<i32>(0, 0),
-        vec2<i32>(1, 0),
-        vec2<i32>(-1, 1),
-        vec2<i32>(0, 1),
-        vec2<i32>(1, 1),
+        vec2<i32>(ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, 0),
+        vec2<i32>(-ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
+        vec2<i32>(0, ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
+        vec2<i32>(ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS, ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS),
     );
     var lit = 0.0;
     for (var i = 0u; i < 9u; i = i + 1u) {

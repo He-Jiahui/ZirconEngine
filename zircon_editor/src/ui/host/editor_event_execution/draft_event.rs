@@ -7,10 +7,10 @@ use crate::ui::binding::{
 use crate::ui::binding_dispatch::apply_draft_binding;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_draft_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     event: &EditorDraftEvent,
 ) -> Result<ExecutionOutcome, String> {
     let binding = match event {

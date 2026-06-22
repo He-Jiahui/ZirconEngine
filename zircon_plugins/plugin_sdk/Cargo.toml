@@ -1,0 +1,17 @@
+[package]
+name = "zircon_plugin_sdk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared builder APIs for Zircon plugin packages."
+
+[features]
+default = ["runtime"]
+runtime = ["dep:zircon_runtime"]
+editor = ["runtime", "dep:zircon_editor"]
+native = ["dep:zircon_runtime_interface"]
+
+[dependencies]
+zircon_editor = { workspace = true, optional = true }
+zircon_runtime = { workspace = true, optional = true }
+zircon_runtime_interface = { workspace = true, optional = true }

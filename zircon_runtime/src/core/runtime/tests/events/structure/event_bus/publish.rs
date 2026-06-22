@@ -26,7 +26,7 @@ fn event_bus_publish_snapshots_before_delivery_and_moves_final_event() {
         publish_body,
         &[
             "let Some(subscribers) = self.snapshot_topic_subscribers(&event.topic) else",
-            "let _delivery_guard = self.delivery_lock.lock().unwrap();",
+            "let _delivery_guard = self.lock_delivery();",
             "match subscribers.as_ref()",
             "[] => return,",
             "[subscriber] =>",
@@ -83,6 +83,10 @@ fn event_bus_publish_snapshots_before_delivery_and_moves_final_event() {
     assert_contains(
         sources.publish,
         "fn snapshot_topic_subscribers(&self, topic: &str) -> Option<Arc<[ChannelSender<EngineEvent>]>>",
+    );
+    assert_contains(
+        sources.publish,
+        "let subscribers = self.lock_subscribers();",
     );
     assert_contains(sources.publish, "let snapshot = subscribers.get(topic)?;");
     assert_contains(sources.publish, "if snapshot.is_empty()");

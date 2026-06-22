@@ -9,7 +9,7 @@ impl PluginPackageManifest {
             .map(|descriptor| {
                 descriptor
                     .package_manifest()
-                    .with_editor_crate(format!("zircon_plugin_{}_editor", descriptor.package_id))
+                    .with_editor_crate(format!("zircon_plugin_{}_editor", descriptor.package_id()))
             })
             .collect()
     }

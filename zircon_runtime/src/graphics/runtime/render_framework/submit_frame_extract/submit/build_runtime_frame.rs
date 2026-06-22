@@ -1,12 +1,11 @@
-use std::collections::BTreeMap;
-
 use crate::core::framework::render::{
-    OverlayLineSegment, RenderFrameExtract, RenderVirtualGeometryBvhVisualizationInstance,
+    OverlayLineSegment, RenderOverlayExtract, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryDebugSnapshot,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryVisBufferMark, SceneGizmoKind,
     SceneGizmoOverlayExtract,
 };
 use crate::core::math::{Vec3, Vec4};
+use std::collections::BTreeMap;
 
 use crate::graphics::{ViewportCameraStackOutputPolicy, ViewportRenderFrame};
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -16,106 +15,59 @@ use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::build_virtual_geometry_debug_snapshot::build_virtual_geometry_debug_snapshot;
 
 pub(super) fn build_runtime_frame(
-    extract: RenderFrameExtract,
     ui: Option<UiRenderExtract>,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    prepared: PreparedRuntimeSubmission,
     output_policy: ViewportCameraStackOutputPolicy,
 ) -> ViewportRenderFrame {
-    let extract = apply_effective_advanced_extracts(extract, context);
-    let extract = apply_effective_post_process_graph(extract, context);
-    let extract = apply_effective_particle_previous_state(extract, context);
-    let extract = apply_submission_target_size(extract, context);
+    let extract = context.source_extract();
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
-    let extract = augment_virtual_geometry_debug_overlays(
-        extract,
+    let runtime_overlays = runtime_virtual_geometry_debug_overlays(
+        &extract.debug.overlays,
         context,
         virtual_geometry_debug_snapshot.as_ref(),
     );
-    ViewportRenderFrame::from_extract(extract, context.size())
+    let mut frame = ViewportRenderFrame::from_shared_extract(extract, context.size())
         .with_shader_quality(context.shader_quality())
         .with_output_target(context.output_target())
         .with_camera_stack_output_policy(output_policy)
         .with_ui(ui)
         .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
-        .with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
-        .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
-}
-
-fn apply_effective_particle_previous_state(
-    mut extract: RenderFrameExtract,
-    context: &FrameSubmissionContext,
-) -> RenderFrameExtract {
-    extract.particles.previous_sprites = context.particle_previous_sprites().to_vec();
-    extract
-}
-
-fn apply_submission_target_size(
-    mut extract: RenderFrameExtract,
-    context: &FrameSubmissionContext,
-) -> RenderFrameExtract {
-    extract.apply_viewport_size(context.size());
-    extract
-}
-
-fn apply_effective_post_process_graph(
-    mut extract: RenderFrameExtract,
-    context: &FrameSubmissionContext,
-) -> RenderFrameExtract {
-    extract.post_process.bloom = context.post_process_bloom();
-    extract.post_process.exposure = context.post_process_exposure();
-    extract.post_process.color_grading = context.post_process_color_grading();
-    extract.post_process.effect_stack = context.post_process_effect_stack();
-    extract.post_process.volumes.clear();
-    extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
-    extract.view.camera.temporal_jitter = context.temporal_jitter();
-    extract.view.sync_selected_descriptor_camera_payload();
-    extract.post_process.stack = context.post_process_stack().clone();
-    extract.post_process.graph = context.post_process_graph().clone();
-    extract
-}
-
-fn apply_effective_advanced_extracts(
-    mut extract: RenderFrameExtract,
-    context: &FrameSubmissionContext,
-) -> RenderFrameExtract {
-    extract.geometry.virtual_geometry = context.virtual_geometry_extract().cloned();
-    if !context.hybrid_gi_enabled() {
-        extract.lighting.hybrid_global_illumination = None;
+        .with_prepared_runtime_sidebands(prepared.into_prepared_runtime_sidebands())
+        .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot);
+    if let Some(runtime_overlays) = runtime_overlays {
+        frame = frame.with_runtime_overlays(runtime_overlays);
     }
-    extract
+    frame
 }
 
-fn augment_virtual_geometry_debug_overlays(
-    mut extract: RenderFrameExtract,
+fn runtime_virtual_geometry_debug_overlays(
+    source_overlays: &RenderOverlayExtract,
     context: &FrameSubmissionContext,
     snapshot: Option<&RenderVirtualGeometryDebugSnapshot>,
-) -> RenderFrameExtract {
+) -> Option<RenderOverlayExtract> {
     let Some(snapshot) = snapshot else {
-        return extract;
+        return None;
     };
     let visbuffer_debug_marks = build_current_frame_visbuffer_debug_marks(snapshot);
     if snapshot.bvh_visualization_instances.is_empty() && visbuffer_debug_marks.is_empty() {
-        return extract;
+        return None;
     }
 
-    extract
-        .debug
-        .overlays
+    let mut overlays = source_overlays.clone();
+    overlays
         .scene_gizmos
         .extend(build_virtual_geometry_bvh_scene_gizmos(
             &snapshot.bvh_visualization_instances,
         ));
-    extract
-        .debug
-        .overlays
+    overlays
         .scene_gizmos
         .extend(build_virtual_geometry_visbuffer_scene_gizmos(
             context,
             &visbuffer_debug_marks,
         ));
-    extract
+    Some(overlays)
 }
 
 fn build_virtual_geometry_bvh_scene_gizmos(
@@ -347,7 +299,7 @@ mod tests {
     use crate::core::framework::render::{
         AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AntiAliasFallbackReport,
         AntiAliasMode, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTargetKind,
-        RenderCapabilitySummary, RenderMeshSnapshot, RenderOverlayExtract,
+        RenderCapabilitySummary, RenderFrameExtract, RenderMeshSnapshot, RenderOverlayExtract,
         RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, RenderPluginRendererOutputs,
         RenderProfileBundle, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
         RenderVirtualGeometryReadbackOutputs, SceneViewportRenderPacket, TemporalJitterSample,
@@ -383,6 +335,8 @@ mod tests {
             rotation: 0.0,
             billboard_basis: None,
         }];
+        let mut source_extract = extract.clone();
+        source_extract.particles.previous_sprites = particle_previous_sprites.clone();
         let context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
             UVec2::new(640, 480),
@@ -410,13 +364,8 @@ mod tests {
             None,
             Default::default(),
             Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
             AntiAliasFallbackReport::exact(AntiAliasMode::Taa),
-            1,
             advanced_runtime_plan_with_virtual_geometry(),
-            Default::default(),
             Default::default(),
             Default::default(),
             false,
@@ -425,13 +374,7 @@ mod tests {
             Default::default(),
             None,
             None,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            particle_previous_sprites.clone(),
+            std::sync::Arc::new(source_extract),
             0,
             0,
             0,
@@ -459,10 +402,9 @@ mod tests {
         );
 
         let frame = build_runtime_frame(
-            extract,
             None,
             &context,
-            &prepared,
+            prepared,
             ViewportCameraStackOutputPolicy::new(false, false),
         );
 

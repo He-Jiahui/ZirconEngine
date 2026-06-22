@@ -2,6 +2,9 @@
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw/request.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/constructors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/merge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/query.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw/dispatch_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
@@ -10,6 +13,9 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw/request.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/constructors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/merge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/query.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw/dispatch_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs
 plan_sources:
@@ -18,6 +24,7 @@ plan_sources:
 tests:
   - cargo fmt -p zircon_editor --check
   - host_contract redraw request/dispatch/test ownership scan
+  - host_contract redraw request constructors/query/merge ownership scan
   - scoped whitespace scan
   - scoped git diff --check
 doc_type: module-detail
@@ -29,9 +36,9 @@ doc_type: module-detail
 
 ## Request Ownership
 
-`redraw/request.rs` owns `HostRedrawRequest`. It defines the `None`, `Full`, and `Region` request shapes, full-frame and region constructors, visible-frame filtering, performance-counter recording, frame-update flags, damage-region access, scenario access, and coalescing rules.
+`redraw/request.rs` owns the `HostRedrawRequest` declaration and is now a structural entry for request behavior. `request/constructors.rs` owns full-frame and region constructors, visible-frame filtering, and redraw performance-counter recording. `request/query.rs` owns redraw/frame-update predicates, damage-region access, and scenario access. `request/merge.rs` owns coalescing rules.
 
-The merge rule intentionally keeps damage unioning and frame-update preservation in one place. When two frame-update requests coalesce, the later frame-update scenario wins so presenter counters remain attributed to the interaction that produced the final retained frame.
+The merge child intentionally keeps damage unioning and frame-update preservation in one place. When two frame-update requests coalesce, the later frame-update scenario wins so presenter counters remain attributed to the interaction that produced the final retained frame.
 
 ## Dispatch Ownership
 
@@ -50,3 +57,5 @@ The root `redraw.rs` now only declares the children, re-exports `HostRedrawReque
 ## Validation Notes
 
 This slice used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming `redraw.rs` no longer owns request/result bodies or inline tests, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo check/test validation remains deferred because current package checks are blocked before editor diagnostics by unrelated `zircon_runtime` render-history errors, and the active instruction is to implement functionality first.
+
+The 2026-06-21 request constructors/query/merge split reduced `redraw/request.rs` from 158 lines to a 21-line request model entry. `request/constructors.rs` is 54 lines and owns constructor/perf-counter/visible-frame filtering behavior, `request/query.rs` is 37 lines and owns request predicates plus damage/scenario accessors, and `request/merge.rs` is 65 lines and owns redraw coalescing. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a redraw request constructors/query/merge ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.

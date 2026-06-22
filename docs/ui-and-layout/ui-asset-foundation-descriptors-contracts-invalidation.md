@@ -87,6 +87,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/tree/palette_drop/resolution.rs
   - zircon_editor/src/ui/asset_editor/session/palette_state.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
@@ -182,6 +183,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs

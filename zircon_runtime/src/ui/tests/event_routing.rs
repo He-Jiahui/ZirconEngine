@@ -5,10 +5,10 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply,
-    UiFocusEffectReason, UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiInputEventMetadata,
-    UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
-    UiInputRoutePolicy, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
-    UiKeyboardInputState, UiNavigationRequestPolicy, UiPointerCaptureReason,
+    UiFocusEffectReason, UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind,
+    UiInputEvent, UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
+    UiInputMethodSurroundingText, UiInputRoutePolicy, UiInputSequence, UiInputTimestamp,
+    UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationRequestPolicy, UiPointerCaptureReason,
     UiPointerComponentEventReason, UiPointerDispatchEffect, UiPointerEvent, UiPointerId,
     UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPreciseScrollDelta,
     UiTextInputEvent,
@@ -1032,6 +1032,7 @@ fn shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnosti
                 kind: UiImeInputEventKind::Cancel,
                 text: String::new(),
                 cursor_range: None,
+                delete_surrounding: None,
             }),
         )
         .unwrap();
@@ -1192,6 +1193,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                         preedit.len() as u32,
                     ),
                 ),
+                delete_surrounding: None,
             }),
         )
         .unwrap();
@@ -1222,6 +1224,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Cancel,
                 text: String::new(),
                 cursor_range: None,
+                delete_surrounding: None,
             }),
         )
         .unwrap();
@@ -1244,6 +1247,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Preedit,
                 text: preedit.to_string(),
                 cursor_range: None,
+                delete_surrounding: None,
             }),
         )
         .unwrap();
@@ -1256,6 +1260,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Commit,
                 text: preedit.to_string(),
                 cursor_range: None,
+                delete_surrounding: None,
             }),
         )
         .unwrap();
@@ -1274,6 +1279,35 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 value: UiValue::String(preedit.to_string()),
             }
     }));
+
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let delete_surrounding = surface
+        .dispatch_input_event(
+            &pointer_dispatcher,
+            &navigation_dispatcher,
+            UiInputEvent::Ime(UiImeInputEvent {
+                metadata: input_metadata(),
+                kind: UiImeInputEventKind::DeleteSurrounding,
+                text: String::new(),
+                cursor_range: None,
+                delete_surrounding: Some(UiImeDeleteSurrounding::new(1, 1)),
+            }),
+        )
+        .unwrap();
+    assert_eq!(
+        delete_surrounding.reply.disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert_eq!(
+        delete_surrounding.diagnostics.route_target,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(editable_attr_string(&surface, "value"), preedit);
+    assert!(delete_surrounding
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "ime delete-surrounding is not applied by editable text yet"));
 }
 
 #[test]
@@ -1292,6 +1326,7 @@ fn shared_input_dispatch_rejects_invalid_owners_and_hidden_ancestors() {
                 kind: UiImeInputEventKind::Preedit,
                 text: "draft".to_string(),
                 cursor_range: None,
+                delete_surrounding: None,
             }),
         )
         .unwrap();

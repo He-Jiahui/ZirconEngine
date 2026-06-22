@@ -7,6 +7,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .pipeline_report_cook_assets_manifest_shape import (
+    cook_assets_manifest_assets_are_schema_clean,
+    cook_assets_manifest_shape_field_diagnostics,
+    cook_assets_manifest_roots_are_schema_clean,
+    safe_normalized_manifest_path,
+)
 from .pipeline_report_cook_assets_source_bytes import (
     cook_assets_pack_source_byte_diagnostics,
 )
@@ -40,9 +46,9 @@ def cook_assets_manifest_hash_diagnostics(
             continue
         manifest = report.get("cooked_asset_manifest")
         expected_sha256 = report.get("cooked_asset_manifest_sha256")
-        if not isinstance(manifest, str) or not manifest:
+        if not cook_assets_is_non_empty_trimmed_string(manifest):
             continue
-        if not isinstance(expected_sha256, str) or not expected_sha256:
+        if not cook_assets_is_non_empty_trimmed_string(expected_sha256):
             continue
         manifest_path = resolve_cook_assets_path_or_diagnostic(
             manifest,
@@ -224,6 +230,8 @@ def cook_assets_manifest_source_field_diagnostics(
         source = asset.get("source")
         if not isinstance(source, str) or not source:
             continue
+        if not cook_assets_is_non_empty_trimmed_string(source):
+            continue
         source_path = Path(source)
         if not source_path.is_absolute():
             diagnostics.append(
@@ -261,7 +269,7 @@ def cook_assets_manifest_determinism_field_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     roots = manifest.get("roots", [])
-    if isinstance(roots, list) and all(isinstance(root, str) for root in roots):
+    if cook_assets_manifest_roots_are_schema_clean(manifest):
         if roots != sorted(set(roots)):
             diagnostics.append(
                 "cook_assets report cooked_asset_manifest "
@@ -270,28 +278,19 @@ def cook_assets_manifest_determinism_field_diagnostics(
     assets = manifest.get("assets")
     if not isinstance(assets, list):
         return diagnostics
+    if not cook_assets_manifest_assets_are_schema_clean(manifest):
+        return diagnostics
     asset_paths: list[str] = []
     for index, asset in enumerate(assets):
-        if not isinstance(asset, dict):
-            continue
         path = asset.get("path")
-        if isinstance(path, str) and path:
-            asset_paths.append(path)
+        asset_paths.append(path)
         dependencies = asset.get("dependencies", [])
-        if not isinstance(dependencies, list) or any(
-            not isinstance(dependency, str) for dependency in dependencies
-        ):
-            continue
         if dependencies != sorted(set(dependencies)):
             diagnostics.append(
                 "cook_assets report cooked_asset_manifest "
                 f"assets[{index}].dependencies must be sorted and unique"
             )
         labels = asset.get("labels", [])
-        if not isinstance(labels, list) or any(
-            not isinstance(label, str) for label in labels
-        ):
-            continue
         if labels != sorted(set(labels)):
             diagnostics.append(
                 "cook_assets report cooked_asset_manifest "
@@ -302,95 +301,6 @@ def cook_assets_manifest_determinism_field_diagnostics(
             "cook_assets report cooked_asset_manifest assets must be sorted by path"
         )
     return diagnostics
-
-
-def cook_assets_manifest_shape_field_diagnostics(
-    manifest: dict[str, Any],
-) -> list[str]:
-    diagnostics: list[str] = []
-    roots = manifest.get("roots", [])
-    if not isinstance(roots, list) or any(not isinstance(root, str) for root in roots):
-        diagnostics.append(
-            "cook_assets report cooked_asset_manifest roots must be a string array"
-        )
-
-    asset_filter = manifest.get("asset_filter")
-    if asset_filter is not None and not isinstance(asset_filter, str):
-        diagnostics.append(
-            "cook_assets report cooked_asset_manifest asset_filter "
-            "must be a string when present"
-        )
-
-    assets = manifest.get("assets")
-    if not isinstance(assets, list):
-        diagnostics.append(
-            "cook_assets report cooked_asset_manifest assets must be an array"
-        )
-        return diagnostics
-
-    for index, asset in enumerate(assets):
-        if not isinstance(asset, dict):
-            diagnostics.append(
-                f"cook_assets report cooked_asset_manifest assets[{index}] "
-                "must be an object"
-            )
-            continue
-        path = asset.get("path")
-        if not isinstance(path, str) or not path:
-            diagnostics.append(
-                f"cook_assets report cooked_asset_manifest assets[{index}].path "
-                "must be a non-empty string"
-            )
-        diagnostics.extend(
-            cook_assets_manifest_optional_string_diagnostics(
-                asset,
-                index,
-                "source",
-            )
-        )
-        diagnostics.extend(
-            cook_assets_manifest_optional_string_array_diagnostics(
-                asset,
-                index,
-                "dependencies",
-            )
-        )
-        diagnostics.extend(
-            cook_assets_manifest_optional_string_array_diagnostics(
-                asset,
-                index,
-                "labels",
-            )
-        )
-    return diagnostics
-
-
-def cook_assets_manifest_optional_string_diagnostics(
-    asset: dict[str, Any],
-    index: int,
-    field_name: str,
-) -> list[str]:
-    value = asset.get(field_name)
-    if value is None or isinstance(value, str):
-        return []
-    return [
-        f"cook_assets report cooked_asset_manifest assets[{index}].{field_name} "
-        "must be a string"
-    ]
-
-
-def cook_assets_manifest_optional_string_array_diagnostics(
-    asset: dict[str, Any],
-    index: int,
-    field_name: str,
-) -> list[str]:
-    value = asset.get(field_name, [])
-    if isinstance(value, list) and all(isinstance(item, str) for item in value):
-        return []
-    return [
-        f"cook_assets report cooked_asset_manifest assets[{index}].{field_name} "
-        "must be a string array"
-    ]
 
 
 def cook_assets_manifest_asset_filter_diagnostics(
@@ -418,9 +328,17 @@ def cook_assets_manifest_asset_filter_diagnostics(
             str,
         ):
             continue
+        if isinstance(report_asset_filter, str) and not cook_assets_is_non_empty_trimmed_string(
+            report_asset_filter
+        ):
+            continue
         if manifest_asset_filter is not None and not isinstance(
             manifest_asset_filter,
             str,
+        ):
+            continue
+        if isinstance(manifest_asset_filter, str) and not cook_assets_is_non_empty_trimmed_string(
+            manifest_asset_filter
         ):
             continue
         if report_asset_filter != manifest_asset_filter:
@@ -614,9 +532,17 @@ def cook_assets_manifest_trim_evidence(
     asset_filter = manifest.get("asset_filter")
     if not isinstance(roots, list) or any(not isinstance(root, str) for root in roots):
         return None
+    if any(not cook_assets_is_non_empty_trimmed_string(root) for root in roots):
+        return None
+    if any(not cook_assets_manifest_asset_path_is_schema_clean(root) for root in roots):
+        return None
     if not isinstance(assets, list):
         return None
     if asset_filter is not None and not isinstance(asset_filter, str):
+        return None
+    if isinstance(asset_filter, str) and not cook_assets_is_non_empty_trimmed_string(
+        asset_filter
+    ):
         return None
 
     asset_map: dict[str, dict[str, Any]] = {}
@@ -627,7 +553,10 @@ def cook_assets_manifest_trim_evidence(
         path = asset.get("path")
         dependencies = asset.get("dependencies", [])
         labels = asset.get("labels", [])
-        if not isinstance(path, str) or not path:
+        source = asset.get("source")
+        if not cook_assets_is_non_empty_trimmed_string(path):
+            return None
+        if not cook_assets_manifest_asset_path_is_schema_clean(path):
             return None
         if path in asset_map:
             duplicate_assets.append(path)
@@ -636,9 +565,23 @@ def cook_assets_manifest_trim_evidence(
             not isinstance(dependency, str) for dependency in dependencies
         ):
             return None
+        if any(
+            not cook_assets_is_non_empty_trimmed_string(dependency)
+            for dependency in dependencies
+        ):
+            return None
+        if any(
+            not cook_assets_manifest_asset_path_is_schema_clean(dependency)
+            for dependency in dependencies
+        ):
+            return None
         if not isinstance(labels, list) or any(
             not isinstance(label, str) for label in labels
         ):
+            return None
+        if any(not cook_assets_is_non_empty_trimmed_string(label) for label in labels):
+            return None
+        if source is not None and not cook_assets_is_non_empty_trimmed_string(source):
             return None
         asset_map[path] = asset
 
@@ -690,6 +633,10 @@ def cook_assets_manifest_trim_evidence(
         "missing_dependencies": missing_dependencies,
         "trimmed_assets": trimmed_assets,
     }
+
+
+def cook_assets_manifest_asset_path_is_schema_clean(value: object) -> bool:
+    return isinstance(value, str) and safe_normalized_manifest_path(value) == value
 
 
 def cook_assets_manifest_reachable_assets(
@@ -861,7 +808,7 @@ def cook_assets_manifest_path(
         if not isinstance(report, dict):
             continue
         manifest = report.get("cooked_asset_manifest")
-        if not isinstance(manifest, str) or not manifest:
+        if not cook_assets_is_non_empty_trimmed_string(manifest):
             return None
         return resolve_cook_assets_path_or_diagnostic(
             manifest,
@@ -876,7 +823,7 @@ def cook_assets_report_manifest_path(
     diagnostics: list[str],
 ) -> Path | None:
     manifest = report.get("cooked_asset_manifest")
-    if not isinstance(manifest, str) or not manifest:
+    if not cook_assets_is_non_empty_trimmed_string(manifest):
         return None
     return resolve_cook_assets_path_or_diagnostic(
         manifest,
@@ -921,6 +868,14 @@ def cook_assets_manifest_count_field_diagnostics(
     manifest_value = manifest.get(manifest_field)
     if not isinstance(expected_count, int) or isinstance(expected_count, bool):
         return []
+    if manifest_field == "roots" and not cook_assets_manifest_roots_are_schema_clean(
+        manifest
+    ):
+        return []
+    if manifest_field == "assets" and not cook_assets_manifest_assets_are_schema_clean(
+        manifest
+    ):
+        return []
     if not isinstance(manifest_value, list):
         return [
             f"cook_assets report cooked_asset_manifest {manifest_field} must be an array"
@@ -932,3 +887,7 @@ def cook_assets_manifest_count_field_diagnostics(
             f"cooked_asset_manifest {manifest_field} length {actual_count}"
         ]
     return []
+
+
+def cook_assets_is_non_empty_trimmed_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value

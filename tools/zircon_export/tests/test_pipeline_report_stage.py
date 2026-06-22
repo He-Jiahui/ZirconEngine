@@ -196,7 +196,7 @@ class PipelineReportStageTests(unittest.TestCase):
             self.assertTrue(report["fatal"])
             self.assertEqual(report["missing_stages"], [])
             self.assertTrue(
-                any("delta_pack must be a non-empty string" in diagnostic for diagnostic in report["diagnostics"]),
+                any("delta_pack must be a string" in diagnostic for diagnostic in report["diagnostics"]),
                 report["diagnostics"],
             )
 

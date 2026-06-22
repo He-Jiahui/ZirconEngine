@@ -1,6 +1,7 @@
 //! Runtime asset subsystem: project manifests, loading, import, and pipeline runtime support.
 
 mod module;
+pub mod prelude;
 
 pub use module::{
     module_descriptor, AssetModule, ASSET_IO_DRIVER_NAME, ASSET_MANAGER_NAME, ASSET_MODULE_NAME,

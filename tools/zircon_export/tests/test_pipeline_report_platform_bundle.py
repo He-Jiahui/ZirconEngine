@@ -13,6 +13,7 @@ from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _write_platform_bundle_fixture,
     _write_stage_report,
     _write_text,
+    _write_validate_report_with_strategies,
 )
 
 
@@ -147,6 +148,93 @@ class PlatformBundleReportValidationTests(unittest.TestCase):
                     "native_plugins_payload stage_report is required"
                     in diagnostic
                     and "NativeDynamic stage report is present"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_does_not_use_fatal_native_dynamic_stage_report_for_payload(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_platform_bundle_fixture(out)
+            native_report = _read_stage_report(out, "native_dynamic")
+            packages = native_report["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            package["loadable_artifact_count"] = -1
+            _write_stage_report(out, "native_dynamic", native_report)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report materialized_packages[0].loadable_artifact_count "
+                    "must be non-negative"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "NativeDynamic report materialized_packages are malformed"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_plugins_payload" in diagnostic
+                    and "not backed by the current NativeDynamic report" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_does_not_use_fatal_pack_stage_report_for_pack_source(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_platform_bundle_fixture(out, with_delta=True)
+            pack_report = _read_stage_report(out, "pack")
+            pack_report["pack"] = []
+            _write_stage_report(out, "pack", pack_report)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("Pack", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "pack report pack must be a string" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report pack is present but "
+                    "Pack report does not contain pack evidence" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report delta_pack is present but "
+                    "Pack report does not contain verified delta_pack evidence"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -415,9 +503,7 @@ class PlatformBundleReportValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"
             _write_platform_bundle_fixture(out)
-            validate_report = _read_stage_report(out, "validate")
-            validate_report["profile_summary"] = {"strategies": ["library_embed"]}
-            _write_stage_report(out, "validate", validate_report)
+            _write_validate_report_with_strategies(out, ["library_embed"])
 
             report = build_pipeline_report(out, "windows-release")
 
@@ -441,9 +527,7 @@ class PlatformBundleReportValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"
             fixture = _write_platform_bundle_fixture(out)
-            validate_report = _read_stage_report(out, "validate")
-            validate_report["profile_summary"] = {"strategies": ["library_embed"]}
-            _write_stage_report(out, "validate", validate_report)
+            _write_validate_report_with_strategies(out, ["library_embed"])
             platform_report = _read_stage_report(out, "platform_bundle")
             payload = platform_report["native_plugins_payload"]
             self.assertIsInstance(payload, dict)

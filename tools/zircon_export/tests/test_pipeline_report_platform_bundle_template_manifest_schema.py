@@ -148,6 +148,12 @@ class PlatformBundleTemplateManifestSchemaTests(unittest.TestCase):
                 "browser, desktop, headless, mobile_app",
             ),
             (
+                "host_artifact",
+                '"generated"\n',
+                "template.manifest field host_artifact='generated' is not one of "
+                "placeholder, precompiled",
+            ),
+            (
                 "resource_strategy",
                 '"unknown_resource"\n',
                 "template.manifest field resource_strategy='unknown_resource' "
@@ -226,7 +232,7 @@ class PlatformBundleTemplateManifestSchemaTests(unittest.TestCase):
             ),
             (
                 "compatible_profiles = [1]\n",
-                "template.manifest field compatible_profiles must be a string array",
+                "template.manifest field compatible_profiles[0] must be a string",
             ),
             (
                 'compatible_profiles = ["windows-release", " "]\n',
@@ -283,6 +289,65 @@ class PlatformBundleTemplateManifestSchemaTests(unittest.TestCase):
                         ),
                         report["diagnostics"],
                     )
+
+    def test_report_rejects_template_report_manifest_padded_duplicate_compatible_profile_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            template_dir = Path(str(template["template_dir"]))
+            template_files = template["files"]
+            self.assertIsInstance(template_files, list)
+            template_file = template_files[0]
+            self.assertIsInstance(template_file, dict)
+            manifest = template_dir / "template.toml"
+            manifest.write_text(
+                self._template_manifest_text(
+                    template_file,
+                    replace_field="compatible_profiles",
+                    replacement=(
+                        'compatible_profiles = [" windows-release ", '
+                        '" windows-release "]\n'
+                    ),
+                ),
+                encoding="utf-8",
+            )
+            template["manifest"] = str(manifest)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report template.manifest field "
+                    "compatible_profiles[0] must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report template.manifest field "
+                    "compatible_profiles duplicate entry"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
 
     def test_report_rejects_template_report_manifest_paths_host_schema(self) -> None:
         cases = (
@@ -671,6 +736,7 @@ class PlatformBundleTemplateManifestSchemaTests(unittest.TestCase):
             "engine_version": '"0.1.0"\n',
             "target_platform": '"windows-x86_64"\n',
             "host_kind": '"desktop"\n',
+            "host_artifact": '"precompiled"\n',
             "resource_strategy": '"filesystem_bundle"\n',
             "plugin_strategy": '"native_dynamic_allowed"\n',
             "bundle_format": '"directory"\n',

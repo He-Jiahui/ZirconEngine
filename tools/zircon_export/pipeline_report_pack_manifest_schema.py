@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from .export_template import is_safe_relative_path, normalize_relative_path
+
 PACK_DOCUMENT_MANIFEST_FIELDS = ("assets", "pack")
 PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_FIELDS = ("pack",)
 PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS = ("assets",)
@@ -38,6 +40,7 @@ def pack_report_manifest_count_diagnostics(
     asset_count = report.get("asset_count")
     if (
         isinstance(assets, list)
+        and all(pack_asset_entry_is_schema_clean(asset) for asset in assets)
         and isinstance(asset_count, int)
         and not isinstance(asset_count, bool)
         and asset_count != len(assets)
@@ -53,6 +56,7 @@ def pack_report_manifest_count_diagnostics(
     chunk_count = report.get("chunk_count")
     if (
         isinstance(chunks, list)
+        and all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks)
         and isinstance(chunk_count, int)
         and not isinstance(chunk_count, bool)
         and chunk_count != len(chunks)
@@ -72,6 +76,11 @@ def pack_report_deduplicated_assets_diagnostics(
     if (
         not isinstance(deduplicated_assets, list)
         or any(not isinstance(path, str) for path in deduplicated_assets)
+        or any(
+            not pack_asset_path_is_schema_clean(path)
+            for path in deduplicated_assets
+            if isinstance(path, str)
+        )
     ):
         return []
     expected = manifest_deduplicated_asset_paths(manifest)
@@ -84,18 +93,18 @@ def pack_report_deduplicated_assets_diagnostics(
 
 
 def manifest_deduplicated_asset_paths(manifest: dict[str, Any]) -> list[str] | None:
+    if not pack_document_manifest_is_schema_clean(manifest):
+        return None
     assets = manifest.get("assets")
     if not isinstance(assets, list):
         return None
     seen_hashes: set[tuple[int, ...]] = set()
     deduplicated_paths: list[str] = []
     for asset in sorted(assets, key=manifest_asset_sort_key):
-        if not isinstance(asset, dict):
+        if not pack_asset_entry_is_schema_clean(asset):
             return None
-        path = asset.get("path")
-        chunk_hash = asset.get("chunk_hash")
-        if not isinstance(path, str) or not is_byte_hash(chunk_hash):
-            return None
+        path = asset["path"]
+        chunk_hash = asset["chunk_hash"]
         hash_key = tuple(chunk_hash)
         if hash_key in seen_hashes:
             deduplicated_paths.append(path)
@@ -108,6 +117,72 @@ def manifest_asset_sort_key(asset: Any) -> str:
     if isinstance(asset, dict) and isinstance(asset.get("path"), str):
         return asset["path"]
     return ""
+
+
+def pack_document_manifest_is_schema_clean(manifest: dict[str, Any]) -> bool:
+    if any(field not in PACK_DOCUMENT_MANIFEST_FIELDS for field in manifest):
+        return False
+    pack = manifest.get("pack")
+    assets = manifest.get("assets")
+    return (
+        isinstance(pack, dict)
+        and pack_manifest_is_schema_clean(pack)
+        and isinstance(assets, list)
+        and all(pack_asset_entry_is_schema_clean(asset) for asset in assets)
+    )
+
+
+def pack_manifest_is_schema_clean(pack: dict[str, Any]) -> bool:
+    if any(field not in PACK_MANIFEST_FIELDS for field in pack):
+        return False
+    version = pack.get("version")
+    total_size = pack.get("total_size")
+    chunks = pack.get("chunks")
+    return (
+        isinstance(version, int)
+        and not isinstance(version, bool)
+        and version == PACK_FORMAT_VERSION
+        and isinstance(total_size, int)
+        and not isinstance(total_size, bool)
+        and total_size >= 0
+        and isinstance(chunks, list)
+        and all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks)
+    )
+
+
+def pack_chunk_entry_is_schema_clean(chunk: Any) -> bool:
+    if not isinstance(chunk, dict):
+        return False
+    if any(field not in PACK_CHUNK_ENTRY_FIELDS for field in chunk):
+        return False
+    offset = chunk.get("offset")
+    size = chunk.get("size")
+    return (
+        is_byte_hash(chunk.get("hash"))
+        and isinstance(offset, int)
+        and not isinstance(offset, bool)
+        and offset >= 0
+        and isinstance(size, int)
+        and not isinstance(size, bool)
+        and size >= 0
+    )
+
+
+def pack_asset_entry_is_schema_clean(asset: Any) -> bool:
+    if not isinstance(asset, dict):
+        return False
+    if any(field not in PACK_ASSET_ENTRY_FIELDS for field in asset):
+        return False
+    path = asset.get("path")
+    size = asset.get("size")
+    return (
+        isinstance(path, str)
+        and pack_asset_path_is_schema_clean(path)
+        and is_byte_hash(asset.get("chunk_hash"))
+        and isinstance(size, int)
+        and not isinstance(size, bool)
+        and size >= 0
+    )
 
 
 def pack_document_manifest_schema_diagnostics(
@@ -162,6 +237,10 @@ def pack_document_manifest_schema_diagnostics(
                 validate_string_schema_diagnostics=validate_string_schema_diagnostics,
             )
         )
+        diagnostics.extend(
+            pack_asset_path_uniqueness_diagnostics(f"{label}.assets", assets)
+        )
+        diagnostics.extend(pack_asset_path_order_diagnostics(f"{label}.assets", assets))
         if isinstance(pack, dict):
             diagnostics.extend(
                 pack_asset_chunk_reference_diagnostics(label, pack, assets)
@@ -313,13 +392,11 @@ def pack_total_size_diagnostics(
     total_size = pack.get("total_size")
     if not isinstance(total_size, int) or isinstance(total_size, bool):
         return []
+    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+        return []
     chunk_size_sum = 0
     for chunk in chunks:
-        if not isinstance(chunk, dict):
-            return []
-        chunk_size = chunk.get("size")
-        if not isinstance(chunk_size, int) or isinstance(chunk_size, bool):
-            return []
+        chunk_size = chunk["size"]
         chunk_size_sum += chunk_size
     if total_size != chunk_size_sum:
         return [
@@ -348,19 +425,12 @@ def pack_chunk_offset_diagnostics(
     label: str,
     chunks: list[Any],
 ) -> list[str]:
+    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+        return []
     expected_offset = 24
     for index, chunk in enumerate(sorted(chunks, key=pack_chunk_offset_sort_key)):
-        if not isinstance(chunk, dict):
-            return []
         offset = chunk.get("offset")
         size = chunk.get("size")
-        if (
-            not isinstance(offset, int)
-            or isinstance(offset, bool)
-            or not isinstance(size, int)
-            or isinstance(size, bool)
-        ):
-            return []
         if offset != expected_offset:
             return [
                 f"{label}[{index}].offset {offset} does not match "
@@ -385,6 +455,10 @@ def pack_asset_chunk_reference_diagnostics(
 ) -> list[str]:
     chunks = pack.get("chunks")
     if not isinstance(chunks, list):
+        return []
+    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+        return []
+    if not all(pack_asset_entry_is_schema_clean(asset) for asset in assets):
         return []
     chunk_hashes: set[tuple[int, ...]] = set()
     for chunk in chunks:
@@ -415,34 +489,22 @@ def pack_asset_chunk_size_diagnostics(
     chunks: list[Any],
     assets: list[Any],
 ) -> list[str]:
+    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+        return []
+    if not all(pack_asset_entry_is_schema_clean(asset) for asset in assets):
+        return []
     chunk_sizes: dict[tuple[int, ...], int] = {}
     for chunk in chunks:
-        if not isinstance(chunk, dict):
-            return []
         chunk_hash = chunk.get("hash")
         size = chunk.get("size")
-        if (
-            not is_byte_hash(chunk_hash)
-            or not isinstance(size, int)
-            or isinstance(size, bool)
-        ):
-            return []
         chunk_hash_key = tuple(chunk_hash)
         if chunk_hash_key in chunk_sizes:
             return []
         chunk_sizes[chunk_hash_key] = size
     diagnostics: list[str] = []
     for index, asset in enumerate(assets):
-        if not isinstance(asset, dict):
-            return []
         chunk_hash = asset.get("chunk_hash")
         asset_size = asset.get("size")
-        if (
-            not is_byte_hash(chunk_hash)
-            or not isinstance(asset_size, int)
-            or isinstance(asset_size, bool)
-        ):
-            return []
         chunk_size = chunk_sizes.get(tuple(chunk_hash))
         if chunk_size is None:
             continue
@@ -484,6 +546,10 @@ def pack_asset_entries_schema_diagnostics(
                 )
                 if isinstance(field_value, str) and not field_value.strip():
                     diagnostics.append(f"{field_label} must be a non-empty string")
+                elif isinstance(field_value, str):
+                    diagnostics.extend(
+                        pack_asset_path_schema_diagnostics(field_label, field_value)
+                    )
         for field in PACK_ASSET_ENTRY_REQUIRED_BYTE_ARRAY_FIELDS:
             diagnostics.extend(
                 validate_byte_array_schema_diagnostics(
@@ -506,6 +572,69 @@ def pack_asset_entries_schema_diagnostics(
                         non_negative_integer_diagnostics(field_label, field_value)
                     )
     return diagnostics
+
+
+def pack_asset_path_schema_diagnostics(label: str, value: str) -> list[str]:
+    if value.strip() != value:
+        return [f"{label} must be a non-empty trimmed string"]
+    if not is_safe_asset_package_path(value):
+        return [f"{label} must be a safe relative asset path"]
+    if value != normalized_asset_package_path(value):
+        return [f"{label} must use a normalized relative asset path"]
+    return []
+
+
+def pack_asset_path_is_schema_clean(value: str) -> bool:
+    return (
+        bool(value.strip())
+        and value.strip() == value
+        and is_safe_asset_package_path(value)
+        and value == normalized_asset_package_path(value)
+    )
+
+
+def pack_asset_path_uniqueness_diagnostics(
+    label: str,
+    assets: list[Any],
+) -> list[str]:
+    seen_paths: set[str] = set()
+    for asset in assets:
+        if not isinstance(asset, dict):
+            return []
+        path = asset.get("path")
+        if not isinstance(path, str) or not pack_asset_path_is_schema_clean(path):
+            return []
+        normalized_path = normalized_asset_package_path(path)
+        if normalized_path in seen_paths:
+            return [f"{label} path {normalized_path} is declared more than once"]
+        seen_paths.add(normalized_path)
+    return []
+
+
+def pack_asset_path_order_diagnostics(
+    label: str,
+    assets: list[Any],
+) -> list[str]:
+    paths: list[str] = []
+    for asset in assets:
+        if not isinstance(asset, dict):
+            return []
+        path = asset.get("path")
+        if not isinstance(path, str) or not pack_asset_path_is_schema_clean(path):
+            return []
+        paths.append(path)
+    if paths != sorted(paths):
+        return [f"{label} must be sorted by asset path"]
+    return []
+
+
+def is_safe_asset_package_path(value: str) -> bool:
+    normalized = normalize_relative_path(value)
+    return bool(normalized) and is_safe_relative_path(normalized)
+
+
+def normalized_asset_package_path(value: str) -> str:
+    return normalize_relative_path(value)
 
 
 def is_byte_hash(value: Any) -> bool:

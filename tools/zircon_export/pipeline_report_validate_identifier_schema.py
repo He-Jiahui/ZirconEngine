@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
+)
+
 
 def validate_non_empty_trimmed_string_schema_diagnostics(
     label: str,
@@ -29,6 +33,28 @@ def validate_project_plugin_package_id_array_schema_diagnostics(
             package_id,
         )
     ]
+
+
+def validate_unique_project_plugin_package_id_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        return []
+    diagnostics: list[str] = []
+    seen: dict[str, int] = {}
+    for index, package_id in enumerate(value):
+        if validate_project_plugin_package_id_schema_diagnostics(
+            f"{label}[{index}]",
+            package_id,
+        ):
+            continue
+        previous_index = seen.get(package_id)
+        if previous_index is None:
+            seen[package_id] = index
+            continue
+        diagnostics.append(f"{label}[{index}] duplicates entry {previous_index}")
+    return diagnostics
 
 
 def validate_project_runtime_crate_name_array_schema_diagnostics(
@@ -63,12 +89,6 @@ def validate_native_dynamic_package_id_array_schema_diagnostics(
             package_id,
         )
     ]
-
-
-def validate_string_array_schema_diagnostics(label: str, value: Any) -> list[str]:
-    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
-        return [f"{label} must be a string array"]
-    return []
 
 
 def validate_project_plugin_package_id_schema_diagnostics(

@@ -34,7 +34,7 @@ fn plugin_manifest_roundtrips_maturity_and_capability_statuses() {
 
 #[test]
 fn runtime_plugin_descriptor_projects_maturity_and_statuses_to_manifest() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -45,12 +45,16 @@ fn runtime_plugin_descriptor_projects_maturity_and_statuses_to_manifest() {
     .with_capability_status(
         CapabilityStatusManifest::new("runtime.plugin.sound", CapabilityStatus::Partial)
             .with_bevy_reference("dev/bevy/crates/bevy_audio/src/lib.rs"),
-    );
+    )
+    .build();
 
     let manifest = descriptor.package_manifest();
 
     assert_eq!(manifest.maturity, PluginMaturity::Beta);
-    assert_eq!(manifest.capability_statuses, descriptor.capability_statuses);
+    assert_eq!(
+        manifest.capability_statuses.as_slice(),
+        descriptor.capability_statuses()
+    );
     assert_eq!(
         manifest.capability_statuses[0].status,
         CapabilityStatus::Partial
@@ -65,13 +69,13 @@ fn builtin_catalog_classifies_bevy_parity_runtime_plugins() {
     let particles = descriptor(&catalog, RuntimePluginId::Particles);
     let rendering = descriptor(&catalog, RuntimePluginId::Rendering);
 
-    assert_eq!(sound.maturity, PluginMaturity::Beta);
-    assert!(sound.capability_statuses.iter().any(|status| {
+    assert_eq!(sound.maturity(), PluginMaturity::Beta);
+    assert!(sound.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.sound" && status.status == CapabilityStatus::Partial
     }));
-    assert_eq!(animation.maturity, PluginMaturity::Beta);
-    assert_eq!(particles.maturity, PluginMaturity::Experimental);
-    assert_eq!(rendering.maturity, PluginMaturity::Stable);
+    assert_eq!(animation.maturity(), PluginMaturity::Beta);
+    assert_eq!(particles.maturity(), PluginMaturity::Experimental);
+    assert_eq!(rendering.maturity(), PluginMaturity::Stable);
 }
 
 #[test]
@@ -161,30 +165,33 @@ fn profile_availability_report_blocks_required_externalized_or_stub_plugins() {
     .with_default_plugin(RuntimePluginId::Particles, true)
     .with_default_plugin(RuntimePluginId::Terrain, true);
     let descriptors = [
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
             "zircon_plugin_sound_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Externalized),
-        RuntimePluginDescriptor::new(
+        .with_maturity(PluginMaturity::Externalized)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "particles",
             "Particles",
             RuntimePluginId::Particles,
             "zircon_plugin_particles_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Stub),
-        RuntimePluginDescriptor::new(
+        .with_maturity(PluginMaturity::Stub)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "terrain",
             "Terrain",
             RuntimePluginId::Terrain,
             "zircon_plugin_terrain_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Experimental),
+        .with_maturity(PluginMaturity::Experimental)
+        .build(),
     ];
 
     let report = profile.availability_report(descriptors.iter(), std::iter::empty::<&str>());
@@ -209,23 +216,25 @@ fn profile_availability_report_warns_for_optional_unavailable_plugins_without_mi
     .with_optional_plugin(RuntimePluginId::Particles)
     .with_optional_plugin(RuntimePluginId::Navigation);
     let descriptors = [
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "rendering",
             "Rendering",
             RuntimePluginId::Rendering,
             "zircon_plugin_rendering_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Stable),
-        RuntimePluginDescriptor::new(
+        .with_maturity(PluginMaturity::Stable)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "particles",
             "Particles",
             RuntimePluginId::Particles,
             "zircon_plugin_particles_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Experimental),
-        RuntimePluginDescriptor::new(
+        .with_maturity(PluginMaturity::Experimental)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "navigation",
             "Navigation",
             RuntimePluginId::Navigation,
@@ -233,7 +242,8 @@ fn profile_availability_report_warns_for_optional_unavailable_plugins_without_mi
         )
         .with_target_modes([RuntimeTargetMode::ServerRuntime])
         .with_maturity(PluginMaturity::Beta)
-        .with_capability("runtime.plugin.navigation"),
+        .with_capability("runtime.plugin.navigation")
+        .build(),
     ];
 
     let report = profile.availability_report(descriptors.iter(), std::iter::empty::<&str>());
@@ -304,7 +314,7 @@ fn registration_reports_can_drive_profile_provider_availability() {
     .with_default_plugin(RuntimePluginId::Rendering, true);
     let descriptors = RuntimePluginDescriptor::builtin_catalog();
     let linked = RuntimePluginRegistrationReport::from_plugin(
-        &RuntimePluginDescriptor::new(
+        &RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
@@ -312,7 +322,8 @@ fn registration_reports_can_drive_profile_provider_availability() {
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
         .with_maturity(PluginMaturity::Beta)
-        .with_capability("runtime.plugin.sound"),
+        .with_capability("runtime.plugin.sound")
+        .build(),
     );
     let mut native_manifest = descriptor(&descriptors, RuntimePluginId::Rendering)
         .package_manifest()
@@ -403,22 +414,24 @@ fn provider_reports_do_not_bypass_maturity_gates() {
     .with_default_plugin(RuntimePluginId::Sound, true)
     .with_default_plugin(RuntimePluginId::Particles, true);
     let descriptors = [
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
             "zircon_plugin_sound_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Stub),
-        RuntimePluginDescriptor::new(
+        .with_maturity(PluginMaturity::Stub)
+        .build(),
+        RuntimePluginDescriptor::builder(
             "particles",
             "Particles",
             RuntimePluginId::Particles,
             "zircon_plugin_particles_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_maturity(PluginMaturity::Experimental),
+        .with_maturity(PluginMaturity::Experimental)
+        .build(),
     ];
 
     let report = profile.availability_report_with_providers(
@@ -468,16 +481,16 @@ fn builtin_catalog_statuses_match_importer_and_physics_capability_metadata() {
     ] {
         let importer = descriptor(&catalog, id);
         assert!(
-            importer.capability_statuses.iter().any(|status| {
+            importer.capability_statuses().iter().any(|status| {
                 status.capability == capability && status.status == CapabilityStatus::Partial
             }),
             "missing importer capability status {capability}"
         );
     }
-    assert!(physics.capability_statuses.iter().any(|status| {
+    assert!(physics.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.physics" && status.status == CapabilityStatus::Partial
     }));
-    assert!(physics.capability_statuses.iter().any(|status| {
+    assert!(physics.capability_statuses().iter().any(|status| {
         status.capability == "runtime.capability.physics.raycast"
             && status.status == CapabilityStatus::Partial
     }));
@@ -489,7 +502,7 @@ fn descriptor(
 ) -> &RuntimePluginDescriptor {
     descriptors
         .iter()
-        .find(|descriptor| descriptor.runtime_id == id)
+        .find(|descriptor| descriptor.runtime_id() == id)
         .expect("descriptor")
 }
 

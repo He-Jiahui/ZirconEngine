@@ -24,9 +24,9 @@ related_code:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs
   - zircon_editor/src/scene/viewport/handles/handle_tool.rs
-  - zircon_editor/src/scene/viewport/handles/move_handle_tool_impl.rs
-  - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_impl.rs
-  - zircon_editor/src/scene/viewport/handles/scale_handle_tool_impl.rs
+  - zircon_editor/src/scene/viewport/handles/move_handle_tool_behavior.rs
+  - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
+  - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
@@ -45,13 +45,18 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/scene_hook.rs
   - zircon_runtime/src/scene/world/property_access.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
@@ -63,7 +68,7 @@ related_code:
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/ui_asset_editor_theme_tooling/mod.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/src/asset/mod.rs
@@ -86,9 +91,9 @@ implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs
   - zircon_editor/src/scene/viewport/handles/handle_tool.rs
-  - zircon_editor/src/scene/viewport/handles/move_handle_tool_impl.rs
-  - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_impl.rs
-  - zircon_editor/src/scene/viewport/handles/scale_handle_tool_impl.rs
+  - zircon_editor/src/scene/viewport/handles/move_handle_tool_behavior.rs
+  - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
+  - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
@@ -105,20 +110,25 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/scene_hook.rs
   - zircon_runtime/src/scene/world/property_access.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_editor/src/tests/support.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
 plan_sources:
   - user: 2026-04-20 继续，把 runtime 层仍然存在的 editor only 实现迁回 editor
   - user: 2026-04-20 继续
@@ -127,6 +137,8 @@ plan_sources:
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
+  - zircon_runtime/src/scene/tests/property_paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - cargo check -p zircon_runtime --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --tests --offline --message-format short --target-dir target/ta
@@ -339,7 +351,7 @@ runtime foundation 现在统一使用中性命名：
 
 所有会写 `ZIRCON_CONFIG_PATH` 的 editor crate tests 必须通过 [zircon_editor/src/tests/support.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/support.rs) 暴露的共享 `env_lock()` 串行化。这个锁是进程级环境变量的唯一测试保护层；子模块不能自建另一个 `Mutex` 来保护同一个变量，否则 Rust test harness 的默认并行执行仍会让两个测试同时切换 config path。
 
-2026-05-03 的 workspace acceptance 复现了这个边界问题：`tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_actions` 单测独立运行通过，`zircon_editor --lib -- --test-threads=1` 也通过，但默认并行 `zircon_editor --lib` 会偶发拿到错误的 config path。最低共享层不是 reflection route，而是 [zircon_editor/src/ui/retained_host/app/tests.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 里独立的本地 env lock。该 test module 现在改为调用 crate-wide `crate::tests::support::env_lock()`，并用默认并行 editor-lib 与 workspace test 重新验证。
+2026-05-03 的 workspace acceptance 复现了这个边界问题：`tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_actions` 单测独立运行通过，`zircon_editor --lib -- --test-threads=1` 也通过，但默认并行 `zircon_editor --lib` 会偶发拿到错误的 config path。最低共享层不是 reflection route，而是 [zircon_editor/src/ui/retained_host/app/tests/support.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/support.rs) 里的 test harness env lock 调用。该 test module 现在改为调用 crate-wide `crate::tests::support::env_lock()`，并用默认并行 editor-lib 与 workspace test 重新验证。
 
 ## Graphics Root-Surface Contraction
 
@@ -450,7 +462,7 @@ editor asset host 在 `sync_from_project()` 里现在同时读取两份文档：
 这组能力会把“枚举一个节点可编辑属性列表”的职责留在 runtime shared surface 上，但当前 tracked 生产代码里并没有 runtime/app/editor 的直接调用点。真正还在被 runtime 生产逻辑使用的只有 animation property track 需要的最小集合：
 
 - `entity_path()`
-- `resolve_entity_path()`
+- `get_entity_by_path()`
 - `property()`
 - `set_property()`
 - `ScenePropertyValue`

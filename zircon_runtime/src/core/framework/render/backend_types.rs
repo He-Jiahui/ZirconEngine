@@ -4,8 +4,8 @@ use crate::core::math::UVec2;
 
 use super::{
     AdvancedProviderAvailability, AdvancedProviderReport, AntiAliasFallbackReport,
-    RenderCameraTargetKind, RenderColorLutReadbackReport, RenderFrameExtract,
-    RenderPostProcessEffectStackReport, RenderShadowExecutionReport,
+    RenderCameraTargetKind, RenderColorLutReadbackReport, RenderExposureReadbackReport,
+    RenderFrameExtract, RenderPostProcessEffectStackReport, RenderShadowExecutionReport,
     RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
@@ -1481,6 +1481,7 @@ pub struct RenderStats {
     pub last_graph_execution_profile_report: RenderGraphExecutionProfileReport,
     pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
     pub last_scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
+    pub last_exposure_readback_report: RenderExposureReadbackReport,
     pub last_color_lut_readback_report: RenderColorLutReadbackReport,
     pub last_post_process_graph_node_count: usize,
     pub last_post_process_graph_skipped_node_count: usize,

@@ -28,10 +28,14 @@ related_code:
   - zircon_runtime/src/animation/scene_hook.rs
   - zircon_runtime/src/animation/scene_hook/node_pose.rs
   - zircon_runtime/src/animation/sequence.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
   - zircon_runtime/src/asset/assets/animation/mod.rs
@@ -66,6 +70,7 @@ related_code:
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/world/component_access.rs
   - zircon_runtime/src/scene/world/property_access/mod.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/records.rs
@@ -82,8 +87,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -134,6 +139,12 @@ related_code:
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -177,10 +188,14 @@ implementation_files:
   - zircon_runtime/src/animation/scene_hook.rs
   - zircon_runtime/src/animation/scene_hook/node_pose.rs
   - zircon_runtime/src/animation/sequence.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
   - zircon_runtime/src/asset/assets/animation/mod.rs
@@ -215,6 +230,7 @@ implementation_files:
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/world/component_access.rs
   - zircon_runtime/src/scene/world/property_access/mod.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/records.rs
@@ -230,8 +246,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -263,6 +279,12 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -307,6 +329,7 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - cargo test -p zircon_runtime --locked --lib plugin_extensions::extension_registry --target-dir target\codex-shared-a
   - cargo test -p zircon_runtime --locked --lib extensions::animation_physics_absorption --target-dir target\codex-shared-a
@@ -342,7 +365,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
   - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_motion_vector_history.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
@@ -677,7 +700,7 @@ doc_type: module-detail
 `zircon_runtime::scene::world::property_access` 则把这组 DTO 接到运行时世界：
 
 - `entity_path(entity)` 从 hierarchy/name 反推稳定 `EntityPath`
-- `resolve_entity_path(path)` 走 canonical 路径查回实体
+- `get_entity_by_path(path)` 走 canonical 路径查回实体
 - `property(entity, path)` 读取统一属性值
 - `set_property(entity, path, value)` 通过路径回写组件属性
 - `property_entries(entity)` 枚举 inspector / sequence 共用的属性条目
@@ -1120,6 +1143,7 @@ animation editor 这条 authoring 链现在已经不再停在“只能把 sessio
 - `zircon_editor::ui::animation_editor::AnimationEditorSession::save()`
   - 会把底层 `AnimationSequenceAsset` / `AnimationGraphAsset` / `AnimationStateMachineAsset` 序列化回当前 `asset_path`
   - 只有底层写盘成功后才会清掉 dirty bit
+  - 2026-06-22 起，session 根文件只保留类型和模块 wiring；保存入口在 `session/lifecycle.rs`，底层 sequence/graph/state-machine 文档访问与序列化 helper 分别由 `session/{sequence,graph,state_machine,support}.rs` 承担
 - `zircon_editor::ui::host::animation_editor_sessions::save`
   - 把 save 能力接到 host registry
   - 如果源文件位于项目 `<project>/assets` 下，会推导成 `res://...` 并触发 `asset_manager.import_asset(...)`

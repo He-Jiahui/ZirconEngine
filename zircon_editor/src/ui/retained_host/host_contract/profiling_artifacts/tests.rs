@@ -8,10 +8,11 @@ use super::super::presenter::HostPresenterBackend;
 use super::geometry::collect_surface_frame_controls;
 use super::UiProfileGeometry;
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
-use zircon_runtime::ui::surface::{UiSurface, UiSurfaceFrame};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
+    surface::UiSurfaceFrame,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 

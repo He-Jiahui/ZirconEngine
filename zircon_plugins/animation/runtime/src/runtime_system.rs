@@ -1,7 +1,5 @@
 use zircon_runtime::core::CoreError;
-use zircon_runtime::plugin::{
-    PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-};
+use zircon_runtime::plugin::RuntimeExtensionRegistryError;
 use zircon_runtime::scene::ecs::{RuntimeSceneSystemContext, SystemRef};
 use zircon_runtime::scene::SystemStage;
 
@@ -31,18 +29,15 @@ pub const ANIMATION_SYSTEM_SET: &str = "animation.evaluation";
 pub const ANIMATION_EVALUATE_SYSTEM: &str = "animation.evaluate";
 
 pub fn register_runtime_system(
-    registry: &mut RuntimeExtensionRegistry,
-    owner: PluginModuleId,
+    module: &mut zircon_plugin_sdk::RuntimePluginModuleRegistration<'_>,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let animation_set = registry.intern_system_set(ANIMATION_SYSTEM_SET)?;
-    registry
-        .register_runtime_scene_system(
-            owner,
+    module
+        .runtime_scene_system(
             ANIMATION_EVALUATE_SYSTEM,
             SystemStage::PostUpdate,
             run_animation_runtime_system,
         )
-        .in_set(animation_set)
+        .in_set(ANIMATION_SYSTEM_SET)
         .after(SystemRef::System(
             "zircon.scene.world_transform".to_string(),
         ))

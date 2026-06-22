@@ -1,10 +1,10 @@
 use crate::core::editor_event::{EditorAnimationEvent, EditorEventEffect};
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_animation_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     event: &EditorAnimationEvent,
 ) -> Result<ExecutionOutcome, String> {
     let changed = match inner.manager.apply_animation_event(event) {

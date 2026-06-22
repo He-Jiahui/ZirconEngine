@@ -2,6 +2,24 @@ use super::ExpectedStatusOutputSlice;
 
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
     (
+        "Runtime 02 root-surface Markdown renderer split",
+        [
+            "runtime_root_surface_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "runtime_root_surface_markdown.py",
+            "runtime_root_surface.py` remains the 268-line audit/risk owner",
+            "35-line Markdown owner",
+        ],
+    ),
+    (
+        "Runtime 02 F6 core resource registry typed errors",
+        [
+            "core_resource_registry_typed_errors_coremin_check_passed",
+            "review_f6_core_resource_registry_rename_uses_core_error",
+            "registry_rename_reports_missing_locator_with_core_error",
+            "MissingResourceRecordForLocator",
+        ],
+    ),
+    (
         "Runtime 02 core/root/generated 镜像文档守卫",
         [
             "runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts",
@@ -17,6 +35,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "generated export templates 10/10",
             "0 migration debt",
             "stale 9/9 scan",
+        ],
+    ),
+    (
+        "Runtime 02 generated-code Markdown renderer split",
+        [
+            "generated_code_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "generated_code_markdown.py",
+            "287-line generated-code audit",
+            "standalone generated_code_guard 7/7",
         ],
     ),
     (
@@ -71,6 +98,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "core root entries 6/6",
             "standalone `generated_code_guard.rs` 7/7",
             "core/root/generated/export_build_plan/app/editor/plugin Cargo gates pending",
+        ],
+    ),
+    (
+        "Runtime 02 core/root/generated Markdown renderer split",
+        [
+            "core_root_generated_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "core_spine_root_generated_markdown.py",
+            "315-line core/root/generated audit",
+            "standalone core_spine_root_generated 1/1",
         ],
     ),
 ];

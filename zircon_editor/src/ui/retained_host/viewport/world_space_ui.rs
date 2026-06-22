@@ -29,7 +29,6 @@ pub(crate) struct WorldSpaceUiPointerRoute {
 }
 
 impl RetainedViewportController {
-    #[allow(dead_code)]
     pub(crate) fn submit_world_space_ui_surfaces(
         &self,
         submissions: Vec<WorldSpaceUiSurfaceSubmission>,

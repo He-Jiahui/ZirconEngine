@@ -139,7 +139,7 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
             self.assertEqual(report["missing_stages"], [])
             self.assertTrue(
                 any(
-                    "cook_assets report diagnostics must be a string array" in diagnostic
+                    "cook_assets report diagnostics[1] must be a string" in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
@@ -202,7 +202,7 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
             self.assertEqual(report["missing_stages"], [])
             self.assertTrue(
                 any(
-                    "compile_host report command must be a string array"
+                    "compile_host report command[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -318,7 +318,7 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
             (
                 "app_features",
                 ["target-client", 42],
-                "compile_host report link_plan.app_features must be a string array",
+                "compile_host report link_plan.app_features[1] must be a string",
             ),
             (
                 "runtime_features",
@@ -328,7 +328,7 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
             (
                 "expected_runtime_plugins",
                 ["rendering", None],
-                "compile_host report link_plan.expected_runtime_plugins must be a string array",
+                "compile_host report link_plan.expected_runtime_plugins[1] must be a string",
             ),
             (
                 "linked_runtime_crates",
@@ -414,7 +414,7 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
                     self.assertEqual(report["missing_stages"], [])
                     self.assertTrue(
                         any(
-                            f"compile_host report {field} must be a string array"
+                            f"compile_host report {field}[1] must be a string"
                             in diagnostic
                             for diagnostic in report["diagnostics"]
                         ),
@@ -1028,7 +1028,15 @@ class PipelineReportStageMetadataTests(unittest.TestCase):
                     self.assertTrue(report["fatal"])
                     self.assertIn("Pack", report["fatal_stages"])
                     self.assertEqual(report["missing_stages"], [])
+                    expected_diagnostic = f"pack report {field}[1] must be a string"
                     self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
                         any(
                             f"pack report {field} must be a string array"
                             in diagnostic

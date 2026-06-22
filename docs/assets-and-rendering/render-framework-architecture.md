@@ -218,9 +218,9 @@ related_code:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
@@ -290,6 +290,7 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/runtime_feedback_batch.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/mod.rs
@@ -409,9 +410,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_cull.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/virtual_geometry_gpu_resources.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/node_and_cluster_cull_instance_work_items.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
@@ -603,7 +604,7 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_hybrid_gi/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_target/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/target_extent/mod.rs
@@ -853,13 +854,13 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -1080,7 +1081,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
@@ -1219,7 +1220,7 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_hybrid_gi/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_target/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/target_extent/mod.rs
@@ -1563,7 +1564,7 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_motion_vector_history.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_composes_pose_world_against_bind_world_matrices
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_reports_missing_parent_bone_reference
@@ -1956,6 +1957,8 @@ frame-submission context 的 viewport-record state 也不再暴露 raw fields �
 
 同一提交边界里，`UiSubmissionStats` 仍留在 `FrameSubmissionContext` 作为通用 UI 计数 owner，而 HGI frame-local scene inputs 已经成为 `HybridGiRuntimePrepareInput` 的一部分。UI stats 只能通过 `record_*` 方法累加并通过 count accessors 回填 `RenderStats`；Hybrid GI scene truth 则由 `FrameSubmissionContext` 的 mesh/light accessors 提供给 `prepare_runtime_submission(...)`，再通过中立 provider contract 交给插件 runtime state。`FrameSubmissionContext` 本体字段也改为私有，只有 `build_frame_submission_context(...)` 和局部 regression fixtures 能通过 `FrameSubmissionContext::new(...)` 组装完整 frame context。constructor 现在也把 `hybrid_gi_enabled()` / `virtual_geometry_enabled()` 作为 descriptor-derived feature gate：当某个 advanced feature 未启用时，stale previous runtime state、extract/update-plan/feedback、VG inspection list 与 HGI scene-input payload 都会在 context boundary 被丢弃，而不是继续随 generic submit DTO 进入 runtime prepare 或 feedback paths。submit/render/history/stats consumers 现在通过 `FrameSubmissionContext::size()`、`render_size()`、`pipeline_handle()`、`quality_profile()`、`compiled_pipeline()`、`visibility_context()`、`ui_stats()`、`hybrid_gi_enabled()` 和 `virtual_geometry_enabled()` 读取通用 frame metadata；feature runtime 准备、runtime feedback 收集、VG debug snapshot 和 VG/HGI stats update 也通过 `previous_*_runtime()`、`*_extract()`、`*_update_plan()` / `virtual_geometry_page_upload_plan()`、`*_feedback()`、CPU/BVH inspection list accessors 与 `predicted_generation()` 读取 feature-owned frame state，而不是继续读这些 frame-context 字段布局。这样 submit-context 的 UI 计数、pipeline/history metadata、VG/GI runtime handoff 和 inspection list 都不再作为 sibling-module 字段约定泄露，HGI scene-vector layout 也归属 HGI provider boundary 而不是 generic submit context。
 
+2026-06-22 Runtime 07 F3 热路径子切片进一步让 `FrameSubmissionContext` 持有一次 `Arc<RenderFrameExtract>` source payload，mesh/light/previous-particle accessors 从共享 payload 借用，`build_frame_submission_context(...)` 先在已拥有的 viewport-sized `effective_extract` 上应用有效 HGI/VG 与 post-process settings，再计算 particle stats 等派生计数并把 `Arc::new(effective_extract)` 移交给 context，避免重新拷贝大 Vec、在借用后移动仍被借用的 `Arc`，也避免为了 visibility/history key 再克隆整帧 extract。
+
 `SubmissionRecordUpdate` 也收为 record/update 边界的 owner DTO：history handles、`HybridGiStatSnapshot` 与 `VirtualGeometryStatSnapshot` 字段不再被 submit、stats update 或 release-history helper 直接读取，`record_submission(...)` 只能通过 `SubmissionRecordUpdate::new(...)` 组装，后续消费者通过 `history_handle()`、`previous_handle()`、`hybrid_gi_stats()` 与 `virtual_geometry_stats()` 取得命名 projection。Hybrid GI / Virtual Geometry stats update 进一步通过 snapshot accessors 读取 cache/probe/surface-cache/voxel、page-table/residency/completion 与 prepare-owned indirect segment counts，避免 public `RenderStats` 回填路径继续耦合到 submit-record DTO 的字段布局。VG 的 drawable indirect segment cardinality 也由 `VirtualGeometryPrepareFrame::drawable_indirect_segment_count()` 投影，record/update 不再直接扫描 `cluster_draw_segments` 字段来推导非 Missing segment 数量。`last_virtual_geometry_indirect_draw_count()` 则保持 renderer last-output projection，因为 repeated primitive execution 可以把一条 prepare-owned segment 扩展成多条真实 GPU-submitted indirect draws；production stats 通过这个 renderer projection 读取实际 draw count，而 `last_virtual_geometry_indirect_segment_count()` 仍只保留给 `#[cfg(test)]` graphics regressions。
 
 插件化硬切后，`GraphicsBase` 属于 runtime 最小本体，而不是可选插件 feature。`target-client` 与 `target-editor-host` 只继续选择 UI 这类运行目标差异，VG/GI 这类高级渲染能力保持为项目插件/能力门控输入；它们不再通过 graphics-base 伪插件间接把基础图形栈拖入导出 profile。运行时发行包因此可以始终拥有必要渲染桥与资产/场景抽取，同时让高级渲染插件按项目清单、导出策略或编辑器开发期动态装载策略独立决定。
@@ -2211,6 +2214,8 @@ M6A 在这条边界上继续补齐默认 2D：`SpriteExtract` 由 world extract 
 Core3d 的默认 Forward+ 与 Deferred 声明现在都包含 `AlphaMask3d` phase/stage，mesh draw 构建优先消费 `GeometryExtract.phase_queue`，只在队列为空时回退到 mesh vector 顺序。这让 opaque、alpha-mask、transparent mesh 顺序成为 framework extract contract，而不是 renderer 内部偶然遍历顺序。
 
 提交阶段还新增 viewport generation revalidation。`build_frame_submission_context(...)` 在第一把锁里捕获 viewport generation；runtime prepare 在触碰 viewport runtime state 前调用 generation guard，render 完成后写回 record 前再次检查 viewport 是否仍存在且 generation 未变。viewport 被删除时返回 `RenderFrameworkError::UnknownViewport`，pipeline/quality/profile 等 viewport mutation 造成 generation 改变时返回 `RenderFrameworkError::ViewportChanged`，不再依赖 checked-then-`expect` 的 panic path。
+
+2026-06-22 F4 follow-up 将这个合同落到三个 production submit owner：generated offscreen submit、native present submit 与 direct runtime-frame submit 都通过 `viewport_record_mut_after_generation_check(...)` 取得 mutable viewport record。runtime prepare 也使用同一个 helper，并把启用 HGI/VG 但 provider registration 缺席的帧降级为 `RenderFrameworkError::UnsupportedCapability`，同时清理 stale runtime state；`runtime_07_submit_paths_return_errors_for_checked_viewport_records` 结构守卫锁定这些 path 不回退到 production `expect`。
 
 M4B 把 `PostProcessExtract` 从 renderer-local flags 提升为 per-camera product graph surface。`zircon_runtime::core::framework::render::post_process` 现在定义 `PostProcessEffectKind`、`PostProcessEffectSettings`、`PostProcessStackDescriptor`、`PostProcessPassNode`、`PostProcessPassGraph` 和 `PostProcessGraphValidationError`；stack validation 会拒绝缺失输入、重复输出、缺失 effect dependency 和 cycle，同时把 disabled bloom/color-grading/history-resolve 保留为 skipped nodes。`build_frame_submission_context(...)` 会按 compiled feature availability 重建 effective postprocess graph，`ViewportRenderFrame` submit path 再把该 graph 写回 frame extract，确保 stats 和 renderer evidence 反映 active profile 而不是 raw authored settings。
 
@@ -3127,7 +3132,7 @@ render-server façade 当前也开始把这条前处理链与 runtime host 的�
 - `zircon_graphics` 的 Hybrid GI GPU hierarchy continuation 回归：当前已经有单测证明 pending probe 即使隔着 nonresident hierarchy gap，也会偏向最近 resident ancestor 的 radiance，而且当本地 tracing budget 只执行 neutral local region 时，pending probe 仍然能沿 ancestor 继承到更暖的 RT-lighting tint；最新一层回归还证明当最近 resident parent 偏冷、但更远 resident ancestor 保留更暖 radiance / RT tint 时，这些 multi-ancestor lineage continuation 也会进入 GPU readback，说明 hierarchy-aware completion 已经不再只停在 resolve 侧
 - `zircon_graphics` 的 Hybrid GI descendant request frontier 回归：当前已经有单测证明 active resident probe 不再只请求 direct child；当更深 descendant 对 scheduled trace region 的支持更强时，visibility planning 会直接把 descendant 选进 `requested_probe_ids`，而且当 trace support 打平或主要落在 ancestor chain 上时也会继续偏向更深 descendant，说明 scene-driven screen-probe hierarchy 已经前推到 request 层
 - `zircon_graphics` 的 Hybrid GI primary-lineage gather / lineage budgeting 回归：当前已经有单测证明 pending probe 在只有 hierarchy lineage、没有 spatial overlap 时也会继承 primary resident ancestor 的 radiance，同时多个 active lineages 竞争有限 `probe_budget` 时，visibility planning 会先给每条 lineage 分到首轮 descendant request，而不是让同一 lineage 连续吞掉多个 request 槽位
-- `zircon_graphics` 的 folder-backed helper compile closure：`scene_renderer_core_new`、`hybrid_gi::gpu_resources::new` 与 `virtual_geometry::gpu_resources` 的 nested helper module 现在统一收口成 subtree-scoped `pub(in crate::scene::scene_renderer::...)` 可见性，避免 sibling helper 在模块化拆分后再次因为 private re-export 路径被截断，同时没有把这些内部 helper 抬升成 crate 对外 API
+- `zircon_graphics` 的 folder-backed helper compile closure：`scene_renderer_core_construct`、`hybrid_gi::gpu_resources::new` 与 `virtual_geometry::gpu_resources` 的 nested helper module 现在统一收口成 subtree-scoped `pub(in crate::scene::scene_renderer::...)` 可见性，避免 sibling helper 在模块化拆分后再次因为 private re-export 路径被截断，同时没有把这些内部 helper 抬升成 crate 对外 API
 - `zircon_graphics` 的 Hybrid GI runtime bootstrap 回归：当前已经有单测证明没有 GPU history 的 resident probe 不再带 host-side 默认 irradiance，而是一律以黑值等待 GPU radiance-cache output 覆盖，避免 runtime 主链继续伪造 probe 光照数据
 - `zircon_graphics` 的 Hybrid GI resolve 离屏回归：当前已经有离屏测试证明 resident probe 会让 probe 覆盖区域变亮、不同 `irradiance_rgb` 会把对应区域推向不同颜色通道、probe 屏幕位置会改变哪一侧获得更多间接光、scheduled trace region 的屏幕位置会改变哪一侧获得更强的 GI boost，而且当两个 probe 同时覆盖同一区域时，scheduled trace work 现在还会真实偏向附近 probe 的颜色贡献；visibility planning 现在还支持 `parent_probe_id` 驱动的最小 hierarchy frontier、merge-back child-probe hysteresis，而 GPU completion 也已经会让 direct parent/child 关系真实改变 radiance-cache gather；最新的离屏回归还证明 resident child probe 即使通过 nonresident hierarchy gap 才连到 resident ancestor，resolve 结果也会继续变化，同时 child probe 还会继承 ancestor trace-region 的 RT tint；再往下一层，post-process probe payload 现在还会把 “beyond-nearest resident ancestor” 的 irradiance continuation 一并编码进 shader resolve，因此更远 resident ancestor 的 radiance 也会真实改变最终 GI color，而不再只停在 pending update/readback 侧；当前更远 resident ancestor 的 budget/support 还会进一步抬升 child probe 的最终 resolve 强度，说明 `runtime prepare -> GPU resource -> shader resolve` 正在收拢成更完整的 screen-probe 空间闭环
 - `zircon_graphics` 的 Hybrid GI requested-lineage irradiance runtime-source continuation：当当前 frame 没有 active trace schedule、也拿不到新的 hierarchy gather 时，runtime host 现在不再只能把 pending probe 丢回黑值；如果 probe 自己已经带有上一拍 GPU 产出的 `probe_irradiance_rgb`，或者 parent chain 上仍然有带历史 irradiance 的 nonresident ancestor，而且 scene-driven requested-lineage support 仍然有效，`build_resolve_runtime()` 就会把这条 probe/ancestor runtime irradiance 重新编码进 `probe_hierarchy_irradiance_rgb_and_weight`，让 `runtime -> GPU prepare` 主链在 no-schedule frame 里继续保住 requested lineage 的 radiance-cache source，而不只剩 trace-lighting continuation。

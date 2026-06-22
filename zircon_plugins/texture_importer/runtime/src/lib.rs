@@ -1,12 +1,12 @@
 mod container;
 mod importers;
-mod registration;
+mod plugin;
 
 pub use importers::{import_image, import_psd, import_texture_container};
-pub use registration::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration, register,
-    runtime_capabilities, runtime_module_manifest, runtime_selection, supported_platforms,
-    supported_targets,
+pub use plugin::{
+    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
+    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
+    runtime_selection, supported_platforms, supported_targets, TextureImporterRuntimePlugin,
 };
 
 pub const PLUGIN_ID: &str = "texture_importer";

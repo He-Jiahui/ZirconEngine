@@ -30,7 +30,7 @@
 - Modify `zircon_editor/src/ui/slint_host/app/asset_content_pointer.rs`: arm an active asset drag payload from content-row pointer events.
 - Modify `zircon_editor/src/ui/slint_host/app/callback_wiring.rs`: wire the new asset content pointer event callback.
 - Modify `zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs`: consume the active asset payload for `AssetFieldDropped` and fall back to demo data when absent.
-- Modify `zircon_editor/src/ui/slint_host/app/tests.rs`: cover active payload creation and consumption.
+- Modify `zircon_editor/src/ui/slint_host/app/tests/mod.rs`: cover active payload creation and consumption.
 - Modify `zircon_editor/ui/workbench/assets.slint`: expose asset-list pointer down/up events.
 - Modify `zircon_editor/ui/workbench/pane_content.slint`: forward asset content pointer events for activity and browser surfaces.
 - Modify `zircon_editor/ui/workbench/pane_surface_host_context.slint`: add the host callback for asset content pointer events.
@@ -481,11 +481,11 @@ Record that Task 3 keeps fixed showcase fallback behavior while allowing real pa
 **Files:**
 - Create: `zircon_editor/src/ui/slint_host/app/asset_drag_payload.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app.rs`
-- Test: `zircon_editor/src/ui/slint_host/app/tests.rs`
+- Test: `zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 
 - [ ] **Step 1: Add a failing unit test for snapshot-to-payload conversion**
 
-Add these imports to `app/tests.rs` if they are not already present:
+Add these imports to `app/tests/mod.rs` if they are not already present:
 
 ```rust
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetWorkspaceSnapshot};
@@ -603,11 +603,11 @@ Record that Task 4 keeps asset metadata lookup editor-local and pure. Do not com
 - Modify: `zircon_editor/src/ui/slint_host/asset_pointer/content/bridge.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app/asset_content_pointer.rs`
-- Test: `zircon_editor/src/ui/slint_host/app/tests.rs`
+- Test: `zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 
 - [ ] **Step 1: Add a failing host test for active payload arming**
 
-Add this test to `app/tests.rs` near the existing root browser asset pointer tests:
+Add this test to `app/tests/mod.rs` near the existing root browser asset pointer tests:
 
 ```rust
 #[test]
@@ -854,11 +854,11 @@ Record that Task 5 introduces only internal Slint host drag arming. Do not claim
 - Modify: `zircon_editor/src/ui/template_runtime/slint_adapter.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
 - Modify: `zircon_editor/src/ui/slint_host/ui/reference_component_tests.rs`
-- Test: `zircon_editor/src/ui/slint_host/app/tests.rs`
+- Test: `zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 
 - [ ] **Step 1: Add a failing test for consuming active payload**
 
-Add this test to `app/tests.rs`:
+Add this test to `app/tests/mod.rs`:
 
 ```rust
 #[test]

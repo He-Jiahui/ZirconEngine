@@ -1,4 +1,4 @@
-use super::super::super::super::resolved_state_for_node;
+use super::super::super::resolved_state_for_node;
 use super::super::colors::{control_accent, mark_label, selection_text, toggle_thumb};
 use super::super::model::{WorkbenchSelectionControlKind, WorkbenchSelectionControlStyle};
 use super::super::state::family_for_kind;

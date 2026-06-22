@@ -3,7 +3,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::net::ZrChunkEntry;
 
+use super::dedup::zrpack_content_hash;
+use super::manifest::{
+    validate_zrpack_asset_entries, validate_zrpack_asset_path_list,
+    validate_zrpack_document_manifest,
+};
 use super::{
+    reader::validate_chunk_payload_extent,
     writer::{header_size, ZrPackInputAsset, ZrPackWriteReport, ZrPackWriter},
     ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackReader, ZRPACK_FORMAT_VERSION,
 };
@@ -131,6 +137,8 @@ impl ZrPackDeltaReader {
     pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Result<Self, ZrPackError> {
         let bytes = bytes.into();
         let manifest = read_delta_manifest(&bytes)?;
+        validate_zrpack_delta_document_manifest(&manifest)?;
+        validate_chunk_payload_extent(&bytes, &manifest.chunks)?;
         validate_delta_chunks(&bytes, &manifest)?;
         Ok(Self { bytes, manifest })
     }
@@ -200,6 +208,9 @@ fn read_delta_manifest(bytes: &[u8]) -> Result<ZrPackDeltaDocumentManifest, ZrPa
     if manifest_offset < header_size() || manifest_end > bytes.len() {
         return Err(ZrPackError::ManifestOutOfBounds);
     }
+    if manifest_end != bytes.len() {
+        return Err(ZrPackError::ManifestTrailingBytes);
+    }
     serde_json::from_slice(&bytes[manifest_offset..manifest_end])
         .map_err(|error| ZrPackError::ManifestDecode(error.to_string()))
 }
@@ -216,6 +227,76 @@ fn validate_delta_chunks(
             .ok_or_else(|| ZrPackError::MissingChunk(asset.path.clone()))?;
         let _ = read_delta_chunk_bytes(bytes, &asset.path, asset, chunk)?;
     }
+    Ok(())
+}
+
+fn validate_zrpack_delta_document_manifest(
+    manifest: &ZrPackDeltaDocumentManifest,
+) -> Result<(), ZrPackError> {
+    if manifest.format_version != ZRPACK_FORMAT_VERSION {
+        return Err(ZrPackError::UnsupportedVersion(manifest.format_version));
+    }
+    validate_zrpack_document_manifest(&manifest.base)?;
+    validate_zrpack_document_manifest(&manifest.target)?;
+    validate_zrpack_asset_entries(&manifest.changed_assets)?;
+    validate_zrpack_asset_path_list(&manifest.removed_assets)?;
+    validate_delta_manifest_semantics(manifest)?;
+    Ok(())
+}
+
+fn validate_delta_manifest_semantics(
+    manifest: &ZrPackDeltaDocumentManifest,
+) -> Result<(), ZrPackError> {
+    let target_paths = manifest
+        .target
+        .assets
+        .iter()
+        .map(|asset| asset.path.clone())
+        .collect::<BTreeSet<_>>();
+    let expected_removed_assets = manifest
+        .base
+        .assets
+        .iter()
+        .filter(|asset| !target_paths.contains(&asset.path))
+        .map(|asset| asset.path.clone())
+        .collect::<Vec<_>>();
+    if manifest.removed_assets != expected_removed_assets {
+        return Err(ZrPackError::DeltaRemovedAssetsMismatch);
+    }
+
+    let base_hashes = manifest
+        .base
+        .pack
+        .chunks
+        .iter()
+        .map(|chunk| chunk.hash)
+        .collect::<BTreeSet<_>>();
+    let expected_changed_assets = manifest
+        .target
+        .assets
+        .iter()
+        .filter(|asset| !base_hashes.contains(&asset.chunk_hash))
+        .cloned()
+        .collect::<Vec<_>>();
+    if manifest.changed_assets != expected_changed_assets {
+        return Err(ZrPackError::DeltaChangedAssetsMismatch);
+    }
+
+    let expected_chunk_hashes = expected_changed_assets
+        .iter()
+        .map(|asset| asset.chunk_hash)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let actual_chunk_hashes = manifest
+        .chunks
+        .iter()
+        .map(|chunk| chunk.hash)
+        .collect::<Vec<_>>();
+    if actual_chunk_hashes != expected_chunk_hashes {
+        return Err(ZrPackError::DeltaChunkTableMismatch);
+    }
+
     Ok(())
 }
 
@@ -238,7 +319,11 @@ fn read_delta_chunk_bytes(
     if start < header_size() || end > bytes.len() {
         return Err(ZrPackError::ChunkOutOfBounds(path.to_string()));
     }
-    Ok(bytes[start..end].to_vec())
+    let chunk_bytes = bytes[start..end].to_vec();
+    if zrpack_content_hash(&chunk_bytes) != chunk.hash {
+        return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
+    }
+    Ok(chunk_bytes)
 }
 
 fn write_delta_header(header: &mut [u8], manifest_offset: u64, manifest_size: u64) {

@@ -30,7 +30,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
@@ -46,7 +46,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/editor_event/runtime.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
@@ -63,7 +63,14 @@ related_code:
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/ui/workbench/model/menu_bar_model.rs
   - zircon_editor/src/ui/workbench/model/menu_model.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/attributes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entry.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/options.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/parse.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/tests.rs
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
 implementation_files:
   - zircon_editor/src/ui/host/commands/mod.rs
@@ -96,7 +103,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
@@ -112,7 +119,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/editor_event/runtime.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs

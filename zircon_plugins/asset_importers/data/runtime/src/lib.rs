@@ -1,21 +1,15 @@
 use serde_json::{Map, Value};
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    DataAsset, DataAssetFormat, FunctionAssetImporter, ImportedAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, DataAsset, DataAssetFormat,
+    ImportedAsset,
 };
-use zircon_runtime::core::ModuleDescriptor;
-use zircon_runtime::{
-    plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform,
-    plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
-    plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry,
-    plugin::RuntimeExtensionRegistryError,
-    plugin::RuntimePluginRegistrationReport,
-};
-use zircon_runtime::builtin::{
-    RuntimeTargetMode,
+
+mod plugin;
+
+pub use plugin::{
+    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
+    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
+    runtime_selection, supported_platforms, supported_targets, DataAssetImporterRuntimePlugin,
 };
 
 pub const PLUGIN_ID: &str = "asset_importer.data";
@@ -27,111 +21,6 @@ pub const TOML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.toml";
 pub const JSON_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.json";
 pub const YAML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.yaml";
 pub const XML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.xml";
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        RUNTIME_CAPABILITY,
-        TOML_IMPORTER_CAPABILITY,
-        JSON_IMPORTER_CAPABILITY,
-        YAML_IMPORTER_CAPABILITY,
-        XML_IMPORTER_CAPABILITY,
-    ]
-}
-
-pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    [
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ]
-}
-
-pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    [
-        ExportTargetPlatform::Windows,
-        ExportTargetPlatform::Linux,
-        ExportTargetPlatform::Macos,
-    ]
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(MODULE_NAME, "Data asset importer plugin")
-}
-
-pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
-    vec![
-        descriptor("asset_importer.data.toml", ["toml"])
-            .with_required_capabilities([TOML_IMPORTER_CAPABILITY]),
-        descriptor("asset_importer.data.json", ["json"])
-            .with_required_capabilities([JSON_IMPORTER_CAPABILITY]),
-        descriptor("asset_importer.data.yaml", ["yaml", "yml"])
-            .with_required_capabilities([YAML_IMPORTER_CAPABILITY]),
-        descriptor("asset_importer.data.xml", ["xml"])
-            .with_required_capabilities([XML_IMPORTER_CAPABILITY]),
-    ]
-}
-
-pub fn package_manifest() -> PluginPackageManifest {
-    let mut manifest = PluginPackageManifest::new(PLUGIN_ID, "Data Asset Importers")
-        .with_category("asset_importer")
-        .with_supported_targets(supported_targets())
-        .with_supported_platforms(supported_platforms())
-        .with_capabilities(runtime_capabilities().iter().copied())
-        .with_runtime_module(runtime_module_manifest());
-    for importer in asset_importer_descriptors() {
-        manifest = manifest.with_asset_importer(importer);
-    }
-    manifest
-}
-
-pub fn runtime_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::runtime("asset_importer.data.runtime", RUNTIME_CRATE_NAME)
-        .with_target_modes(supported_targets())
-        .with_capabilities(runtime_capabilities().iter().copied())
-}
-
-pub fn runtime_selection() -> ProjectPluginSelection {
-    ProjectPluginSelection {
-        id: PLUGIN_ID.to_string(),
-        enabled: true,
-        required: false,
-        target_modes: supported_targets().to_vec(),
-        packaging: ExportPackagingStrategy::LibraryEmbed,
-        runtime_crate: Some(RUNTIME_CRATE_NAME.to_string()),
-        editor_crate: None,
-        features: Vec::new(),
-    }
-}
-
-pub fn plugin_registration() -> RuntimePluginRegistrationReport {
-    let mut extensions = RuntimeExtensionRegistry::default();
-    let mut diagnostics = Vec::new();
-    if let Err(error) = register(&mut extensions) {
-        diagnostics.push(error.to_string());
-    }
-    RuntimePluginRegistrationReport {
-        package_manifest: package_manifest(),
-        project_selection: runtime_selection(),
-        extensions,
-        diagnostics,
-    }
-}
-
-pub fn register(
-    registry: &mut RuntimeExtensionRegistry,
-) -> Result<(), RuntimeExtensionRegistryError> {
-    registry.register_module(module_descriptor())?;
-    for importer in asset_importer_descriptors() {
-        let import_fn = match importer.id.as_str() {
-            "asset_importer.data.toml" => import_toml_data,
-            "asset_importer.data.json" => import_json_data,
-            "asset_importer.data.yaml" => import_yaml_data,
-            "asset_importer.data.xml" => import_xml_data,
-            _ => unreachable!("asset_importer_descriptors returns only known data importer ids"),
-        };
-        registry.register_asset_importer(FunctionAssetImporter::new(importer, import_fn))?;
-    }
-    Ok(())
-}
 
 pub fn import_toml_data(
     context: &AssetImportContext,
@@ -246,15 +135,6 @@ fn xml_element_to_json(node: roxmltree::Node<'_, '_>) -> Value {
     }
 
     Value::Object(object)
-}
-
-fn descriptor(
-    id: impl Into<String>,
-    extensions: impl IntoIterator<Item = impl Into<String>>,
-) -> AssetImporterDescriptor {
-    AssetImporterDescriptor::new(id, PLUGIN_ID, AssetKind::Data, 1)
-        .with_priority(100)
-        .with_source_extensions(extensions)
 }
 
 #[cfg(test)]

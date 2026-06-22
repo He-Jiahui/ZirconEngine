@@ -1,0 +1,82 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
+id = "asset_importer.texture"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Texture Asset Importers"
+category = "asset_importer"
+description = "Runtime texture asset importer family package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.asset_importer.texture",
+    "runtime.asset.importer.texture.container",
+    "runtime.asset.importer.texture.psd",
+]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "asset_importer.texture.image"
+plugin_id = "asset_importer.texture"
+priority = 100
+source_extensions = [
+    "png",
+    "jpg",
+    "jpeg",
+    "bmp",
+    "tga",
+    "tiff",
+    "tif",
+    "gif",
+    "webp",
+    "hdr",
+    "exr",
+    "qoi",
+    "pnm",
+    "pbm",
+    "pgm",
+    "ppm",
+]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.image"]
+
+[[asset_importers]]
+id = "asset_importer.texture.container"
+plugin_id = "asset_importer.texture"
+priority = 100
+source_extensions = ["dds", "ktx", "ktx2", "astc"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.container"]
+
+[[asset_importers]]
+id = "asset_importer.texture.psd"
+plugin_id = "asset_importer.texture"
+priority = 100
+source_extensions = ["psd"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.psd"]
+
+[[asset_importers]]
+id = "asset_importer.texture.optional_native_container"
+plugin_id = "asset_importer.texture"
+priority = 100
+source_extensions = ["cubemap", "dxgi"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.native"]
+
+[[modules]]
+name = "asset_importer.texture.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_asset_importer_texture_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.asset_importer.texture",
+    "runtime.asset.importer.texture.container",
+    "runtime.asset.importer.texture.psd",
+]

@@ -1,6 +1,7 @@
 pub const PLUGIN_ID: &str = "net";
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "net.runtime";
 
+mod capability;
 mod config;
 mod http;
 mod module;
@@ -12,6 +13,7 @@ mod transport;
 mod websocket;
 mod worker;
 
+pub use capability::{NET_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
 pub use config::NetConfig;
 pub use http::{HttpRouteHandler, HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
 pub use module::{
@@ -80,7 +82,7 @@ impl zircon_runtime::plugin::RuntimePlugin for NetRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Network",
         zircon_runtime::builtin::RuntimePluginId::Net,
@@ -92,35 +94,22 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.net")
+    .with_capability(NET_RUNTIME_CAPABILITY)
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_capability_status(
         zircon_runtime::plugin::CapabilityStatusManifest::new(
-            "runtime.plugin.net",
+            NET_RUNTIME_CAPABILITY,
             zircon_runtime::plugin::CapabilityStatus::Partial,
         )
         .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
     )
     .with_system_sets([NET_SYSTEM_SET])
     .with_system_anchors([NET_POLL_INGRESS_SYSTEM, NET_FLUSH_EGRESS_SYSTEM])
+    .build()
 }
 
-pub fn runtime_plugin() -> NetRuntimePlugin {
-    NetRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(NetRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &["runtime.plugin.net"]
+    RUNTIME_CAPABILITIES
 }

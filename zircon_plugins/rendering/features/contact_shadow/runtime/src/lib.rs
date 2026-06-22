@@ -19,6 +19,9 @@ pub const CONTACT_SHADOW_PIPELINE_LABEL: &str = "zircon-contact-shadow-ray-march
 pub const CONTACT_SHADOW_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const CONTACT_SHADOW_SHADER_SOURCE: &str = include_str!("contact_shadow.wgsl");
 
+#[cfg(test)]
+mod wgpu_product_tests;
+
 #[derive(Clone, Debug)]
 pub struct RenderingContactShadowRuntimeFeature;
 
@@ -100,18 +103,22 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
-        let depth_view = gpu
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
-        let normal_view = gpu
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
-        let hzb_view = gpu
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::HZB_FURTHEST)?;
-        let output_view = gpu
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION)?;
+        let depth_view = gpu.require_texture_view(
+            PostProcessGraphResourceNames::SCENE_DEPTH,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let normal_view = gpu.require_texture_view(
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let hzb_view = gpu.require_texture_view(
+            PostProcessGraphResourceNames::HZB_FURTHEST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let output_view = gpu.require_texture_view(
+            PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
+            RenderGraphResourceAccessKind::Write,
+        )?;
 
         let mut pipeline_guard = self
             .pipeline
@@ -613,7 +620,7 @@ mod tests {
         );
         let contact_post_read = pass_resource_access(
             &enabled,
-            "post-process",
+            "uber",
             PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
             RenderGraphResourceAccessKind::Read,
         );

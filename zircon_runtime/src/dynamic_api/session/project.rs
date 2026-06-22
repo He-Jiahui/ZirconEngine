@@ -61,6 +61,7 @@ impl RuntimeProjectConfig {
                     self.root.display()
                 )
             })?;
+        let asset_manager = asset_manager.shared();
         asset_manager
             .open_project(&self.root_display())
             .map(|_| ())

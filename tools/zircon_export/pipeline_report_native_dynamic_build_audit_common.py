@@ -44,6 +44,8 @@ def native_dynamic_build_audit_package_count_diagnostics(
     packages = report.get("packages")
     if not (type(package_count) is int and isinstance(packages, list)):
         return []
+    if package_count < 0:
+        return []
     if package_count == len(packages):
         return []
     return [
@@ -64,7 +66,9 @@ def native_dynamic_build_audit_package_id_uniqueness_diagnostics(
         package_id = package.get("package_id")
         if not isinstance(package_id, str) or not package_id.strip():
             continue
-        normalized_package_id = package_id.strip()
+        if package_id.strip() != package_id:
+            continue
+        normalized_package_id = package_id
         if normalized_package_id in seen:
             diagnostics.append(
                 f"{label} package_id {normalized_package_id} must be unique"
@@ -96,6 +100,8 @@ def string_array_unique_entries_schema_diagnostics(
 
     seen: set[str] = set()
     for entry in value:
+        if not entry.strip() or entry.strip() != entry:
+            continue
         if entry in seen:
             return [f"{label} must not contain duplicate entries"]
         seen.add(entry)

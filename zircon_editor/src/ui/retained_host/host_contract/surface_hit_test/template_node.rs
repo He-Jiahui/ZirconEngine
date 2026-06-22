@@ -1,31 +1,17 @@
+mod hit;
+mod model;
 mod pane_nodes;
 mod popup_rows;
 mod surface_frame_builder;
 
-use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use zircon_runtime_interface::ui::{layout::UiSize, surface::UiSurfaceFrame};
 
-use super::super::data::{FrameRect, HostWindowPresentationData, PaneData, TemplatePaneNodeData};
-use super::super::template_component_family::{template_component_family, TemplateComponentFamily};
+use super::super::data::{FrameRect, HostWindowPresentationData, PaneData};
 use super::super::template_geometry::template_nodes_bounds;
-use super::surface_frame::hit_test_host_surface_frame;
+use hit::hit_test_template_nodes;
+pub(crate) use model::TemplateNodePointerHit;
 use pane_nodes::pane_template_nodes;
-use popup_rows::{hit_test_template_popup_rows, TemplatePopupRowHit};
 use surface_frame_builder::{build_template_surface_frame, template_nodes_surface_frame};
-
-#[derive(Clone)]
-pub(crate) struct TemplateNodePointerHit {
-    pub(crate) control_id: SharedString,
-    pub(crate) action_id: SharedString,
-    pub(crate) binding_id: SharedString,
-    pub(crate) dispatch_kind: SharedString,
-    pub(crate) component_role: SharedString,
-    pub(crate) component_family: Option<TemplateComponentFamily>,
-    pub(crate) value_text: SharedString,
-    pub(crate) edit_action_id: SharedString,
-    pub(crate) commit_action_id: SharedString,
-    pub(crate) frame: FrameRect,
-}
 
 pub(crate) fn hit_test_pane_template_node(
     pane: &PaneData,
@@ -61,43 +47,6 @@ pub(crate) fn build_pane_template_surface_frame(
     surface_size: UiSize,
 ) -> Option<UiSurfaceFrame> {
     build_template_surface_frame(pane_template_nodes(pane)?, surface_size)
-}
-
-fn hit_test_template_nodes(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    surface_frame: &UiSurfaceFrame,
-    origin: &FrameRect,
-    x: f32,
-    y: f32,
-) -> Option<TemplateNodePointerHit> {
-    match hit_test_template_popup_rows(nodes, origin, x, y) {
-        Some(TemplatePopupRowHit::Hit(hit)) => return Some(hit),
-        Some(TemplatePopupRowHit::Blocked) => return None,
-        None => {}
-    }
-
-    let hit = hit_test_host_surface_frame(surface_frame, origin, x, y)?;
-    let row = hit.node_id.0.checked_sub(2)? as usize;
-    let node = nodes.row_data(row)?;
-    let frame = FrameRect {
-        x: origin.x + node.frame.x,
-        y: origin.y + node.frame.y,
-        width: node.frame.width,
-        height: node.frame.height,
-    };
-    let component_family = template_component_family(&node);
-    Some(TemplateNodePointerHit {
-        control_id: node.control_id,
-        action_id: node.action_id,
-        binding_id: node.binding_id,
-        dispatch_kind: node.dispatch_kind,
-        component_role: node.component_role,
-        component_family,
-        value_text: node.value_text,
-        edit_action_id: node.edit_action_id,
-        commit_action_id: node.commit_action_id,
-        frame,
-    })
 }
 
 #[cfg(test)]

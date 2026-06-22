@@ -7,10 +7,10 @@ use crate::ui::workbench::project::project_root_path;
 
 use super::common::{open_view, scene_effects, scene_intent_event};
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_menu_action(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     action: &MenuAction,
 ) -> Result<ExecutionOutcome, String> {
     match action {

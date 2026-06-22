@@ -1,0 +1,27 @@
+use super::super::super::data::{FrameRect, PaneData};
+use super::super::geometry::contains;
+use super::route_check::surface_frame_route_hit;
+
+pub(super) fn pane_route_hits_template(
+    id: &str,
+    x: f32,
+    y: f32,
+    surface: &str,
+    pane: &PaneData,
+    content: &FrameRect,
+) -> bool {
+    let expected_prefix = format!("template.{surface}.");
+    if !id.starts_with(&expected_prefix) || !contains(content, x, y) {
+        return false;
+    }
+    let mut body = content.clone();
+    if matches!(pane.kind.as_str(), "Scene" | "Game") && pane.show_toolbar {
+        let toolbar_height = 28.0_f32.min(content.height);
+        body.y += toolbar_height;
+        body.height = (body.height - toolbar_height).max(0.0);
+    }
+    let Some(surface_frame) = pane.body_surface_frame.as_ref() else {
+        return false;
+    };
+    surface_frame_route_hit(id, x, y, surface, surface_frame, &body)
+}

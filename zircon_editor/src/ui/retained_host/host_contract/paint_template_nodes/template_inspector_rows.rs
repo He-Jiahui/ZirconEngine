@@ -38,5 +38,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
 }
 
 #[cfg(test)]
-#[path = "template_inspector_rows_tests.rs"]
+#[path = "template_inspector_rows_tests/mod.rs"]
 mod tests;

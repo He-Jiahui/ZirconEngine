@@ -4,10 +4,10 @@ use crate::ui::binding::ViewportCommand;
 use crate::EditorIntent;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_viewport_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, String> {
     let feedback = match event {

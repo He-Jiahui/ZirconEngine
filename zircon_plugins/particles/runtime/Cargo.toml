@@ -7,6 +7,7 @@ description = "Particles runtime plugin package for Zircon."
 
 [dependencies]
 wgpu = "29.0.1"
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
 
 [dev-dependencies]

@@ -509,7 +509,7 @@ runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 
 这次已经删除 `builtin://cube <-> res://models/cube.obj` 这类隐式改写。
 
-运行中 scene 不再暴露旧的 session contract。实际持有 world 与生命周期的是 `LevelSystem`，而 `SceneAssetSerializer` 负责 `SceneAsset <-> World` 边界。
+运行中 scene 不再暴露旧的 session contract。实际持有 world 与生命周期的是 `LevelSystem`，而 `SceneAssetSerializer` 负责 `SceneAsset <-> World` 边界。`LevelSystem` 的 world、runtime state、metadata、lifecycle 与 subsystem locks 都通过 poison recovery helper 访问，避免一次 panic writer 永久打断后续 runtime/editor 读写路径。
 
 ## Graphics Prepare And Cache
 

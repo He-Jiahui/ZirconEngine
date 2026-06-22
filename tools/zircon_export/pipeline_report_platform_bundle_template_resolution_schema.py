@@ -8,13 +8,17 @@ from typing import Any
 
 from .pipeline_report_platform_bundle_template_schema_helpers import (
     sequence_object_schema_diagnostics,
+    sequence_present_trimmed_non_empty_string_diagnostics,
     sequence_required_non_empty_string_diagnostics,
     sequence_string_array_schema_diagnostics,
+    sequence_string_array_entries_trimmed_non_empty_diagnostics,
     sequence_string_schema_diagnostics,
     sequence_unknown_field_diagnostics,
     sequence_unique_string_array_entries_schema_diagnostics,
     table_bool_schema_diagnostics,
+    table_present_trimmed_non_empty_string_diagnostics,
     table_required_non_empty_string_diagnostics,
+    table_string_array_entries_trimmed_non_empty_diagnostics,
     table_string_array_schema_diagnostics,
     table_string_schema_diagnostics,
     table_unknown_field_diagnostics,
@@ -82,6 +86,7 @@ PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_FIELDS = (
     "bundle_format",
     "compatible_profiles",
     "engine_version",
+    "host_artifact",
     "target_platform",
     "template_dir",
     "template_id",
@@ -90,6 +95,7 @@ PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_FIELDS = (
 PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_FIELDS = (
     "bundle_format",
     "engine_version",
+    "host_artifact",
     "target_platform",
     "template_dir",
     "template_id",
@@ -216,6 +222,13 @@ def platform_bundle_template_resolution_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        table_present_trimmed_non_empty_string_diagnostics(
+            label,
+            resolution,
+            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
         table_required_field_diagnostics(
             label,
             resolution,
@@ -244,12 +257,20 @@ def platform_bundle_template_resolution_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        table_string_array_entries_trimmed_non_empty_diagnostics(
+            label,
+            resolution,
+            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_ARRAY_FIELDS,
+        )
+    )
+    diagnostics.extend(
         template_resolution_sequence_schema_diagnostics(
             resolution,
             "candidates",
             PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_FIELDS,
             string_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_FIELDS,
             string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_ARRAY_FIELDS,
+            trimmed_string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_ARRAY_FIELDS,
             unique_string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_ARRAY_FIELDS,
             label=label,
         )
@@ -264,6 +285,7 @@ def platform_bundle_template_resolution_schema_diagnostics(
             PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_FIELDS,
             string_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_FIELDS,
             string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_ARRAY_FIELDS,
+            trimmed_string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_ARRAY_FIELDS,
             label=label,
         )
     )
@@ -297,6 +319,7 @@ def template_resolution_sequence_schema_diagnostics(
     *,
     string_fields: tuple[str, ...],
     string_array_fields: tuple[str, ...] = (),
+    trimmed_string_array_fields: tuple[str, ...] = (),
     unique_string_array_fields: tuple[str, ...] = (),
     label: str = "PlatformBundle report template_resolution",
 ) -> list[str]:
@@ -336,10 +359,24 @@ def template_resolution_sequence_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        sequence_present_trimmed_non_empty_string_diagnostics(
+            field_label,
+            value,
+            string_fields,
+        )
+    )
+    diagnostics.extend(
         sequence_string_array_schema_diagnostics(
             field_label,
             value,
             string_array_fields,
+        )
+    )
+    diagnostics.extend(
+        sequence_string_array_entries_trimmed_non_empty_diagnostics(
+            field_label,
+            value,
+            trimmed_string_array_fields,
         )
     )
     diagnostics.extend(

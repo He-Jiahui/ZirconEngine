@@ -15,6 +15,10 @@ fn package_declares_gltf_importer() {
     assert!(manifest
         .capabilities
         .contains(&RUNTIME_CAPABILITY.to_string()));
+    assert_eq!(
+        manifest.maturity,
+        zircon_runtime::plugin::PluginMaturity::Stable
+    );
     assert!(manifest
         .asset_importers
         .iter()

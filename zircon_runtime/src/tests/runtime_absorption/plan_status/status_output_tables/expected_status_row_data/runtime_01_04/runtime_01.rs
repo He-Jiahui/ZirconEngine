@@ -29,6 +29,24 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 01 Tech-stack inventory split",
+        [
+            "tech_stack_inventory_split_static_passed_cargo_deferred_tests_deferred",
+            "tech_stack_source_inventory.py",
+            "tech_stack_anchor_inventory.py",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 01 Tech-stack Markdown renderer split",
+        [
+            "tech_stack_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "tech_stack_markdown.py",
+            "tech_stack_boundary.py` now owns audit read, dependency scanning, missing-anchor calculation, and risk aggregation at 341 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
         "Runtime 01 export build-plan directory materialization boundary",
         [
             "materialize/{mod,generated,paths,native,package_lookup,copy,report}.rs",

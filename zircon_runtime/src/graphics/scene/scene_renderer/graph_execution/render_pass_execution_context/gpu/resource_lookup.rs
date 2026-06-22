@@ -13,6 +13,19 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self
     }
 
+    pub fn require_texture_view(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&wgpu::TextureView, String> {
+        Self::require_texture_view_by_name(
+            self.resources,
+            self.resource_resolver,
+            resource_name,
+            access,
+        )
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name<'resources>(
         resources: &'resources RenderGraphExecutionResources,
         resource_resolver: Option<RgResourceResolver<'a>>,

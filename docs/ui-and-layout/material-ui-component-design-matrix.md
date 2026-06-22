@@ -87,7 +87,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
@@ -214,7 +214,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs

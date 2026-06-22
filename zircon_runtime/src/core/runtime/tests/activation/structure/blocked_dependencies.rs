@@ -68,7 +68,9 @@ fn blocked_dependency_matchers_stay_in_child_owners() {
     assert!(blocked_unload_source
         .contains("fn blocked_exact_service_result<const SERVICE_COUNT: usize>("));
     assert!(blocked_unload_source.contains("blocked_exact_service_result("));
-    assert!(blocked_unload_source.contains("record_blocked_dependent(&mut blocked_index"));
+    assert!(blocked_unload_source.contains("record_blocked_dependent("));
+    assert!(blocked_unload_source.contains("&mut blocked_index"));
+    assert!(blocked_unload_source.contains("&mut blocked_dependents"));
     assert!(!blocked_unload_source.contains("first_blocked_dependents"));
     assert!(!blocked_unload_source.contains("second_blocked_dependents"));
     assert!(!blocked_unload_source.contains("third_blocked_dependents"));

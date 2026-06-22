@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "net"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ category = "runtime"
 description = "Optional networking runtime and editor diagnostics package."
 maturity = "beta"
 supported_targets = ["server_runtime", "client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.net"]
 default_packaging = ["source_template", "library_embed"]
 

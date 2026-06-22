@@ -1,6 +1,6 @@
 use crate::core::math::Transform;
 
-use super::World;
+use super::{SceneResult, World};
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::ecs::LifecycleEventKind;
 use crate::scene::EntityId;
@@ -100,19 +100,19 @@ impl World {
         &mut self,
         child: EntityId,
         parent: Option<EntityId>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(child) {
-            return Err(format!("cannot reparent missing node {child}"));
+            return Err(format!("cannot reparent missing node {child}").into());
         }
         if parent == Some(child) {
-            return Err("node cannot become its own parent".to_string());
+            return Err("node cannot become its own parent".to_string().into());
         }
         if let Some(parent) = parent {
             if !self.contains_entity(parent) {
-                return Err(format!("cannot use missing parent node {parent}"));
+                return Err(format!("cannot use missing parent node {parent}").into());
             }
             if self.is_descendant(parent, child) {
-                return Err("cannot create hierarchy cycle".to_string());
+                return Err("cannot create hierarchy cycle".to_string().into());
             }
         }
         self.validate_reparent(child, parent)?;
@@ -127,10 +127,10 @@ impl World {
         &mut self,
         entity: EntityId,
         transform: Transform,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         self.ensure_transform_mutable(entity)?;
         let Some(local) = self.local_transforms.get(&entity) else {
-            return Err(format!("cannot update transform for missing node {entity}"));
+            return Err(format!("cannot update transform for missing node {entity}").into());
         };
         if local.transform == transform {
             return Ok(false);
@@ -143,7 +143,7 @@ impl World {
         &self,
         entity: EntityId,
         mobility: Mobility,
-    ) -> Result<(), String> {
+    ) -> SceneResult<()> {
         match mobility {
             Mobility::Dynamic => {
                 for child in self.entities.iter().copied() {
@@ -153,7 +153,8 @@ impl World {
                     if self.mobility(child) == Some(Mobility::Static) {
                         return Err(format!(
                             "cannot make node {entity} Dynamic while it owns Static children"
-                        ));
+                        )
+                        .into());
                     }
                 }
             }
@@ -162,7 +163,8 @@ impl World {
                     if self.mobility(parent) == Some(Mobility::Dynamic) {
                         return Err(format!(
                             "cannot make node {entity} Static under Dynamic parent"
-                        ));
+                        )
+                        .into());
                     }
                 }
             }
@@ -170,23 +172,23 @@ impl World {
         Ok(())
     }
 
-    fn ensure_transform_mutable(&self, entity: EntityId) -> Result<(), String> {
+    fn ensure_transform_mutable(&self, entity: EntityId) -> SceneResult<()> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update transform for missing node {entity}"));
+            return Err(format!("cannot update transform for missing node {entity}").into());
         }
         if self.mobility(entity) == Some(Mobility::Static) {
-            return Err(format!(
-                "cannot update transform for Static node {entity} at runtime"
-            ));
+            return Err(
+                format!("cannot update transform for Static node {entity} at runtime").into(),
+            );
         }
         Ok(())
     }
 
-    fn validate_reparent(&self, child: EntityId, _parent: Option<EntityId>) -> Result<(), String> {
+    fn validate_reparent(&self, child: EntityId, _parent: Option<EntityId>) -> SceneResult<()> {
         if self.mobility(child) == Some(Mobility::Static) {
-            return Err(format!(
-                "cannot reparent Static node {child} during runtime mutation"
-            ));
+            return Err(
+                format!("cannot reparent Static node {child} during runtime mutation").into(),
+            );
         }
         Ok(())
     }

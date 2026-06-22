@@ -28,11 +28,11 @@ impl SceneScheduleStagePlan {
             stage_order.push(stage);
         }
 
+        let internal_system_counts = internal_system_counts_by_stage(systems);
         let mut internal_systems_by_stage =
-            internal_system_groups_with_capacity(&internal_system_counts_by_stage(systems));
-        let mut native_steps_by_stage = native_step_groups_with_capacity(
-            &native_step_counts_by_stage(native_systems, runtime_systems),
-        );
+            internal_system_groups_with_capacity(&internal_system_counts);
+        let native_step_counts = native_step_counts_by_stage(native_systems, runtime_systems);
+        let mut native_steps_by_stage = native_step_groups_with_capacity(&native_step_counts);
         let all_nodes = PlanNodes::new(systems, native_systems, runtime_systems);
         for stage in stages.iter().copied() {
             let stage_nodes = all_nodes.stage_nodes(stage);

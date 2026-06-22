@@ -40,7 +40,7 @@
 - Modify: `zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs` to capture executor registrations in the render framework manager factory.
 - Modify: `zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs` to pass executor registrations into `WgpuRenderFramework`.
 - Modify: `zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs` to pass executor registrations into `SceneRenderer`.
-- Modify: `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs` and `new_with_icon_source.rs` so scene renderer construction installs explicit plugin executor functions after descriptor no-ops.
+- Modify: `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs` and `new_with_icon_source.rs` so scene renderer construction installs explicit plugin executor functions after descriptor no-ops.
 
 ### Neutral Readback / Output DTOs
 
@@ -469,8 +469,8 @@ zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
 zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
 zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
 zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
 ```
 
 Use empty `Vec::new()` from no-plugin constructors. In `runtime_modules_for_target_with_plugin_registration_reports`, collect:

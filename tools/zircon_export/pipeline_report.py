@@ -636,7 +636,10 @@ def stage_report_payload(
     stage_key: str,
 ) -> object:
     for stage_report in stage_reports:
-        if stage_report.get("stage_key") == stage_key:
+        if (
+            stage_report.get("stage_key") == stage_key
+            and stage_report.get("fatal") is not True
+        ):
             return stage_report.get("report")
     return None
 

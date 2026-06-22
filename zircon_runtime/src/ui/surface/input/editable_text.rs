@@ -152,6 +152,15 @@ pub(super) fn dispatch_ime_input(
         return with_editable_text_route_policy(surface, result);
     };
 
+    if matches!(ime.kind, UiImeInputEventKind::DeleteSurrounding) {
+        let mut result = owner_routed_result(surface, event, Some(target), "ime.owner");
+        result
+            .diagnostics
+            .notes
+            .push("ime delete-surrounding is not applied by editable text yet".to_string());
+        return with_editable_text_route_policy(surface, result);
+    }
+
     let component_event_kind = match ime.kind {
         UiImeInputEventKind::Commit => TextComponentEventKind::Submit,
         _ => TextComponentEventKind::Change,
@@ -170,6 +179,9 @@ pub(super) fn dispatch_ime_input(
         ),
         UiImeInputEventKind::Cancel => {
             apply_text_edit_action(editable, UiTextEditAction::CancelComposition)
+        }
+        UiImeInputEventKind::DeleteSurrounding => {
+            unreachable!("delete-surrounding IME input is returned before editable text mutation")
         }
     };
 

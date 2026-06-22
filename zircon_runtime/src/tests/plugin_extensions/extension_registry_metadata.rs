@@ -10,14 +10,15 @@ use crate::scene::ecs::{Resource, SystemStage};
 #[test]
 fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions() {
     let plugin = ManifestDeclaredRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
     };
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
 

@@ -1,3 +1,4 @@
+mod plugin;
 mod subassets;
 #[cfg(test)]
 mod test_fixtures;
@@ -12,19 +13,16 @@ use subassets::{
 };
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetKind, FunctionAssetImporter, ImportedAsset, MeshAttributeValues,
-    MeshMorphTargetAsset, MeshSkinAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
-    VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT,
+    ImportedAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, MeshVertex,
+    ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::core::math::{Vec2, Vec3};
-use zircon_runtime::core::ModuleDescriptor;
-use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError,
-    plugin::RuntimePluginRegistrationReport,
+
+pub use plugin::{
+    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
+    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
+    runtime_selection, supported_platforms, supported_targets, GltfImporterRuntimePlugin,
 };
 
 pub const PLUGIN_ID: &str = "gltf_importer";
@@ -32,101 +30,6 @@ pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_gltf_importer_runtime";
 pub const MODULE_NAME: &str = "GltfImporterModule";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.gltf_importer";
 pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.model.gltf";
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[RUNTIME_CAPABILITY, IMPORTER_CAPABILITY]
-}
-
-pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    [
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ]
-}
-
-pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    [
-        ExportTargetPlatform::Windows,
-        ExportTargetPlatform::Linux,
-        ExportTargetPlatform::Macos,
-    ]
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(MODULE_NAME, "glTF and GLB model importer plugin")
-}
-
-pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
-    vec![
-        AssetImporterDescriptor::new("gltf_importer.gltf", PLUGIN_ID, AssetKind::Model, 1)
-            .with_priority(120)
-            .with_source_extensions(["gltf", "glb"])
-            .with_additional_output_kinds([
-                AssetKind::Mesh,
-                AssetKind::Scene,
-                AssetKind::Material,
-                AssetKind::Texture,
-                AssetKind::Data,
-            ])
-            .with_required_capabilities([IMPORTER_CAPABILITY]),
-    ]
-}
-
-pub fn package_manifest() -> PluginPackageManifest {
-    let mut manifest = PluginPackageManifest::new(PLUGIN_ID, "glTF Importer")
-        .with_category("asset_importer")
-        .with_supported_targets(supported_targets())
-        .with_supported_platforms(supported_platforms())
-        .with_capabilities(runtime_capabilities().iter().copied())
-        .with_runtime_module(runtime_module_manifest());
-    for importer in asset_importer_descriptors() {
-        manifest = manifest.with_asset_importer(importer);
-    }
-    manifest
-}
-
-pub fn runtime_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::runtime("gltf_importer.runtime", RUNTIME_CRATE_NAME)
-        .with_target_modes(supported_targets())
-        .with_capabilities(runtime_capabilities().iter().copied())
-}
-
-pub fn runtime_selection() -> ProjectPluginSelection {
-    ProjectPluginSelection {
-        id: PLUGIN_ID.to_string(),
-        enabled: true,
-        required: false,
-        target_modes: supported_targets().to_vec(),
-        packaging: ExportPackagingStrategy::LibraryEmbed,
-        runtime_crate: Some(RUNTIME_CRATE_NAME.to_string()),
-        editor_crate: None,
-        features: Vec::new(),
-    }
-}
-
-pub fn plugin_registration() -> RuntimePluginRegistrationReport {
-    let mut extensions = RuntimeExtensionRegistry::default();
-    let mut diagnostics = Vec::new();
-    if let Err(error) = register(&mut extensions) {
-        diagnostics.push(error.to_string());
-    }
-    RuntimePluginRegistrationReport {
-        package_manifest: package_manifest(),
-        project_selection: runtime_selection(),
-        extensions,
-        diagnostics,
-    }
-}
-
-pub fn register(
-    registry: &mut RuntimeExtensionRegistry,
-) -> Result<(), RuntimeExtensionRegistryError> {
-    registry.register_module(module_descriptor())?;
-    for importer in asset_importer_descriptors() {
-        registry.register_asset_importer(FunctionAssetImporter::new(importer, import_gltf))?;
-    }
-    Ok(())
-}
 
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     validate_external_gltf_buffers(context)?;

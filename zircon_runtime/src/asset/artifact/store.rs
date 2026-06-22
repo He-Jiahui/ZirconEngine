@@ -35,14 +35,7 @@ impl ArtifactStore {
         if let Some(parent) = artifact_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        let payload = serialize_asset(asset).map_err(|error| {
-            AssetImportError::Parse(format!(
-                "serialize artifact cache for kind {:?}, id {}, locator {}: {error}",
-                metadata.kind,
-                metadata.id(),
-                metadata.primary_locator
-            ))
-        })?;
+        let payload = serialize_asset(asset)?;
         fs::write(&artifact_path, payload)?;
         Ok(artifact_uri)
     }
@@ -102,9 +95,9 @@ fn asset_kind_directory(kind: AssetKind) -> &'static str {
 }
 
 fn serialize_asset(asset: &ImportedAsset) -> Result<Vec<u8>, AssetImportError> {
-    let cache_asset = ArtifactCacheAsset::from_imported(asset);
-    let bytes = bincode::serialize(&cache_asset)
-        .map_err(|error| AssetImportError::Parse(format!("serialize artifact cache: {error}")))?;
+    let cache_asset = ArtifactCacheAsset::from_imported(asset)?;
+    let bytes =
+        bincode::serialize(&cache_asset).map_err(AssetImportError::ArtifactCacheSerialize)?;
     let compressed = zstd::stream::encode_all(&bytes[..], ARTIFACT_CACHE_ZSTD_LEVEL)?;
     let mut payload = Vec::with_capacity(ARTIFACT_CACHE_MAGIC.len() + compressed.len());
     payload.extend_from_slice(ARTIFACT_CACHE_MAGIC);
@@ -126,10 +119,8 @@ fn deserialize_asset(path: &str, payload: &[u8]) -> Result<ImportedAsset, AssetI
     let expected_kind = asset_kind_from_artifact_path(path);
     let bytes = zstd::stream::decode_all(&payload[ARTIFACT_CACHE_MAGIC.len()..])?;
     let cache_asset = bincode::deserialize::<ArtifactCacheAsset>(&bytes)
-        .map_err(|error| AssetImportError::Parse(format!("deserialize artifact cache: {error}")))?;
-    let asset = cache_asset
-        .into_imported()
-        .map_err(|error| AssetImportError::Parse(format!("deserialize artifact cache: {error}")))?;
+        .map_err(AssetImportError::ArtifactCacheDeserialize)?;
+    let asset = cache_asset.into_imported()?;
     if let Some(expected_kind) = expected_kind {
         let actual_kind = asset_kind_for_imported_asset(&asset);
         if actual_kind != expected_kind {

@@ -49,6 +49,17 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/lookup.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
@@ -100,6 +111,17 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/lookup.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
@@ -129,6 +151,8 @@ tests:
   - app build-export wizard options ownership scan
   - app build-export wizard session-state ownership scan
   - app build-export wizard session-state subowner ownership scan
+  - editor UI 10 export wizard test owner split scan
+  - cargo test -p zircon_editor --lib export_wizard --locked --target-dir E:\cargo-targets\zircon-editor-export-wizard-0622 --message-format short --color never -- --test-threads=1 (previously blocked before editor tests by runtime GpuMeshResource::indirect_order_signature field visibility; latest rerun timed out after 304s without diagnostics and leftovers stopped)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -212,6 +236,14 @@ The root `app/build_export_projection.rs` stays structural around `RetainedEdito
 `app/build_export_wizard_session/options.rs` owns host option construction for desktop export wizard plan/start actions. It resolves the active project root and `zircon-project.toml`, applies the effective per-profile output root, looks up desktop export profiles, fills strategy/repo/source-manifest/host-executable/target-platform options, and derives the engine repository root from the editor crate manifest directory.
 
 Keeping wizard option construction outside the session owner separates active-project/profile filesystem policy from per-profile session state and polling.
+
+## Host Wizard Runtime
+
+`ui/host/editor_manager_plugins_export/export_build/wizard/session.rs` owns the shared desktop export wizard panel registration used by retained-host Build/Export sessions. It now registers the v2 panel template together with the `editor_base.v2.ui.toml` import source through `EditorUiHostRuntime::register_v2_template_document_files(...)`, so retained projection can resolve declared v2 imports from a single registered document group.
+
+`wizard/execution.rs` and `wizard/run.rs` own pipeline execution and job event sequencing. Cancellation is classified by the point where the cancel signal is observed: during command execution remains an in-stage cancellation, while a signal observed after stage completion is reported as phase-boundary cancellation by the job runner.
+
+The export wizard test owner tree lives in `wizard/tests/{support,pipeline_plan,pipeline_execution,job,panel_session,view_model}.rs` with `mod.rs` as the local test entry. The former oversized root test file was deleted. 2026-06-22 validation passed `cargo fmt -p zircon_editor --check`, the editor structure audit with `oversized_production_file_count = 8`, old-file existence checks, line-count sampling, and scoped `git diff --check`; focused `export_wizard` Cargo testing previously stopped before editor tests on the active runtime `GpuMeshResource::indirect_order_signature` visibility error, and the latest rerun timed out after 304 seconds without diagnostics. Matching cargo/rustc leftovers were stopped, so no focused export_wizard pass is claimed.
 
 ## Boundary Rules
 

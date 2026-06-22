@@ -83,6 +83,7 @@ class PlatformBundleTemplateManifestFileSchemaTests(unittest.TestCase):
             'engine_version = "0.1.0"\n'
             'target_platform = "windows-x86_64"\n'
             'host_kind = "desktop"\n'
+            'host_artifact = "precompiled"\n'
             'resource_strategy = "filesystem_bundle"\n'
             'plugin_strategy = "native_dynamic_allowed"\n'
             'bundle_format = "directory"\n'

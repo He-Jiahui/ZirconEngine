@@ -1,7 +1,7 @@
 use crate::{plugin::CapabilityStatus, plugin::PluginMaturity};
 
-use super::super::RuntimePluginDescriptor;
 use super::capability_status::capability_status;
+use super::BuiltinCatalogDescriptorBuilder;
 
 const ADVANCED_RENDER_PACKAGE_IDS: &[&str] = &["virtual_geometry", "hybrid_gi", "solari"];
 
@@ -11,8 +11,8 @@ pub(super) fn is_advanced_render_descriptor(package_id: &str) -> bool {
 
 pub(super) fn classify_advanced_render_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     match package_id {
         "virtual_geometry" => descriptor
             .with_maturity(PluginMaturity::Experimental)

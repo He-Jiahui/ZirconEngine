@@ -75,7 +75,6 @@ pub(crate) struct PaneBodyPresentation {
     pub payload: PanePayload,
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) struct PaneShellPresentation {
     pub title: String,
@@ -124,7 +123,6 @@ impl PaneShellPresentation {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) struct PanePresentation {
     pub shell: PaneShellPresentation,

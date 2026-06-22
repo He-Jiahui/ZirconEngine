@@ -110,7 +110,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     for required_anchor in [
         "runtime_09_m0_ui_architecture_static_passed",
         "Module Boundary Map",
-        "`ui/` top-level entries: 17",
+        "`ui/` top-level entries: 18",
         "`surface/` entries: 20",
         "No M0 blocker-level owner inversion",
         "completed_static_passed",
@@ -126,7 +126,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let ui_entries = top_level_entry_names("zircon_runtime/src/ui", false);
     assert_eq!(
         ui_entries.len(),
-        17,
+        18,
         "Runtime 09 M0 architecture doc must be refreshed when ui/ top-level entries change"
     );
     for required_entry in [
@@ -138,7 +138,8 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
         "icon_atlas",
         "layout",
         "module.rs",
-        "runtime_ui",
+        "prelude.rs",
+        "public_runtime_frame.rs",
         "style.rs",
         "surface",
         "template",
@@ -209,12 +210,12 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
         "update Runtime 09 docs if production legacy file baseline changes"
     );
     assert_eq!(
-        taffy_production_hits, 173,
+        taffy_production_hits, 175,
         "update Runtime 09 docs if production taffy hit baseline changes"
     );
     assert_eq!(
         taffy_production_files.len(),
-        9,
+        10,
         "update Runtime 09 docs if production taffy file baseline changes"
     );
 
@@ -222,8 +223,8 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
         "ui_legacy_hits=54",
         "ui_legacy_production_hits=0",
         "ui_legacy_production_files=0",
-        "ui_taffy_production_hits=173",
-        "ui_taffy_production_files=9",
+        "ui_taffy_production_hits=175",
+        "ui_taffy_production_files=10",
     ] {
         assert!(
             architecture_doc.contains(required_anchor)
@@ -1040,7 +1041,8 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
     let input_mod = read_repo_file("zircon_runtime/src/ui/surface/input/mod.rs");
     let route_authority = read_repo_file("zircon_runtime/src/ui/surface/input/route_authority.rs");
     let surface = read_repo_file("zircon_runtime/src/ui/surface/surface.rs");
-    let runtime_manager = read_repo_file("zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs");
+    let runtime_manager =
+        read_repo_file("zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs");
     let architecture_doc = include_str!("../../../../docs/zircon_runtime/ui/architecture.md");
     let runtime_09_plan = include_str!(
         "../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
@@ -1086,7 +1088,7 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
     assert!(
         surface.contains("pub fn dispatch_input_event(")
             && runtime_manager.contains("pub(crate) fn dispatch_input_event("),
-        "surface/runtime_ui should keep UiInputEvent dispatch as the normalized input entry"
+        "surface/runtime_ui_support should keep UiInputEvent dispatch as the normalized input entry"
     );
     assert!(
         surface.contains("pub fn dispatch_pointer_event(")
@@ -1156,13 +1158,13 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
 
     for audit_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 52",
-        "EXPECTED_UI_ENTRY_COUNT = 17",
+        "EXPECTED_UI_ENTRY_COUNT = 18",
         "EXPECTED_SURFACE_ENTRY_COUNT = 20",
         "EXPECTED_LEGACY_FULL_HITS = 54",
         "EXPECTED_LEGACY_PRODUCTION_HITS = 0",
         "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0",
-        "EXPECTED_TAFFY_PRODUCTION_HITS = 173",
-        "EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 9",
+        "EXPECTED_TAFFY_PRODUCTION_HITS = 175",
+        "EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 10",
         "MIRROR_DOCS_GUARD",
         "\"runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts\"",
         "\"mirror_docs_guard_present\"",
@@ -1185,7 +1187,7 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         for expected_anchor in [
             "ui_architecture_boundary",
             "expected_source_file_count = 52",
-            "expected_ui_entry_count = 17",
+            "expected_ui_entry_count = 18",
             "expected_surface_entry_count = 20",
             "legacy_full_hits = 54",
             "expected_legacy_full_hits = 54",
@@ -1193,10 +1195,10 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
             "expected_legacy_production_hits = 0",
             "legacy_production_file_count = 0",
             "expected_legacy_production_file_count = 0",
-            "taffy_production_hits = 173",
-            "expected_taffy_production_hits = 173",
-            "taffy_production_file_count = 9",
-            "expected_taffy_production_file_count = 9",
+            "taffy_production_hits = 175",
+            "expected_taffy_production_hits = 175",
+            "taffy_production_file_count = 10",
+            "expected_taffy_production_file_count = 10",
             "runtime_v2_anchor_count = 10",
             "interface_v2_anchor_count = 9",
             "guard_anchor_count = 19",

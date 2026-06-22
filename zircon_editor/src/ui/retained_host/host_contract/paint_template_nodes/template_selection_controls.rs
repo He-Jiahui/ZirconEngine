@@ -7,6 +7,8 @@ mod style;
 mod toggle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_selection_control_commands;
+#[cfg(test)]
+use identity::{selection_control_kind, SelectionControlKind};
 
 #[cfg(test)]
 use super::super::paint_theme::PALETTE;
@@ -34,5 +36,5 @@ use style::{
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 #[cfg(test)]
-#[path = "template_selection_controls_tests.rs"]
+#[path = "template_selection_controls_tests/mod.rs"]
 mod tests;

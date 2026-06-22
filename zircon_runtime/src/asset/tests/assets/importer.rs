@@ -8,10 +8,10 @@ use crate::asset::tests::support::{
     write_default_physics_material,
 };
 use crate::asset::{
-    AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus,
-    AssetImporterDescriptor, AssetImporterRegistry, AssetImporterRegistryError, AssetUri,
-    DataAssetFormat, DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, MeshVertex,
-    ModelAsset, ModelPrimitiveAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
+    AssetImporterCapabilityStatus, AssetImporterDescriptor, AssetImporterRegistry,
+    AssetImporterRegistryError, AssetUri, DataAssetFormat, DiagnosticOnlyAssetImporter,
+    FunctionAssetImporter, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 use zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -534,6 +534,27 @@ fn importer_registry_rejects_same_priority_duplicate_matcher() {
         .unwrap_err();
 
     assert!(error.to_string().contains("duplicate importer matcher"));
+}
+
+#[test]
+fn asset_import_error_preserves_registry_error_source() {
+    let source_error = AssetImporterRegistryError::DuplicateMatcher {
+        matcher: "ext:dup".to_string(),
+        priority: 7,
+    };
+
+    let import_error = AssetImportError::from(source_error);
+
+    match import_error {
+        AssetImportError::Registry(AssetImporterRegistryError::DuplicateMatcher {
+            matcher,
+            priority,
+        }) => {
+            assert_eq!(matcher, "ext:dup");
+            assert_eq!(priority, 7);
+        }
+        other => panic!("registry error source should remain typed, got {other:?}"),
+    }
 }
 
 #[test]

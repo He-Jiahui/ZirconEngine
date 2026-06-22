@@ -3,10 +3,10 @@ use crate::core::editor_event::LayoutCommand;
 use crate::ui::workbench::event::ui_layout_command_from_core;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_layout_command(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     command: &LayoutCommand,
 ) -> Result<ExecutionOutcome, String> {
     let changed = inner

@@ -1,0 +1,26 @@
+use super::super::{workbench_alert_kind, AlertTone, WorkbenchAlertKind};
+use super::support::alert_node;
+
+#[test]
+fn workbench_alert_kind_matches_drawer_ids_and_toast_root() {
+    assert_eq!(
+        workbench_alert_kind(&alert_node("WorkbenchInfoAlert", "Info Alert", "info")),
+        Some(WorkbenchAlertKind::Inline(AlertTone::Info))
+    );
+    assert_eq!(
+        workbench_alert_kind(&alert_node("WorkbenchErrorAlert", "Error Alert", "error")),
+        Some(WorkbenchAlertKind::Inline(AlertTone::Error))
+    );
+    assert_eq!(
+        workbench_alert_kind(&alert_node(
+            "WorkbenchToastRoot",
+            "Operation completed successfully",
+            "info"
+        )),
+        Some(WorkbenchAlertKind::Toast)
+    );
+    assert_eq!(
+        workbench_alert_kind(&alert_node("PlainAlert", "Info Alert", "info")),
+        None
+    );
+}

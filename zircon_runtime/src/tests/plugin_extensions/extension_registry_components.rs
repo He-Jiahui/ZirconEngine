@@ -35,14 +35,15 @@ fn runtime_extension_registry_collects_component_and_ui_component_contributions(
 #[test]
 fn runtime_plugin_registration_report_validates_shadowed_manifest_component_declarations() {
     let plugin = ShadowedInvalidComponentRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
     };
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);

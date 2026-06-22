@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 use crate::core::editor_event::EditorEventRuntime;
 use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
@@ -19,7 +19,7 @@ impl EditorEventRuntime {
         Self::refresh_reflection_locked(&mut inner);
     }
 
-    pub(crate) fn refresh_reflection_locked(inner: &mut EditorEventRuntimeInner) {
+    pub(crate) fn refresh_reflection_locked(inner: &mut EditorEventRuntimeState) {
         let descriptors = inner.manager.descriptors();
         let (views, windows) = activity_descriptors_from_views(&descriptors);
         register_activity_descriptors(&mut inner.control_service, views, windows);
@@ -46,7 +46,7 @@ impl EditorEventRuntime {
     }
 
     pub(crate) fn build_chrome_locked(
-        inner: &EditorEventRuntimeInner,
+        inner: &EditorEventRuntimeState,
         descriptors: Vec<ViewDescriptor>,
     ) -> EditorChromeSnapshot {
         let component_drawers = Self::active_component_drawers_locked(inner);
@@ -61,7 +61,7 @@ impl EditorEventRuntime {
     }
 
     pub(crate) fn active_component_drawers_locked(
-        inner: &EditorEventRuntimeInner,
+        inner: &EditorEventRuntimeState,
     ) -> BTreeMap<String, ComponentDrawerDescriptor> {
         active_extension_registries(inner)
             .into_iter()
@@ -77,7 +77,7 @@ impl EditorEventRuntime {
     }
 }
 
-fn active_extension_registries(inner: &EditorEventRuntimeInner) -> Vec<EditorExtensionRegistry> {
+fn active_extension_registries(inner: &EditorEventRuntimeState) -> Vec<EditorExtensionRegistry> {
     let enabled_capabilities = inner
         .manager
         .capability_snapshot()

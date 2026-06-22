@@ -227,7 +227,9 @@ impl CreateNodeCommand {
     }
 
     fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene.insert_node_record(self.record.clone())?;
+        scene
+            .insert_node_record(self.record.clone())
+            .map_err(|error| error.to_string())?;
         Ok(Some(self.record.id))
     }
 
@@ -302,7 +304,9 @@ impl DeleteNodeCommand {
     }
 
     fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene.insert_node_records(&self.records)?;
+        scene
+            .insert_node_records(&self.records)
+            .map_err(|error| error.to_string())?;
         scene.set_active_camera(self.previous_active_camera);
         Ok(self.previous_selected)
     }
@@ -430,9 +434,15 @@ impl UpdateNodeCommand {
         if scene.find_node(node_id).is_none() {
             return Err(format!("missing node {node_id}"));
         }
-        let _ = scene.set_parent_checked(node_id, state.parent)?;
-        scene.rename_node(node_id, state.name.clone())?;
-        let _ = scene.update_transform(node_id, state.transform)?;
+        let _ = scene
+            .set_parent_checked(node_id, state.parent)
+            .map_err(|error| error.to_string())?;
+        scene
+            .rename_node(node_id, state.name.clone())
+            .map_err(|error| error.to_string())?;
+        let _ = scene
+            .update_transform(node_id, state.transform)
+            .map_err(|error| error.to_string())?;
         Ok(())
     }
 

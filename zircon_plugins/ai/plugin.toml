@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "ai"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ category = "runtime"
 description = "Optional runtime AI contracts for behavior trees, blackboards, perception snapshots, and agent ticks."
 maturity = "experimental"
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.ai", "runtime.feature.ai.behavior_tree", "runtime.feature.ai.blackboard", "runtime.feature.ai.perception"]
 default_packaging = ["source_template", "library_embed"]
 

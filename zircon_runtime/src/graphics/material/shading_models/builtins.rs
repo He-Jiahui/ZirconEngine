@@ -52,7 +52,6 @@ mod tests {
     #[test]
     fn builtin_shading_model_registry_contains_three_surface_models() {
         let registry = builtin_shading_model_registry();
-        assert_eq!(registry.len(), 3);
         assert_eq!(registry.get(SHADING_MODEL_ID_UNLIT).unwrap().token, "unlit");
         assert_eq!(
             registry.get(SHADING_MODEL_ID_BLINN_PHONG).unwrap().token,

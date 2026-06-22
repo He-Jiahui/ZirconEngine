@@ -19,7 +19,8 @@ pub(super) fn resolve_subject_path(
         })?;
         let exists = state
             .world
-            .with_world(|scene| scene.find_node(node_id).is_some());
+            .try_with_world(|scene| scene.find_node(node_id).is_some())
+            .unwrap_or(false);
         if exists {
             return Ok(node_id);
         }

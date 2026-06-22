@@ -43,7 +43,7 @@ impl RetainedEditorHost {
     }
 }
 
-fn export_wizard_default_host_executable(
+pub(super) fn export_wizard_default_host_executable(
     out: &str,
     profile: &ExportProfile,
     target_dir: Option<&str>,
@@ -51,7 +51,7 @@ fn export_wizard_default_host_executable(
     export_wizard_compile_host_executable_path(out, profile, target_dir)
 }
 
-fn export_wizard_engine_repo_root() -> PathBuf {
+pub(super) fn export_wizard_engine_repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("editor crate should be inside the engine repository")

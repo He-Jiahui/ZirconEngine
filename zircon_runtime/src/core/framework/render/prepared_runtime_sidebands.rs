@@ -42,12 +42,34 @@ impl RenderPreparedRuntimeSidebands {
         &self.plugin_renderer_outputs.particles
     }
 
+    pub(crate) fn take_hybrid_gi_readback_outputs(&mut self) -> RenderHybridGiReadbackOutputs {
+        std::mem::take(&mut self.plugin_renderer_outputs.hybrid_gi)
+    }
+
+    pub(crate) fn take_virtual_geometry_readback_outputs(
+        &mut self,
+    ) -> RenderVirtualGeometryReadbackOutputs {
+        std::mem::take(&mut self.plugin_renderer_outputs.virtual_geometry)
+    }
+
+    pub(crate) fn take_particle_readback_outputs(&mut self) -> RenderParticleGpuReadbackOutputs {
+        std::mem::take(&mut self.plugin_renderer_outputs.particles)
+    }
+
     pub fn hybrid_gi_evictable_probe_ids(&self) -> &[u32] {
         &self.hybrid_gi_evictable_probe_ids
     }
 
     pub fn virtual_geometry_evictable_page_ids(&self) -> &[u32] {
         &self.virtual_geometry_evictable_page_ids
+    }
+
+    pub(crate) fn take_hybrid_gi_evictable_probe_ids(&mut self) -> Vec<u32> {
+        std::mem::take(&mut self.hybrid_gi_evictable_probe_ids)
+    }
+
+    pub(crate) fn take_virtual_geometry_evictable_page_ids(&mut self) -> Vec<u32> {
+        std::mem::take(&mut self.virtual_geometry_evictable_page_ids)
     }
 }
 

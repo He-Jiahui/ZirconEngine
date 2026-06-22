@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .command_plan import command_option_value_diagnostic, command_with_option
+from .pipeline_report_source_template_validate_schema import (
+    source_template_validate_build_plan_schema_diagnostics,
+    source_template_validate_generated_files_schema_diagnostics,
+)
 from .report_io import write_report_targets
 from .stage_handoff import (
     export_strategies_from_validate_report,
@@ -67,6 +71,14 @@ def run_source_template(args: argparse.Namespace) -> int:
     )
     source_plan = source_template_plan(validate_payload, diagnostics)
     generated_files = generated_file_summaries(validate_payload)
+    if source_plan is None:
+        generated_files = []
+    generated_file_plan_diagnostics = source_template_generated_files_plan_diagnostics(
+        validate_payload
+    )
+    if generated_file_plan_diagnostics:
+        diagnostics.extend(generated_file_plan_diagnostics)
+        generated_files = []
     command: list[str] = []
     build_validation: dict[str, Any] = {
         "requested": bool(getattr(args, "source_template_build", False)),
@@ -84,6 +96,7 @@ def run_source_template(args: argparse.Namespace) -> int:
         or validate_report is None
         or validate_payload is None
         or source_plan is None
+        or generated_file_plan_diagnostics
     ):
         fatal = True
     else:
@@ -310,8 +323,22 @@ def source_template_plan(
         diagnostics.append("validate report does not contain plan_summary")
         return None
     source_plan = plan_summary.get("source_template_build")
-    if not isinstance(source_plan, dict):
-        diagnostics.append("validate report does not contain a SourceTemplate build plan")
+    schema_diagnostics = source_template_validate_build_plan_schema_diagnostics(
+        source_plan
+    )
+    if schema_diagnostics:
+        diagnostics.extend(schema_diagnostics)
+        if not isinstance(source_plan, dict):
+            diagnostics.append(
+                "validate report does not contain a SourceTemplate build plan"
+            )
+        elif not source_template_command_array_is_valid(source_plan.get("command")):
+            if not source_template_command_array_has_entry_type_errors(
+                source_plan.get("command")
+            ):
+                diagnostics.append(
+                    "SourceTemplate build plan command must be a non-empty string array"
+                )
         return None
     command = source_plan.get("command")
     if (
@@ -348,6 +375,20 @@ def source_template_plan(
     return source_plan
 
 
+def source_template_command_array_is_valid(value: object) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(isinstance(item, str) and item.strip() for item in value)
+    )
+
+
+def source_template_command_array_has_entry_type_errors(value: object) -> bool:
+    return isinstance(value, list) and any(
+        not isinstance(item, str) for item in value
+    )
+
+
 def generated_file_summaries(validate_payload: dict[str, Any] | None) -> list[dict[str, str]]:
     if validate_payload is None:
         return []
@@ -368,6 +409,21 @@ def generated_file_summaries(validate_payload: dict[str, Any] | None) -> list[di
     return summaries
 
 
+def source_template_generated_files_plan_diagnostics(
+    validate_payload: dict[str, Any] | None,
+) -> list[str]:
+    if validate_payload is None:
+        return []
+    plan_summary = validate_payload.get("plan_summary")
+    if not isinstance(plan_summary, dict):
+        return []
+    files = plan_summary.get("generated_files")
+    diagnostics = source_template_validate_generated_files_schema_diagnostics(files)
+    if diagnostics:
+        return diagnostics
+    return generated_file_path_duplicate_diagnostics(files)
+
+
 def materialize_generated_files(
     project_dir: Path,
     validate_payload: dict[str, Any],
@@ -375,6 +431,10 @@ def materialize_generated_files(
 ) -> bool:
     plan_summary = validate_payload.get("plan_summary", {})
     files = plan_summary.get("generated_files", []) if isinstance(plan_summary, dict) else []
+    duplicate_diagnostics = generated_file_path_duplicate_diagnostics(files)
+    if duplicate_diagnostics:
+        diagnostics.extend(duplicate_diagnostics)
+        return False
     try:
         project_dir.mkdir(parents=True, exist_ok=True)
     except OSError as error:
@@ -409,6 +469,24 @@ def materialize_generated_files(
                 f"SourceTemplate generated file {path} could not be written: {error}"
             )
     return True
+
+
+def generated_file_path_duplicate_diagnostics(files: object) -> list[str]:
+    if not isinstance(files, list):
+        return []
+    diagnostics: list[str] = []
+    paths: set[str] = set()
+    for file in files:
+        if not isinstance(file, dict):
+            continue
+        path = file.get("path")
+        if not isinstance(path, str):
+            continue
+        if path in paths:
+            diagnostics.append(f"SourceTemplate generated file path {path} is duplicated")
+            continue
+        paths.add(path)
+    return diagnostics
 
 
 def source_template_generated_file_report(

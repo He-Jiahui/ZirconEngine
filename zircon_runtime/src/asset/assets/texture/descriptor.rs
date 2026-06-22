@@ -102,7 +102,7 @@ impl TextureAssetDescriptor {
         self
     }
 
-    pub fn with_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
+    pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
         let mut extent_keys = ExtentSettingKeys::default();
         if let Some(value) = settings.get("format") {
             self.format = string_setting("format", value)?.to_string();
@@ -477,7 +477,7 @@ mod tests {
         let settings = r#"render_asset_usage = "gpu""#.parse::<toml::Table>().expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid render asset usage alias");
 
         assert_eq!(
@@ -491,7 +491,7 @@ mod tests {
         let settings = r#"depth_or_array_layers = 4"#.parse::<toml::Table>().expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid depth override");
 
         assert_eq!(descriptor.depth_or_array_layers, 4);
@@ -503,7 +503,7 @@ mod tests {
         let settings = r#"array_layer_count = 3"#.parse::<toml::Table>().expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid array layer override");
 
         assert_eq!(descriptor.depth_or_array_layers, 3);
@@ -520,7 +520,7 @@ depth_or_array_layers = 4
         .expect("valid toml");
 
         let error = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect_err("mismatched extent settings");
 
         assert!(
@@ -541,7 +541,7 @@ array_layers = 2
         .expect("valid toml");
 
         let error = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect_err("3d array layer override");
 
         assert!(
@@ -560,7 +560,7 @@ depth = 4
         .expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid 3d depth override");
 
         assert_eq!(descriptor.dimension, RenderImageDimension::D3);
@@ -573,7 +573,7 @@ depth = 4
         let settings = r#"depth_or_array_layers = 4"#.parse::<toml::Table>().expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::container("dds/DXT1", 1, 12)
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid depth override");
 
         assert_eq!(descriptor.depth_or_array_layers, 4);
@@ -608,7 +608,7 @@ depth = 4
         for (settings, expected) in cases {
             let settings = settings.parse::<toml::Table>().expect("valid toml");
             let error = TextureAssetDescriptor::default()
-                .with_import_settings(&settings)
+                .apply_import_settings(&settings)
                 .expect_err("invalid alias setting");
 
             assert!(
@@ -623,7 +623,7 @@ depth = 4
         let settings = r#"color_space = "linear""#.parse::<toml::Table>().expect("valid toml");
 
         let descriptor = TextureAssetDescriptor::default()
-            .with_import_settings(&settings)
+            .apply_import_settings(&settings)
             .expect("valid linear color space");
 
         assert_eq!(descriptor.format, RGBA8_UNORM_FORMAT);

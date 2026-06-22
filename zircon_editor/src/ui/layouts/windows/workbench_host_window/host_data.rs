@@ -86,7 +86,6 @@ pub(crate) struct PaneData {
     pub show_toolbar: bool,
     pub viewport: SceneViewportChromeData,
     pub native_body: PaneNativeBodyData,
-    #[allow(dead_code)]
     pub pane_presentation: Option<super::PanePresentation>,
 }
 

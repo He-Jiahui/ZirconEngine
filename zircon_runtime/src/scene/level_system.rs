@@ -1,7 +1,7 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::physics::{
@@ -11,7 +11,7 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::world::World;
-use crate::scene::{ecs::RuntimeSceneSystemContext, EntityId, WorldDriver, WORLD_DRIVER_NAME};
+use crate::scene::{EntityId, WORLD_DRIVER_NAME, WorldDriver, ecs::RuntimeSceneSystemContext};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -58,6 +58,12 @@ pub struct AnimationStateTransitionRuntime {
     pub to_time_seconds: Real,
 }
 
+fn lock_poison_recovered<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 impl LevelSystem {
     pub(crate) fn new(
         handle: WorldHandle,
@@ -82,26 +88,46 @@ impl LevelSystem {
         self.handle
     }
 
+    fn lock_world(&self) -> MutexGuard<'_, World> {
+        lock_poison_recovered(&self.inner)
+    }
+
+    fn lock_runtime_state(&self) -> MutexGuard<'_, WorldRuntimeState> {
+        lock_poison_recovered(&self.runtime_state)
+    }
+
+    fn lock_metadata(&self) -> MutexGuard<'_, LevelMetadata> {
+        lock_poison_recovered(&self.metadata)
+    }
+
+    fn lock_lifecycle(&self) -> MutexGuard<'_, LevelLifecycleState> {
+        lock_poison_recovered(&self.lifecycle)
+    }
+
+    fn lock_subsystems(&self) -> MutexGuard<'_, Vec<String>> {
+        lock_poison_recovered(&self.subsystems)
+    }
+
     pub fn snapshot(&self) -> World {
-        self.inner.lock().unwrap().clone()
+        self.lock_world().clone()
     }
 
     pub fn replace(&self, world: World) {
-        *self.inner.lock().unwrap() = world;
+        *self.lock_world() = world;
     }
 
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
         self.replace(world);
-        *self.runtime_state.lock().unwrap() = WorldRuntimeState::default();
+        *self.lock_runtime_state() = WorldRuntimeState::default();
     }
 
     pub fn with_world<R>(&self, read: impl FnOnce(&World) -> R) -> R {
-        let world = self.inner.lock().unwrap();
+        let world = self.lock_world();
         read(&world)
     }
 
     pub fn with_world_mut<R>(&self, write: impl FnOnce(&mut World) -> R) -> R {
-        let mut world = self.inner.lock().unwrap();
+        let mut world = self.lock_world();
         write(&mut world)
     }
 
@@ -128,15 +154,15 @@ impl LevelSystem {
     }
 
     pub fn last_physics_step_plan(&self) -> Option<PhysicsWorldStepPlan> {
-        self.runtime_state.lock().unwrap().physics_step_plan
+        self.lock_runtime_state().physics_step_plan
     }
 
     pub fn physics_contacts(&self) -> Vec<PhysicsContactEvent> {
-        self.runtime_state.lock().unwrap().physics_contacts.clone()
+        self.lock_runtime_state().physics_contacts.clone()
     }
 
     pub fn physics_triggers(&self) -> Vec<PhysicsTriggerEvent> {
-        self.runtime_state.lock().unwrap().physics_triggers.clone()
+        self.lock_runtime_state().physics_triggers.clone()
     }
 
     pub fn record_physics_step(
@@ -145,23 +171,21 @@ impl LevelSystem {
         physics_contacts: Vec<PhysicsContactEvent>,
         physics_triggers: Vec<PhysicsTriggerEvent>,
     ) {
-        let mut runtime_state = self.runtime_state.lock().unwrap();
+        let mut runtime_state = self.lock_runtime_state();
         runtime_state.physics_step_plan = Some(physics_step_plan);
         runtime_state.physics_contacts = physics_contacts;
         runtime_state.physics_triggers = physics_triggers;
     }
 
     pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {
-        self.runtime_state
-            .lock()
-            .unwrap()
+        self.lock_runtime_state()
             .animation_poses
             .get(&entity)
             .cloned()
     }
 
     pub(crate) fn animation_poses(&self) -> BTreeMap<EntityId, AnimationPoseOutput> {
-        self.runtime_state.lock().unwrap().animation_poses.clone()
+        self.lock_runtime_state().animation_poses.clone()
     }
 
     pub fn animation_playback_times(
@@ -171,7 +195,7 @@ impl LevelSystem {
         BTreeMap<EntityId, Real>,
         BTreeMap<EntityId, AnimationStateTransitionRuntime>,
     ) {
-        let runtime_state = self.runtime_state.lock().unwrap();
+        let runtime_state = self.lock_runtime_state();
         (
             runtime_state.animation_graph_times.clone(),
             runtime_state.animation_state_machine_times.clone(),
@@ -180,7 +204,7 @@ impl LevelSystem {
     }
 
     pub fn record_animation_poses(&self, animation_poses: BTreeMap<EntityId, AnimationPoseOutput>) {
-        self.runtime_state.lock().unwrap().animation_poses = animation_poses;
+        self.lock_runtime_state().animation_poses = animation_poses;
     }
 
     pub fn record_animation_playback_times(
@@ -189,50 +213,46 @@ impl LevelSystem {
         animation_state_machine_times: BTreeMap<EntityId, Real>,
         animation_state_machine_transitions: BTreeMap<EntityId, AnimationStateTransitionRuntime>,
     ) {
-        let mut runtime_state = self.runtime_state.lock().unwrap();
+        let mut runtime_state = self.lock_runtime_state();
         runtime_state.animation_graph_times = animation_graph_times;
         runtime_state.animation_state_machine_times = animation_state_machine_times;
         runtime_state.animation_state_machine_transitions = animation_state_machine_transitions;
     }
 
     pub fn script_binding_started(&self, entity: EntityId, binding_key: &str) -> bool {
-        self.runtime_state
-            .lock()
-            .unwrap()
+        self.lock_runtime_state()
             .script_started_bindings
             .contains(&(entity, binding_key.to_string()))
     }
 
     pub fn mark_script_binding_started(&self, entity: EntityId, binding_key: impl Into<String>) {
-        self.runtime_state
-            .lock()
-            .unwrap()
+        self.lock_runtime_state()
             .script_started_bindings
             .insert((entity, binding_key.into()));
     }
 
     pub fn metadata(&self) -> LevelMetadata {
-        self.metadata.lock().unwrap().clone()
+        self.lock_metadata().clone()
     }
 
     pub fn set_metadata(&self, metadata: LevelMetadata) {
-        *self.metadata.lock().unwrap() = metadata;
+        *self.lock_metadata() = metadata;
     }
 
     pub fn lifecycle(&self) -> LevelLifecycleState {
-        self.lifecycle.lock().unwrap().clone()
+        self.lock_lifecycle().clone()
     }
 
     pub fn set_lifecycle(&self, lifecycle: LevelLifecycleState) {
-        *self.lifecycle.lock().unwrap() = lifecycle;
+        *self.lock_lifecycle() = lifecycle;
     }
 
     pub fn register_subsystem(&self, subsystem_name: impl Into<String>) {
-        self.subsystems.lock().unwrap().push(subsystem_name.into());
+        self.lock_subsystems().push(subsystem_name.into());
     }
 
     pub fn registered_subsystems(&self) -> Vec<String> {
-        self.subsystems.lock().unwrap().clone()
+        self.lock_subsystems().clone()
     }
 }
 
@@ -243,5 +263,53 @@ impl std::fmt::Debug for LevelSystem {
             .field("metadata", &self.metadata())
             .field("lifecycle", &self.lifecycle())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+
+    use super::*;
+
+    fn poison_mutex<T>(mutex: &Mutex<T>) {
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = mutex.lock().unwrap();
+            panic!("poison level system mutex");
+        }));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn level_system_accessors_recover_poisoned_state_locks() {
+        let level = LevelSystem::new(
+            WorldHandle::new(42),
+            Arc::new(Mutex::new(World::empty())),
+            LevelMetadata::default(),
+        );
+
+        poison_mutex(&level.inner);
+        let entity = level.with_world_mut(|world| world.spawn_node(crate::scene::NodeKind::Cube));
+        assert!(level.snapshot().contains_entity(entity));
+
+        poison_mutex(&level.runtime_state);
+        assert_eq!(level.last_physics_step_plan(), None);
+        level.mark_script_binding_started(entity, "behavior");
+        assert!(level.script_binding_started(entity, "behavior"));
+
+        poison_mutex(&level.metadata);
+        level.set_metadata(LevelMetadata {
+            display_name: Some("Recovered".to_string()),
+            ..LevelMetadata::default()
+        });
+        assert_eq!(level.metadata().display_name.as_deref(), Some("Recovered"));
+
+        poison_mutex(&level.lifecycle);
+        level.set_lifecycle(LevelLifecycleState::Unloaded);
+        assert_eq!(level.lifecycle(), LevelLifecycleState::Unloaded);
+
+        poison_mutex(&level.subsystems);
+        level.register_subsystem("physics");
+        assert_eq!(level.registered_subsystems(), vec!["physics".to_string()]);
     }
 }

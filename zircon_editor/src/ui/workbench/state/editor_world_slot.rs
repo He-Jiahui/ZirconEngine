@@ -7,7 +7,6 @@ pub struct EditorWorldSlot {
 }
 
 impl EditorWorldSlot {
-    #[allow(dead_code)]
     pub fn loaded(world: LevelSystem) -> Self {
         Self { inner: Some(world) }
     }
@@ -20,7 +19,7 @@ impl EditorWorldSlot {
         self.inner.is_some()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn snapshot(&self) -> Scene {
         self.inner
             .as_ref()
@@ -32,7 +31,7 @@ impl EditorWorldSlot {
         self.inner.as_ref().map(LevelSystem::snapshot)
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn with_world<R>(&self, read: impl FnOnce(&Scene) -> R) -> R {
         self.inner
             .as_ref()
@@ -44,7 +43,7 @@ impl EditorWorldSlot {
         self.inner.as_ref().map(|world| world.with_world(read))
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn with_world_mut<R>(&self, write: impl FnOnce(&mut Scene) -> R) -> R {
         self.inner
             .as_ref()

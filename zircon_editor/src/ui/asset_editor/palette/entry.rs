@@ -4,7 +4,6 @@ use zircon_runtime_interface::ui::component::UiDefaultNodeTemplate;
 pub(crate) enum UiAssetPaletteEntryKind {
     Native {
         widget_type: String,
-        #[allow(dead_code)]
         default_node: UiDefaultNodeTemplate,
     },
     Component {

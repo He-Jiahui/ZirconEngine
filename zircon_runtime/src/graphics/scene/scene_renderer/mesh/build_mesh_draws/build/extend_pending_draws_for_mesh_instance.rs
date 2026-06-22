@@ -227,10 +227,13 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 skinned_gpu_source: None,
                 resolved_skinned_gpu_source: None,
                 previous_skinned_gpu_source: None,
-                command_sort_input: command_sort_input.with_tie_breaker(command_sort_tie_breaker(
-                    mesh_instance.node_id,
-                    source_draw_ordinal,
-                )),
+                command_sort_input: command_sort_input.with_tie_breaker(
+                    mesh_order_command_sort_tie_breaker(
+                        mesh_instance.node_id,
+                        source_draw_ordinal,
+                        mesh.indirect_order_signature(),
+                    ),
+                ),
                 first_index,
                 draw_index_count,
                 indirect_draw_ref: None,
@@ -582,8 +585,9 @@ fn push_dynamic_mesh_draws(
             skinned_gpu_source: skinned_gpu_source.clone(),
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,
-            command_sort_input: command_sort_input
-                .with_tie_breaker(command_sort_tie_breaker(source_entity, source_draw_ordinal)),
+            command_sort_input: command_sort_input.with_tie_breaker(
+                dynamic_command_sort_tie_breaker(source_entity, source_draw_ordinal),
+            ),
             first_index,
             draw_index_count,
             indirect_draw_ref: None,
@@ -728,8 +732,13 @@ fn push_prepared_mesh_draws(
             skinned_gpu_source: None,
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,
-            command_sort_input: command_sort_input
-                .with_tie_breaker(command_sort_tie_breaker(source_entity, source_draw_ordinal)),
+            command_sort_input: command_sort_input.with_tie_breaker(
+                mesh_order_command_sort_tie_breaker(
+                    source_entity,
+                    source_draw_ordinal,
+                    mesh.indirect_order_signature(),
+                ),
+            ),
             first_index,
             draw_index_count,
             indirect_draw_ref: None,
@@ -737,6 +746,21 @@ fn push_prepared_mesh_draws(
     }
 }
 
-fn command_sort_tie_breaker(source_entity: EntityId, draw_ordinal: u32) -> u64 {
+fn mesh_order_command_sort_tie_breaker(
+    source_entity: EntityId,
+    draw_ordinal: u32,
+    mesh_order_signature: u64,
+) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    let stable_instance_key = crate::core::framework::render::render_mesh_stable_instance_key(
+        source_entity,
+        draw_ordinal,
+    );
+    stable_instance_key.hash(&mut hasher);
+    mesh_order_signature.hash(&mut hasher);
+    nonzero_hash(hasher)
+}
+
+fn dynamic_command_sort_tie_breaker(source_entity: EntityId, draw_ordinal: u32) -> u64 {
     crate::core::framework::render::render_mesh_stable_instance_key(source_entity, draw_ordinal)
 }

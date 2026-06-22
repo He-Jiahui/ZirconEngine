@@ -15,6 +15,10 @@ pub(super) use job_queue::{
     apply_job_snapshot_to_target, desktop_export_status_task_from_queue, DesktopExportCancellation,
     DesktopExportJobQueue, DesktopExportJobSnapshot,
 };
+#[cfg(test)]
+pub(super) use job_queue::{
+    desktop_export_status_task_from_job, DesktopExportJobPhase, DesktopExportProgressSnapshot,
+};
 pub(super) use profiles::{
     default_desktop_export_output_root, desktop_export_profile, desktop_export_profiles,
     export_platform_label,

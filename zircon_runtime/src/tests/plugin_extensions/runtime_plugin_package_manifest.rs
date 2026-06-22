@@ -15,13 +15,14 @@ use crate::plugin::{
 #[test]
 fn runtime_plugin_registration_report_rejects_package_manifest_id_mismatch() {
     let plugin = ManifestOverrideRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
         manifest: PluginPackageManifest::new("storm", "Weather")
             .with_capability("runtime.plugin.storm"),
     };
@@ -49,13 +50,14 @@ fn runtime_plugin_registration_report_rejects_invalid_package_manifest_public_me
     manifest.version = "1.0".to_string();
     manifest.sdk_api_version = "0.01.0".to_string();
     let plugin = ManifestOverrideRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
         manifest,
     };
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
@@ -175,14 +177,15 @@ fn native_runtime_plugin_registration_report_accepts_interface_only_dependency_r
 #[test]
 fn linked_runtime_plugin_registration_report_rejects_declared_but_unexported_interfaces() {
     let plugin = ManifestOverrideRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_capability("runtime.plugin.weather")
-        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .build(),
         manifest: PluginPackageManifest::new("weather", "Weather")
             .with_capability("runtime.plugin.weather")
             .with_supported_targets([RuntimeTargetMode::ClientRuntime])
@@ -259,13 +262,14 @@ fn native_runtime_plugin_registration_report_rejects_static_package_id_shape_vio
 
 #[test]
 fn runtime_plugin_registration_report_rejects_descriptor_package_id_shape_violations() {
-    let plugin = RuntimePluginDescriptor::new(
+    let plugin = RuntimePluginDescriptor::builder(
         "1weather__",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
     )
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
 
@@ -418,7 +422,7 @@ fn native_runtime_plugin_registration_report_rejects_invalid_package_capabilitie
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_capabilities() {
-    let plugin = RuntimePluginDescriptor::new(
+    let plugin = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
@@ -427,7 +431,8 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_capabil
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
     .with_capability("Runtime.Plugin.Weather")
     .with_capability("runtime.plugin.weather")
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
 
@@ -957,7 +962,7 @@ impl RuntimePlugin for InterfaceExportRuntimePlugin {
         static DESCRIPTOR: std::sync::OnceLock<RuntimePluginDescriptor> =
             std::sync::OnceLock::new();
         DESCRIPTOR.get_or_init(|| {
-            RuntimePluginDescriptor::new(
+            RuntimePluginDescriptor::builder(
                 "weather",
                 "Weather",
                 RuntimePluginId::Particles,
@@ -965,6 +970,7 @@ impl RuntimePlugin for InterfaceExportRuntimePlugin {
             )
             .with_capability("runtime.plugin.weather")
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
+            .build()
         })
     }
 

@@ -598,6 +598,18 @@ class PlatformBundleTemplateResolutionSchemaTests(unittest.TestCase):
             "'unknown_format' is not one of app_bundle, directory, web_static, zip",
         )
 
+    def test_report_rejects_template_resolution_candidate_host_artifact_unknown(
+        self,
+    ) -> None:
+        self._assert_template_resolution_diagnostic(
+            lambda resolution: resolution["candidates"][0].__setitem__(
+                "host_artifact",
+                "generated",
+            ),
+            "PlatformBundle report template_resolution candidates[0].host_artifact="
+            "'generated' is not one of placeholder, precompiled",
+        )
+
     def test_report_rejects_template_resolution_candidate_missing_required_field(
         self,
     ) -> None:
@@ -605,6 +617,7 @@ class PlatformBundleTemplateResolutionSchemaTests(unittest.TestCase):
             "bundle_format",
             "compatible_profiles",
             "engine_version",
+            "host_artifact",
             "target_platform",
             "template_dir",
             "template_id",
@@ -823,12 +836,30 @@ class PlatformBundleTemplateResolutionSchemaTests(unittest.TestCase):
                     f"PlatformBundle report template_resolution.{field} must be a non-empty string",
                 )
 
+    def test_report_rejects_template_resolution_padded_string_field(self) -> None:
+        for field in (
+            "expected_engine_version",
+            "expected_target_platform",
+            "profile",
+            "template_dir",
+            "template_root",
+        ):
+            with self.subTest(field=field):
+                self._assert_template_resolution_diagnostic(
+                    lambda resolution, field=field: resolution.__setitem__(
+                        field,
+                        f" {resolution[field]} ",
+                    ),
+                    f"PlatformBundle report template_resolution.{field} must be a non-empty trimmed string",
+                )
+
     def test_report_rejects_template_resolution_candidate_string_field_blank(
         self,
     ) -> None:
         for field in (
             "bundle_format",
             "engine_version",
+            "host_artifact",
             "target_platform",
             "template_dir",
             "template_id",
@@ -841,6 +872,40 @@ class PlatformBundleTemplateResolutionSchemaTests(unittest.TestCase):
                     f"PlatformBundle report template_resolution candidates[0].{field} must be a non-empty string",
                 )
 
+    def test_report_rejects_template_resolution_candidate_padded_string_field(
+        self,
+    ) -> None:
+        for field in (
+            "bundle_format",
+            "engine_version",
+            "host_artifact",
+            "target_platform",
+            "template_dir",
+            "template_id",
+        ):
+            with self.subTest(field=field):
+                self._assert_template_resolution_diagnostic(
+                    lambda resolution, field=field: resolution["candidates"][
+                        0
+                    ].__setitem__(
+                        field,
+                        f" {resolution['candidates'][0][field]} ",
+                    ),
+                    f"PlatformBundle report template_resolution candidates[0].{field} must be a non-empty trimmed string",
+                )
+
+    def test_report_rejects_template_resolution_candidate_padded_profile_entry(
+        self,
+    ) -> None:
+        self._assert_template_resolution_diagnostic(
+            lambda resolution: resolution["candidates"][0].__setitem__(
+                "compatible_profiles",
+                [" windows-release "],
+            ),
+            "PlatformBundle report template_resolution candidates[0].compatible_profiles[0] "
+            "must be a non-empty trimmed string",
+        )
+
     def test_report_rejects_template_resolution_skipped_candidate_string_field_blank(
         self,
     ) -> None:
@@ -851,6 +916,18 @@ class PlatformBundleTemplateResolutionSchemaTests(unittest.TestCase):
             ),
             "PlatformBundle report template_resolution skipped_candidates[0].template_dir "
             "must be a non-empty string",
+        )
+
+    def test_report_rejects_template_resolution_skipped_candidate_padded_template_dir(
+        self,
+    ) -> None:
+        self._assert_template_resolution_diagnostic(
+            lambda resolution: resolution["skipped_candidates"][0].__setitem__(
+                "template_dir",
+                f" {resolution['skipped_candidates'][0]['template_dir']} ",
+            ),
+            "PlatformBundle report template_resolution skipped_candidates[0].template_dir "
+            "must be a non-empty trimmed string",
         )
 
     def _assert_template_resolution_diagnostic(
@@ -893,6 +970,7 @@ def _template_resolution(out: Path) -> dict[str, object]:
         "engine_version": "0.1.0",
         "target_platform": "windows-x86_64",
         "compatible_profiles": ["windows-release"],
+        "host_artifact": "precompiled",
         "bundle_format": "directory",
     }
     return {

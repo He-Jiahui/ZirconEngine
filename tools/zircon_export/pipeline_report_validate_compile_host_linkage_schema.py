@@ -7,6 +7,7 @@ from typing import Any
 from .export_template import is_safe_relative_path, normalize_relative_path
 from .pipeline_report_schema_primitives import validate_string_schema_diagnostics
 from .pipeline_report_validate_identifier_schema import (
+    validate_non_empty_trimmed_string_schema_diagnostics,
     validate_project_plugin_package_id_schema_diagnostics,
     validate_project_runtime_crate_name_schema_diagnostics,
 )
@@ -56,9 +57,22 @@ def validate_linked_runtime_crate_schema_diagnostics(
                     crate.get(field),
                 )
             )
+            value = crate.get(field)
+            if isinstance(value, str):
+                diagnostics.extend(
+                    validate_non_empty_trimmed_string_schema_diagnostics(
+                        f"{label}[{index}].{field}",
+                        value,
+                    )
+                )
         for field in VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_RELATIVE_PATH_FIELDS:
             value = crate.get(field)
-            if isinstance(value, str) and not linked_crate_path_is_safe(value):
+            if (
+                isinstance(value, str)
+                and value.strip()
+                and value.strip() == value
+                and not linked_crate_path_is_safe(value)
+            ):
                 diagnostics.append(
                     f"{label}[{index}].{field} must be a safe relative path"
                 )
@@ -93,6 +107,8 @@ def validate_linked_runtime_crate_schema_diagnostics(
         registration_kind = crate.get("registration_kind")
         if (
             isinstance(registration_kind, str)
+            and registration_kind.strip()
+            and registration_kind.strip() == registration_kind
             and registration_kind
             not in VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_REGISTRATION_KINDS
         ):

@@ -228,11 +228,8 @@ def native_dynamic_package_export_path_schema_diagnostics(
     manifest = package_export.get("manifest")
     package_report = package_export.get("package_report")
     if (
-        isinstance(package_id, str)
-        and package_id.strip()
-        and package_id.strip() == package_id
-        and isinstance(directory, str)
-        and directory
+        native_dynamic_package_export_string_is_schema_clean(package_id)
+        and native_dynamic_package_export_string_is_schema_clean(directory)
     ):
         expected_directory = native_dynamic_package_directory(package_id)
         if directory != expected_directory:
@@ -240,24 +237,26 @@ def native_dynamic_package_export_path_schema_diagnostics(
                 f"{label}[{index}].directory must be {expected_directory} "
                 f"for package_id {package_id}"
             )
-    if not isinstance(directory, str) or not directory.strip():
+    if not native_dynamic_package_export_string_is_schema_clean(directory):
         return diagnostics
     expected_path = f"plugins/{directory}"
     expected_manifest = f"{expected_path}/plugin.toml"
     expected_package_report = f"{expected_path}/{NATIVE_DYNAMIC_PACKAGE_REPORT_FILE}"
-    if isinstance(path, str) and path and path != expected_path:
+    if native_dynamic_package_export_string_is_schema_clean(path) and path != expected_path:
         diagnostics.append(
             f"{label}[{index}].path must be {expected_path} "
             f"for directory {directory}"
         )
-    if isinstance(manifest, str) and manifest and manifest != expected_manifest:
+    if (
+        native_dynamic_package_export_string_is_schema_clean(manifest)
+        and manifest != expected_manifest
+    ):
         diagnostics.append(
             f"{label}[{index}].manifest must be {expected_manifest} "
             f"for directory {directory}"
         )
     if (
-        isinstance(package_report, str)
-        and package_report
+        native_dynamic_package_export_string_is_schema_clean(package_report)
         and package_report != expected_package_report
     ):
         diagnostics.append(
@@ -265,6 +264,10 @@ def native_dynamic_package_export_path_schema_diagnostics(
             f"for directory {directory}"
         )
     return diagnostics
+
+
+def native_dynamic_package_export_string_is_schema_clean(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
 
 
 def native_dynamic_abi_schema_diagnostics(

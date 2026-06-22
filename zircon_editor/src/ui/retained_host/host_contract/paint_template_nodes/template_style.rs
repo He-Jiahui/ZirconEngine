@@ -17,5 +17,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use overla
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::is_button_disabled;
 
 #[cfg(test)]
-#[path = "template_style_tests.rs"]
+#[path = "template_style_tests/mod.rs"]
 mod tests;

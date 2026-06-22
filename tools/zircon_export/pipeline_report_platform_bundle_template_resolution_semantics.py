@@ -8,6 +8,7 @@ from typing import Any
 
 from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
+    EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
     normalize_target_platform,
 )
 
@@ -528,6 +529,17 @@ def template_resolution_candidate_bundle_format_diagnostics(
                 f"{label} candidates[{index}].bundle_format={bundle_format!r} "
                 "is not one of "
                 f"{', '.join(sorted(EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS))}"
+            )
+        host_artifact = candidate.get("host_artifact")
+        if (
+            isinstance(host_artifact, str)
+            and host_artifact.strip()
+            and host_artifact not in EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS
+        ):
+            diagnostics.append(
+                f"{label} candidates[{index}].host_artifact={host_artifact!r} "
+                "is not one of "
+                f"{', '.join(sorted(EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS))}"
             )
     return diagnostics
 

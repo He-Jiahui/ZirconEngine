@@ -470,7 +470,13 @@ fn artifact_store_bincode_roundtrips_scene_mesh_instance_asset() {
             mesh: asset_reference("res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0"),
             material: asset_reference("res://models/kenney_graveyard/fence-gate.glb#Material0"),
         }],
-        lods: Vec::new(),
+        lods: vec![crate::asset::SceneMeshLodLevelAsset {
+            min_distance: 16.0,
+            model: asset_reference("res://models/kenney_graveyard/fence-gate.glb#Mesh0"),
+            mesh: None,
+            material: asset_reference("res://models/kenney_graveyard/fence-gate.glb#Material0"),
+            primitives: Vec::new(),
+        }],
     };
 
     let bytes = bincode::serialize(&mesh).unwrap();

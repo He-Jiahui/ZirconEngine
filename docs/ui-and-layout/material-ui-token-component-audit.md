@@ -167,7 +167,7 @@ related_code:
   - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
@@ -283,7 +283,7 @@ implementation_files:
   - zircon_editor/src/tests/host/retained_window/mod.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs

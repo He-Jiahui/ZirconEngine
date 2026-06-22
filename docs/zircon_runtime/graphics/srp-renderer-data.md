@@ -49,7 +49,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/texture_transform.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/material_texture_set.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl

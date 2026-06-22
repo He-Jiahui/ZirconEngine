@@ -113,6 +113,22 @@ pub enum UiImeInputEventKind {
     Preedit,
     Commit,
     Cancel,
+    DeleteSurrounding,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct UiImeDeleteSurrounding {
+    pub before_bytes: u32,
+    pub after_bytes: u32,
+}
+
+impl UiImeDeleteSurrounding {
+    pub const fn new(before_bytes: u32, after_bytes: u32) -> Self {
+        Self {
+            before_bytes,
+            after_bytes,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -122,6 +138,8 @@ pub struct UiImeInputEvent {
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor_range: Option<UiTextByteRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delete_surrounding: Option<UiImeDeleteSurrounding>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -9,9 +9,7 @@ from tools.zircon_export.pipeline_report import build_pipeline_report
 from tools.zircon_export.tests.pack_schema_test_support import (
     assert_pack_schema_diagnostic as _assert_pack_schema_diagnostic,
     manifest_override as _manifest_override,
-    missing_dependency as _missing_dependency,
     trim_report as _trim_report,
-    trimmed_asset as _trimmed_asset,
     update_pack_report as _update_pack_report,
     write_library_embed_reports as _write_library_embed_reports,
 )
@@ -82,6 +80,26 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                     report = build_pipeline_report(out, "windows-release")
 
                     _assert_pack_schema_diagnostic(self, report, expected)
+
+    def test_report_stage_rejects_pack_report_unknown_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_library_embed_reports(out)
+            pack_report_path = out / "stages" / "pack" / "report.json"
+            pack_report = json.loads(pack_report_path.read_text(encoding="utf-8"))
+            pack_report["sidecar"] = "unexpected"
+            pack_report_path.write_text(
+                json.dumps(pack_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            _assert_pack_schema_diagnostic(
+                self,
+                report,
+                "pack report unknown field sidecar",
+            )
 
     def test_report_stage_rejects_pack_manifest_unknown_field(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -270,6 +288,48 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 "pack report manifest.assets[0].path must be a non-empty string",
             )
 
+    def test_report_stage_rejects_pack_manifest_asset_path_shape(self) -> None:
+        cases = (
+            (
+                "unsafe",
+                _manifest_override(
+                    {"assets": [{**_asset_entry(), "path": "../escape.png"}]}
+                ),
+                "pack report manifest.assets[0].path "
+                "must be a safe relative asset path",
+            ),
+            (
+                "unnormalized",
+                _manifest_override(
+                    {"assets": [{**_asset_entry(), "path": "textures\\hero.png"}]}
+                ),
+                "pack report manifest.assets[0].path "
+                "must use a normalized relative asset path",
+            ),
+            (
+                "duplicate",
+                {
+                    "pack": _pack_plan(hash_value=1),
+                    "assets": [
+                        _asset_entry(hash_value=1, path="scenes/main.zscene"),
+                        _asset_entry(hash_value=1, path="scenes/main.zscene"),
+                    ],
+                },
+                "pack report manifest.assets path scenes/main.zscene "
+                "is declared more than once",
+            ),
+        )
+        for label, manifest, expected in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    _update_pack_report(out, manifest=manifest)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(self, report, expected)
+
     def test_report_stage_rejects_pack_manifest_negative_layout_numbers(self) -> None:
         cases = (
             (
@@ -361,6 +421,37 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
 
                     _assert_pack_schema_diagnostic(self, report, expected)
 
+    def test_report_stage_rejects_pack_report_negative_counts(self) -> None:
+        cases = (
+            (
+                "asset_count",
+                "pack report asset_count must be non-negative",
+            ),
+            (
+                "chunk_count",
+                "pack report chunk_count must be non-negative",
+            ),
+        )
+        for field, expected in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    _update_pack_report(out, manifest=_pack_manifest())
+                    pack_report_path = out / "stages" / "pack" / "report.json"
+                    pack_report = json.loads(
+                        pack_report_path.read_text(encoding="utf-8")
+                    )
+                    pack_report[field] = -1
+                    pack_report_path.write_text(
+                        json.dumps(pack_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(self, report, expected)
+
     def test_report_stage_rejects_pack_manifest_duplicate_chunk_hash(
         self,
     ) -> None:
@@ -417,6 +508,38 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 self,
                 report,
                 "pack report manifest.pack.chunks must be sorted by chunk hash",
+            )
+
+    def test_report_stage_rejects_pack_manifest_unsorted_assets(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_library_embed_reports(out)
+            _update_pack_report(
+                out,
+                manifest={
+                    "pack": {
+                        "version": 1,
+                        "chunks": [
+                            _chunk_entry(hash_value=1),
+                            {**_chunk_entry(hash_value=2), "offset": 32},
+                        ],
+                        "total_size": 16,
+                    },
+                    "assets": [
+                        _asset_entry(hash_value=2, path="textures/hero.png"),
+                        _asset_entry(hash_value=1, path="scenes/main.zscene"),
+                    ],
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            _assert_pack_schema_diagnostic(
+                self,
+                report,
+                "pack report manifest.assets must be sorted by asset path",
             )
 
     def test_report_stage_rejects_pack_manifest_asset_missing_chunk_hash(
@@ -517,73 +640,6 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 "expected chunk offset 24",
             )
 
-    def test_report_stage_rejects_pack_trim_report_manifest_asset_mismatch(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            _write_library_embed_reports(out)
-            _update_pack_report(
-                out,
-                manifest=_pack_manifest(),
-                trim_report={
-                    **_trim_report(),
-                    "included_assets": ["textures/not-packed.png"],
-                },
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            _assert_pack_schema_diagnostic(
-                self,
-                report,
-                "pack report trim_report.included_assets does not match "
-                "manifest.assets paths",
-            )
-
-    def test_report_stage_rejects_pack_trim_report_unresolved_preflight(
-        self,
-    ) -> None:
-        cases = (
-            (
-                "duplicate_assets",
-                {
-                    **_trim_report(),
-                    "duplicate_assets": ["scenes/main.zscene"],
-                },
-                "pack report trim_report.duplicate_assets must be empty "
-                "for a non-fatal Pack report",
-            ),
-            (
-                "missing_dependencies",
-                {
-                    **_trim_report(),
-                    "missing_dependencies": [
-                        {
-                            "owner": "scenes/main.zscene",
-                            "dependency": "textures/missing.png",
-                        }
-                    ],
-                },
-                "pack report trim_report.missing_dependencies must be empty "
-                "for a non-fatal Pack report",
-            ),
-        )
-        for label, trim_report, expected in cases:
-            with self.subTest(label=label):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    out = Path(temp_dir) / "out"
-                    _write_library_embed_reports(out)
-                    _update_pack_report(
-                        out,
-                        manifest=_pack_manifest(),
-                        trim_report=trim_report,
-                    )
-
-                    report = build_pipeline_report(out, "windows-release")
-
-                    _assert_pack_schema_diagnostic(self, report, expected)
-
     def test_report_stage_rejects_pack_deduplicated_assets_manifest_mismatch(
         self,
     ) -> None:
@@ -634,122 +690,42 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 "pack report deduplicated_assets must not contain blank entries",
             )
 
-    def test_report_stage_rejects_pack_trim_report_unknown_fields(self) -> None:
+    def test_report_stage_rejects_pack_deduplicated_assets_path_shape(
+        self,
+    ) -> None:
         cases = (
             (
-                "trim_report",
-                {**_trim_report(), "sidecar": "unexpected"},
-                "pack report trim_report unknown field sidecar",
+                "unsafe",
+                ["../copy.png"],
+                "pack report deduplicated_assets[0] "
+                "must be a safe relative asset path",
             ),
             (
-                "trimmed_assets",
-                {
-                    **_trim_report(),
-                    "trimmed_assets": [
-                        {**_trimmed_asset(), "sidecar": "unexpected"}
-                    ],
-                },
-                "pack report trim_report.trimmed_assets[0] unknown field sidecar",
+                "unnormalized",
+                ["textures\\copy.png"],
+                "pack report deduplicated_assets[0] "
+                "must use a normalized relative asset path",
             ),
             (
-                "missing_dependencies",
-                {
-                    **_trim_report(),
-                    "missing_dependencies": [
-                        {**_missing_dependency(), "sidecar": "unexpected"}
-                    ],
-                },
-                "pack report trim_report.missing_dependencies[0] unknown field sidecar",
+                "duplicate",
+                ["textures/copy.png", "textures/copy.png"],
+                "pack report deduplicated_assets path textures/copy.png "
+                "is declared more than once",
             ),
         )
-        for label, trim_report, expected in cases:
+        for label, deduplicated_assets, expected in cases:
             with self.subTest(label=label):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    out = Path(temp_dir) / "out"
-                    _write_library_embed_reports(out)
-                    _update_pack_report(out, trim_report=trim_report)
-
-                    report = build_pipeline_report(out, "windows-release")
-
-                    _assert_pack_schema_diagnostic(self, report, expected)
-
-    def test_report_stage_rejects_pack_trim_report_field_types(self) -> None:
-        cases = (
-            (
-                "included_assets",
-                {**_trim_report(), "included_assets": ["scenes/main.zscene", 42]},
-                "pack report trim_report.included_assets must be a string array",
-            ),
-            (
-                "trimmed_assets",
-                {**_trim_report(), "trimmed_assets": ["bad"]},
-                "pack report trim_report.trimmed_assets[0] must be an object",
-            ),
-            (
-                "trimmed_assets.path",
-                {
-                    **_trim_report(),
-                    "trimmed_assets": [{**_trimmed_asset(), "path": 42}],
-                },
-                "pack report trim_report.trimmed_assets[0].path must be a string",
-            ),
-            (
-                "trimmed_assets.reason",
-                {
-                    **_trim_report(),
-                    "trimmed_assets": [{**_trimmed_asset(), "reason": 42}],
-                },
-                "pack report trim_report.trimmed_assets[0].reason must be a string or object",
-            ),
-            (
-                "missing_dependencies.owner",
-                {
-                    **_trim_report(),
-                    "missing_dependencies": [
-                        {**_missing_dependency(), "owner": 42}
-                    ],
-                },
-                "pack report trim_report.missing_dependencies[0].owner must be a string",
-            ),
-            (
-                "diagnostics",
-                {**_trim_report(), "diagnostics": ["ok", 42]},
-                "pack report trim_report.diagnostics must be a string array",
-            ),
-        )
-        for label, trim_report, expected in cases:
-            with self.subTest(label=label):
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    out = Path(temp_dir) / "out"
-                    _write_library_embed_reports(out)
-                    _update_pack_report(out, trim_report=trim_report)
-
-                    report = build_pipeline_report(out, "windows-release")
-
-                    _assert_pack_schema_diagnostic(self, report, expected)
-
-    def test_report_stage_rejects_pack_trim_report_blank_diagnostic_entry(self) -> None:
-        for diagnostics in ([""], ["   "], ["trimmed asset", ""]):
-            with self.subTest(diagnostics=diagnostics):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     out = Path(temp_dir) / "out"
                     _write_library_embed_reports(out)
                     _update_pack_report(
                         out,
-                        trim_report={
-                            **_trim_report(),
-                            "diagnostics": diagnostics,
-                        },
+                        deduplicated_assets=deduplicated_assets,
                     )
 
                     report = build_pipeline_report(out, "windows-release")
 
-                    _assert_pack_schema_diagnostic(
-                        self,
-                        report,
-                        "pack report trim_report.diagnostics "
-                        "must not contain blank entries",
-                    )
+                    _assert_pack_schema_diagnostic(self, report, expected)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 use crate::{plugin::CapabilityStatus, plugin::PluginMaturity};
 
-use super::super::super::RuntimePluginDescriptor;
 use super::super::capability_status::capability_status;
+use super::super::BuiltinCatalogDescriptorBuilder;
 use super::capabilities::primary_importer_capability;
 
 pub(super) fn is_pipeline_importer_descriptor(package_id: &str) -> bool {
@@ -10,8 +10,8 @@ pub(super) fn is_pipeline_importer_descriptor(package_id: &str) -> bool {
 
 pub(super) fn classify_pipeline_importer_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     descriptor
         .with_maturity(PluginMaturity::Stable)
         .with_capability_status(capability_status(

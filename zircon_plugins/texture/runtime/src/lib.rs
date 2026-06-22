@@ -8,6 +8,10 @@ pub const PLUGIN_ID: &str = "texture";
 pub const TEXTURE_MODULE_NAME: &str = "TextureModule";
 pub const TEXTURE_MANAGER_NAME: &str = "TextureModule.Manager.TextureManager";
 
+mod capability;
+
+pub use capability::{RUNTIME_CAPABILITIES, TEXTURE_RUNTIME_CAPABILITY};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TextureImportSummary {
     pub width: u32,
@@ -75,7 +79,7 @@ impl zircon_runtime::plugin::RuntimePlugin for TextureRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Texture",
         zircon_runtime::builtin::RuntimePluginId::Texture,
@@ -85,27 +89,15 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.texture")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
+    .with_capability(TEXTURE_RUNTIME_CAPABILITY)
+    .build()
 }
 
-pub fn runtime_plugin() -> TextureRuntimePlugin {
-    TextureRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(TextureRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &["runtime.plugin.texture"]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]
@@ -130,6 +122,10 @@ mod tests {
                 zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
                 zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
+        );
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Stable
         );
     }
 

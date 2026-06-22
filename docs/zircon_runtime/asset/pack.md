@@ -55,6 +55,31 @@ tests:
   - pack_round_trip
   - duplicate_content_stored_once
   - deterministic_pack_double_run_byte_identical
+  - pack_writer_rejects_unsafe_asset_paths
+  - pack_writer_rejects_unnormalized_asset_paths
+  - pack_reader_rejects_manifest_asset_path_schema
+  - pack_reader_rejects_duplicate_manifest_asset_paths
+  - pack_reader_rejects_unsorted_manifest_asset_paths
+  - pack_reader_rejects_manifest_pack_version_mismatch
+  - pack_reader_rejects_manifest_chunk_table_shape
+  - pack_reader_rejects_manifest_total_size_mismatch
+  - pack_reader_rejects_manifest_asset_chunk_mismatch
+  - pack_reader_rejects_manifest_extra_unreferenced_chunks
+  - pack_reader_rejects_chunk_payload_hash_mismatch
+  - pack_reader_rejects_payload_manifest_gap
+  - pack_reader_rejects_manifest_trailing_bytes
+  - delta_reader_rejects_nested_pack_manifest_asset_path_schema
+  - delta_reader_rejects_changed_asset_path_schema
+  - delta_reader_rejects_removed_asset_path_schema
+  - delta_reader_rejects_duplicate_changed_and_removed_asset_paths
+  - delta_reader_rejects_unsorted_changed_and_removed_asset_paths
+  - delta_reader_rejects_delta_manifest_format_version_mismatch
+  - delta_reader_rejects_removed_asset_set_mismatch
+  - delta_reader_rejects_changed_asset_set_mismatch
+  - delta_reader_rejects_delta_chunk_table_mismatch
+  - delta_reader_rejects_changed_chunk_payload_hash_mismatch
+  - delta_reader_rejects_payload_manifest_gap
+  - delta_reader_rejects_manifest_trailing_bytes
   - unreferenced_asset_trimmed_and_reported
   - asset_filter_trim_is_reported
   - duplicate_trim_input_path_is_reported
@@ -105,9 +130,24 @@ manifest:
 - `chunk_hash`: the content-addressed chunk id.
 - `size`: original asset byte size.
 
-The writer sorts assets by path, rejects duplicate asset paths, writes each unique chunk once, and
-places the JSON manifest at the end of the file. The reader validates magic/version/header ranges,
-parses the manifest, validates every asset's chunk range, and can read an asset by package path.
+The writer first validates each input asset path as a package-local safe relative asset path in
+normalized forward-slash form. Empty paths, absolute paths, drive-letter paths, `.`, `..`, empty
+segments, padded strings, and backslash-separated paths are rejected before sorting or hashing. The
+writer then sorts assets by path, rejects duplicate asset paths, writes each unique chunk once, and
+places the JSON manifest at the end of the file. The reader validates magic/version/header ranges and
+requires the manifest range to consume the rest of the file before parsing the manifest. It then
+applies the same safe normalized asset path gate to the decoded manifest,
+rejects duplicate or non-sorted asset rows, validates every asset's chunk range, and can read an
+asset by package path. This keeps externally supplied, downloaded, or hand-written pack manifests on
+the same canonical package-path contract as bytes produced by `ZrPackWriter`. The decoded pack
+document also keeps the writer's chunk-table contract before byte ranges are trusted: `pack.version`
+must match the active format, chunk hashes must be unique and sorted by hash, `pack.total_size` must
+equal the sum of chunk sizes, every asset must reference a chunk with the same byte size, and the
+chunk table may not contain unreferenced chunk rows. The reader also derives the contiguous payload
+end from the chunk offsets and sizes, then requires the binary header's `manifest_offset` to match
+that end before exposing bytes. After a chunk range is bounded, the reader recomputes
+`zrpack_content_hash` over the physical payload bytes and rejects any chunk whose bytes no longer
+match the manifest hash.
 
 ## Delta Format
 
@@ -122,12 +162,22 @@ layout as a full pack, but the magic is `ZRPD`. Its manifest is `ZrPackDeltaDocu
 
 `ZrPackDeltaWriter` compares old and new full-pack manifests by chunk hash. Chunks already present in
 the base pack are not rewritten into the delta, even if a new asset path aliases the same bytes.
-`ZrPackDeltaReader` validates the delta header/manifest/chunk ranges and can read changed assets
-from the delta payload. It can also apply the delta to a `ZrPackReader` for the installed base pack:
-the base manifest must exactly match the delta manifest's `base` field, changed chunks come from the
-delta payload, reused chunks come from the base pack by hash, removed assets are omitted because the
-output is rebuilt from the target manifest, and the rebuilt manifest must equal the declared target
-manifest before bytes are returned.
+`ZrPackDeltaReader` validates the delta header, decodes the manifest, then applies the same manifest
+identity boundary as full-pack reads before chunk ranges are trusted: embedded `base` and `target`
+pack documents must have safe normalized, unique, path-sorted asset rows; `changed_assets[]` must
+carry the same asset-entry path contract; and `removed_assets[]` must be a safe normalized, unique,
+path-sorted path list. It can read changed assets from the delta payload. It can also apply the delta
+to a `ZrPackReader` for the installed base pack. The decoded delta manifest's own `format_version`
+must match the active pack format version; `removed_assets[]` must equal the path difference
+`base.assets - target.assets`; `changed_assets[]` must equal the target asset entries whose chunk
+hash is absent from the base chunk table; and the delta `chunks[]` table must contain exactly the
+unique changed chunk hashes in sorted order. Only after those checks do changed chunks come from the
+delta payload and reused chunks from the base pack by hash. Delta payload chunks use the same
+payload-extent and content-hash verification as full packs before changed asset bytes are exposed:
+`manifest_offset` must point to the end of the contiguous changed-chunk payload, and no changed chunk
+range can cross into the embedded manifest. Removed assets are omitted because the output is rebuilt
+from the target manifest, and the rebuilt manifest must equal the declared target manifest before
+bytes are returned.
 
 `install/` owns the runtime-facing pre-install boundary. The folder is split by behavior:
 `staging.rs` rebuilds a target full pack from an installed base `.zrpack` and downloaded `.zrpd`,
@@ -235,6 +285,45 @@ boundary for an included asset whose `source` cannot be read: the report still r
 `included_assets`, carries the read diagnostic, returns exit code 2, and leaves no `assets.zrpack`.
 `deterministic_pack_double_run_byte_identical` proves the writer emits identical bytes when the same
 logical assets arrive in a different order.
+`pack_writer_rejects_unsafe_asset_paths` keeps unsafe package paths out of writer manifests, and
+`pack_writer_rejects_unnormalized_asset_paths` keeps padded or backslash-separated paths from being
+silently normalized at the pack byte boundary.
+`pack_reader_rejects_manifest_asset_path_schema`,
+`pack_reader_rejects_duplicate_manifest_asset_paths`, and
+`pack_reader_rejects_unsorted_manifest_asset_paths` apply the same manifest identity boundary on
+read: unsafe or unnormalized paths, duplicate asset rows, and non-canonical asset order are rejected
+before chunk range validation trusts the decoded manifest.
+`pack_reader_rejects_manifest_pack_version_mismatch`,
+`pack_reader_rejects_manifest_chunk_table_shape`,
+`pack_reader_rejects_manifest_total_size_mismatch`,
+`pack_reader_rejects_manifest_asset_chunk_mismatch`, and
+`pack_reader_rejects_manifest_extra_unreferenced_chunks` keep decoded full-pack documents on the
+writer's chunk-table contract: pack format version, chunk hash uniqueness/order, total byte size,
+asset chunk references, asset byte sizes, and the absence of unreferenced chunks must all be coherent
+before `ZrPackReader` trusts the manifest.
+`pack_reader_rejects_chunk_payload_hash_mismatch`,
+`pack_reader_rejects_payload_manifest_gap`, and
+`pack_reader_rejects_manifest_trailing_bytes` keep the physical bytes tied to that manifest after the
+shape checks pass: a full pack is rejected if chunk payload bytes no longer hash to the declared
+chunk id, if the header's `manifest_offset` leaves undeclared bytes between the payload extent and
+the embedded manifest, or if the embedded manifest is followed by trailing bytes.
+`delta_reader_rejects_nested_pack_manifest_asset_path_schema`,
+`delta_reader_rejects_changed_asset_path_schema`,
+`delta_reader_rejects_removed_asset_path_schema`,
+`delta_reader_rejects_duplicate_changed_and_removed_asset_paths`, and
+`delta_reader_rejects_unsorted_changed_and_removed_asset_paths` extend that boundary to downloaded
+ZRPD manifests: embedded base/target pack documents, changed asset entries, and removed asset path
+lists must all use safe normalized, unique, canonical asset identities before changed chunk ranges are
+accepted.
+`delta_reader_rejects_delta_manifest_format_version_mismatch`,
+`delta_reader_rejects_removed_asset_set_mismatch`,
+`delta_reader_rejects_changed_asset_set_mismatch`, and
+`delta_reader_rejects_delta_chunk_table_mismatch` cover the next semantic gate: delta manifests must
+use the current format version, and their removed assets, changed asset entries, and chunk table must
+be derivable from the embedded base/target manifests before a downloaded patch is trusted.
+`delta_reader_rejects_changed_chunk_payload_hash_mismatch`,
+`delta_reader_rejects_payload_manifest_gap`, and
+`delta_reader_rejects_manifest_trailing_bytes` apply the same physical-byte checks to ZRPD payloads.
 `delta_pack_contains_only_changed_chunks` verifies that a delta contains only target chunks missing
 from the base pack, records removed and reused asset paths, and can read changed asset bytes from the
 delta payload. `delta_pack_applies_to_base_pack` verifies that applying the delta to the matching
@@ -352,3 +441,87 @@ D:\cargo-targets\zircon-export-m5-delta-install-coremin-0615 --message-format sh
 check had previously reached `zircon_runtime` lib compilation but was blocked at the time by
 unrelated render post-process volume API drift; that blocked run is not used as acceptance evidence
 for the installer.
+
+2026-06-21 writer path schema validation: `ZrPackWriter` now rejects unsafe or non-normalized asset
+paths before sorting, hashing, or manifest serialization. `rustfmt --check` passed for
+`manifest.rs`, `writer.rs`, and `asset/tests/pack.rs`; conflict-marker and `git diff --check` scans
+passed with only LF/CRLF warnings. Focused `cargo test -p zircon_runtime --locked --lib
+pack_writer_rejects` and the lighter `cargo test -p zircon_runtime --locked --no-default-features
+--features core-min --lib pack_writer_rejects` both timed out during compile before producing test
+results, and the leftover Cargo/rustc processes were stopped. This slice therefore records the new
+tests and static checks, but does not claim a Rust test pass.
+
+2026-06-21 reader manifest schema validation: `ZrPackReader` now validates decoded full-pack
+manifest asset paths with the same shared helper as `ZrPackWriter`, then rejects duplicate asset
+paths and non-sorted `assets[]` rows before validating referenced chunk ranges. `rustfmt --check`,
+conflict-marker scan, and `git diff --check` passed for `manifest.rs`, `reader.rs`, `writer.rs`, and
+`asset/tests/pack.rs`; `git diff --check` only reported LF/CRLF warnings. Focused
+`cargo test -p zircon_runtime --locked --no-default-features --features core-min --lib
+pack_reader_rejects --no-run --jobs 1` timed out after 10 minutes during compilation before
+producing test-build results, and leftover Cargo/rustc processes were stopped. This slice records the
+new reader tests and static checks, but does not claim a Rust test pass.
+
+2026-06-21 delta reader manifest schema validation: `ZrPackDeltaReader` now validates decoded ZRPD
+manifest asset identities before changed chunk range validation. The validation reuses full-pack
+document checks for embedded `base` and `target`, and applies the same safe normalized, unique,
+sorted path contract to `changed_assets[]` and `removed_assets[]`. `rustfmt --check`,
+conflict-marker scan, and `git diff --check` passed for `manifest.rs`, `delta.rs`, `reader.rs`,
+`writer.rs`, and `asset/tests/pack.rs`; `git diff --check` only reported LF/CRLF warnings. Focused
+`cargo test -p zircon_runtime --locked --no-default-features --features core-min --lib
+delta_reader_rejects --no-run --jobs 1` timed out after 10 minutes during compilation before
+producing test-build results, and leftover Cargo/rustc processes were stopped. This slice records the
+new delta reader tests and static checks, but does not claim a Rust test pass.
+
+2026-06-21 delta reader semantic validation: `ZrPackDeltaReader` now validates the decoded ZRPD
+manifest's own format version plus the semantic relationship between embedded base/target manifests,
+`removed_assets[]`, `changed_assets[]`, and the physical delta chunk table before reading changed
+chunk ranges. `rustfmt --check`, conflict-marker scan, and `git diff --check` passed for
+`manifest.rs`, `delta.rs`, `reader.rs`, `writer.rs`, and `asset/tests/pack.rs`; `git diff --check`
+only reported LF/CRLF warnings. The first focused `cargo test -p zircon_runtime --locked
+--no-default-features --features core-min --lib delta_reader_rejects --no-run --jobs 1` exposed two
+test-fixture type errors in this slice, both fixed by passing borrowed payload bytes to
+`extend_from_slice`. The second focused run cleared those local errors and is currently blocked by
+pre-existing lib-test compile drift in
+`zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs:415`
+(`struct takes 0 lifetime arguments but 1 lifetime argument was supplied`). This slice records the
+new semantic tests and static checks, but does not claim a Rust test pass.
+
+2026-06-21 full pack document chunk-table validation: `ZrPackReader` now validates decoded full-pack
+document chunk semantics before trusting manifest byte ranges, and the same helper also covers
+embedded base/target documents inside ZRPD manifests. `rustfmt --check`, conflict-marker scan, and
+`git diff --check` passed for `manifest.rs`, `delta.rs`, `reader.rs`, `writer.rs`, and
+`asset/tests/pack.rs`; `git diff --check` only reported LF/CRLF warnings. Focused
+`cargo test -p zircon_runtime --locked --no-default-features --features core-min --lib
+pack_reader_rejects --no-run --jobs 1` produced no local pack-reader diagnostics and is blocked by
+the same pre-existing lib-test compile drift in
+`zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs:415`
+(`struct takes 0 lifetime arguments but 1 lifetime argument was supplied`). This slice records the
+new pack-reader tests and static checks, but does not claim a Rust test pass.
+
+2026-06-21 reader payload extent validation: `ZrPackReader` and `ZrPackDeltaReader` now reject full
+pack or ZRPD bytes whose header `manifest_offset` does not match the contiguous payload end derived
+from their decoded chunk tables. This closes the runtime load path for hand-written artifacts that
+keep valid chunk hashes but insert undeclared bytes before the embedded manifest. New coverage:
+`pack_reader_rejects_payload_manifest_gap` and `delta_reader_rejects_payload_manifest_gap`, both
+starting from writer-produced valid bytes and inserting only a manifest gap. `rustfmt --check`
+passed for `manifest.rs`, `reader.rs`, `delta.rs`, and `asset/tests/pack.rs`. Focused
+`cargo test -p zircon_runtime --locked --no-default-features --features core-min --lib
+payload_manifest_gap --no-run --jobs 1` did not produce a target test build result: the first run
+stopped after dependency compilation with no captured Rust diagnostic, and a second longer run also
+exited non-zero during dependency compilation without leaving Cargo/rustc processes. This slice
+records static checks and test coverage, but does not claim a Rust test pass.
+
+2026-06-21 reader manifest trailing-bytes validation: `ZrPackReader` and `ZrPackDeltaReader` now
+reject full pack or ZRPD bytes whose embedded manifest does not end at the artifact boundary. This
+closes the runtime load path for hand-written artifacts that keep valid payload extents and chunk
+hashes but append undeclared bytes after the manifest. New coverage:
+`pack_reader_rejects_manifest_trailing_bytes` and `delta_reader_rejects_manifest_trailing_bytes`,
+both starting from writer-produced valid bytes and appending only `trail`. `rustfmt --check` passed
+for `manifest.rs`, `reader.rs`, `delta.rs`, and `asset/tests/pack.rs`. Focused
+`cargo test -p zircon_runtime --locked --no-default-features --features core-min --lib
+manifest_trailing_bytes --no-run --jobs 1` exited non-zero during dependency/local crate
+compilation without captured Rust diagnostics. The closeout process audit found no remaining
+`manifest_trailing_bytes` command, but did find unrelated `ecs_query` and
+`render_product_multi_spot_shadow_atlas_darkens_receivers_capture` Cargo/rustc validation processes
+still running, so they were not cleaned by this slice. This slice records static checks and test
+coverage, but does not claim a Rust test pass.

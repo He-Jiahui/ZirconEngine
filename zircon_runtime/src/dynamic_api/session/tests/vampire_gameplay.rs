@@ -10,6 +10,10 @@ use zircon_runtime_interface::{
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
 use super::helpers::*;
 
+#[cfg_attr(
+    not(feature = "zr-vm-real-backend"),
+    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+)]
 #[test]
 fn vampire_project_session_w_key_moves_player_before_input_clear() {
     let mut session = RuntimeDynamicSession::new(

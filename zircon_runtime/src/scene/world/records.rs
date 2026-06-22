@@ -1,4 +1,4 @@
-use super::World;
+use super::{SceneResult, World};
 use crate::scene::components::{
     ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
 };
@@ -61,9 +61,9 @@ impl World {
         })
     }
 
-    pub fn insert_node_record(&mut self, record: NodeRecord) -> Result<(), String> {
+    pub fn insert_node_record(&mut self, record: NodeRecord) -> SceneResult<()> {
         if self.entities.contains(&record.id) {
-            return Err(format!("entity {} already exists", record.id));
+            return Err(format!("entity {} already exists", record.id).into());
         }
 
         self.register_stable_entity(record.id)?;
@@ -154,25 +154,21 @@ impl World {
         Ok(())
     }
 
-    pub fn insert_node_records(&mut self, records: &[NodeRecord]) -> Result<(), String> {
+    pub fn insert_node_records(&mut self, records: &[NodeRecord]) -> SceneResult<()> {
         for record in records {
             self.insert_node_record(record.clone())?;
         }
         Ok(())
     }
 
-    pub fn rename_node(
-        &mut self,
-        entity: EntityId,
-        name: impl Into<String>,
-    ) -> Result<bool, String> {
+    pub fn rename_node(&mut self, entity: EntityId, name: impl Into<String>) -> SceneResult<bool> {
         let name = name.into();
         let trimmed = name.trim();
         if trimmed.is_empty() {
-            return Err("node name cannot be empty".to_string());
+            return Err("node name cannot be empty".to_string().into());
         }
         let Some(current) = self.names.get(&entity) else {
-            return Err(format!("cannot rename missing node {entity}"));
+            return Err(format!("cannot rename missing node {entity}").into());
         };
         if current.0 == trimmed {
             return Ok(false);

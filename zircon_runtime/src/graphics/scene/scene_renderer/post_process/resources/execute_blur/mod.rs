@@ -5,7 +5,9 @@ use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
-use super::execute_post_process::{build_post_process_params, create_bind_group};
+use super::execute_post_process::{
+    build_post_process_params, create_bind_group, create_post_process_params_buffer,
+};
 
 impl ScenePostProcessResources {
     #[allow(clippy::too_many_arguments)]
@@ -39,14 +41,12 @@ impl ScenePostProcessResources {
         params.effect_blur_dof[2] = 0.0;
         params.effect_blur_dof[3] = 0.0;
         params.effect_dof_lens = [0.0; 4];
-        queue.write_buffer(
-            &self.post_process_params_buffer,
-            0,
-            bytemuck::bytes_of(&params),
-        );
+        let params_buffer =
+            create_post_process_params_buffer(device, queue, "zircon-blur-params", &params);
         let bind_group = create_bind_group(
             self,
             device,
+            &params_buffer,
             scene_color_view,
             scene_depth_view,
             &self.black_texture_view,

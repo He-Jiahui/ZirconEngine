@@ -275,10 +275,7 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
             native_report = _read_stage_report(out, "native_dynamic")
             native_report["native_signing"] = _native_dynamic_stage_operation_audit(
                 package_count=2,
-                packages=[
-                    _native_dynamic_operation_audit_package(),
-                    _native_dynamic_operation_audit_package(package_id="extra"),
-                ],
+                packages=[_native_dynamic_operation_audit_package()],
             )
             _write_stage_report(out, "native_dynamic", native_report)
             platform_report = _read_stage_report(out, "platform_bundle")
@@ -303,13 +300,14 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
             self.assertEqual(report["missing_stages"], [])
             self.assertTrue(
                 any(
-                    "NativeDynamic report native_signing package_count 2 "
-                    "does not match native_plugins_payload materialized_packages 1"
+                    "native_dynamic report native_signing.package_count 2 "
+                    "does not match native_signing.packages 1"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
             )
+            self.assertIn("NativeDynamic", report["fatal_stages"])
             self.assertNotIn("native_plugins_payload", report)
 
     def test_report_accepts_disabled_native_dynamic_report_signing_placeholder(
@@ -732,6 +730,126 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
                 any(
                     "native_plugins_payload file_manifest does not match "
                     "NativeDynamic report"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_legacy_native_dynamic_stage_report_schema_before_payload_semantics(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "file_manifest_path",
+                lambda native_report: native_report["file_manifest"][0].__setitem__(
+                    "path",
+                    f' {native_report["file_manifest"][0]["path"]} ',
+                ),
+                "native_dynamic report file_manifest[0].path "
+                "must be a non-empty trimmed string",
+                "native_plugins_payload file_manifest does not match "
+                "NativeDynamic report",
+            ),
+            (
+                "materialized_package_id",
+                lambda native_report: native_report["materialized_packages"][0].__setitem__(
+                    "package_id",
+                    f' {native_report["materialized_packages"][0]["package_id"]} ',
+                ),
+                "native_dynamic report materialized_packages[0].package_id "
+                "must be a non-empty trimmed string",
+                "native_plugins_payload materialized package ids",
+            ),
+            (
+                "content_hash",
+                lambda native_report: native_report.__setitem__(
+                    "content_hash",
+                    "not-a-hash",
+                ),
+                "native_dynamic report content_hash must be a SHA-256 hex digest",
+                "native_plugins_payload content_hash does not match "
+                "NativeDynamic report",
+            ),
+        )
+        for name, mutate_native_report, expected_diagnostic, unexpected_diagnostic in cases:
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(out)
+                    validate_report = _read_stage_report(out, "validate")
+                    profile_summary = validate_report["profile_summary"]
+                    self.assertIsInstance(profile_summary, dict)
+                    profile_summary.pop("strategies")
+                    _write_stage_report(out, "validate", validate_report)
+                    native_report = _read_stage_report(out, "native_dynamic")
+                    mutate_native_report(native_report)
+                    _write_stage_report(out, "native_dynamic", native_report)
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            unexpected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_legacy_native_dynamic_operation_audit_schema_before_payload_semantics(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            validate_report = _read_stage_report(out, "validate")
+            profile_summary = validate_report["profile_summary"]
+            self.assertIsInstance(profile_summary, dict)
+            profile_summary.pop("strategies")
+            _write_stage_report(out, "validate", validate_report)
+            native_report = _read_stage_report(out, "native_dynamic")
+            native_signing = native_report["native_signing"]
+            self.assertIsInstance(native_signing, dict)
+            native_signing["allowed_platforms"] = "windows"
+            _write_stage_report(out, "native_dynamic", native_report)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing.allowed_platforms "
+                    "must be a string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "NativeDynamic report native_signing is malformed"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),

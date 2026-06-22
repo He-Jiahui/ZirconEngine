@@ -4,7 +4,6 @@ use crate::graphics::ViewportFrame;
 
 use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 use super::super::frame_submission_context::FrameSubmissionContext;
-use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::runtime_feedback_batch::RuntimeFeedbackBatch;
 use super::super::submission_record_update::{
     HybridGiStatSnapshot, ParticleStatSnapshot, SubmissionRecordUpdate, VirtualGeometryStatSnapshot,
@@ -15,17 +14,12 @@ use super::record_history::record_history;
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn record_submission(
     record: &mut ViewportRecord,
     context: &FrameSubmissionContext,
-    mut prepared: PreparedRuntimeSubmission,
     allocated_history: Option<FrameHistoryHandle>,
     frame: ViewportFrame,
     runtime_feedback: RuntimeFeedbackBatch,
 ) -> SubmissionRecordUpdate {
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
-    let hybrid_gi_feedback =
-        hybrid_gi_feedback.with_evictable_probe_ids(prepared.take_hybrid_gi_evictable_probe_ids());
-    let virtual_geometry_feedback = virtual_geometry_feedback
-        .with_evictable_page_ids(prepared.take_virtual_geometry_evictable_page_ids());
     let virtual_geometry_indirect_segment_count = 0;
     let (previous_handle, history_handle, history_status) =
         record_history(record, context, frame.generation, allocated_history);

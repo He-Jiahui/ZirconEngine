@@ -107,7 +107,7 @@ impl EventBus {
         topic: &str,
         failed_subscribers: &[ChannelSender<EngineEvent>],
     ) {
-        let mut subscribers = self.subscribers.lock().unwrap();
+        let mut subscribers = self.lock_subscribers();
         let should_remove_topic = if let Some(topic_subscribers) = subscribers.get_mut(topic) {
             match topic_subscribers.as_ref() {
                 [] => true,
@@ -201,7 +201,12 @@ impl EventBus {
                         (false, false, false) => false,
                     }
                 }
-                [first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] => {
+                [
+                    first_subscriber,
+                    second_subscriber,
+                    third_subscriber,
+                    fourth_subscriber,
+                ] => {
                     let first_failed =
                         Self::subscriber_failed(first_subscriber, failed_subscribers);
                     let second_failed =
@@ -341,8 +346,13 @@ impl EventBus {
                         (false, false, false, false) => false,
                     }
                 }
-                [first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber] =>
-                {
+                [
+                    first_subscriber,
+                    second_subscriber,
+                    third_subscriber,
+                    fourth_subscriber,
+                    fifth_subscriber,
+                ] => {
                     let first_failed =
                         Self::subscriber_failed(first_subscriber, failed_subscribers);
                     let second_failed =

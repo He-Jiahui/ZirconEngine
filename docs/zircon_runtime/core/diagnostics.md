@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
   - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
@@ -28,6 +29,11 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
   - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/physics.rs
+  - zircon_runtime/src/core/runtime/diagnostics/animation.rs
+  - zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs
+  - zircon_runtime/src/scene/world/performance_diagnostics.rs
+  - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
@@ -65,6 +71,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
 implementation_files:
+  - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
   - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
@@ -91,6 +98,11 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/physics.rs
+  - zircon_runtime/src/core/runtime/diagnostics/animation.rs
+  - zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs
+  - zircon_runtime/src/scene/world/performance_diagnostics.rs
+  - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
@@ -228,6 +240,14 @@ The diagnostics store is not a global singleton. This keeps tests, runtime previ
 ## Scene Asset Reload Diagnostics
 
 `scene_asset_reload_diagnostics.rs` is owned by `dynamic_api/session/` because it projects the project session's reload-frame report, not a core diagnostics behavior. It records count rows for `scene.asset_reload.events_drained`, `scheduled`, `skipped`, skip reasons, `superseded_pending`, `applied`, `failed`, `stale`, and `pending`, plus a bool row for `scene.asset_reload.receiver_disconnected`. These rows let runtime diagnostics, logs, and editor tooling observe scene hot-reload activity without reading queue internals or treating reload failures as frame-aborting errors.
+
+## Frame Diagnostics Contract
+
+Runtime 15 F14 diagnostics normalization adds `FrameDiagnostics` and `FrameDiagnosticsStatus` under `core/runtime/diagnostics/frame_diagnostics.rs`. The trait is intentionally small: each frame diagnostics object reports a stable domain string, whether that subdomain is available for the current frame, and an optional error message. `RuntimeRenderDiagnostics`, `RuntimePhysicsDiagnostics`, and `RuntimeAnimationDiagnostics` implement it with the `render`, `physics`, and `animation` domains, while `RuntimeDiagnosticsSnapshot::frame_diagnostics_statuses()` returns those three status rows as a subdomain composition.
+
+This contract does not replace `DiagnosticStore` paths. Count, bool, byte, and timing evidence still flows through `DiagnosticStore`; the frame status trait is the common naming/status layer that prevents parallel `*Diagnostics` wrappers from growing unrelated availability conventions. The ECS side also implements the same trait on `EcsFramePerformanceDiagnostics` with the `scene.ecs` domain, and `World` now stores that object directly instead of wrapping it in `WorldEcsFramePerformanceDiagnostics`.
+
+Status: `runtime_15_diagnostics_frame_trait_wrapper_removed_coremin_check_passed`. Guards: `runtime_snapshot_frame_diagnostics_statuses_preserve_subdomains`, `ecs_frame_performance_diagnostics_uses_scene_ecs_frame_domain`, and `runtime_15_diagnostics_use_frame_trait_without_world_wrapper`.
 
 ## Render Diagnostics Bridge
 

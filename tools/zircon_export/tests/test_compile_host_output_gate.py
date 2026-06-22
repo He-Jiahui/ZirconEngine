@@ -193,6 +193,72 @@ class CompileHostOutputGateTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_compile_host_rejects_padded_cargo_profile_before_profile_semantics(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compile_plan = _compile_host_plan()
+            compile_plan["cargo_profile"] = " release "
+            compile_plan["release"] = True
+            compile_plan["command"] = [
+                *_compile_host_plan()["command"],
+                "--release",
+            ]
+            validate_report = root / "validate.json"
+            validate_report.write_text(
+                json_dumps(
+                    {
+                        "stage": "Validate",
+                        "profile": "windows-release",
+                        "fatal": False,
+                        "diagnostics": [],
+                        "plan_summary": {
+                            "library_embed_compile_host": compile_plan,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = _compile_host_args(
+                out=root / "out",
+                validate_report=validate_report,
+            )
+            args.dry_run = False
+
+            with mock.patch(
+                "tools.zircon_export.compile_host.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as cargo_call:
+                exit_code = _run_compile_host_quiet(args)
+
+            report = json_loads(
+                (
+                    root / "out" / "stages" / "compile_host" / "report.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(exit_code, 2)
+            cargo_call.assert_not_called()
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["command"], [])
+            self.assertIsNone(report["host_executable"])
+            self.assertTrue(
+                any(
+                    "CompileHost plan cargo_profile must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "CompileHost plan cargo_profile must be debug or release"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_compile_host_rejects_plan_missing_required_evidence_field(
         self,
     ) -> None:

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::asset::AssetImportError;
 use serde::{Deserialize, Serialize};
 
 pub(super) type ArtifactCacheTomlTable = BTreeMap<String, ArtifactCacheTomlValue>;
@@ -28,17 +29,20 @@ impl ArtifactCacheTomlValue {
         }
     }
 
-    pub(super) fn into_toml(self) -> Result<toml::Value, String> {
+    pub(super) fn into_toml(self) -> Result<toml::Value, AssetImportError> {
         Ok(match self {
             Self::String(value) => toml::Value::String(value),
             Self::Integer(value) => toml::Value::Integer(value),
             Self::Float(value) => toml::Value::Float(value),
             Self::Boolean(value) => toml::Value::Boolean(value),
-            Self::Datetime(value) => toml::Value::Datetime(
-                value
-                    .parse::<toml::value::Datetime>()
-                    .map_err(|error| format!("invalid cached TOML datetime `{value}`: {error}"))?,
-            ),
+            Self::Datetime(value) => {
+                toml::Value::Datetime(value.parse::<toml::value::Datetime>().map_err(|source| {
+                    AssetImportError::CachedTomlDatetime {
+                        value: value.clone(),
+                        source,
+                    }
+                })?)
+            }
             Self::Array(values) => toml::Value::Array(
                 values
                     .into_iter()
@@ -61,7 +65,7 @@ pub(super) fn toml_table_like_to_cache(
 
 pub(super) fn cache_table_like_to_toml(
     table: BTreeMap<String, ArtifactCacheTomlValue>,
-) -> Result<BTreeMap<String, toml::Value>, String> {
+) -> Result<BTreeMap<String, toml::Value>, AssetImportError> {
     table
         .into_iter()
         .map(|(key, value)| value.into_toml().map(|value| (key, value)))
@@ -75,7 +79,9 @@ pub(super) fn toml_table_to_cache(table: &toml::Table) -> ArtifactCacheTomlTable
         .collect()
 }
 
-pub(super) fn cache_table_to_toml(table: ArtifactCacheTomlTable) -> Result<toml::Table, String> {
+pub(super) fn cache_table_to_toml(
+    table: ArtifactCacheTomlTable,
+) -> Result<toml::Table, AssetImportError> {
     let mut output = toml::Table::new();
     for (key, value) in table {
         output.insert(key, value.into_toml()?);

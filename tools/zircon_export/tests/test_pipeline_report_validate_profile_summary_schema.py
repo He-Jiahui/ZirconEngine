@@ -236,6 +236,89 @@ class PipelineReportValidateProfileSummarySchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_validate_profile_feature_ids_duplicate(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
+            _write_stage_report(out, "cook_assets", fatal=False)
+            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+            _write_stage_report(out, "platform_bundle", fatal=False)
+            validate_report_path = out / "stages" / "validate" / "report.json"
+            validate_report = json.loads(
+                validate_report_path.read_text(encoding="utf-8")
+            )
+            validate_report["profile_summary"]["features"] = {
+                "rendering": ["rendering.hdr", "rendering.hdr"]
+            }
+            validate_report_path.write_text(
+                json.dumps(validate_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertEqual(report["fatal_stages"], ["Validate"])
+            self.assertTrue(
+                any(
+                    "validate report profile_summary.features.rendering[1] "
+                    "duplicates entry 0"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_validate_profile_feature_invalid_plugin_id_before_feature_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
+            _write_stage_report(out, "cook_assets", fatal=False)
+            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+            _write_stage_report(out, "platform_bundle", fatal=False)
+            validate_report_path = out / "stages" / "validate" / "report.json"
+            validate_report = json.loads(
+                validate_report_path.read_text(encoding="utf-8")
+            )
+            validate_report["profile_summary"]["features"] = {
+                "Rendering": ["rendering.hdr", "rendering.hdr"]
+            }
+            validate_report_path.write_text(
+                json.dumps(validate_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertEqual(report["fatal_stages"], ["Validate"])
+            self.assertTrue(
+                any(
+                    "validate report profile_summary.features plugin id "
+                    "must start with a lowercase ASCII letter"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "validate report profile_summary.features.Rendering[1] "
+                    "duplicates entry 0"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_stage_rejects_validate_profile_strategies_empty_as_schema(
         self,
     ) -> None:

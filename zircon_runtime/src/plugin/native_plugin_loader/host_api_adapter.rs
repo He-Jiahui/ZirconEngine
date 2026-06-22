@@ -21,6 +21,7 @@ use crate::scene::World;
 use super::bridge_method_bindings::{
     NativeBridgeCall, NativeBridgeMethodDescriptor, NativeBridgeMethodFn,
 };
+use super::ffi_panic_guard::catch_native_host_api_panic;
 
 #[cfg(test)]
 use super::bridge_method_bindings::{
@@ -193,6 +194,15 @@ unsafe extern "C" fn native_host_register_system_v1(
     handle: ZrRuntimePluginHandle,
     registration: *const ZrSystemRegistrationV1,
 ) -> ZrStatus {
+    catch_native_host_api_panic(|| unsafe {
+        native_host_register_system_v1_inner(handle, registration)
+    })
+}
+
+unsafe fn native_host_register_system_v1_inner(
+    handle: ZrRuntimePluginHandle,
+    registration: *const ZrSystemRegistrationV1,
+) -> ZrStatus {
     if registration.is_null() {
         return status(ZrStatusCode::InvalidArgument);
     }
@@ -209,6 +219,15 @@ unsafe extern "C" fn native_host_register_system_v1(
 
 #[allow(clippy::needless_pass_by_value)]
 unsafe extern "C" fn native_host_register_component_v1(
+    handle: ZrRuntimePluginHandle,
+    descriptor: *const ZrComponentDescV1,
+) -> ZrStatus {
+    catch_native_host_api_panic(|| unsafe {
+        native_host_register_component_v1_inner(handle, descriptor)
+    })
+}
+
+unsafe fn native_host_register_component_v1_inner(
     handle: ZrRuntimePluginHandle,
     descriptor: *const ZrComponentDescV1,
 ) -> ZrStatus {
@@ -231,7 +250,7 @@ unsafe extern "C" fn native_host_spawn_command_v1(
     _payload: *const u8,
     _len: usize,
 ) -> ZrStatus {
-    status(ZrStatusCode::UnsupportedVersion)
+    catch_native_host_api_panic(|| status(ZrStatusCode::UnsupportedVersion))
 }
 
 unsafe extern "C" fn native_host_asset_request_v1(
@@ -239,7 +258,7 @@ unsafe extern "C" fn native_host_asset_request_v1(
     _request: ZrByteSlice,
     _output: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
-    status(ZrStatusCode::UnsupportedVersion)
+    catch_native_host_api_panic(|| status(ZrStatusCode::UnsupportedVersion))
 }
 
 unsafe extern "C" fn native_host_event_emit_v1(
@@ -248,7 +267,7 @@ unsafe extern "C" fn native_host_event_emit_v1(
     _payload: *const u8,
     _len: usize,
 ) -> ZrStatus {
-    status(ZrStatusCode::UnsupportedVersion)
+    catch_native_host_api_panic(|| status(ZrStatusCode::UnsupportedVersion))
 }
 
 unsafe extern "C" fn native_host_event_drain_v1(
@@ -256,10 +275,23 @@ unsafe extern "C" fn native_host_event_drain_v1(
     _event_type: ZrEventTypeId,
     _buffer: ZrByteBufferRef,
 ) -> ZrStatus {
-    status(ZrStatusCode::UnsupportedVersion)
+    catch_native_host_api_panic(|| status(ZrStatusCode::UnsupportedVersion))
 }
 
 unsafe extern "C" fn native_host_bridge_call_v1(
+    handle: ZrRuntimePluginHandle,
+    interface_slot: u32,
+    method_slot: u32,
+    payload: *const u8,
+    len: usize,
+    output: ZrByteBufferRef,
+) -> ZrStatus {
+    catch_native_host_api_panic(|| unsafe {
+        native_host_bridge_call_v1_inner(handle, interface_slot, method_slot, payload, len, output)
+    })
+}
+
+unsafe fn native_host_bridge_call_v1_inner(
     handle: ZrRuntimePluginHandle,
     interface_slot: u32,
     method_slot: u32,
@@ -299,7 +331,7 @@ unsafe extern "C" fn native_host_diagnostics_emit_v1(
     _target: ZrByteSlice,
     _message: ZrByteSlice,
 ) -> ZrStatus {
-    ZrStatus::ok()
+    catch_native_host_api_panic(ZrStatus::ok)
 }
 
 unsafe extern "C" fn native_host_diagnostics_metric_v1(
@@ -308,7 +340,7 @@ unsafe extern "C" fn native_host_diagnostics_metric_v1(
     _value: f64,
     _unit: ZrByteSlice,
 ) -> ZrStatus {
-    ZrStatus::ok()
+    catch_native_host_api_panic(ZrStatus::ok)
 }
 
 unsafe fn register_system_from_abi(
@@ -681,6 +713,45 @@ mod tests {
     }
 
     #[test]
+    fn native_host_bridge_call_catches_plugin_method_panic() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+        registry
+            .export_interface::<dyn NativeWeatherBridge>(owner, Arc::new(NativeWeatherProvider))
+            .unwrap();
+        let table = registry.frozen_bridge_table();
+        let slot = table
+            .resolve_slot(<dyn NativeWeatherBridge as PluginInterface>::INTERFACE_ID)
+            .unwrap();
+        let scope = NativeHostBridgeCallScope::with_methods(
+            table.clone(),
+            [(
+                slot,
+                7,
+                NativeBridgeMethodFn::from_rust(native_bridge_panic_method),
+            )],
+        );
+        let api = scope.api();
+
+        let status = unsafe {
+            (api.bridge.call.unwrap())(
+                scope.handle(),
+                slot.raw(),
+                7,
+                std::ptr::null(),
+                0,
+                ZrByteBufferRef::empty(),
+            )
+        };
+
+        assert_eq!(status.status_code(), ZrStatusCode::Panic);
+        assert_eq!(
+            table.diagnostics(slot).unwrap().enabled_calls,
+            debug_bridge_counter_value(1)
+        );
+    }
+
+    #[test]
     fn native_bridge_method_descriptors_use_package_manifest_metadata() {
         let mut registry = RuntimeExtensionRegistry::default();
         let owner = registry.intern_plugin_module("weather.runtime").unwrap();
@@ -878,6 +949,10 @@ mod tests {
         } else {
             status(ZrStatusCode::InvalidArgument)
         }
+    }
+
+    fn native_bridge_panic_method(_call: NativeBridgeCall) -> ZrStatus {
+        panic!("native bridge method panic")
     }
 
     #[cfg(debug_assertions)]

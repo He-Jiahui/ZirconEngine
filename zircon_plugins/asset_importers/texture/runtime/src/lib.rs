@@ -1,9 +1,10 @@
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
-use zircon_runtime::plugin::PluginPackageManifest;
-use zircon_runtime::builtin::{RuntimeTargetMode};
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest};
 
 pub const PLUGIN_ID: &str = "asset_importer.texture";
 pub const IMPORTER_FAMILY: &str = "texture";
+pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_asset_importer_texture_runtime";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.texture";
 pub const CONTAINER_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.texture.container";
 pub const PSD_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.texture.psd";
@@ -13,6 +14,21 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
         RUNTIME_CAPABILITY,
         CONTAINER_IMPORTER_CAPABILITY,
         PSD_IMPORTER_CAPABILITY,
+    ]
+}
+
+pub fn supported_targets() -> [RuntimeTargetMode; 2] {
+    [
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ]
+}
+
+pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
+    [
+        ExportTargetPlatform::Windows,
+        ExportTargetPlatform::Linux,
+        ExportTargetPlatform::Macos,
     ]
 }
 
@@ -44,11 +60,9 @@ pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
 pub fn package_manifest() -> PluginPackageManifest {
     let manifest = PluginPackageManifest::new(PLUGIN_ID, "Texture Asset Importers")
         .with_category("asset_importer")
-        .with_runtime_crate("zircon_plugin_asset_importer_texture_runtime")
-        .with_supported_targets([
-            RuntimeTargetMode::ClientRuntime,
-            RuntimeTargetMode::EditorHost,
-        ]);
+        .with_runtime_module(runtime_module_manifest())
+        .with_supported_targets(supported_targets())
+        .with_supported_platforms(supported_platforms());
     let manifest = runtime_capabilities()
         .iter()
         .copied()
@@ -61,6 +75,12 @@ pub fn package_manifest() -> PluginPackageManifest {
         .fold(manifest, |manifest, importer| {
             manifest.with_asset_importer(importer)
         })
+}
+
+pub fn runtime_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::runtime("asset_importer.texture.runtime", RUNTIME_CRATE_NAME)
+        .with_target_modes(supported_targets())
+        .with_capabilities(runtime_capabilities().iter().copied())
 }
 
 fn descriptor(
@@ -94,5 +114,16 @@ mod tests {
         assert!(manifest
             .capabilities
             .contains(&PSD_IMPORTER_CAPABILITY.to_string()));
+        assert_eq!(manifest.supported_targets, supported_targets());
+        assert_eq!(manifest.supported_platforms, supported_platforms());
+        assert_eq!(manifest.modules.len(), 1);
+        assert_eq!(manifest.modules[0].crate_name, RUNTIME_CRATE_NAME);
+        assert_eq!(
+            manifest.modules[0].capabilities,
+            runtime_capabilities()
+                .iter()
+                .map(|capability| capability.to_string())
+                .collect::<Vec<_>>()
+        );
     }
 }

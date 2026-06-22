@@ -453,10 +453,17 @@ def stage_report_diagnostics_diagnostic(
     diagnostics = report.get("diagnostics")
     if not isinstance(diagnostics, list):
         return f"{stage_label} report diagnostics must be a string array"
-    if not all(isinstance(diagnostic, str) for diagnostic in diagnostics):
-        return f"{stage_label} report diagnostics must be a string array"
+    for index, diagnostic in enumerate(diagnostics):
+        if not isinstance(diagnostic, str):
+            return f"{stage_label} report diagnostics[{index}] must be a string"
     if any(not diagnostic.strip() for diagnostic in diagnostics):
         return f"{stage_label} report diagnostics must not contain blank entries"
+    for index, diagnostic in enumerate(diagnostics):
+        if diagnostic.strip() != diagnostic:
+            return (
+                f"{stage_label} report diagnostics[{index}] "
+                "must be a non-empty trimmed string"
+            )
     return None
 
 

@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextAlign};
 
-use super::super::super::data::FrameRect;
+use super::super::super::super::data::FrameRect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn aligned_text_x(
     frame: &FrameRect,

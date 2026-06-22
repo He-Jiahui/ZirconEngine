@@ -3,6 +3,7 @@ use crate::core::framework::render::{
     RenderSceneGeometryExtract, RenderSceneSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use std::sync::Arc;
 
 use super::{
     viewport_render_frame::ViewportRenderFrame, ViewportCameraStackAttachmentPolicy,
@@ -11,8 +12,15 @@ use super::{
 
 impl ViewportRenderFrame {
     pub fn from_extract(mut extract: RenderFrameExtract, viewport_size: impl Into<UVec2>) -> Self {
-        let viewport_size = viewport_size.into();
         extract.view.sync_selected_descriptor_camera_payload();
+        Self::from_shared_extract(Arc::new(extract), viewport_size)
+    }
+
+    pub(crate) fn from_shared_extract(
+        extract: Arc<RenderFrameExtract>,
+        viewport_size: impl Into<UVec2>,
+    ) -> Self {
+        let viewport_size = viewport_size.into();
         let camera_stack_attachment_policy = extract
             .view
             .selected_camera_descriptor()
@@ -51,6 +59,7 @@ impl ViewportRenderFrame {
             previous_motion_vector_camera: None,
             frame_visibility: None,
             virtual_geometry_debug_snapshot: None,
+            runtime_overlay_override: None,
             prepared_runtime_sidebands: Default::default(),
             camera_stack_attachment_policy,
             camera_stack_output_policy: ViewportCameraStackOutputPolicy::default(),

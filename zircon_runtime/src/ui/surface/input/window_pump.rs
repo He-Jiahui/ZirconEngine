@@ -6,56 +6,14 @@ use zircon_runtime_interface::ui::{
     surface::UiSurfaceWindowState,
     tree::UiDirtyFlags,
     tree::UiTreeError,
-    window::{
-        UiWindowEvent, UiWindowEventKind, UiWindowInputContext, UiWindowInputPumpBatch,
-        UiWindowInputPumpEvent, UiWindowRedrawReason,
-    },
+    window::{UiWindowEvent, UiWindowEventKind, UiWindowInputContext, UiWindowRedrawReason},
 };
 
 use super::super::surface::UiSurface;
 use super::{apply_dispatch_reply, dispatch_input_event};
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 
-pub(crate) fn dispatch_window_input_pump_event(
-    surface: &mut UiSurface,
-    pointer_dispatcher: &UiPointerDispatcher,
-    navigation_dispatcher: &UiNavigationDispatcher,
-    event: UiWindowInputPumpEvent,
-) -> Result<UiInputDispatchResult, UiTreeError> {
-    match event {
-        UiWindowInputPumpEvent::Input(input) => {
-            dispatch_input_event(surface, pointer_dispatcher, navigation_dispatcher, input)
-        }
-        UiWindowInputPumpEvent::Window(window_event) => dispatch_window_event(
-            surface,
-            pointer_dispatcher,
-            navigation_dispatcher,
-            window_event,
-        ),
-    }
-}
-
-pub(crate) fn dispatch_window_input_pump_batch(
-    surface: &mut UiSurface,
-    pointer_dispatcher: &UiPointerDispatcher,
-    navigation_dispatcher: &UiNavigationDispatcher,
-    batch: UiWindowInputPumpBatch,
-) -> Result<Vec<UiInputDispatchResult>, UiTreeError> {
-    batch
-        .events
-        .into_iter()
-        .map(|event| {
-            dispatch_window_input_pump_event(
-                surface,
-                pointer_dispatcher,
-                navigation_dispatcher,
-                event,
-            )
-        })
-        .collect()
-}
-
-fn dispatch_window_event(
+pub(crate) fn dispatch_window_event(
     surface: &mut UiSurface,
     pointer_dispatcher: &UiPointerDispatcher,
     navigation_dispatcher: &UiNavigationDispatcher,

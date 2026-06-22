@@ -103,10 +103,7 @@ impl RenderViewExtract {
         self
     }
 
-    pub fn with_selected_camera_descriptor(
-        mut self,
-        mut descriptor: CameraRenderDescriptor,
-    ) -> Self {
+    pub fn select_camera_descriptor(&mut self, mut descriptor: CameraRenderDescriptor) {
         descriptor.apply_target_size(
             self.target_size
                 .or_else(|| camera_target_size_from_descriptor(Some(&descriptor)))
@@ -118,6 +115,10 @@ impl RenderViewExtract {
         self.camera = descriptor.camera.clone();
         self.scene_camera_entity = descriptor.entity;
         self.cameras = vec![descriptor];
+    }
+
+    pub fn with_selected_camera_descriptor(mut self, descriptor: CameraRenderDescriptor) -> Self {
+        self.select_camera_descriptor(descriptor);
         self
     }
 
@@ -855,8 +856,12 @@ impl RenderFrameExtract {
     }
 
     pub fn with_selected_camera_descriptor(mut self, descriptor: CameraRenderDescriptor) -> Self {
-        self.view = self.view.with_selected_camera_descriptor(descriptor);
+        self.select_camera_descriptor(descriptor);
         self
+    }
+
+    pub fn select_camera_descriptor(&mut self, descriptor: CameraRenderDescriptor) {
+        self.view.select_camera_descriptor(descriptor);
     }
 
     /// Builds a diagnostics summary for the frame's mesh and sprite phase queues.

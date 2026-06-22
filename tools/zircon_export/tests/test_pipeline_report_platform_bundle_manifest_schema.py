@@ -504,7 +504,7 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
                 },
             ),
             "PlatformBundle bundle_manifest template_resolution candidates"
-            "[0].compatible_profiles must be a string array",
+            "[0].compatible_profiles[1] must be a string",
             unexpected_diagnostic=(
                 "PlatformBundle bundle_manifest template_resolution "
                 "does not match stage report"
@@ -777,12 +777,22 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
     def test_report_rejects_template_report_string_array_fields_non_string_array(
         self,
     ) -> None:
-        for field in ("compatible_profiles", "diagnostics"):
+        cases = (
+            (
+                "compatible_profiles",
+                "PlatformBundle report template.compatible_profiles[1] must be a string",
+            ),
+            (
+                "diagnostics",
+                "PlatformBundle report template.diagnostics[1] must be a string",
+            ),
+        )
+        for field, expected_diagnostic in cases:
             with self.subTest(field=field):
                 self._assert_template_report_field_diagnostic(
                     field,
                     ["windows-release", 42],
-                    f"PlatformBundle report template.{field} must be a string array",
+                    expected_diagnostic,
                 )
 
     def test_report_rejects_template_report_object_fields_non_object(self) -> None:
@@ -1002,7 +1012,7 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
                 "diagnostics",
                 ["template skipped", 42],
             ),
-            "PlatformBundle report template_resolution.diagnostics must be a string array",
+            "PlatformBundle report template_resolution.diagnostics[1] must be a string",
         )
 
     def test_report_rejects_template_resolution_candidate_entries_non_object(
@@ -1024,6 +1034,7 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
         for field in (
             "bundle_format",
             "engine_version",
+            "host_artifact",
             "target_platform",
             "template_dir",
             "template_id",
@@ -1045,8 +1056,8 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
                 "compatible_profiles",
                 ["windows-release", 42],
             ),
-            "PlatformBundle report template_resolution candidates[0].compatible_profiles "
-            "must be a string array",
+            "PlatformBundle report template_resolution candidates[0].compatible_profiles"
+            "[1] must be a string",
         )
 
     def test_report_rejects_template_resolution_skipped_candidate_fields_non_string(
@@ -1065,8 +1076,8 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
                 "diagnostics",
                 ["template skipped", 42],
             ),
-            "PlatformBundle report template_resolution skipped_candidates[0].diagnostics "
-            "must be a string array",
+            "PlatformBundle report template_resolution skipped_candidates[0].diagnostics"
+            "[1] must be a string",
         )
 
     def test_report_rejects_template_resolution_unknown_field(self) -> None:
@@ -1126,6 +1137,7 @@ def _template_resolution(out: Path) -> dict[str, object]:
         "engine_version": "0.1.0",
         "target_platform": "windows-x86_64",
         "compatible_profiles": ["windows-release"],
+        "host_artifact": "precompiled",
         "bundle_format": "directory",
     }
     return {

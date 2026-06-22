@@ -1,0 +1,79 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
+id = "asset_importer.model"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Model Asset Importers"
+category = "asset_importer"
+description = "Runtime model asset importer family package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.asset_importer.model",
+    "runtime.asset.importer.model.mesh",
+    "runtime.asset.importer.model.cad",
+]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "asset_importer.model.gltf"
+plugin_id = "asset_importer.model"
+priority = 100
+source_extensions = ["gltf", "glb"]
+output_kind = "Model"
+additional_output_kinds = ["Mesh"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.model.gltf"]
+
+[[asset_importers]]
+id = "asset_importer.model.obj"
+plugin_id = "asset_importer.model"
+priority = 100
+source_extensions = ["obj"]
+output_kind = "Model"
+additional_output_kinds = ["Mesh"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.model.obj"]
+
+[[asset_importers]]
+id = "asset_importer.model.mesh"
+plugin_id = "asset_importer.model"
+priority = 110
+source_extensions = ["ply", "stl"]
+output_kind = "Model"
+additional_output_kinds = ["Mesh"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.model.mesh"]
+
+[[asset_importers]]
+id = "asset_importer.model.cad"
+plugin_id = "asset_importer.model"
+priority = 110
+source_extensions = ["dxf"]
+output_kind = "Model"
+additional_output_kinds = ["Mesh"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.model.cad"]
+
+[[asset_importers]]
+id = "asset_importer.model.optional_native_backend"
+plugin_id = "asset_importer.model"
+priority = 80
+source_extensions = ["fbx", "dae", "3ds", "usd", "usda", "usdc", "usdz"]
+output_kind = "Model"
+additional_output_kinds = ["Mesh"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.native"]
+
+[[modules]]
+name = "asset_importer.model.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_asset_importer_model_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.asset_importer.model",
+    "runtime.asset.importer.model.mesh",
+    "runtime.asset.importer.model.cad",
+]

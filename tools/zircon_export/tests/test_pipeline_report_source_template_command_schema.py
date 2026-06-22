@@ -12,6 +12,177 @@ from tools.zircon_export.tests.export_test_support import (
 
 
 class PipelineReportSourceTemplateCommandSchemaTests(unittest.TestCase):
+    def test_report_rejects_source_template_report_non_string_command_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            project_dir = _write_source_template_report(out)
+            command = [
+                "cargo",
+                42,
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "command": command,
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate report command[1] must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "SourceTemplate report command must be a non-empty string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_build_validation_non_string_command_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            project_dir = _write_source_template_report(out)
+            command = [
+                "cargo",
+                42,
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "build_validation": {
+                        "requested": False,
+                        "executed": False,
+                        "status": "skipped",
+                        "exit_code": None,
+                        "working_dir": str(project_dir),
+                        "command": command,
+                        "stdout_lines": [],
+                        "stderr_lines": [],
+                    },
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate build_validation command[1] must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "SourceTemplate build_validation command "
+                    "must be a non-empty string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_report_padded_command_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            project_dir = _write_source_template_report(out)
+            command = [
+                " cargo ",
+                "build",
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "command": command,
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate report command[0] must be a non-empty "
+                    "trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_build_validation_padded_command_entry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            project_dir = _write_source_template_report(out)
+            command = [
+                " cargo ",
+                "build",
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "build_validation": {
+                        "requested": False,
+                        "executed": False,
+                        "status": "skipped",
+                        "exit_code": None,
+                        "working_dir": str(project_dir),
+                        "command": command,
+                        "stdout_lines": [],
+                        "stderr_lines": [],
+                    },
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate build_validation command[0] must be a "
+                    "non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_command_reports_manifest_and_target_option_errors(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"

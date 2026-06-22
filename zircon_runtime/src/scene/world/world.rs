@@ -11,16 +11,13 @@ use crate::scene::components::{
 };
 use crate::scene::ecs::{
     ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage,
-    DeferredCommandError, EntityRegistry, EventStore, MessageStore, ObserverStore,
-    RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
+    DeferredCommandError, EcsFramePerformanceDiagnostics, EntityRegistry, EventStore, MessageStore,
+    ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
 
-use super::{
-    dirty_state::DerivedStateDirty, performance_diagnostics::WorldEcsFramePerformanceDiagnostics,
-    ComponentTypeRegistry,
-};
+use super::{dirty_state::DerivedStateDirty, ComponentTypeRegistry};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct QueryCacheRevision(u64);
@@ -130,7 +127,7 @@ pub struct World {
     #[serde(skip, default)]
     pub(super) deferred_command_errors: Vec<DeferredCommandError>,
     #[serde(skip, default)]
-    pub(super) ecs_frame_performance_diagnostics: WorldEcsFramePerformanceDiagnostics,
+    pub(super) ecs_frame_performance_diagnostics: EcsFramePerformanceDiagnostics,
     #[serde(skip, default)]
     pub(super) query_cache_revision: QueryCacheRevision,
     #[serde(skip, default = "default_change_tick")]

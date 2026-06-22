@@ -17,61 +17,84 @@ fn ui_runtime_module_registers_real_driver_and_manager_services() {
 }
 
 #[test]
-fn runtime_ui_host_surface_stays_internal_to_runtime_ui_subtree() {
+fn runtime_ui_host_surface_splits_production_frame_from_test_support() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let ui_mod_source =
         std::fs::read_to_string(runtime_root.join("src/ui/mod.rs")).unwrap_or_default();
-    let runtime_ui_mod_source =
-        std::fs::read_to_string(runtime_root.join("src/ui/runtime_ui/mod.rs")).unwrap_or_default();
-    let runtime_ui_manager_error_source =
-        std::fs::read_to_string(runtime_root.join("src/ui/runtime_ui/runtime_ui_manager_error.rs"))
+    let public_runtime_frame_source =
+        std::fs::read_to_string(runtime_root.join("src/ui/public_runtime_frame.rs"))
             .unwrap_or_default();
+    let runtime_ui_support_mod_source =
+        std::fs::read_to_string(runtime_root.join("src/ui/tests/runtime_ui_support/mod.rs"))
+            .unwrap_or_default();
+    let runtime_ui_manager_error_source = std::fs::read_to_string(
+        runtime_root.join("src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs"),
+    )
+    .unwrap_or_default();
     let graphics_runtime_mod_source =
         std::fs::read_to_string(runtime_root.join("src/graphics/runtime/mod.rs"))
             .unwrap_or_default();
     let graphics_lib_source =
         std::fs::read_to_string(runtime_root.join("src/graphics/mod.rs")).unwrap_or_default();
     let ui_mod_normalized = ui_mod_source.replace("\r\n", "\n");
-    let runtime_ui_mod_normalized = runtime_ui_mod_source.replace("\r\n", "\n");
+    let runtime_ui_support_mod_normalized = runtime_ui_support_mod_source.replace("\r\n", "\n");
 
     assert!(
-        runtime_root.join("src/ui/runtime_ui/mod.rs").exists(),
-        "runtime ui host subtree should live under zircon_runtime::ui::runtime_ui"
+        !runtime_root.join("src/ui/runtime_ui/mod.rs").exists(),
+        "old production runtime UI host subtree should stay removed"
     );
     assert!(
-        ui_mod_normalized
-            .contains("pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};")
-            && ui_mod_normalized.contains("pub(crate) use runtime_ui::PublicRuntimeFrame;"),
-        "zircon_runtime::ui should keep runtime UI host/demo surface crate-private"
+        runtime_root
+            .join("src/ui/tests/runtime_ui_support/mod.rs")
+            .exists(),
+        "runtime UI manager and fixture support should live under ui/tests/runtime_ui_support"
     );
     assert!(
-        !ui_mod_normalized.contains(
-            "#[cfg(test)]\npub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};"
-        ),
-        "runtime UI manager and fixtures must be crate-private production APIs so dynamic runtime modules can consume them"
+        ui_mod_normalized.contains("mod public_runtime_frame;")
+            && ui_mod_normalized.contains(
+                "#[cfg(test)]\n#[path = \"tests/runtime_ui_support/mod.rs\"]\nmod runtime_ui_support;",
+            )
+            && ui_mod_normalized
+                .contains("pub(crate) use public_runtime_frame::PublicRuntimeFrame;")
+            && ui_mod_normalized.contains(
+                "#[cfg(test)]\npub(crate) use runtime_ui_support::{RuntimeUiFixture, RuntimeUiManager};",
+            ),
+        "zircon_runtime::ui should keep PublicRuntimeFrame production-owned and mount manager/fixtures only for tests"
     );
     assert!(
-        runtime_ui_mod_normalized.contains("pub(crate) use runtime_ui_fixture::RuntimeUiFixture;")
-            && runtime_ui_mod_normalized
+        !ui_mod_normalized.contains("mod runtime_ui;")
+            && !ui_mod_normalized.contains("#[allow(dead_code)]"),
+        "zircon_runtime::ui should not keep the old production runtime_ui module or dead-code allowance"
+    );
+    assert!(
+        runtime_ui_support_mod_normalized
+            .contains("pub(crate) use runtime_ui_fixture::RuntimeUiFixture;")
+            && runtime_ui_support_mod_normalized
                 .contains("pub(crate) use runtime_ui_manager::RuntimeUiManager;"),
-        "runtime UI subtree should re-export manager and fixtures to zircon_runtime::ui"
+        "runtime UI test-support subtree should re-export manager and fixtures to zircon_runtime::ui tests"
     );
     assert!(
-        !runtime_ui_mod_normalized
-            .contains("#[cfg(test)]\npub(crate) use runtime_ui_fixture::RuntimeUiFixture;")
-            && !runtime_ui_mod_normalized
-                .contains("#[cfg(test)]\npub(crate) use runtime_ui_manager::RuntimeUiManager;"),
-        "runtime UI subtree manager/fixture re-exports must not be test-only"
+        !runtime_ui_support_mod_source.contains("PublicRuntimeFrame"),
+        "runtime UI test support should not own the production frame DTO"
     );
-    for required in ["RuntimeUiFixture", "RuntimeUiManager", "PublicRuntimeFrame"] {
+    for required in ["RuntimeUiFixture", "RuntimeUiManager"] {
         assert!(
-            runtime_ui_mod_source.contains(required),
-            "runtime ui host subtree should own `{required}`"
+            runtime_ui_support_mod_source.contains(required),
+            "runtime UI test-support subtree should own `{required}`"
+        );
+    }
+    for required in [
+        "pub(crate) struct PublicRuntimeFrame",
+        "ui: Option<UiRenderExtract>",
+    ] {
+        assert!(
+            public_runtime_frame_source.contains(required),
+            "production runtime UI frame owner should keep `{required}`"
         );
     }
     assert!(
         runtime_ui_manager_error_source.contains("enum RuntimeUiManagerError"),
-        "runtime ui host subtree should still own the internal runtime UI manager error type"
+        "runtime UI test-support subtree should still own the internal runtime UI manager error type"
     );
     for forbidden in [
         "pub use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};",

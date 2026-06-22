@@ -51,7 +51,7 @@ pub(super) fn set_component_json(
         .with_world_mut(|world| world.set_dynamic_component(entity, component_id, value));
     result
         .map(|_| ScriptHostValue::Bool(true))
-        .map_err(ScriptHostError::new)
+        .map_err(|error| ScriptHostError::new(error.to_string()))
 }
 
 pub(super) fn find_by_component(

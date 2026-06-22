@@ -97,7 +97,7 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
     let presenter_gpu_source =
         include_str!("../../../ui/retained_host/host_contract/presenter/gpu.rs");
     let presenter_command_source =
-        include_str!("../../../ui/retained_host/host_contract/presenter/command_stream.rs");
+        include_str!("../../../ui/retained_host/host_contract/chrome_command_stream/mod.rs");
     let manifest = include_str!("../../../../../Cargo.toml");
     let editor_manifest = include_str!("../../../../Cargo.toml");
     let former_owner = ["sli", "nt"].concat();

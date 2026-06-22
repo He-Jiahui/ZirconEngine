@@ -1,9 +1,4 @@
-use crate::core::framework::render::{
-    RenderHybridGiReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
-};
-use crate::core::framework::render::{
-    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands,
-};
+use crate::core::framework::render::{RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands};
 
 #[derive(Default)]
 pub(super) struct PreparedRuntimeSubmission {
@@ -25,34 +20,12 @@ impl PreparedRuntimeSubmission {
         }
     }
 
-    pub(super) fn hybrid_gi_readback_outputs(&self) -> &RenderHybridGiReadbackOutputs {
-        &self.plugin_renderer_outputs.hybrid_gi
-    }
-
-    pub(super) fn virtual_geometry_readback_outputs(
-        &self,
-    ) -> &RenderVirtualGeometryReadbackOutputs {
-        &self.plugin_renderer_outputs.virtual_geometry
-    }
-
-    pub(super) fn particle_readback_outputs(&self) -> &RenderParticleGpuReadbackOutputs {
-        &self.plugin_renderer_outputs.particles
-    }
-
-    pub(super) fn prepared_runtime_sidebands(&self) -> RenderPreparedRuntimeSidebands {
+    pub(super) fn into_prepared_runtime_sidebands(self) -> RenderPreparedRuntimeSidebands {
         RenderPreparedRuntimeSidebands::new(
-            self.plugin_renderer_outputs.clone(),
-            self.hybrid_gi_evictable_probe_ids.clone(),
-            self.virtual_geometry_evictable_page_ids.clone(),
+            self.plugin_renderer_outputs,
+            self.hybrid_gi_evictable_probe_ids,
+            self.virtual_geometry_evictable_page_ids,
         )
-    }
-
-    pub(super) fn take_hybrid_gi_evictable_probe_ids(&mut self) -> Vec<u32> {
-        std::mem::take(&mut self.hybrid_gi_evictable_probe_ids)
-    }
-
-    pub(super) fn take_virtual_geometry_evictable_page_ids(&mut self) -> Vec<u32> {
-        std::mem::take(&mut self.virtual_geometry_evictable_page_ids)
     }
 }
 
@@ -66,7 +39,7 @@ mod tests {
 
     #[test]
     fn prepared_submission_carries_plugin_renderer_output_sideband() {
-        let mut prepared = PreparedRuntimeSubmission::new(
+        let prepared = PreparedRuntimeSubmission::new(
             vec![5],
             vec![9],
             RenderPluginRendererOutputs {
@@ -90,20 +63,22 @@ mod tests {
             },
         );
 
+        let sidebands = prepared.into_prepared_runtime_sidebands();
+
         assert_eq!(
-            prepared.hybrid_gi_readback_outputs().completed_probe_ids,
+            sidebands.hybrid_gi_readback_outputs().completed_probe_ids,
             vec![11]
         );
         assert_eq!(
-            prepared
+            sidebands
                 .virtual_geometry_readback_outputs()
                 .node_cluster_cull
                 .page_request_ids,
             vec![300]
         );
-        assert_eq!(prepared.particle_readback_outputs().alive_count, 4);
-        assert_eq!(prepared.take_hybrid_gi_evictable_probe_ids(), vec![5]);
-        assert_eq!(prepared.take_virtual_geometry_evictable_page_ids(), vec![9]);
+        assert_eq!(sidebands.particle_readback_outputs().alive_count, 4);
+        assert_eq!(sidebands.hybrid_gi_evictable_probe_ids(), &[5]);
+        assert_eq!(sidebands.virtual_geometry_evictable_page_ids(), &[9]);
     }
 
     #[test]
@@ -132,7 +107,7 @@ mod tests {
             },
         );
 
-        let sidebands = prepared.prepared_runtime_sidebands();
+        let sidebands = prepared.into_prepared_runtime_sidebands();
 
         assert_eq!(
             sidebands.hybrid_gi_readback_outputs().completed_probe_ids,

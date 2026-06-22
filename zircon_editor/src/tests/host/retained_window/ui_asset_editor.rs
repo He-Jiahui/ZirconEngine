@@ -253,7 +253,7 @@ fn ui_asset_editor_host_routes_emergency_shell_actions_through_manager_commands(
     ));
     let pane_conversion = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs"
+        "/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs"
     ));
 
     for action_id in [

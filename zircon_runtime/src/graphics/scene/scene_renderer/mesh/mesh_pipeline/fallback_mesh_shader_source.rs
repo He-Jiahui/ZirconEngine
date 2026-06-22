@@ -60,6 +60,8 @@ mod tests {
             "fn zr_sample_shadow_slot",
             "fn zr_shadow_slot_pcf_quality",
             "ZR_SHADOW_PCF_QUALITY_MEDIUM",
+            "ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS",
+            "ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS",
         ] {
             assert!(
                 FALLBACK_MESH_SHADER.contains(expected),

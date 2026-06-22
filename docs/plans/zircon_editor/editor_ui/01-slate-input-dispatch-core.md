@@ -19,7 +19,13 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/ui/window/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
+  - zircon_runtime/src/ui/platform_input/mod.rs
+  - zircon_runtime/src/ui/platform_input/keyboard_map.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
+  - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
+  - docs/zircon_editor/ui/retained_host/host_contract/platform_input.md
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/Reply.h
@@ -28,7 +34,7 @@ plan_sources:
   - .codex/plans/Shared Slate-Style UI Layout, Render, And Hit Framework.md
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
   - .codex/plans/布局系统.md
-status: planned
+status: in-progress
 ---
 
 # 01 Slate 式输入与事件内核
@@ -177,8 +183,8 @@ impl EditorRouteIntentMap {
 
 **删除（硬切换义务）**
 
-- `zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs`、`native_keyboard.rs`（M1.S3，翻译收口后）
-- `zircon_editor/src/ui/retained_host/host_contract/native_pointer/` 中的翻译段（M1.S3）
+- `zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs` 与 `native_input_translation/**`（M1.S3，翻译收口后；已核验 `native_keyboard.rs` 是 retained popup keyboard command owner，不属于 winit 翻译删除项）
+- `zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input.rs` 中的指针按钮/滚轮 winit 翻译小函数（M1.S3）
 - `zircon_runtime/src/rhi/ui_surface.rs`、`rhi_wgpu/ui_surface.rs` 中的重复 winit 翻译段（M1.S2）
 - 各 pointer bridge 内手写命中/hover/press 状态机（M5 分批）；`host_contract/surface_hit_test/` 中被取代部分（M5.S4）
 
@@ -201,8 +207,8 @@ winit EventLoop（editor UiHostWindow / runtime preview window）
 | # | 切片 | 交付物 / 涉及文件 | 验证命令 | 硬切换 |
 |---|------|------------------|---------|--------|
 | M1.S1 | 翻译盘点矩阵：以 editor `native_input_translation` 现行为金标准，固化 winit↔`UiWindowPlatformInputEventKind` 全 variant 映射测试；列出触摸/IME 缺口清单 | `zircon_editor/src/tests/host/retained_window/native_input_translation.rs`（扩充） | `cargo test -p zircon_editor --lib native_input_translation --locked` | 无删除 |
-| M1.S2 | `platform_input::winit_translation` 单实现落地，rhi/rhi_wgpu ui_surface 翻译段并入 | 新增 platform_input/；改 rhi/ui_surface.rs、rhi_wgpu/ui_surface.rs | `cargo check -p zircon_runtime --lib --locked` | 删 rhi 两处翻译段 |
-| M1.S3 | editor/app 切换调用方；删除 editor 本地翻译 | app.rs、event_bridge.rs；删 native_input_translation.rs、native_keyboard.rs | `cargo test -p zircon_editor --lib --locked` | 删 2 文件 + native_pointer 翻译段 |
+| M1.S2 | `platform_input::winit_translation` 单实现落地，rhi/rhi_wgpu ui_surface 翻译段并入 | 新增 platform_input/；核验 rhi/ui_surface.rs、rhi_wgpu/ui_surface.rs 当前仅有 surface descriptor 逻辑，无 winit 输入翻译段可迁 | `cargo check -p zircon_runtime --lib --locked` | rhi 两处输入翻译段按当前代码核验为不存在；S3 删除 editor 本地翻译 |
+| M1.S3 | editor/app 切换调用方；删除 editor 本地翻译 | event_loop/platform_input.rs；删 native_input_translation.rs 与 native_input_translation/**；保留经核验非翻译的 native_keyboard.rs | `cargo test -p zircon_editor --lib --locked` | 删 editor-local 翻译树 + event_loop/input.rs 指针/滚轮翻译段 |
 | M1.S4 | interface 触摸/IME variant 补缺（按 S1 清单，集中一次） | `zircon_runtime_interface/src/ui/window/input.rs` | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
 | M2.S1 | input_manager 骨架：UiInputManager 持双分发器，window_pump 批入口改走 manager（行为等价收编） | 新增 input_manager/{mod,manager,outcome}.rs；改 window_pump.rs | `cargo test -p zircon_runtime --lib window_pump --locked` | window_pump 旧签名删除 |
 | M2.S2 | 路由次序单点化：routing.rs 固化七阶段次序；dispatch.rs 改由其驱动 | 新增 routing.rs；改 dispatch.rs、route_policy.rs | `cargo check -p zircon_runtime --lib --locked` | dispatch.rs 内散落次序逻辑删除 |
@@ -218,9 +224,18 @@ winit EventLoop（editor UiHostWindow / runtime preview window）
 | M5.S3 | 迁 hierarchy / asset / detail / host_page / viewport_toolbar / welcome_recent + tab_drag / drawer_resize | 各 bridge 文件 | 同上 | 六桥命中码删除 |
 | M5.S4 | 清残：删除 surface_hit_test 被取代部分；实机回归 | host_contract/surface_hit_test/ | `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked` + 实机 | 残余手写命中全删 |
 
+## 状态与产出记录
+
+| 日期 | 切片 | 状态 | 产出 | 验证 | 后续 |
+|---|---|---|---|---|---|
+| 2026-06-23 | 01.M1.S1 native input baseline and gap matrix | 完成（代码/文档记录；定向验证通过） | `zircon_editor/src/tests/host/retained_window/native_input_translation.rs` 新增 touch phase -> pointer contract 测试，锁定 `UiWindowPlatformInputEvent::touch(...)` 对 Started/Moved/Ended/Canceled 的 pointer kind、primary button、touch pointer id/source 映射；新增 editor event-loop gap matrix 测试，明确 live event pump 当前只接 KeyboardInput/MouseWheel/IME Commit，尚未消费 Touch、IME Preedit/Disabled/DeleteSurrounding；同步 `docs/zircon_editor/ui/retained_host/host_contract/native_input_translation.md`，记录 interface 已具备 touch/IME 载体但旧 editor-local 入口不继续堆新行为；验证时暴露并修复 Editor UI 10 的 `apply_presentation` 测试 helper 可见性漂移。 | `cargo fmt -p zircon_editor --check` 通过；scoped `git diff --check` 通过，仅既有 LF/CRLF warning；`cargo test -p zircon_editor --lib native_input_translation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui01-native-input-0623 --message-format short --color never -- --test-threads=1 --nocapture` 通过（7 passed，2064 filtered out；既有 warning noise）。首次 test run 1200s 超时无诊断，复跑暴露并修复 `to_host_contract_host_scene_data` 测试 re-export 可见性后通过。 | 01.M1.S2 应新增 runtime-owned `platform_input::winit_translation` 单实现并迁入 editor/rhi 重复翻译；01.M1.S3 再删除 editor-local `native_input_translation` 和旧 native keyboard/pointer 翻译段。 |
+| 2026-06-23 | 01.M1.S2 runtime platform_input winit single implementation | 完成（runtime 单实现落地；workspace `--locked` 被既有 Cargo.toml/Cargo.lock 漂移阻断） | 新增 `zircon_runtime/src/ui/platform_input/{mod,keyboard_map,winit_translation}.rs`，并在 `zircon_runtime/src/ui/mod.rs` 以 `platform-winit` feature 暴露；`translate_winit_window_event(...)` 覆盖 close/resize/move/cursor/keyboard/IME/wheel/redraw/focus/occluded/touch pointer 模型，`translate_winit_modifiers(...)` 单独提供 modifiers 映射；键盘 legacy/name/scan/state helper 收归 runtime。核验 `zircon_runtime/src/rhi/ui_surface.rs` 与 `zircon_runtime/src/rhi_wgpu/ui_surface.rs` 当前没有 winit 输入翻译段，只有 surface descriptor 转换，因此本切片无 rhi 删除项；editor-local 翻译保留到 01.M1.S3 调用方切换后硬删。同步新增 `docs/zircon_runtime/ui/platform_input.md` 并更新 editor native-input 边界文档。 | `rustfmt --edition 2021 --check zircon_runtime/src/ui/platform_input/mod.rs zircon_runtime/src/ui/platform_input/keyboard_map.rs zircon_runtime/src/ui/platform_input/winit_translation.rs` 通过；外部临时验证项目 `cargo check --manifest-path E:\cargo-targets\zircon-runtime-platform-input-scratch-0623\Cargo.toml --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-platform-input-scratch-target-0623 --message-format short --color never` 通过；同临时项目 `cargo test ... -- --test-threads=1` 通过 2/2；scoped `git diff --check` 通过，仅既有 LF/CRLF warning；workspace `cargo check -p zircon_runtime --lib --locked` 因既有 Cargo.toml/Cargo.lock 需要更新 lockfile 被 Cargo 拒绝，未修改 lockfile；`cargo fmt -p zircon_runtime --check` 仍受既有 `core/runtime/events/prune.rs`、`graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs`、`scene/level_system.rs` 格式漂移阻断。 | 01.M1.S3：editor/app 调用方切到 runtime `platform_input::translate_winit_window_event`，然后删除 editor-local `host_contract/native_input_translation*` 与旧 native keyboard/pointer 翻译段。 |
+| 2026-06-23 | 01.M1.S3 editor retained host platform_input cutover | 实现完成（代码/文档记录；locked Cargo 被既有锁文件漂移阻断，离线补充验证超时） | 新增 `zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs`，live `WindowEvent` 输入先调用 `zircon_runtime::ui::platform_input::translate_winit_window_event`/`translate_winit_modifiers`，再把 runtime pump event 交给 retained keyboard/text/pointer 行为；`dispatch_keyboard_event` 改收 `UiKeyboardInputEvent`，未消费键盘不再调用 editor-local 翻译；指针移动/按钮/滚轮从 runtime `UiWindowInputPumpEvent` 读取，event_loop/input.rs 删除 editor-local button/state/wheel 翻译小函数；runtime public keyboard translation 修复 `is_synthetic` 标记保留。硬删 `host_contract/native_input_translation.rs`、`native_input_translation/**` 与旧 `src/tests/host/retained_window/native_input_translation.rs`，新增 `platform_input_translation.rs` 和边界测试断言旧路径不回流；新增 `docs/zircon_editor/ui/retained_host/host_contract/platform_input.md` 并更新 runtime platform_input 文档。核验计划中 `native_keyboard.rs` 实为 retained workbench popup keyboard command owner，不是 winit 翻译，未删除。 | `cargo fmt -p zircon_editor --check` 通过；touched-file `rustfmt --edition 2021 --check` 通过；scoped trailing-whitespace scan 通过；scoped `git diff --check` 通过（仅既有 LF/CRLF warning）。`cargo test -p zircon_editor --lib platform_input_translation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui01-m1s3-0623 --message-format short --color never -- --test-threads=1 --nocapture` 在编译前被既有 `Cargo.toml`/`Cargo.lock` 漂移拒绝；为取 Rust 诊断启动的离线补充验证超时 600s 无诊断，已停止残留 cargo/rustc 并恢复 `Cargo.lock` 到验证前 hash。 | 01.M1.S4：关闭 retained host 仍未应用的 IME preedit/cancel 与 touch use-site/interface 缺口；随后进入 M2 input_manager 批入口收编。 |
+| 2026-06-23 | 01.M1.S4 interface touch/IME variant closure | 完成（代码/文档记录；locked Cargo 被既有锁文件漂移阻断，离线接口验证通过） | 确认 touch phase carrier 已在 `UiWindowTouchPhase`/`UiWindowPlatformInputEvent::touch_*` 中具备；补齐 IME delete-surrounding shared carrier：新增 `UiImeInputEventKind::DeleteSurrounding`、`UiImeDeleteSurrounding`、`UiImeInputEvent.delete_surrounding` 与 `UiWindowPlatformInputEvent::ime_delete_surrounding(...)`，`runtime_event_adapter` 将 ABI `ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1` 映射进 window pump，runtime winit `Ime::DeleteSurrounding` 不再丢弃；runtime editable text 目前只记录 owner route 和诊断，不执行文本删除策略。同步更新 runtime/interface/editor platform-input 测试和 `docs/zircon_runtime_interface/ui/window.md`、`docs/zircon_runtime/ui/platform_input.md`、`docs/zircon_runtime/ui/surface/input.md`、`docs/zircon_editor/ui/retained_host/host_contract/platform_input.md`。 | `rustfmt --edition 2021 --check` 覆盖本切片触及 Rust 文件通过；trailing-whitespace scan 通过；scoped `git diff --check` 通过（仅既有 LF/CRLF warning）；`cargo test -p zircon_runtime_interface --locked -- --nocapture` 与 `cargo test -p zircon_runtime --locked winit_translation -- --nocapture` 均在编译前被既有 Cargo.toml/Cargo.lock 漂移拒绝，`Cargo.lock` hash 保持 `BDB375A62160443186167DBFACDFED661982C6751374E43727CAE3A28A066707`；补充离线验证 `cargo test -p zircon_runtime_interface --offline window_input_contracts -- --nocapture` 通过 5/5，`cargo test -p zircon_runtime_interface --offline window_runtime_event_adapter_contracts -- --nocapture` 通过 7/7，`cargo test -p zircon_runtime_interface --offline ui_input -- --nocapture` 通过 4/4。 | 01.M2.S1：新增 input_manager 骨架并把 window_pump 批入口收编到 manager；后续文本策略切片再实现 delete-surrounding 对 retained surrounding text 的实际删除。 |
+
 ## 8. 测试矩阵（代表性用例）
 
-- **M1**：`translate_winit_keyboard_matrix_matches_editor_baseline`、`translate_winit_touch_phase_maps_pointer_id`、`translate_winit_ime_preedit_carries_cursor_range`（platform_input 模块测试 + editor `src/tests/host/retained_window/native_input_translation.rs`）
+- **M1**：`translate_winit_keyboard_matrix_matches_editor_baseline`、`runtime_touch_pointer_events_map_pointer_id_source_kind_and_button`、`runtime_ime_translation_maps_preedit_commit_and_disable`（runtime `platform_input` 模块测试 + editor `src/tests/host/retained_window/platform_input_translation.rs`）
 - **M2**：`routing_capture_preempts_hit_path`、`popup_outside_click_dismisses_topmost_only`、`preview_tunnel_runs_before_bubble`、`focus_path_routes_unconsumed_keyboard`、`default_action_handles_window_transient`（input_manager 测试）
 - **M3**：`reply_effect_capture_pointer_updates_state`、`reply_effect_open_popup_pushes_stack`、`rejected_effect_records_reason`、`tooltip_armed_after_hover_dwell_tick`、`tooltip_canceled_on_pointer_activity`
 - **M4**：`two_touch_pointers_keep_independent_hover`、`touch_cancel_clears_pointer_entry`、`primary_touch_synthesizes_mouse_click`、`secondary_touch_does_not_move_mouse_cursor`

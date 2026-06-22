@@ -11,7 +11,6 @@ use zircon_runtime_interface::ui::component::{
 pub(crate) struct EditorUiComponentAdapterRegistry;
 
 impl EditorUiComponentAdapterRegistry {
-    #[allow(dead_code)]
     pub(crate) fn data_sources() -> Vec<UiComponentDataSourceDescriptor> {
         vec![
             inspector_selected_entity_data_source(),
@@ -47,7 +46,6 @@ impl EditorUiComponentAdapterRegistry {
     }
 }
 
-#[allow(dead_code)]
 fn reflection_source(
     source_name: &'static str,
     display_name: &'static str,
@@ -80,7 +78,6 @@ fn reflection_source(
     .with_fields(reflection_fields(source_name))
 }
 
-#[allow(dead_code)]
 fn asset_editor_source(
     source_name: &'static str,
     display_name: &'static str,
@@ -113,7 +110,6 @@ fn asset_editor_source(
     .with_fields(asset_editor_fields(path_prefix))
 }
 
-#[allow(dead_code)]
 fn reflection_fields(source_name: &str) -> Vec<UiComponentDataSourceFieldDescriptor> {
     match source_name {
         "component" => vec![
@@ -195,7 +191,6 @@ fn reflection_fields(source_name: &str) -> Vec<UiComponentDataSourceFieldDescrip
     }
 }
 
-#[allow(dead_code)]
 fn asset_editor_fields(path_prefix: &str) -> Vec<UiComponentDataSourceFieldDescriptor> {
     match path_prefix {
         "widget" => vec![

@@ -27,6 +27,7 @@ related_code:
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/cache.rs
@@ -73,8 +74,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
@@ -166,8 +167,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
@@ -212,6 +213,7 @@ implementation_files:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_runtime/tests/font_asset_manifest_contract.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -633,7 +635,7 @@ M1 这里再补了一条最小默认策略：
 - `AssetImporter` 已经把 `.font.toml` 接到 [`ImportedAsset::Font`](../../zircon_runtime/src/asset/assets/imported.rs) 和 [`AssetKind::Font`](../../zircon_runtime/src/asset/project/manager/asset_kind.rs)
 - [`ArtifactStore`](../../zircon_runtime/src/asset/artifact/store.rs) 会把这类资产写入 `lib://fonts/*.json`，因此 project scan / artifact load / runtime resource registry 已经能稳定识别字体资产
 - [`font_asset.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs) 现在直接复用 `FontAsset::from_toml_str(...)`，并把 `render_mode` 以强类型 `UiTextRenderMode` 暴露给 text backend，不再保留一层裸字符串中转
-- [`ScreenSpaceUiTextSystem`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 和 renderer 构造链现在会接收 [`ProjectAssetManager`](../../zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs)，因此 `res://fonts/*.font.toml` 会优先从当前打开项目的正式资产注册表里解析，再回退到 runtime crate 自带默认字体
+- [`ScreenSpaceUiTextSystem`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 和 renderer 构造链现在会接收 [`ProjectAssetManager`](../../zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs)，因此 `res://fonts/*.font.toml` 会优先从当前打开项目的正式资产注册表里解析，再回退到 runtime crate 自带默认字体
 - [`collect_files.rs`](../../zircon_runtime/src/asset/project/manager/collect_files.rs) 现在会把 `.ttf`、`.otf`、`.woff`、`.woff2` 视为字体 manifest 的 source auxiliary，而不是 standalone project asset；这样项目把原始字体文件放进 `assets/fonts/` 时，不会再在 `scan_and_import()` 阶段直接炸成 unsupported format
 
 这让“允许显式引用字体资产”终于从“只对 runtime crate 自带默认字体成立”推进到了“项目自己的 `res://` 字体资产也能进入同一条 runtime text backend”。

@@ -632,10 +632,20 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
 
 #[test]
 fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
-    let geometry_shader =
-        include_str!("../scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl");
-    let lighting_shader =
-        include_str!("../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl");
+    let geometry_shader = concat!(
+        include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+        "\n",
+        include_str!("../scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl")
+    );
+    let lighting_shader = concat!(
+        include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+        "\n",
+        include_str!("../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+        "\n",
+        include_str!("../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+        "\n",
+        include_str!("../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl")
+    );
     for (name, shader) in [
         ("deferred_geometry.wgsl", geometry_shader),
         ("deferred_lighting.wgsl", lighting_shader),
@@ -668,6 +678,12 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
     assert!(
         lighting_shader.contains("let roughness =") && lighting_shader.contains("let metallic ="),
         "deferred lighting should decode material G-buffer channels"
+    );
+    assert!(
+        geometry_shader.contains("encode_deferred_material_flags(shading_model_id, receive_shadows)")
+            && lighting_shader.contains("let receive_shadows = decode_receive_shadows(material.a);")
+            && lighting_shader.contains("if (receive_shadows)"),
+        "deferred material G-buffer alpha should preserve receive-shadow state for deferred lighting"
     );
 }
 
@@ -856,6 +872,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
                 Some("post.screen-space-reflection-resolve"),
             ),
             ("uber", Some("post.uber")),
+            ("output-transfer", Some("post.output-transfer")),
             ("runtime-ui", Some("ui.screen-space")),
             ("overlay-gizmo", Some("overlay.gizmo")),
         ]
@@ -912,10 +929,35 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
             "uber",
+            "output-transfer",
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
         ]
+    );
+    pass_resource_access(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::LIGHT_LIST,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::TONEMAPPED,
+        RenderGraphResourceAccessKind::Write,
+    );
+    pass_resource_access(
+        &compiled,
+        "output-transfer",
+        PostProcessGraphResourceNames::TONEMAPPED,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "output-transfer",
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        RenderGraphResourceAccessKind::Write,
     );
     assert_eq!(
         compiled.history_bindings,
@@ -924,6 +966,60 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             FrameHistoryBinding::read_write(FrameHistorySlot::HzbFurthest)
         ]
     );
+}
+
+#[test]
+fn rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_alias_input() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_anti_alias(
+        &extract.post_process.bloom,
+        &extract.post_process.color_grading,
+        false,
+        false,
+        &AntiAliasSettings::fxaa(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(default_rendering_feature_descriptors())
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    pass_resource_access(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "output-transfer",
+        PostProcessGraphResourceNames::FINAL_COMPOSITED,
+        RenderGraphResourceAccessKind::Write,
+    );
+    pass_resource_access(
+        &compiled,
+        "fxaa",
+        PostProcessGraphResourceNames::FINAL_COMPOSITED,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "fxaa",
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        RenderGraphResourceAccessKind::Write,
+    );
+    let output_transfer = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "output-transfer")
+        .expect("plugin post-process should keep output transfer");
+    assert!(!output_transfer.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::FINAL_COLOR
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
 }
 
 #[test]
@@ -964,6 +1060,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
             "uber",
+            "output-transfer",
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
@@ -2101,6 +2198,7 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("post.uber")
+            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
@@ -2109,9 +2207,23 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
-            .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-            .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::TONEMAPPED,
+                RenderGraphAttachmentOps::clear_store(),
+            )
             .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "output-transfer",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.output-transfer")
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_external_texture_with_ops(
+                PostProcessGraphResourceNames::FINAL_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
         ],
     )
 }

@@ -26,6 +26,9 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
@@ -82,6 +85,9 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
@@ -223,7 +229,9 @@ Runtime 12 M0.2 settles the first arbitration boundary above this lower input st
 
 `runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` guards this contract at the plan/doc/source boundary. It keeps the frame contract anchors, `DefaultInputManager` / `InputFrameSnapshot` public surface, and named M0.1 test anchors synchronized while the Cargo input filter remains pending.
 
-`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 15`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+`input_stack_boundary.py` now mirrors Runtime 12 through the Python structural audit as the 337-line audit reader, missing-anchor checker, and risk classifier; `input_stack_markdown.py` owns the 108-line Markdown renderer. Current evidence reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 15`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+
+Fresh 2026-06-21 Runtime 12 inventory and Markdown split evidence: `input_stack_source_inventory.py` owns runtime/framework/test owner module inventory and line-budget constants, while `input_stack_anchor_inventory.py` owns module declarations, public-surface anchors, action evaluator anchors, gamepad ABI anchors, cursor host-request anchors, Rust guard anchors, doc/test anchors, behavior-test anchors, and pending Cargo gate anchors. `input_stack_boundary.py` remains the audit reader, missing-anchor calculator, and risk aggregator at 337 lines; `input_stack_markdown.py` owns `render_input_stack_boundary_markdown` at 108 lines. Direct audit still reports runtime/framework/test owner modules 12/20/7, public surface anchors 26/26, Runtime 12 guard anchors 5/5, behavior-test anchors 15/15, cursor host-request anchors 12/12, `mirror_docs_guard_present = true`, and `risks = []`; rustfmt plus standalone `input_stack.rs` 4/4 and `plan_status.rs` 33/33 also passed. Package-level Cargo remains deferred to the Runtime 12 validation gate.
 
 ## Action Mapping
 

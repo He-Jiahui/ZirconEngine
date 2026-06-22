@@ -46,7 +46,7 @@ fn builtin_net_content_download_dependency_report_blocks_without_http_feature() 
 fn builtin_rendering_optional_features_declare_editor_capabilities() {
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "rendering")
+        .find(|descriptor| descriptor.package_id() == "rendering")
         .expect("rendering catalog entry");
 
     for suffix in [
@@ -64,7 +64,7 @@ fn builtin_rendering_optional_features_declare_editor_capabilities() {
         let editor_module_name = format!("{feature_id}.editor");
         let editor_capability = format!("editor.feature.rendering.{suffix}");
         let feature = descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .find(|feature| feature.id == feature_id)
             .expect("rendering optional feature should be present in the built-in catalog");
@@ -86,7 +86,7 @@ fn builtin_rendering_optional_features_declare_editor_capabilities() {
 fn builtin_sound_optional_features_declare_editor_capabilities() {
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "sound")
+        .find(|descriptor| descriptor.package_id() == "sound")
         .expect("sound catalog entry");
 
     for (feature_id, editor_module_name, editor_capability) in [
@@ -102,7 +102,7 @@ fn builtin_sound_optional_features_declare_editor_capabilities() {
         ),
     ] {
         let feature = descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .find(|feature| feature.id == feature_id)
             .expect("sound optional feature should be present in the built-in catalog");

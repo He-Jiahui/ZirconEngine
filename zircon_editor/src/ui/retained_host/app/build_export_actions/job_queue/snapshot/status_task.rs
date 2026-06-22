@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::app) fn desktop_export_status_task_from_queue(
         .map(desktop_export_status_task_from_job)
 }
 
-fn desktop_export_status_task_from_job(
+pub(in crate::ui::retained_host::app) fn desktop_export_status_task_from_job(
     snapshot: &DesktopExportJobSnapshot,
 ) -> StatusTaskProgressSnapshot {
     let tone = match snapshot.phase {

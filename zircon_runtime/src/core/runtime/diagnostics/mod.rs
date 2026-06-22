@@ -3,6 +3,7 @@
 mod animation;
 mod collect;
 mod devtools;
+mod frame_diagnostics;
 mod physics;
 pub mod profiling;
 mod render;
@@ -18,6 +19,7 @@ pub use devtools::{
     RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
     RuntimeDevtoolsServiceSnapshot, RuntimeDevtoolsSnapshot,
 };
+pub use frame_diagnostics::{FrameDiagnostics, FrameDiagnosticsStatus};
 pub use physics::RuntimePhysicsDiagnostics;
 pub use profiling::{
     analyze_counter_hotspots, analyze_hotspots, feature_enabled as profiling_feature_enabled,

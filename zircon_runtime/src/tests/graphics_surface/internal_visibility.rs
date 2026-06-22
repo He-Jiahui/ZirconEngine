@@ -25,11 +25,10 @@ fn graphics_surface_keeps_viewport_frame_and_icon_source_internal() {
             .join("src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs"),
     )
     .unwrap_or_default();
-    let new_with_icon_source_source =
-        std::fs::read_to_string(runtime_root.join(
-            "src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs",
-        ))
-        .unwrap_or_default();
+    let new_with_icon_source_source = std::fs::read_to_string(runtime_root.join(
+        "src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs",
+    ))
+    .unwrap_or_default();
 
     assert!(
         !runtime_lib_source.contains("ViewportRenderFrame")

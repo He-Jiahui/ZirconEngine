@@ -15,9 +15,12 @@ from .export_template import is_safe_relative_path, normalize_relative_path
 from .path_resolve import resolve_stage_optional_path
 from .pipeline_report_schema_primitives import (
     validate_object_array_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
 )
-from .pipeline_report_schema_table import string_array_no_blank_entries_schema_diagnostics
+from .pipeline_report_schema_table import (
+    string_array_duplicate_entry_index_schema_diagnostics,
+    string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
+)
 from .pipeline_report_validate_compile_host_linkage_schema import (
     validate_linked_runtime_crate_schema_diagnostics,
 )
@@ -38,6 +41,10 @@ from .pipeline_report_validate_compile_host_schema import (
 )
 from .pipeline_report_validate_identifier_schema import (
     validate_project_plugin_package_id_array_schema_diagnostics,
+    validate_unique_project_plugin_package_id_array_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 from .report_io import write_report_targets
 from .stage_handoff import (
@@ -319,9 +326,25 @@ def load_compile_host_plan(
     if (
         not isinstance(command, list)
         or not command
-        or any(not isinstance(value, str) or not value.strip() for value in command)
     ):
         diagnostics.append("CompileHost plan command must be a non-empty string array")
+        return None
+    command_string_array_diagnostics = validate_string_array_schema_diagnostics(
+        "CompileHost plan command",
+        command,
+    )
+    if command_string_array_diagnostics:
+        diagnostics.extend(command_string_array_diagnostics)
+        return None
+    if any(not value.strip() for value in command):
+        diagnostics.append("CompileHost plan command must be a non-empty string array")
+        return None
+    command_trimmed_diagnostics = string_array_trimmed_non_empty_entries_schema_diagnostics(
+        "CompileHost plan command",
+        command,
+    )
+    if command_trimmed_diagnostics:
+        diagnostics.extend(command_trimmed_diagnostics)
         return None
     if len(command) < 2 or command[0] != "cargo" or command[1] != "build":
         diagnostics.append("CompileHost plan command must run cargo build")
@@ -391,9 +414,27 @@ def compile_host_plan_array_evidence_diagnostics(
                 value,
             )
         )
+        diagnostics.extend(
+            string_array_trimmed_non_empty_entries_schema_diagnostics(
+                label,
+                value,
+            )
+        )
+        diagnostics.extend(
+            string_array_duplicate_entry_index_schema_diagnostics(
+                label,
+                value,
+            )
+        )
 
     diagnostics.extend(
         validate_project_plugin_package_id_array_schema_diagnostics(
+            "CompileHost plan expected_runtime_plugins",
+            compile_plan.get("expected_runtime_plugins"),
+        )
+    )
+    diagnostics.extend(
+        validate_unique_project_plugin_package_id_array_schema_diagnostics(
             "CompileHost plan expected_runtime_plugins",
             compile_plan.get("expected_runtime_plugins"),
         )

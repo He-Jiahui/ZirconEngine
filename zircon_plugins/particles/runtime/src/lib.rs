@@ -1,8 +1,8 @@
 pub const PLUGIN_ID: &str = "particles";
 pub const PARTICLES_FEATURE_NAME: &str = "particle";
-pub const PARTICLES_RUNTIME_CAPABILITY: &str = "runtime.plugin.particles";
 
 mod asset;
+mod capability;
 mod component;
 mod interop;
 mod module;
@@ -16,6 +16,7 @@ pub use asset::{
     ParticleScalarKey, ParticleScalarRange, ParticleShape, ParticleSimulationBackend,
     ParticleSystemAsset, ParticleVec3Range,
 };
+pub use capability::{PARTICLES_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
 pub use component::{
     particle_component_descriptors, ParticleEmitterHandle, ParticleSystemComponent,
     PARTICLE_SYSTEM_COMPONENT_TYPE,
@@ -123,7 +124,7 @@ impl zircon_runtime::plugin::RuntimePlugin for ParticlesRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Particles",
         zircon_runtime::builtin::RuntimePluginId::Particles,
@@ -146,26 +147,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     .with_optional_feature(particle_physics_feature_manifest())
     .with_optional_feature(particle_animation_feature_manifest())
     .with_optional_feature(particle_gpu_feature_manifest())
+    .build()
 }
 
-pub fn runtime_plugin() -> ParticlesRuntimePlugin {
-    ParticlesRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(ParticlesRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[PARTICLES_RUNTIME_CAPABILITY]
+    RUNTIME_CAPABILITIES
 }
 
 pub fn particle_physics_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {

@@ -2,7 +2,9 @@
 related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/module.rs
-  - zircon_runtime/src/ui/runtime_ui
+  - zircon_runtime/src/ui/public_runtime_frame.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support
+  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/scroll.rs
@@ -25,6 +27,9 @@ related_code:
   - zircon_runtime/src/ui/surface/input/route_authority.rs
   - zircon_runtime/src/ui/surface/input/state/pointer_capture.rs
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
+  - zircon_runtime/src/ui/platform_input/mod.rs
+  - zircon_runtime/src/ui/platform_input/keyboard_map.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
   - zircon_runtime/src/ui/surface/pointer
   - zircon_runtime/src/ui/surface/navigation
   - zircon_runtime/src/ui/surface/render
@@ -58,12 +63,18 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
   - zircon_runtime_interface/src/ui/v2/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_markdown.py
 implementation_files:
   - docs/zircon_runtime/ui/architecture.md
+  - zircon_runtime/src/ui/public_runtime_frame.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support
   - zircon_runtime/src/ui/surface/input/mod.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/input/route_authority.rs
   - zircon_runtime/src/ui/surface/input/navigation.rs
+  - zircon_runtime/src/ui/platform_input/mod.rs
+  - zircon_runtime/src/ui/platform_input/keyboard_map.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
   - zircon_runtime/src/ui/surface/input/state/pointer_capture.rs
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
@@ -105,6 +116,7 @@ implementation_files:
   - zircon_runtime/src/ui/tests/template_pipeline.rs
   - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_markdown.py
 plan_sources:
   - user: 2026-06-13 runtime architecture implementation request
   - docs/plans/zircon_runtime/runtime/index.md
@@ -139,6 +151,7 @@ tests:
   - ui_architecture_boundary targeted audit
   - docs/zircon_runtime/ui/v2.md
   - docs/zircon_runtime/ui/dispatch/input_manager.md
+  - docs/zircon_runtime/ui/platform_input.md
   - docs/zircon_runtime/ui/layout/pass.md
   - docs/zircon_runtime/ui/surface/default_interactions.md
   - docs/zircon_runtime/ui/template/pipeline.md
@@ -150,11 +163,11 @@ doc_type: module-detail
 
 runtime_09_m0_ui_architecture_static_passed
 
-本文件完成 Runtime 09 的 M0.1 模块边界图与 M0.2 v2 双代裁决，并记录 M1.1 输入路由单点权威化、M1.2 导航回复、pointer 回复、pointer capture fallback、table row-label fallback、template component-name fallback、property visibility flag、responsive MUI visibility flag、accessibility open-state fallback、layout engine backend name 与 surface default interaction fallback 命名收敛、M2.1 Taffy 桥接与 layout pass 顺序权威化、M2.2 virtualization/scroll 边界声明、M3.1 template compile/instance/validate pipeline 边界切片。当前 UI 生产代码的 legacy 命名桶已清零；完整 UI behavior filters 仍必须等待 owner 空窗或重新协调。
+本文件完成 Runtime 09 的 M0.1 模块边界图与 M0.2 v2 双代裁决，并记录 M1.1 输入路由单点权威化、M1.2 导航回复、pointer 回复、pointer capture fallback、table row-label fallback、template component-name fallback、property visibility flag、responsive MUI visibility flag、accessibility open-state fallback、layout engine backend name 与 surface default interaction fallback 命名收敛、M2.1 Taffy 桥接与 layout pass 顺序权威化、M2.2 virtualization/scroll 边界声明、M3.1 template compile/instance/validate pipeline 边界切片，以及 Editor UI 01.M1.S2 的 `platform_input/` 平台输入归一化 owner。当前 UI 生产代码的 legacy 命名桶已清零；完整 UI behavior filters 仍必须等待 owner 空窗或重新协调。
 
 ## Owner Verdict
 
-`zircon_runtime::ui` owns runtime-only UI behavior: layout passes, dispatch, render extraction inputs, text/layout engines, template compilation, surface/tree mutation, runtime v2 prototype loading, v2 style resolution, and v2 surface construction.
+`zircon_runtime::ui` owns runtime-only UI behavior: platform input adapters, layout passes, dispatch, render extraction inputs, text/layout engines, template compilation, surface/tree mutation, runtime v2 prototype loading, v2 style resolution, and v2 surface construction.
 
 `zircon_runtime_interface::ui` owns neutral UI contract DTOs. Its `ui::v2` surface is the stable data schema layer for arenas, asset records, compiled graphs, repeat expansion records, and style DTOs. It must not own runtime mutation, route ordering, layout pass execution, cache invalidation, or render extraction.
 
@@ -164,19 +177,20 @@ runtime_09_m0_ui_architecture_static_passed
 
 Current scan baseline:
 
-- `ui/` top-level entries: 17 = 15 directories plus `module.rs` and `style.rs`.
+- `ui/` top-level entries: 19 = 15 directories plus `module.rs`, `prelude.rs`, `public_runtime_frame.rs`, and `style.rs` (`mod.rs` is the root façade and is excluded from this audit count).
 - `surface/` entries: 20 in the current worktree scan.
 - Full UI-tree `legacy` hits: `ui_legacy_hits=54`.
 - Production UI `legacy` hits/files after excluding tests and fixtures: `ui_legacy_production_hits=0` / `ui_legacy_production_files=0`.
-- Production UI `taffy` hits/files after excluding tests and fixtures: `ui_taffy_production_hits=173` / `ui_taffy_production_files=9`.
+- Production UI `taffy` hits/files after excluding tests and fixtures: `ui_taffy_production_hits=175` / `ui_taffy_production_files=10`.
 
 | Module | Runtime owner | Boundary note |
 |---|---|---|
 | `module.rs` | Runtime UI module declaration | Module descriptor/config wiring only. |
-| `runtime_ui/` | Runtime preview and fixture manager | Crate-private runtime UI manager path; consumes v2 cache/building and surface projection. |
+| `public_runtime_frame.rs` | Public runtime frame DTO | Production frame bundle handed to graphics conversion without exposing fixture manager support as production UI API. |
 | `layout/` | Constraints, pass sequence, scroll, style mapping, Taffy bridge, virtualization | Owns layout execution and backend adaptation. M2.1 makes `taffy_bridge/compute.rs` the only Taffy tree-build/compute owner, `pass/pipeline.rs` the authoritative pass-order owner, and leaves `style_mapping.rs` as a DTO adapter rather than a layout backend executor. M2.2 makes `layout/scroll.rs::UiScrollVirtualizationPlan` / `plan_scrollable_virtual_window(...)` the owner for scroll offset clamping, viewport/content invalidation, and virtual-window dirty decisions while `layout/virtualization.rs` remains pure window math. |
 | `surface/` | Retained surface state and runtime interaction state | Owns arranged output, hit testing, focus, popup stack, input state, component state, property mutation, default interactions, reflection snapshots, render collection data, timeline, and diagnostics. |
 | `dispatch/` | UI route manager | Owns the route authority entry point documented by `UiInputManager`: capture, popup, preview, target, bubble, focus, default action. |
+| `platform_input/` | Platform input normalization | Feature-gated `platform-winit` owner for winit `WindowEvent` and modifier normalization before events enter `UiWindowInputPumpBatch`; editor-local winit interpretation is slated for deletion in Editor UI 01.M1.S3. |
 | `template/` | Asset/build/instance/loader/validate/pipeline boundary | Owns template compilation, validation, dependency indexing, hot reload coordination, and old template migration surfaces. M3.1 records `UiTemplateRuntimePipeline` as the thin `load -> validate -> instance -> build` owner boundary while v2 remains the replacement mainline. |
 | `v2/` | Runtime v2 loader, compiler, prototype cache, style resolver, surface builder, surface tree | Runtime implementation of the v2 schema. It consumes `zircon_runtime_interface::ui::v2` DTOs and creates runtime surfaces. |
 | `component/` | Component descriptor catalog and state reducers | Owns runtime catalog metadata and component state reduction, including editor shell component entries that are still runtime projection data. |
@@ -187,7 +201,7 @@ Current scan baseline:
 | `text/` | Crate-private text layout support | Runtime internal helper; broader text stack ownership remains Runtime 01 M2. |
 | `accessibility/` | Runtime accessibility extraction | Reads surface state into accessibility output; Runtime 09 M1.2 names the open-state compatibility list as `fallback_properties`, leaving remaining accessibility behavior as runtime-owned extraction rather than legacy migration debt. |
 | `icon_atlas/` | Runtime icon atlas support | Leaf runtime UI support module. |
-| `tests/` | Runtime UI test tree | Not a production owner; excluded from production debt file counts above. |
+| `tests/` | Runtime UI test tree | Not a production owner; excluded from production debt file counts above. Runtime fixture/manager support lives under `tests/runtime_ui_support` and is mounted only through `#[cfg(test)]`. |
 
 Dependency direction:
 
@@ -195,9 +209,11 @@ Dependency direction:
 template asset/build -> v2 cache/compiler -> v2 surface_tree -> surface
 component catalog/state -> v2 surface_tree + surface default interactions
 surface -> layout pass -> arranged output
+platform_input -> window input pump
 surface input/focus/popup state -> dispatch route authority
 binding/event_ui -> surface mutation reports and route results
-runtime_ui -> v2 prototype cache + surface + theme
+public_runtime_frame -> graphics::types::ViewportRenderFrame conversion
+tests/runtime_ui_support -> v2 prototype cache + surface + theme
 interface::ui::v2 DTOs -> runtime::ui::v2 implementation
 ```
 
@@ -229,9 +245,9 @@ platform/window input -> UiInputEvent -> UiSurface::dispatch_input_event
 
 Bypass owner verdict:
 
-- `UiSurface::dispatch_input_event`, `UiSurface::dispatch_input_event_with_manager`, `RuntimeUiManager::dispatch_input_event`, and window-pump normalization are the normalized route authority path.
-- `UiSurface::dispatch_pointer_event*` and `RuntimeUiManager::dispatch_pointer_event` remain direct pointer leaf helpers for existing low-level callers/tests.
-- `UiSurface::dispatch_navigation_event` and `RuntimeUiManager::dispatch_navigation_event` remain direct navigation leaf helpers for existing low-level callers/tests.
+- `UiSurface::dispatch_input_event`, `UiSurface::dispatch_input_event_with_manager`, test-support `RuntimeUiManager::dispatch_input_event`, and window-pump normalization are the normalized route authority path.
+- `UiSurface::dispatch_pointer_event*` and test-support `RuntimeUiManager::dispatch_pointer_event` remain direct pointer leaf helpers for existing low-level callers/tests.
+- `UiSurface::dispatch_navigation_event` and test-support `RuntimeUiManager::dispatch_navigation_event` remain direct navigation leaf helpers for existing low-level callers/tests.
 - These direct pointer/navigation entry points are not unowned bypasses; they are recorded as `runtime_09_m1_1_direct_pointer_navigation_routes_are_leaf_owner_helpers` until callers can migrate to normalized `UiInputEvent` dispatch or the helpers are retired.
 
 ## M1.2 Pointer Reply Naming
@@ -366,7 +382,7 @@ Current evidence:
 
 - `zircon_runtime_interface::ui::v2` contains the neutral v2 DTO schema.
 - `zircon_runtime::ui::v2` contains the runtime loader/compiler/cache/style/surface-builder/surface-tree implementation.
-- Runtime UI fixture/manager docs describe `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> surface_tree -> UiSurface`.
+- Runtime UI fixture/manager test-support docs describe `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> surface_tree -> UiSurface`.
 - Editor view/chrome assets and runtime fixtures already consume v2 assets.
 - Asset importer/plugin registry docs enforce `.zui` for production component assets while keeping explicit v2 fixture/view paths.
 
@@ -381,7 +397,7 @@ Deletion conditions for non-v2 runtime paths:
 
 - production project/editor component importers do not accept old recursive `.ui.toml` component documents;
 - component catalog and editor shell projection use v2 assets or `.zui` component assets;
-- runtime fixtures and preview manager have no fallback through `UiTemplateTreeBuilder` or old `UiTemplateSurfaceBuilder`;
+- runtime fixtures and test-support preview manager have no fallback through `UiTemplateTreeBuilder` or old `UiTemplateSurfaceBuilder`;
 - migration fixtures are named and isolated from production asset registration;
 - template compile/instance/validate failure paths have explicit tests and generated output markers where they write files.
 
@@ -389,7 +405,7 @@ Deletion conditions for non-v2 runtime paths:
 
 This Runtime 09 record contains the M0 documentation/status pass, the M1.1 normalized input route authority note, the M1.2 local navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers, the M2.1 Taffy bridge/pass-order authority cutover, the M2.2 virtualization/scroll boundary implementation, and the M3.1 template pipeline/generated-policy boundary. Package Cargo was run only as focused static/type checks in this lane; full UI behavior filters are still deferred per the current implementation-first request. The accepted static evidence is:
 
-- current owner map covers all 17 UI top-level entries;
+- current owner map covers all 18 scanned UI top-level entries;
 - current `surface/` scan is recorded as 20 entries rather than the stale 2026-06-12 value;
 - `legacy` full-tree and production-file baselines are recorded separately after the Runtime 09 M1.2 navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers;
 - `taffy` production-file baseline is refreshed after M2.1 to record the bridge-directory and pass-order owner shape;
@@ -398,5 +414,5 @@ This Runtime 09 record contains the M0 documentation/status pass, the M1.1 norma
 - `runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source` records that current compiled template artifacts are binary DTO payloads rather than generated source; future generated source must use `// @generated <generator> - do not edit by hand`;
 - v2 is explicitly classified as replacement mainline with a source-profile split and deletion conditions.
 - `runtime_absorption::ui_architecture` now guards the module count, baseline scan values, v2 runtime/interface module shape, the route authority note, the direct pointer/navigation owner verdict, the navigation reply rename, the pointer reply rename, the pointer-capture fallback rename, the table row-label fallback rename, the template component-name fallback rename, the property visibility flag rename, the responsive MUI visibility flag rename, the accessibility open-state fallback rename, the layout engine backend name cutover, the surface default interaction fallback rename, the Taffy bridge/pass-order authority, the virtualization/scroll invalidation planner, the template pipeline/generated-policy boundary, and the plan/index anchors.
-- `ui_architecture_boundary` mirrors the same static facts: `expected_source_file_count = 52`, `expected_ui_entry_count = 17`, `expected_surface_entry_count = 20`, `legacy_full_hits = 54`, `expected_legacy_full_hits = 54`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 173`, `expected_taffy_production_hits = 173`, `taffy_production_file_count = 9`, `expected_taffy_production_file_count = 9`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 09, the runtime index, the M0 review, runtime-interface convergence, and the Python audit. This is static structure evidence only.
+- `ui_architecture_boundary` mirrors the same static facts while `ui_architecture_markdown.py` owns Markdown rendering: `ui_architecture_boundary.py` remains the 541-line audit/risk owner, `ui_architecture_markdown.py` is the 110-line renderer, `expected_source_file_count = 52`, `expected_ui_entry_count = 18`, `expected_surface_entry_count = 20`, `legacy_full_hits = 54`, `expected_legacy_full_hits = 54`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 09, the runtime index, the M0 review, runtime-interface convergence, and the Python audit. This is static structure evidence only.
 - `runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation` keeps Runtime 09 on the `ui/input/naming_boundary/layout/template` owner/Cargo gate until editor UI owner coordination and the declared Cargo filters provide real evidence.

@@ -12,9 +12,13 @@ from tools.zircon_export.tests.export_test_support import (
     _native_dynamic_operation_audit_report,
     _native_dynamic_operation_audit_summary_report,
     _native_dynamic_package_export,
+    _pack_binary_bytes,
     _write_validate_report_with_strategies,
 )
-from tools.zircon_export.tests.pack_test_support import empty_delta_manifest
+from tools.zircon_export.tests.pack_test_support import (
+    empty_delta_manifest,
+    empty_pack_document_manifest,
+)
 
 
 TEMPLATE_FORMAT_VERSION = 1
@@ -22,6 +26,7 @@ TEMPLATE_ID = "fixture-template"
 TEMPLATE_ENGINE_VERSION = "0.1.0"
 TEMPLATE_TARGET_PLATFORM = "windows-x86_64"
 TEMPLATE_HOST_KIND = "desktop"
+TEMPLATE_HOST_ARTIFACT = "precompiled"
 TEMPLATE_RESOURCE_STRATEGY = "filesystem_bundle"
 TEMPLATE_PLUGIN_STRATEGY = "native_dynamic_allowed"
 TEMPLATE_BUNDLE_FORMAT = "directory"
@@ -56,16 +61,17 @@ def _write_platform_bundle_fixture(
     bundle_manifest = bundle_manifest or bundle_dir / "bundle.json"
     template_source = out / "template" / "Info.plist"
     template_file = template_output or bundle_dir / "Contents" / "Info.plist"
-    for path, text in (
-        (host, "host"),
-        (pack, "pack"),
-    ):
-        _write_text(path, text)
+    _write_text(host, "host")
+    pack.parent.mkdir(parents=True, exist_ok=True)
+    pack.write_bytes(_pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK"))
     _copy_file(host, platform_host)
     _copy_file(pack, platform_pack)
     if with_delta:
-        _write_text(delta_pack, "delta")
-        _write_text(previous_pack, "previous")
+        delta_pack.parent.mkdir(parents=True, exist_ok=True)
+        delta_pack.write_bytes(_pack_binary_bytes(empty_delta_manifest(), b"ZRPD"))
+        previous_pack.write_bytes(
+            _pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK")
+        )
         _copy_file(delta_pack, platform_delta)
     _write_native_plugins(native_stage_plugins)
     _write_native_plugins(native_plugins)
@@ -116,6 +122,7 @@ def _write_platform_bundle_fixture(
             "fatal": False,
             "files": embedded_template_files,
             "format_version": TEMPLATE_FORMAT_VERSION,
+            "host_artifact": TEMPLATE_HOST_ARTIFACT,
             "host_executable": str(template_source),
             "host_kind": TEMPLATE_HOST_KIND,
             "manifest": str(template_source.parent / "template.toml"),
@@ -298,6 +305,7 @@ def _write_template_manifest(
                 f'engine_version = "{TEMPLATE_ENGINE_VERSION}"',
                 f'target_platform = "{TEMPLATE_TARGET_PLATFORM}"',
                 f'host_kind = "{TEMPLATE_HOST_KIND}"',
+                f'host_artifact = "{TEMPLATE_HOST_ARTIFACT}"',
                 f'resource_strategy = "{TEMPLATE_RESOURCE_STRATEGY}"',
                 f'plugin_strategy = "{TEMPLATE_PLUGIN_STRATEGY}"',
                 f'bundle_format = "{TEMPLATE_BUNDLE_FORMAT}"',

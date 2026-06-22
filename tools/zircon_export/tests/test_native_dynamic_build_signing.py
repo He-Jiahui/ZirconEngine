@@ -97,6 +97,439 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
             self.assertIn("--release", command)
             self.assertIn("--offline", command)
 
+    def test_native_dynamic_build_plan_rejects_padded_build_mode_before_cargo_profile(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode=" Release ",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.offline = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "validate report profile_summary.build_mode "
+                    "must be a non-empty trimmed export build mode"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_padded_plugin_module_crate_name_before_cdylib_lookup(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[f" {crate_name} "],
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            _write_native_dynamic_fake_cargo_build_script(repo_root, crate_name)
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic package animation plugin.toml "
+                "modules[0].crate_name must be a non-empty trimmed string",
+                diagnostics,
+            )
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_non_string_plugin_module_crate_name_before_empty_string(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            plugin_manifest = repo_root / "zircon_plugins" / "animation" / "plugin.toml"
+            plugin_manifest.write_text(
+                "\n".join(
+                    [
+                        'id = "animation"',
+                        'name = "Animation"',
+                        'default_packaging = ["native_dynamic"]',
+                        "",
+                        "[[modules]]",
+                        'name = "animation.runtime"',
+                        'kind = "runtime"',
+                        "crate_name = 42",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            _write_native_dynamic_fake_cargo_build_script(repo_root, crate_name)
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic package animation plugin.toml "
+                "modules[0].crate_name must be a string",
+                diagnostics,
+            )
+            self.assertNotIn(
+                "modules[0].crate_name must be a non-empty string",
+                diagnostics,
+            )
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_non_object_plugin_module_before_no_cdylib(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            plugin_manifest = repo_root / "zircon_plugins" / "animation" / "plugin.toml"
+            plugin_manifest.write_text(
+                "\n".join(
+                    [
+                        'id = "animation"',
+                        'name = "Animation"',
+                        'default_packaging = ["native_dynamic"]',
+                        "modules = [42]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            _write_native_dynamic_fake_cargo_build_script(repo_root, crate_name)
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic package animation plugin.toml "
+                "modules[0] must be an object",
+                diagnostics,
+            )
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_padded_workspace_member_before_member_manifest_lookup(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            workspace_manifest = repo_root / "zircon_plugins" / "Cargo.toml"
+            workspace_manifest.write_text(
+                "\n".join(
+                    [
+                        "[workspace]",
+                        'members = [" animation/native "]',
+                        'resolver = "2"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic plugin workspace members[0] "
+                "must be a non-empty trimmed string",
+                diagnostics,
+            )
+            self.assertNotIn("workspace member  animation/native  manifest", diagnostics)
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_padded_crate_manifest_package_name_before_cdylib_lookup(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            crate_manifest = repo_root / "zircon_plugins" / "animation" / "native" / "Cargo.toml"
+            crate_manifest.write_text(
+                "\n".join(
+                    [
+                        "[package]",
+                        f'name = " {crate_name} "',
+                        'version = "0.1.0"',
+                        'edition = "2021"',
+                        "",
+                        "[lib]",
+                        'crate-type = ["cdylib"]',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic crate manifest",
+                diagnostics,
+            )
+            self.assertIn(
+                "package.name must be a non-empty trimmed string",
+                diagnostics,
+            )
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
+    def test_native_dynamic_build_plan_rejects_padded_crate_type_before_cdylib_lookup(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            crate_name = "zircon_plugin_animation_native"
+            _write_windows_native_dynamic_package_fixture_at(
+                repo_root,
+                Path("animation"),
+                package_id="animation",
+                module_crate_names=[crate_name],
+            )
+            _write_native_dynamic_cdylib_workspace(
+                repo_root,
+                Path("animation") / "native",
+                crate_name=crate_name,
+            )
+            crate_manifest = repo_root / "zircon_plugins" / "animation" / "native" / "Cargo.toml"
+            crate_manifest.write_text(
+                "\n".join(
+                    [
+                        "[package]",
+                        f'name = "{crate_name}"',
+                        'version = "0.1.0"',
+                        'edition = "2021"',
+                        "",
+                        "[lib]",
+                        'crate-type = [" cdylib "]',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                profile="windows-release",
+                target_platform="windows-x86_64",
+                build_mode="Release",
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+            args.cargo = sys.executable
+            args.no_locked = True
+            args.native_dynamic_build = True
+
+            exit_code = _run_stage_quiet(args)
+
+            report = json.loads(
+                (out / "stages" / "native_dynamic" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "native dynamic crate manifest",
+                diagnostics,
+            )
+            self.assertIn(
+                "lib.crate-type[0] must be a non-empty trimmed string",
+                diagnostics,
+            )
+            self.assertNotIn("declares no cdylib crate", diagnostics)
+            self.assertEqual(report["native_build_plan"]["package_count"], 0)
+            self.assertEqual(report["native_build_execution"]["package_count"], 0)
+
     def test_native_dynamic_build_plan_records_cargo_features(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -123,8 +556,7 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
             args.repo_root = str(repo_root)
             args.native_dynamic_build_feature = [
                 "v3_fixture_diagnostics",
-                " v3_fixture_diagnostics ",
-                "",
+                "v3_fixture_diagnostics",
             ]
 
             exit_code = _run_stage_quiet(args)
@@ -143,6 +575,67 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
             self.assertEqual(package_plan["features"], ["v3_fixture_diagnostics"])
             self.assertIn("--features", command)
             self.assertEqual(command[command.index("--features") + 1], "v3_fixture_diagnostics")
+
+    def test_native_dynamic_build_plan_rejects_schema_invalid_build_feature_before_feature_join(
+        self,
+    ) -> None:
+        cases = [
+            (
+                "blank",
+                [""],
+                "NativeDynamic native build features[0] must be a non-empty trimmed string",
+            ),
+            (
+                "padded",
+                [" v3_fixture_diagnostics "],
+                "NativeDynamic native build features[0] must be a non-empty trimmed string",
+            ),
+            (
+                "non_string",
+                [42],
+                "NativeDynamic native build features[0] must be a string",
+            ),
+        ]
+        for case_name, build_features, expected_diagnostic in cases:
+            with self.subTest(case_name=case_name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    repo_root = root / "repo"
+                    out = root / "out"
+                    crate_name = "zircon_plugin_animation_native"
+                    _write_windows_native_dynamic_package_fixture_at(
+                        repo_root,
+                        Path("animation"),
+                        package_id="animation",
+                        module_crate_names=[crate_name],
+                    )
+                    _write_native_dynamic_cdylib_workspace(
+                        repo_root,
+                        Path("animation") / "native",
+                        crate_name=crate_name,
+                    )
+                    _write_validate_report_with_native_dynamic_exports(
+                        out,
+                        profile="windows-release",
+                        target_platform="windows-x86_64",
+                    )
+                    args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+                    args.repo_root = str(repo_root)
+                    args.native_dynamic_build_feature = build_features
+
+                    exit_code = _run_stage_quiet(args)
+
+                    stage_dir = out / "stages" / "native_dynamic"
+                    report = json.loads(
+                        (stage_dir / "report.json").read_text(encoding="utf-8")
+                    )
+                    diagnostics = "\n".join(report["diagnostics"])
+                    self.assertEqual(exit_code, 2)
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn(expected_diagnostic, diagnostics)
+                    self.assertIsNone(report["native_build_plan"])
+                    self.assertFalse((stage_dir / "plugins" / "animation").exists())
+                    self.assertNotIn("--features", diagnostics)
 
     def test_native_dynamic_build_plan_respects_target_dir_override(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -564,6 +1057,73 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
                 artifact.read_text(encoding="utf-8"),
             )
 
+    def test_native_dynamic_signing_rejects_schema_invalid_arguments_before_external_command(
+        self,
+    ) -> None:
+        cases = [
+            (
+                "command",
+                {"native_dynamic_sign_command": " "},
+                "NativeDynamic signing command must be a non-empty trimmed string",
+            ),
+            (
+                "arg",
+                {"native_dynamic_sign_arg": ["{artifact}", " {package_id} "]},
+                "NativeDynamic signing args[1] must be a non-empty trimmed string",
+            ),
+            (
+                "profile",
+                {"native_dynamic_sign_profile": " windows-store "},
+                "NativeDynamic signing profile must be a non-empty trimmed string",
+            ),
+            (
+                "platform",
+                {"native_dynamic_sign_platform": " windows "},
+                "NativeDynamic signing allowed platforms[0] must be a non-empty trimmed string",
+            ),
+        ]
+        for case_name, overrides, expected_diagnostic in cases:
+            with self.subTest(case_name=case_name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    repo_root = root / "repo"
+                    out = root / "out"
+                    _write_windows_native_dynamic_package_fixture_at(
+                        repo_root,
+                        Path("animation"),
+                        package_id="animation",
+                    )
+                    signer = _write_native_dynamic_fake_sign_script(repo_root)
+                    _write_validate_report_with_native_dynamic_exports(
+                        out,
+                        profile="windows-release",
+                        target_platform="windows-x86_64",
+                    )
+                    args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+                    args.repo_root = str(repo_root)
+                    args.native_dynamic_sign_command = sys.executable
+                    args.native_dynamic_sign_arg = [str(signer), "{artifact}"]
+                    args.native_dynamic_sign_profile = "windows-store"
+                    args.native_dynamic_sign_platform = "windows"
+                    for field, value in overrides.items():
+                        setattr(args, field, value)
+
+                    exit_code = _run_stage_quiet(args)
+
+                    stage_dir = out / "stages" / "native_dynamic"
+                    report = json.loads(
+                        (stage_dir / "report.json").read_text(encoding="utf-8")
+                    )
+                    diagnostics = "\n".join(report["diagnostics"])
+                    self.assertEqual(exit_code, 2)
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn(expected_diagnostic, diagnostics)
+                    self.assertTrue(report["native_signing"]["enabled"])
+                    self.assertEqual(report["native_signing"]["packages"], [])
+                    self.assertNotIn("could not start", diagnostics)
+                    self.assertNotIn("exited with code", diagnostics)
+                    self.assertFalse((stage_dir / "plugins" / "animation").exists())
+
     def test_native_dynamic_signing_profile_rejects_platform_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -695,6 +1255,78 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
                 "notarized:animation:windows-x86_64:windows-store:windows-attestation",
                 artifact_text,
             )
+
+    def test_native_dynamic_notarization_rejects_schema_invalid_arguments_before_external_command(
+        self,
+    ) -> None:
+        cases = [
+            (
+                "command",
+                {"native_dynamic_notarize_command": " "},
+                "NativeDynamic notarization command must be a non-empty trimmed string",
+            ),
+            (
+                "arg",
+                {"native_dynamic_notarize_arg": ["{artifact}", " {package_id} "]},
+                "NativeDynamic notarization args[1] must be a non-empty trimmed string",
+            ),
+            (
+                "profile",
+                {"native_dynamic_notarize_profile": " windows-attestation "},
+                "NativeDynamic notarization profile must be a non-empty trimmed string",
+            ),
+            (
+                "platform",
+                {"native_dynamic_notarize_platform": " windows "},
+                "NativeDynamic notarization allowed platforms[0] must be a non-empty trimmed string",
+            ),
+        ]
+        for case_name, overrides, expected_diagnostic in cases:
+            with self.subTest(case_name=case_name):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    repo_root = root / "repo"
+                    out = root / "out"
+                    _write_windows_native_dynamic_package_fixture_at(
+                        repo_root,
+                        Path("animation"),
+                        package_id="animation",
+                    )
+                    signer = _write_native_dynamic_fake_sign_script(repo_root)
+                    notarizer = _write_native_dynamic_fake_notarize_script(repo_root)
+                    _write_validate_report_with_native_dynamic_exports(
+                        out,
+                        profile="windows-release",
+                        target_platform="windows-x86_64",
+                    )
+                    args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+                    args.repo_root = str(repo_root)
+                    args.native_dynamic_sign_command = sys.executable
+                    args.native_dynamic_sign_arg = [str(signer), "{artifact}"]
+                    args.native_dynamic_sign_profile = "windows-store"
+                    args.native_dynamic_notarize_command = sys.executable
+                    args.native_dynamic_notarize_arg = [str(notarizer), "{artifact}"]
+                    args.native_dynamic_notarize_profile = "windows-attestation"
+                    args.native_dynamic_notarize_platform = "windows"
+                    for field, value in overrides.items():
+                        setattr(args, field, value)
+
+                    exit_code = _run_stage_quiet(args)
+
+                    stage_dir = out / "stages" / "native_dynamic"
+                    report = json.loads(
+                        (stage_dir / "report.json").read_text(encoding="utf-8")
+                    )
+                    diagnostics = "\n".join(report["diagnostics"])
+                    self.assertEqual(exit_code, 2)
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn(expected_diagnostic, diagnostics)
+                    self.assertTrue(report["native_notarization"]["enabled"])
+                    self.assertEqual(report["native_signing"]["packages"], [])
+                    self.assertEqual(report["native_notarization"]["packages"], [])
+                    self.assertNotIn("could not start", diagnostics)
+                    self.assertNotIn("exited with code", diagnostics)
+                    self.assertFalse((stage_dir / "plugins" / "animation").exists())
 
     def test_native_dynamic_notarization_profile_rejects_platform_mismatch(
         self,

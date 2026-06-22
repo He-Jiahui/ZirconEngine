@@ -12,11 +12,12 @@ use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::render::{
-    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
-    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
+    DisplayMode, FallbackSkyboxKind, PostProcessGraphResourceNames, PreviewEnvironmentExtract,
+    ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -556,6 +557,8 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         )
         .unwrap();
     let ao_frame = submit_snapshot(&server, ao_viewport, snapshot.clone());
+    let ao_stats = server.query_stats().unwrap();
+    assert_ssao_shared_hzb_product_path(&ao_stats);
 
     let no_ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -579,6 +582,64 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn assert_ssao_shared_hzb_product_path(stats: &RenderStats) {
+    assert_graph_pass_executed(stats, "hzb-build");
+    assert_graph_pass_executed(stats, "ssao-evaluate");
+    assert_graph_executor_executed(stats, "visibility.hzb-build");
+    assert_graph_executor_executed(stats, "ao.ssao-evaluate");
+    assert!(
+        stats.last_hzb_mip_count > 1,
+        "SSAO product path should build a shared HZB mip chain; stats={stats:?}"
+    );
+    assert!(
+        stats.last_hzb_graph_executed_pass_count > 0,
+        "SSAO product path should execute HZB graph work; stats={stats:?}"
+    );
+    assert_texture_alias_recorded(stats, PostProcessGraphResourceNames::HZB_FURTHEST);
+    let materialization = stats.last_graph_materialization_report;
+    assert!(
+        materialization.missing_texture_count == 0
+            && materialization.missing_buffer_count == 0
+            && materialization.missing_required_external_count == 0
+            && materialization.stale_binding_count() == 0,
+        "SSAO shared HZB graph should bind all required resources; report={materialization:?}"
+    );
+}
+
+fn assert_graph_pass_executed(stats: &RenderStats, pass_name: &str) {
+    assert!(
+        stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == pass_name),
+        "expected graph pass `{pass_name}` to execute; passes={:?}",
+        stats.last_graph_executed_passes
+    );
+}
+
+fn assert_graph_executor_executed(stats: &RenderStats, executor_id: &str) {
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .iter()
+            .any(|executed| executed == executor_id),
+        "expected graph executor `{executor_id}` to execute; executors={:?}",
+        stats.last_graph_executed_executor_ids
+    );
+}
+
+fn assert_texture_alias_recorded(stats: &RenderStats, logical_name: &str) {
+    assert!(
+        stats
+            .last_graph_execution_alias_report
+            .texture_aliases
+            .iter()
+            .any(|record| record.logical_name == logical_name),
+        "expected texture alias report to include `{logical_name}`; aliases={:?}",
+        stats.last_graph_execution_alias_report.texture_aliases
+    );
 }
 
 #[test]

@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "timeline_sequence"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ category = "authoring"
 description = "Optional editor-only timeline authoring package for animation sequences."
 maturity = "experimental"
 supported_targets = ["editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["editor.extension.timeline_sequence_authoring"]
 default_packaging = ["source_template", "library_embed"]
 

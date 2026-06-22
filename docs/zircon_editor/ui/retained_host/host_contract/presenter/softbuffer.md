@@ -3,9 +3,20 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/backbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/counters.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present/outcome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/summary.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present/log.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present/submit.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/copy.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/size.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay.rs
@@ -15,9 +26,20 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/backbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/counters.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present/outcome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/summary.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present/log.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present/submit.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/copy.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io/size.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -27,6 +49,10 @@ tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - softbuffer presenter subtree ownership scan
+  - softbuffer diagnostics counters/overlay/planned-present/summary ownership scan
+  - softbuffer planned-present model/outcome ownership scan
+  - softbuffer present log/submit ownership scan
+  - softbuffer surface-io copy/damage/size ownership scan
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -41,13 +67,15 @@ This backend is intentionally a fallback path. Normal native windows should use 
 
 `softbuffer/lifecycle.rs` owns presenter creation and resize reset behavior. It creates the softbuffer context/surface, clamps and applies surface size, clears stale backbuffers after resize, and resets overlay text when the pixel surface changes.
 
-`softbuffer/present.rs` owns present orchestration. It samples the current window size, plans diagnostics, builds the neutral `ChromeCommandStream`, records perf counters, asks the backbuffer module to repaint, emits verbose present diagnostics, copies the damaged frame region to the platform buffer, and submits softbuffer present damage.
+`softbuffer/present.rs` owns present orchestration. It samples the current window size, plans diagnostics, builds the neutral `ChromeCommandStream`, records perf counters, asks the backbuffer module to repaint, updates presenter diagnostics, and delegates the final side-effect families to child owners.
+
+`present/log.rs` owns verbose present diagnostics, duplicate-log suppression, and present-summary cache updates. `present/submit.rs` owns the softbuffer handoff: selecting the repainted backbuffer, copying RGBA bytes into the platform buffer, sending `pre_present_notify`, and choosing full present versus damage present.
 
 `softbuffer/backbuffer.rs` owns reusable-frame repaint policy. It decides whether regional repaint is valid for the current surface, applies command-stream region replay when possible, falls back to full command-stream frame paint, and reports the resulting painted-pixel counts.
 
-`softbuffer/diagnostics.rs` owns present planning for diagnostics. It decides whether requested damage can remain regional, expands damage for same-frame refresh overlay text changes, records full/region paint counters, updates the cloned presentation's debug overlay text, records chrome command stream patch/full counters, and builds verbose diagnostic summaries.
+`softbuffer/diagnostics.rs` is the diagnostics module entry. `diagnostics/planned_present.rs` decides whether requested damage can remain regional and records full/region paint counters. `planned_present/model.rs` owns the `PlannedPresent` result and cloned-presentation debug overlay update, while `planned_present/outcome.rs` owns repaint-outcome accounting for full versus region paint. `diagnostics/overlay.rs` expands damage for same-frame refresh overlay text changes. `diagnostics/counters.rs` records chrome command stream patch/full counters. `diagnostics/summary.rs` builds verbose diagnostic frame and presentation summaries.
 
-`softbuffer/surface_io.rs` owns platform-buffer mechanics: current window size clamping, softbuffer resize, damage-to-pixel bounds, damage pixel counting, softbuffer damage rect conversion, and RGBA-to-softbuffer pixel copy.
+`softbuffer/surface_io.rs` is now the structural platform-buffer I/O entry. `surface_io/copy.rs` owns RGBA-to-softbuffer pixel copy, `surface_io/damage.rs` owns damage-to-pixel bounds, damage pixel counting, and softbuffer damage rect conversion, and `surface_io/size.rs` owns current window size clamping plus softbuffer resize.
 
 `softbuffer/tests.rs` owns the existing softbuffer copy, damage rect, overlay expansion, and diagnostics planning regressions that previously lived inline in the root presenter file.
 
@@ -58,3 +86,11 @@ The parent file therefore stays focused on presenter state and trait-facing dele
 The 2026-06-18 presenter subtree split reduced `softbuffer.rs` to a 62-line state/trait entry. Production ownership is now split across `present.rs` 120 lines, `diagnostics.rs` 173 lines, `surface_io.rs` 71 lines, `backbuffer.rs` 49 lines, and `lifecycle.rs` 35 lines; `tests.rs` carries the moved 180-line regression body.
 
 Evidence for this slice is formatting, softbuffer presenter subtree ownership scans, trailing-whitespace/diff checks, and scoped `zircon_editor` library type checks. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-21 softbuffer diagnostics counters/overlay/planned-present/summary split reduced `softbuffer/diagnostics.rs` from 188 lines to an 11-line structural re-export entry. `diagnostics/planned_present.rs` is 112 lines and owns present diagnostics planning plus repaint-outcome accounting, `diagnostics/overlay.rs` is 22 lines and owns overlay damage expansion, `diagnostics/counters.rs` is 22 lines and owns chrome command-stream perf counters, and `diagnostics/summary.rs` is 38 lines and owns frame/presentation summary formatting. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a softbuffer diagnostics counters/overlay/planned-present/summary ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 planned-present model/outcome split reduced `diagnostics/planned_present.rs` from 112 lines to a 76-line planning entry. `planned_present/model.rs` owns the `PlannedPresent` DTO plus overlay-text presentation clone update, and `planned_present/outcome.rs` owns repaint-outcome accounting and painted-pixel calculation. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a softbuffer planned-present model/outcome ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 present log/submit split reduced `softbuffer/present.rs` from 126 lines to a 62-line present orchestration entry. `present/log.rs` is 47 lines and owns verbose diagnostic output plus log cache mutation; `present/submit.rs` is 28 lines and owns backbuffer-to-softbuffer copy and present-with-damage submission. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a softbuffer present log/submit ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 surface-io copy/damage/size split reduced `softbuffer/surface_io.rs` from 92 lines to an 11-line structural re-export entry. `surface_io/copy.rs` owns pixel copy, `surface_io/damage.rs` owns pixel bounds, pixel counts, and softbuffer damage rects, and `surface_io/size.rs` owns window-size clamping and softbuffer resize. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a softbuffer surface-io copy/damage/size ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.

@@ -23,7 +23,11 @@ impl CoreHandle {
                 return Ok(());
             }
             entry.lifecycle = LifecycleState::Initializing;
-            entry.startup_service_names.clone()
+            if entry.startup_service_names.is_empty() {
+                Default::default()
+            } else {
+                entry.startup_service_names.clone()
+            }
         };
 
         let result = (|| {
@@ -52,13 +56,19 @@ impl CoreHandle {
             };
             let previous_lifecycle = entry.lifecycle;
             entry.lifecycle = LifecycleState::Stopping;
-            (previous_lifecycle, entry.shutdown_service_names.clone())
+            let unload_order = if entry.shutdown_service_names.is_empty() {
+                Default::default()
+            } else {
+                entry.shutdown_service_names.clone()
+            };
+            (previous_lifecycle, unload_order)
         };
 
         let result = (|| {
+            let unload_order = unload_order.as_ref();
             let blocked_unload = {
                 let services = self.inner.services.lock().unwrap();
-                first_blocked_unload(&services, unload_order.as_ref())
+                first_blocked_unload(&services, unload_order)
             };
             if let Some((service_name, dependents)) = blocked_unload {
                 return Err(CoreError::UnloadBlocked(service_name, dependents));
@@ -68,7 +78,7 @@ impl CoreHandle {
 
             if !unload_order.is_empty() {
                 let mut services = self.inner.services.lock().unwrap();
-                unload_services(&mut services, unload_order.as_ref());
+                unload_services(&mut services, unload_order);
             }
 
             self.finish_module_deactivation(module_name)

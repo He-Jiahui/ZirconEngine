@@ -18,8 +18,8 @@ related_code:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
@@ -172,8 +172,8 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_state_readbacks/take_gpu_readback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_cull.rs
@@ -274,8 +274,8 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs
@@ -396,7 +396,7 @@ implementation_files:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_visbuffer64_pass/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_virtual_geometry_readback_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/debug_snapshot.rs
@@ -604,6 +604,7 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (passed with existing runtime warnings after transient moving-source failures no longer reproduced)
   - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run (passed with existing runtime warnings and produced the integration-test executable)
   - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture (passed with existing runtime warnings: 3 passed, 0 failed, 4 ignored)
+  - cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never (passed with existing warnings after direct RenderMeshSnapshot fixtures were synced to the current DTO fields)
   - rustfmt --edition 2021 --check zircon_plugins\virtual_geometry\runtime\src\virtual_geometry\test_sources\virtual_geometry_render_framework_stats.rs
   - stale-owner search gate for SceneRenderer, ViewportRenderFrame, render_frame_with_pipeline, crate::asset, crate::core, crate::scene, and deleted runtime VG owner paths under zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
   - scoped stale-owner search gate for deleted runtime graphics owner paths under zircon_plugins/virtual_geometry/runtime/src/virtual_geometry and zircon_plugins/hybrid_gi/runtime/src/hybrid_gi
@@ -617,7 +618,7 @@ doc_type: module-detail
 
 Virtual Geometry 最初通过 `BuiltinRenderFeature::VirtualGeometry` 声明 prepare、node/cluster cull、page feedback、visbuffer/hardware fallback、debug overlay 等 RenderGraph pass descriptor；Stage 4 插件化后，这些高级 pass 不再由基础 renderer 隐式打开，而是由 linked `virtual_geometry` render descriptor 加上 `VirtualGeometry` capability gate 进入 compiled graph。重型 runtime state、Nanite CPU reference 与 page residency host 已物理迁到 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/`；`zircon_runtime` 只保留中立 render DTO、asset/cook、base renderer、debug snapshot surface、descriptor/capability gate，以及 `graphics::virtual_geometry_runtime_provider` 里的 provider/state/feedback/prepare/stat contracts。当前 base submit path 会通过 linked plugin registration 创建 erased `VirtualGeometryRuntimeState`，再把 extract、visibility plan、visible clusters、draw segments、renderer GPU completion、visibility feedback 和 page requests 交给 `PluginVirtualGeometryRuntimeProvider`，所以 concrete residency/slot/pending/hot-frontier state 仍归插件 crate，而 render framework 只保存中立 trait object。
 
-因此 public integration contracts 也不能再用裸 `WgpuRenderFramework::new(...)` 加 `with_virtual_geometry(true)` 作为高级 VG 前提。`zircon_runtime/tests/support/mod.rs` 现在提供 `virtual_geometry_wgpu_render_framework(...)`，让 debug snapshot、stats、execution snapshot 和 visbuffer overlay integration tests 走与 production plugin cutover 一致的 descriptor-linked framework setup，而不是重新引入旧 built-in feature identity。2026-05-03 follow-up 继续收紧这个 fixture：它不再只传 render feature descriptor，而是把 descriptor-linked render features、fixture-owned no-op `RenderPassExecutorRegistration`s 和最小 `VirtualGeometryRuntimeProviderRegistration` 一起传给 `WgpuRenderFramework::new_with_plugin_render_features(...)`，保持 public integration contracts 经过当前 4-argument plugin-renderer constructor seam。该修复已格式化，并通过 `cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never`、`cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run`、以及完整 focused rerun `cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture` scoped gates；最后一项为 3 passed、0 failed、4 ignored。workspace-test green 仍未声明。
+因此 public integration contracts 也不能再用裸 `WgpuRenderFramework::new(...)` 加 `with_virtual_geometry(true)` 作为高级 VG 前提。`zircon_runtime/tests/support/mod.rs` 现在提供 `virtual_geometry_wgpu_render_framework(...)`，让 debug snapshot、stats、execution snapshot 和 visbuffer overlay integration tests 走与 production plugin cutover 一致的 descriptor-linked framework setup，而不是重新引入旧 built-in feature identity。2026-05-03 follow-up 继续收紧这个 fixture：它不再只传 render feature descriptor，而是把 descriptor-linked render features、fixture-owned no-op `RenderPassExecutorRegistration`s 和最小 `VirtualGeometryRuntimeProviderRegistration` 一起传给 `WgpuRenderFramework::new_with_plugin_render_features(...)`，保持 public integration contracts 经过当前 4-argument plugin-renderer constructor seam。该修复已格式化，并通过 `cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never`、`cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run`、以及完整 focused rerun `cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture` scoped gates；最后一项为 3 passed、0 failed、4 ignored。workspace-test green 仍未声明。2026-06-21 follow-up 只同步 4 个直接 `RenderMeshSnapshot` 夹具到当前 DTO 合同(`stable_instance_key`、`transform_revision`、`mesh_lod`、`static_state`),解除 core-min `--tests` 构建阻塞;这不是 VG 行为变更。
 
 ## 2026-05-01 Virtual Geometry Owner Cutover
 

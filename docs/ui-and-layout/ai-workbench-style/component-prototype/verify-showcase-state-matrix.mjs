@@ -16,9 +16,14 @@ const sources = {
   showcaseDemoState: readRepo("zircon_editor/src/ui/template_runtime/showcase_demo_state.rs"),
   showcaseBindings: readRepo("zircon_editor/src/ui/template_runtime/builtin/showcase_template_bindings.rs"),
   showcaseEventInputs: readRepo("zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs"),
-  showcaseActions: readRepo(
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs",
-  ),
+  showcaseActions: readRepoMany([
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/action_buttons.rs",
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/binding_ids.rs",
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/commit_action.rs",
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/drag_actions.rs",
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/edit_action.rs",
+    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/primary_action.rs",
+  ]),
   viewProjection: readRepo("zircon_editor/src/ui/layouts/views/view_projection.rs"),
   retainedHostTest: readRepo("zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs"),
   categoryTest: readRepo("zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs"),
@@ -1098,4 +1103,8 @@ function sourceFrom(source, startNeedle) {
 
 function readRepo(path) {
   return readFileSync(new URL(path, repoRoot), "utf8");
+}
+
+function readRepoMany(paths) {
+  return paths.map(readRepo).join("\n");
 }

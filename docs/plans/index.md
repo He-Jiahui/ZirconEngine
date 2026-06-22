@@ -29,6 +29,20 @@
 4. substantial work 继续按里程碑推进：实现切片与测试阶段分离，里程碑末记录构建、测试、修复和接受证据。
 5. 旧路径不打算保留时，执行计划必须硬切换：迁移调用方并删除旧路径，不留 re-export、alias、shim 或双轨兼容。
 
+## 引擎级结构规范
+
+[`engine-code-structure-convention.md`](engine-code-structure-convention.md) 是 ZirconEngine **代码结构与模块接口约定的唯一权威**（模块布局 / 命名 / 公共 API / 测试组织 / 资源放置 / 插件 DX 框架）。各计划集只引用、不重定义其规则。落地与覆盖：
+
+| 计划集 | 结构优化落地 | 强制门禁 |
+| --- | --- | --- |
+| Runtime | [runtime/15-code-structure-and-module-conventions.md](zircon_runtime/runtime/15-code-structure-and-module-conventions.md) | `module_convention_gate` + `runtime_structure_audits/module_convention_boundary.py` |
+| Editor UI | [editor_ui/10-code-structure-and-module-conventions.md](zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) | editor `module_convention_gate` + `editor_structure_audits/` |
+| 插件生态 | [zircon_plugins/12-plugin-dx-and-structure-framework.md](zircon_plugins/12-plugin-dx-and-structure-framework.md) | `plugin_skeleton_gate` + `plugin_structure_audits/` |
+| Runtime 渲染 | render index「代码结构规范」节 | graphics 热点纳入 Runtime 15 + `large_file_ownership_gate` |
+| Zircon Hub | hub index「代码结构规范」节 | 巨型文件 + 前端组件化纳入规范 §1/§3/§4 |
+
+补充输入：[`engine-code-review-findings-2026-06.md`](engine-code-review-findings-2026-06.md) 是 2026-06 一轮聚焦代码审查的发现目录（F1–F19 接口/质量 + D 系列插件 DX，带 file:line 证据），规范级结论已并入 convention §7.5，结构级发现已并入三套结构子计划，安全/性能类 P0（F1 native 回调缺 catch_unwind、F2 scene 每帧 lock().unwrap、F3 每帧整帧 clone）登记建议补入 Runtime 06/07。
+
 ## 当前高优先缺口
 
 | 优先级 | 缺口 | 原因 | 建议动作 |
@@ -39,4 +53,5 @@
 | P1 | Hub 02-05/07 工程化细化未完成 | deepen 代理 502 或断连。 | 按 `deepen-hub-plans` 脚本中的 focus 逐份补齐目标代码形状、文件变更清单、实施步骤和契约联动。 |
 | P1 | 插件计划 01 core 未定稿 | 下游 02-10 依赖 01 的 API/锚点名；workflow 停在 Core。 | 单独完成 `zircon_plugins/01-plugin-architecture-core.md`，再扩展下游计划。 |
 | P2 | Editor UI 计划只有基线版 | 缺少顶层 workflow 结果 JSON，无法确认工程化重写已完成。 | 以 editor workflow 脚本为规格，补齐 01-09 的接口草案、模块落点、切片、测试矩阵、依赖表和完成定义。 |
+| P1 | 引擎结构债散乱（模块布局 / 命名 / façade / 测试 / 插件 DX）损害 code review | 框架成熟但结构散乱；已立 `engine-code-structure-convention.md` 与 Runtime 15 / Editor UI 10 / Plugins 12 三套结构子计划。 | 按各结构子计划里程碑推进；以 `module_convention_gate` / `plugin_skeleton_gate` 机器化验收，存量按硬切 / touch-it-conform-it 降债至 0。 |
 

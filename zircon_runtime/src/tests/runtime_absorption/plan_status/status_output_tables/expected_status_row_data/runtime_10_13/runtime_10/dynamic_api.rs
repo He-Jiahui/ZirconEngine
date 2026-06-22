@@ -20,6 +20,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 10 F18 asset manager resolution return shape",
+        [
+            "runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed",
+            "review_f18_asset_manager_resolution_returns_registered_handle",
+            "Result<Arc<AssetManagerHandle>, CoreError>",
+            "dynamic project boundary calls `.shared()`",
+        ],
+    ),
+    (
         "Runtime 10 Dynamic API current audit recheck",
         [
             "dynamic_api_current_audit_static_passed_cargo_pending",
@@ -125,6 +134,42 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "dynamic_runtime_api_abi_inventory.py",
             "expected_source_file_count = 33",
             "runtime_session_operation_count = 11",
+        ],
+    ),
+    (
+        "Runtime 10 runtime API Markdown renderer split",
+        [
+            "runtime_api_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "runtime_api_markdown.py",
+            "folder-backed owner modules 6/6",
+            "facade 12/20 non-empty lines",
+        ],
+    ),
+    (
+        "Runtime 10 dynamic runtime API Markdown renderer split",
+        [
+            "dynamic_runtime_api_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "dynamic_runtime_api_markdown.py",
+            "dynamic_runtime_api_boundary.py` remains the 330-line audit/risk owner",
+            "Markdown owner is 65 lines",
+        ],
+    ),
+    (
+        "Runtime 10 dynamic input mouse-wheel event owner guard",
+        [
+            "dynamic_input_mouse_wheel_event_owner_guard_focused_cargo_passed_broader_input_pending",
+            "include_str!(\"../session/events.rs\")",
+            "mouse_wheel_at_events_decode_delta_bits_for_dynamic_session",
+            "1 passed; 0 failed; 4704 filtered out",
+        ],
+    ),
+    (
+        "Runtime 10 Vampire W input real-backend gate",
+        [
+            "dynamic_vampire_w_input_real_backend_gate_ignored_without_zr_vm_remaining_ui_input_pending",
+            "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR",
+            "vampire_project_session_w_key_moves_player_before_input_clear",
+            "0 passed; 0 failed; 1 ignored",
         ],
     ),
 ];

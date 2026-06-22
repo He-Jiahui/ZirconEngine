@@ -28,10 +28,12 @@ manifest = "plugins/physics/plugin.toml"
         .expect("manifest-driven hot update should report package failures without host failure");
 
     assert!(report.loaded_plugin_ids.is_empty());
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("native plugin physics skipped because library is missing")));
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("plugin physics hot reload did not load a runtime native package")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("native plugin physics skipped because library is missing")
+    }));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("plugin physics hot reload did not load a runtime native package")
+    }));
     assert!(
         report
             .diagnostics
@@ -90,10 +92,12 @@ manifest = "plugins/physics/plugin.toml"
 
     assert_eq!(report.runtime_plugin_ids, vec!["physics"]);
     assert!(report.loaded_plugin_ids.is_empty());
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("native plugin physics skipped because library is missing")));
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("plugin physics hot reload did not load a runtime native package")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("native plugin physics skipped because library is missing")
+    }));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("plugin physics hot reload did not load a runtime native package")
+    }));
 
     let _ = fs::remove_dir_all(export_root);
 }

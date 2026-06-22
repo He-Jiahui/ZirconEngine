@@ -15,12 +15,14 @@ from .pipeline_report_schema_primitives import (
     validate_integer_schema_diagnostics,
     validate_object_array_schema_diagnostics,
     validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
 from .pipeline_report_schema_table import (
     string_array_no_blank_entries_schema_diagnostics,
     string_array_unique_entries_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 
@@ -106,6 +108,49 @@ def sequence_present_non_blank_string_diagnostics(
     return diagnostics
 
 
+def sequence_present_trimmed_non_empty_string_diagnostics(
+    label: str,
+    value: object,
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for field in fields:
+            field_value = entry.get(field)
+            if (
+                isinstance(field_value, str)
+                and field in entry
+                and field_value.strip()
+                and field_value.strip() != field_value
+            ):
+                diagnostics.append(
+                    f"{label}[{index}].{field} "
+                    "must be a non-empty trimmed string"
+                )
+    return diagnostics
+
+
+def sequence_string_array_entries_trimmed_non_empty_diagnostics(
+    label: str,
+    value: object,
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        diagnostics.extend(
+            table_string_array_entries_trimmed_non_empty_diagnostics(
+                f"{label}[{index}]",
+                entry,
+                fields,
+            )
+        )
+    return diagnostics
+
+
 def table_required_non_empty_string_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -119,6 +164,21 @@ def table_required_non_empty_string_diagnostics(
     return diagnostics
 
 
+def table_present_trimmed_non_empty_string_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if isinstance(value, str) and value.strip() and value.strip() != value:
+            diagnostics.append(
+                f"{label}.{field} must be a non-empty trimmed string"
+            )
+    return diagnostics
+
+
 def table_sha256_hex_string_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -127,7 +187,12 @@ def table_sha256_hex_string_diagnostics(
     diagnostics: list[str] = []
     for field in fields:
         value = table.get(field)
-        if isinstance(value, str) and value.strip() and not is_sha256_hex(value):
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() == value
+            and not is_sha256_hex(value)
+        ):
             diagnostics.append(f"{label}.{field} must be a SHA-256 hex digest")
     return diagnostics
 
@@ -301,6 +366,28 @@ def table_string_array_schema_diagnostics(
             string_array_no_blank_entries_schema_diagnostics,
         )
     )
+    return diagnostics
+
+
+def table_string_array_entries_trimmed_non_empty_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if not (
+            isinstance(value, list)
+            and all(isinstance(item, str) for item in value)
+        ):
+            continue
+        for index, item in enumerate(value):
+            if item.strip() and item.strip() != item:
+                diagnostics.append(
+                    f"{label}.{field}[{index}] "
+                    "must be a non-empty trimmed string"
+                )
     return diagnostics
 
 

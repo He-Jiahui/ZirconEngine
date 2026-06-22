@@ -749,6 +749,7 @@ fn profiling_dtos_serialize_optional_abi_control_contract() {
         .expect("runtime diagnostics response");
     let scene_reload = runtime_diagnostics
         .scene_asset_reload
+        .as_ref()
         .expect("scene asset reload diagnostics");
 
     assert!(encoded.contains("runtime_diagnostics_snapshot"));
@@ -1799,6 +1800,7 @@ fn ui_input_event_contract_constructs_every_event_family() {
             kind: UiImeInputEventKind::Preedit,
             text: "preedit".to_string(),
             cursor_range: Some(UiTextByteRange::new(0, 7)),
+            delete_surrounding: None,
         }),
         UiInputEvent::Navigation(UiNavigationInputEvent {
             metadata: metadata.clone(),
@@ -2270,6 +2272,7 @@ fn ui_input_payloads_round_trip_through_serde() {
         kind: UiImeInputEventKind::Commit,
         text: "ime commit".to_string(),
         cursor_range: None,
+        delete_surrounding: None,
     });
     let drag_drop = UiInputEvent::DragDrop(UiDragDropInputEvent {
         metadata: metadata.clone(),

@@ -89,6 +89,65 @@ class PipelineReportSourceTemplateValidateBuildPlanTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_report_rejects_source_template_validate_build_plan_non_string_command_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            _update_source_template_validate_build_plan(
+                out,
+                {"command": ["cargo", 42]},
+            )
+            _write_source_template_report(out)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate Validate source_template_build command[1] "
+                    "must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "SourceTemplate Validate source_template_build command "
+                    "must be a non-empty string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_padded_source_template_validate_build_plan_command_entry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            _update_source_template_validate_build_plan(
+                out,
+                {"command": [" cargo ", "build"]},
+            )
+            _write_source_template_report(out)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate Validate source_template_build command[0] "
+                    "must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_rejects_source_template_validate_build_plan_missing_required_field(
         self,
     ) -> None:
@@ -168,6 +227,40 @@ class PipelineReportSourceTemplateValidateBuildPlanTests(unittest.TestCase):
                     self.assertTrue(
                         any(
                             expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_source_template_validate_build_plan_padded_required_string_field(
+        self,
+    ) -> None:
+        padded_fields = (
+            "cargo_profile",
+            "manifest_path",
+            "target_dir",
+        )
+        for field in padded_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    _update_source_template_validate_build_plan(
+                        out,
+                        {field: f" {field}-value "},
+                    )
+                    _write_source_template_report(out)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn("Validate", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            "SourceTemplate Validate source_template_build "
+                            f"{field} must be a non-empty trimmed string"
+                            in diagnostic
                             for diagnostic in report["diagnostics"]
                         ),
                         report["diagnostics"],

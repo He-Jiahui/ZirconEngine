@@ -6,10 +6,10 @@ use crate::core::editor_event::EditorEventEffect;
 use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn scene_intent_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     intent: EditorIntent,
 ) -> Result<ExecutionOutcome, String> {
     let changed = inner.state.apply_intent(intent)?;
@@ -46,7 +46,7 @@ pub(super) fn asset_effects(
 }
 
 pub(super) fn open_view(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     descriptor_id: &str,
     status_line: &str,
 ) -> Result<ExecutionOutcome, String> {

@@ -5,10 +5,11 @@ use crate::{
         },
         component::UiDragPayloadKind,
         dispatch::{
-            UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind, UiImeInputEvent,
-            UiImeInputEventKind, UiInputEvent, UiInputSequence, UiInputTimestamp,
-            UiKeyboardInputEvent, UiKeyboardInputState, UiPointerEvent, UiPointerInputEvent,
-            UiPointerSource, UiPreciseScrollDelta, UiScrollDeltaUnit, UiTextInputEvent, UiWindowId,
+            UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,
+            UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind, UiInputEvent,
+            UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
+            UiPointerEvent, UiPointerInputEvent, UiPointerSource, UiPreciseScrollDelta,
+            UiScrollDeltaUnit, UiTextInputEvent, UiWindowId,
         },
         event_ui::UiNodeId,
         layout::{UiPoint, UiSize},
@@ -22,9 +23,9 @@ use crate::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
     ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
-    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
     ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
     ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
     ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1, ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1,
@@ -403,6 +404,7 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
             kind: UiImeInputEventKind::Preedit,
             ref text,
             cursor_range: Some(range),
+            delete_surrounding: None,
             ..
         })) if text == "draft" && range.start_byte == 1 && range.end_byte == 4
     ));
@@ -412,6 +414,7 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
             kind: UiImeInputEventKind::Cancel,
             ref text,
             cursor_range: None,
+            delete_surrounding: None,
             ..
         })) if text.is_empty()
     ));
@@ -530,13 +533,6 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         UiRuntimeEventAdapterError::InvalidTextPayload
     );
 
-    let unsupported_ime =
-        ZrRuntimeEventV1::ime_delete_surrounding(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport(), 1, 2);
-    assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), unsupported_ime).unwrap_err(),
-        UiRuntimeEventAdapterError::NoPumpEquivalent(ZR_RUNTIME_EVENT_KIND_IME_V1)
-    );
-
     let mut theme = ZrRuntimeEventV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         crate::ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
@@ -622,6 +618,7 @@ fn runtime_event_adapter_maps_manual_window_event_shapes() {
         UiWindowInputPumpEvent::Input(UiInputEvent::Ime(UiImeInputEvent {
             kind: UiImeInputEventKind::Commit,
             ref text,
+            delete_surrounding: None,
             ..
         })) if text == "done"
     ));
@@ -642,8 +639,30 @@ fn runtime_event_adapter_maps_manual_window_event_shapes() {
         UiWindowInputPumpEvent::Input(UiInputEvent::Ime(UiImeInputEvent {
             kind: UiImeInputEventKind::Preedit,
             cursor_range: Some(range),
+            delete_surrounding: None,
             ..
         })) if range.start_byte == 2 && range.end_byte == 5
+    ));
+
+    let delete_surrounding = ZrRuntimeEventV1 {
+        state: ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+        key_code: 3,
+        scan_code: 1,
+        ..ZrRuntimeEventV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            crate::ZR_RUNTIME_EVENT_KIND_IME_V1,
+            viewport(),
+        )
+    };
+    assert!(matches!(
+        adapt(delete_surrounding),
+        UiWindowInputPumpEvent::Input(UiInputEvent::Ime(UiImeInputEvent {
+            kind: UiImeInputEventKind::DeleteSurrounding,
+            ref text,
+            cursor_range: None,
+            delete_surrounding: Some(delete),
+            ..
+        })) if text.is_empty() && delete == UiImeDeleteSurrounding::new(3, 1)
     ));
 }
 

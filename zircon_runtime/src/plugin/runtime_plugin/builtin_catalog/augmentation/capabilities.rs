@@ -1,9 +1,10 @@
-use super::super::super::RuntimePluginDescriptor;
+use super::super::BuiltinCatalogDescriptorBuilder;
 
 pub(super) fn attach_extra_capabilities(
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
-    match descriptor.package_id.as_str() {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
+    let package_id = descriptor.package_id().to_string();
+    match package_id.as_str() {
         "ai" => descriptor
             .with_capability("runtime.feature.ai.behavior_tree")
             .with_capability("runtime.feature.ai.blackboard")

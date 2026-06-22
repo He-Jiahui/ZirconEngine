@@ -153,6 +153,12 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
     let audit_script = include_str!(
         "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py"
     );
+    let audit_source_inventory = include_str!(
+        "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py"
+    );
+    let audit_anchor_inventory = include_str!(
+        "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_anchor_inventory.py"
+    );
     let performance_guard = include_str!("../performance_hotspots.rs");
     let owner_budget_guard = include_str!("owner_budget.rs");
     let cargo_gate_guard = include_str!("../plan_status/cargo_gates/early.rs");
@@ -177,17 +183,35 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
         );
     }
 
-    for audit_anchor in [
+    for source_inventory_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 46",
         "EXPECTED_TEST_FILE_COUNT = 6",
+    ] {
+        assert!(
+            audit_source_inventory.contains(source_inventory_anchor),
+            "performance_hotpath_source_inventory should expose source/test audit anchor `{source_inventory_anchor}`"
+        );
+    }
+
+    for anchor_inventory_anchor in [
         "ANIMATION_SCENE_ANCHORS",
         "MIRROR_DOCS_GUARD",
         "\"runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts\"",
+    ] {
+        assert!(
+            audit_anchor_inventory.contains(anchor_inventory_anchor),
+            "performance_hotpath_anchor_inventory should expose audit anchor `{anchor_inventory_anchor}`"
+        );
+    }
+
+    for boundary_anchor in [
+        "from runtime_structure_audits.performance_hotpath_source_inventory import",
+        "from runtime_structure_audits.performance_hotpath_anchor_inventory import",
         "\"mirror_docs_guard_present\"",
     ] {
         assert!(
-            audit_script.contains(audit_anchor),
-            "performance_hotpath_boundary should expose audit anchor `{audit_anchor}`"
+            audit_script.contains(boundary_anchor),
+            "performance_hotpath_boundary should retain audit aggregation anchor `{boundary_anchor}`"
         );
     }
 

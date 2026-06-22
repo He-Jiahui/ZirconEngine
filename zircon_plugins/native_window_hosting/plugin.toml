@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "native_window_hosting"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ description = "Optional editor integration for native floating window surfaces."
 category = "platform"
 maturity = "experimental"
 supported_targets = ["editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["editor.extension.native_window_hosting"]
 default_packaging = ["source_template", "library_embed"]
 

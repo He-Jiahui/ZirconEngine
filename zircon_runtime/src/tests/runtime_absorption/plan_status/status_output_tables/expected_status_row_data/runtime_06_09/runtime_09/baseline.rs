@@ -2,6 +2,15 @@ use super::ExpectedStatusOutputSlice;
 
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
     (
+        "Runtime 09 UI architecture Markdown renderer split",
+        [
+            "ui_architecture_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "ui_architecture_markdown.py",
+            "ui_architecture_boundary.py` remains the 541-line audit/risk owner",
+            "Markdown owner is 110 lines",
+        ],
+    ),
+    (
         "Runtime 09 UI architecture 镜像文档守卫",
         [
             "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",

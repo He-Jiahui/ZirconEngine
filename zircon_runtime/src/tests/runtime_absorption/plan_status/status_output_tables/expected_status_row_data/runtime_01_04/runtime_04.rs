@@ -46,4 +46,40 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "broader `asset::` / `worker_pool` Cargo filters",
         ],
     ),
+    (
+        "Runtime 04 Asset pipeline inventory split",
+        [
+            "asset_pipeline_inventory_split_static_passed_cargo_deferred_tests_deferred",
+            "asset_pipeline_source_inventory.py",
+            "asset_pipeline_anchor_inventory.py",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 04 Asset pipeline Markdown renderer split",
+        [
+            "asset_pipeline_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "asset_pipeline_markdown.py",
+            "asset_pipeline_boundary.py` owns audit read, missing-anchor calculation, and risk aggregation at 328 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 04 F7 asset artifact/importer typed errors",
+        [
+            "asset_artifact_importer_typed_errors_coremin_passed",
+            "AssetImportError::Registry",
+            "asset_import_error_preserves_registry_error_source",
+            "review_f7_asset_artifact_errors_use_asset_import_error_sources",
+        ],
+    ),
+    (
+        "Runtime 04 F8 texture import settings apply API",
+        [
+            "texture_import_settings_apply_api_coremin_check_passed",
+            "review_f8_texture_import_settings_use_fallible_apply_not_with",
+            "apply_import_settings",
+            "old fallible with-entry absent",
+        ],
+    ),
 ];

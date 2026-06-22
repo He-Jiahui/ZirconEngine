@@ -2,11 +2,11 @@ use crate::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     component::{UiDragPayload, UiDragPayloadKind},
     dispatch::{
-        UiDeviceId, UiDragDropInputEventKind, UiDragSessionId, UiImeInputEvent,
-        UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputModifiers, UiInputSequence,
-        UiInputTimestamp, UiKeyboardInputState, UiPointerEvent, UiPointerId, UiPointerSource,
-        UiPopupInputEventKind, UiPreciseScrollDelta, UiScrollDeltaUnit, UiTextByteRange,
-        UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+        UiDeviceId, UiDragDropInputEventKind, UiDragSessionId, UiImeDeleteSurrounding,
+        UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputModifiers,
+        UiInputSequence, UiInputTimestamp, UiKeyboardInputState, UiPointerEvent, UiPointerId,
+        UiPointerSource, UiPopupInputEventKind, UiPreciseScrollDelta, UiScrollDeltaUnit,
+        UiTextByteRange, UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
     },
     event_ui::UiNodeId,
     layout::{UiPoint, UiSize},
@@ -269,6 +269,7 @@ fn ui_window_input_pump_wraps_window_and_shared_input_events_with_redraw_coalesc
         kind: UiImeInputEventKind::Preedit,
         text: "draft".to_string(),
         cursor_range: Some(UiTextByteRange::new(0, 5)),
+        delete_surrounding: None,
     }));
 
     let mut batch = UiWindowInputPumpBatch::default();
@@ -313,6 +314,7 @@ fn ui_window_input_pump_accepts_platform_input_events_through_normalization() {
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
                 && ime.cursor_range == Some(UiTextByteRange::new(1, 4))
+                && ime.delete_surrounding == None
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
                 && ime.metadata.device_id == Some(UiDeviceId::new(9))
                 && ime.metadata.synthetic
@@ -448,6 +450,8 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         Some(UiTextByteRange::new(2, 5)),
     )
     .normalize();
+    let ime_delete_surrounding =
+        UiWindowPlatformInputEvent::ime_delete_surrounding(context.clone(), 3, 1).normalize();
     let touch = UiWindowPlatformInputEvent::touch(
         context.clone(),
         UiWindowTouchPhase::Started,
@@ -899,6 +903,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
                 && ime.cursor_range == None
+                && ime.delete_surrounding == None
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -907,6 +912,16 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
                 && ime.cursor_range == Some(UiTextByteRange::new(2, 5))
+                && ime.delete_surrounding == None
+                && ime.metadata.window_id == Some(metadata.window_id.clone())
+    ));
+    assert!(matches!(
+        ime_delete_surrounding,
+        UiInputEvent::Ime(ime)
+            if ime.kind == UiImeInputEventKind::DeleteSurrounding
+                && ime.text.is_empty()
+                && ime.cursor_range == None
+                && ime.delete_surrounding == Some(UiImeDeleteSurrounding::new(3, 1))
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(

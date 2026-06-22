@@ -2,6 +2,10 @@ pub const PLUGIN_ID: &str = "terrain";
 pub const TERRAIN_COMPONENT_TYPE: &str = "terrain.Component.Terrain";
 pub const TERRAIN_HEIGHTFIELD_IMPORTER_ID: &str = "terrain.heightfield";
 
+mod capability;
+
+pub use capability::{RUNTIME_CAPABILITIES, TERRAIN_RUNTIME_CAPABILITY};
+
 #[derive(Clone, Debug)]
 pub struct TerrainRuntimePlugin {
     descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
@@ -46,7 +50,7 @@ impl zircon_runtime::plugin::RuntimePlugin for TerrainRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Terrain",
         zircon_runtime::builtin::RuntimePluginId::Terrain,
@@ -58,11 +62,12 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.terrain")
+    .with_capability(TERRAIN_RUNTIME_CAPABILITY)
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.plugin.terrain",
+        TERRAIN_RUNTIME_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .build()
 }
 
 pub fn terrain_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
@@ -83,11 +88,13 @@ pub fn terrain_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporte
         1,
     )
     .with_source_extensions(["raw", "r16", "png"])
-    .with_required_capabilities(["runtime.plugin.terrain"])]
+    .with_required_capabilities([TERRAIN_RUNTIME_CAPABILITY])]
 }
 
-pub fn runtime_plugin() -> TerrainRuntimePlugin {
-    TerrainRuntimePlugin::new()
+zircon_plugin_sdk::runtime_plugin_exports!(TerrainRuntimePlugin);
+
+pub fn runtime_capabilities() -> &'static [&'static str] {
+    RUNTIME_CAPABILITIES
 }
 
 pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
@@ -98,14 +105,6 @@ pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManife
         manifest = manifest.with_asset_importer(importer);
     }
     manifest
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    runtime_package_manifest()
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
 }
 
 #[cfg(test)]

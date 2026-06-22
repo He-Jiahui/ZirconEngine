@@ -263,7 +263,6 @@ mod math {
         allow_value_construction = true,
         documentation = "Pure Vec3 value descriptor for VM reflection."
     )]
-    #[allow(dead_code)]
     struct Vec3 {
         #[zircon_script(type_name = "float")]
         x: f64,
@@ -281,7 +280,6 @@ mod math {
         allow_value_construction = true,
         documentation = "Pure RGBA color value descriptor for VM reflection."
     )]
-    #[allow(dead_code)]
     struct ColorRgba {
         #[zircon_script(type_name = "float")]
         r: f64,
@@ -292,6 +290,26 @@ mod math {
         #[zircon_script(type_name = "float")]
         a: f64,
     }
+
+    // These descriptor-only structs are consumed by zircon_host_module!; keep
+    // their field layout visible without adding VM-visible host calls.
+    const _: ((f64, f64, f64), (f64, f64, f64, f64)) = {
+        let vec3 = Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let color = ColorRgba {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 1.0,
+        };
+        (
+            (vec3.x, vec3.y, vec3.z),
+            (color.r, color.g, color.b, color.a),
+        )
+    };
 
     #[crate::zircon_host_function(
         name = "vec3_length",

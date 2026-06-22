@@ -26,7 +26,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
-  - zircon_editor/src/ui/reflection.rs
+  - zircon_editor/src/ui/reflection/mod.rs
+  - zircon_editor/src/ui/reflection/adapter.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
@@ -73,7 +74,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
-  - zircon_editor/src/ui/reflection.rs
+  - zircon_editor/src/ui/reflection/mod.rs
+  - zircon_editor/src/ui/reflection/adapter.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs

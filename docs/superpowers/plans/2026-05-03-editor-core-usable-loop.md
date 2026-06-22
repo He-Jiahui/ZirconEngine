@@ -53,7 +53,7 @@
 - Modify as needed: `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs` for host-contract pane projection.
 - Modify as needed: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs` only to move existing Plugin Manager and Build Export code into child modules and re-export their narrow functions.
 - Create if projection code changes: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs` for Plugin Manager row/template projection.
-- Create if projection code changes: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs` for Build Export row/template projection.
+- Create if projection code changes: `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/` for Build Export row/template projection.
 - Modify as needed: `zircon_editor/src/ui/slint_host/app/host_lifecycle.rs` only to delegate pane data assembly to focused child modules.
 - Create if host data assembly changes: `zircon_editor/src/ui/slint_host/app/module_plugins_pane_data.rs` for `SlintEditorHost::module_plugins_pane_data(...)` and Plugin Manager summary helpers.
 - Create if host data assembly changes: `zircon_editor/src/ui/slint_host/app/build_export_pane_data.rs` for `SlintEditorHost::build_export_pane_data(...)` and export-target summary helpers.
@@ -195,7 +195,7 @@ Plugin Manager and Build Export must project into host-contract pane data with e
 - [ ] Inspect `host_contract/data/panes.rs`; ensure `ModulePluginStatusData`, `ModulePluginsPaneData`, `BuildExportTargetData`, and `BuildExportPaneData` match the presentation DTO fields.
 - [ ] Inspect `apply_presentation.rs`; ensure `to_host_contract_pane(...)` computes `module_plugins` and `build_export` before moving `data.native_body` fields and includes them in host-contract `PaneData`.
 - [ ] Before adding projection behavior to `pane_data_conversion/mod.rs`, extract the existing Plugin Manager functions into `pane_data_conversion/module_plugins.rs`: `to_host_contract_module_plugins_pane_from_host_pane(...)`, module plugin status mapping, row node projection, action button projection, and Plugin Manager row constants.
-- [ ] Before adding projection behavior to `pane_data_conversion/mod.rs`, extract the existing Build Export functions into `pane_data_conversion/build_export.rs`: `to_host_contract_build_export_pane_from_host_pane(...)`, build export target mapping, row node projection, action button projection, and Build Export row constants.
+- [ ] Before adding projection behavior to `pane_data_conversion/mod.rs`, extract the existing Build Export functions into `pane_data_conversion/build_export/`: `to_host_contract_build_export_pane_from_host_pane(...)`, build export target mapping, row node projection, action button projection, and Build Export row constants.
 - [ ] Keep `pane_data_conversion/mod.rs` structural for the extracted panes: `mod module_plugins; mod build_export; pub(crate) use ...` plus shared imports only.
 - [ ] Do not move `builtin_host_runtime()` unless both extracted child modules need it; if they do, expose a private `project_pane_template_nodes(...)` helper from `mod.rs` as `pub(super)` and keep it non-mutating.
 - [ ] Inspect `module_plugin_actions.rs`; keep parsing coverage for `Plugin.Enable.<id>`, `Plugin.Disable.<id>`, `Plugin.Packaging.Next.<id>`, `Plugin.TargetModes.Next.<id>`, `Plugin.Feature.Enable.<plugin>.<feature>`, `Plugin.Feature.Disable.<plugin>.<feature>`, `Plugin.Feature.EnableDependencies.<plugin>.<feature>`, `Plugin.Unload.<id>`, and `Plugin.HotReload.<id>`.

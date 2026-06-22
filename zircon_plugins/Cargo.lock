@@ -4321,6 +4321,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "typed-path"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e28f89b80c87b8fb0cf04ab448d5dd0dd0ade2f8891bae878de66a75a28600e"
+
+[[package]]
 name = "typeid"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5896,6 +5902,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "zip"
+version = "9.0.0-pre2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb30735adb9a33cbbb12950b940e1d105389e275ba8fa7118c385d9cffc4cec1"
+dependencies = [
+ "crc32fast",
+ "flate2",
+ "indexmap",
+ "memchr",
+ "typed-path",
+]
+
+[[package]]
 name = "zircon_editor"
 version = "0.1.0"
 dependencies = [
@@ -5941,6 +5960,7 @@ dependencies = [
 name = "zircon_plugin_ai_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -5968,6 +5988,7 @@ name = "zircon_plugin_animation_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_physics_runtime",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6066,6 +6087,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6084,6 +6106,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6120,6 +6143,7 @@ dependencies = [
  "serde",
  "serde_json",
  "zircon_plugin_navigation_recast",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6193,6 +6217,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6239,6 +6264,7 @@ version = "0.1.0"
 dependencies = [
  "naga",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6256,6 +6282,7 @@ dependencies = [
 name = "zircon_plugin_physics_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6274,6 +6301,7 @@ dependencies = [
 name = "zircon_plugin_prefab_tools_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6393,6 +6421,7 @@ dependencies = [
 name = "zircon_plugin_rendering_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6457,10 +6486,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_sdk"
+version = "0.1.0"
+dependencies = [
+ "zircon_editor",
+ "zircon_runtime",
+ "zircon_runtime_interface",
+]
+
+[[package]]
 name = "zircon_plugin_sdk_examples_editor"
 version = "0.1.0"
 dependencies = [
  "zircon_editor",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6476,6 +6515,7 @@ dependencies = [
 name = "zircon_plugin_solari_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6547,6 +6587,7 @@ dependencies = [
 name = "zircon_plugin_terrain_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6573,6 +6614,7 @@ dependencies = [
 name = "zircon_plugin_texture_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6590,6 +6632,7 @@ dependencies = [
 name = "zircon_plugin_tilemap_2d_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6636,6 +6679,7 @@ dependencies = [
  "bytemuck",
  "pollster",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6643,6 +6687,7 @@ dependencies = [
 name = "zircon_plugin_zr_vm_language_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6679,6 +6724,7 @@ dependencies = [
  "uuid",
  "wgpu",
  "winit",
+ "zip",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
  "zr_vm_rust_binding",

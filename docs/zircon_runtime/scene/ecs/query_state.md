@@ -27,6 +27,7 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_query_many.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py
 implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
@@ -52,6 +53,7 @@ implementation_files:
   - zircon_runtime/src/scene/tests/ecs_query_state_structure.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -130,6 +132,7 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short (2026-06-05 cached read-only many borrow fix: passed with existing warnings)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-layout-slot-z-order-0605 --message-format short --color never (2026-06-05 QueryMutIter cached-entity accessor compile unblock: passed with existing warning noise only)
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py (2026-06-21 QueryState Markdown renderer split: passed)
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
 doc_type: module-detail
 ---
@@ -263,7 +266,7 @@ New query-state APIs should land by behavior family:
 - reusable fixed-size collection helpers in `helpers.rs`;
 - scheduler/system parameter wiring in `system_param.rs`.
 
-The structure guard in `scene::tests::ecs_query_structure` rejects a legacy `query_state.rs`, missing owner files, behavior impl families in the root file, and owner files above the current budget. The structural audit mirrors that contract as `ecs_query_state_boundary` with nine folder-backed owner modules, including the `cache.rs` cache behavior owner and the `stats.rs` telemetry sidecar, so CI or review automation can detect the same rollback without first running the Rust test binary. This keeps future ECS query/cache work from turning `QueryState` back into a mixed hot-path file.
+The structure guard in `scene::tests::ecs_query_structure` rejects a legacy `query_state.rs`, missing owner files, behavior impl families in the root file, and owner files above the current budget. The structural audit mirrors that contract as `ecs_query_state_boundary` with nine folder-backed owner modules, including the `cache.rs` cache behavior owner and the `stats.rs` telemetry sidecar, so CI or review automation can detect the same rollback without first running the Rust test binary. The 2026-06-21 renderer split keeps `ecs_query_state_boundary.py` as the 141-line audit/risk owner and moves `render_ecs_query_state_boundary_markdown(...)` into the 33-line `ecs_query_state_markdown.py` renderer owner. This keeps future ECS query/cache work from turning `QueryState` back into a mixed hot-path file or turning the audit owner back into a report-formatting module.
 
 The 2026-06-17 editor UI validation pass exposed a compile-only owner-boundary drift in `query_state/mod.rs`: the root `QueryState` struct still owns `cached_entities` and `cached_entity_indices`, so the root module must import `EntityId` even though cache rebuild/accessor behavior lives in `query_state/cache.rs`. Restoring that import preserves the existing behavior split and keeps `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` from failing before editor UI changes compile.
 

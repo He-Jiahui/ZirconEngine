@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects/status.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_flags.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/mark_helpers.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_marking.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/callbacks.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/payloads.rs
@@ -76,7 +76,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects/status.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_flags.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/mark_helpers.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_marking.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/callbacks.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/payloads.rs
@@ -242,7 +242,7 @@ New feature-specific projection helpers should move into app child modules when 
 
 `app/host_lifecycle/dispatch_effects/side_effects.rs` owns `UiHostEventEffects` side effects after dirty-domain invalidation: forwarding workbench notifications, refreshing asset workspace/details/previews, importing models with completion/failure notifications, opening the command palette, and presenting the welcome surface.
 
-`app/host_lifecycle/invalidation_bridge.rs` is the structural invalidation bridge entry. `invalidation_bridge/dirty_flags.rs` owns the retained-host bridge from dirty-domain masks to legacy dirty flags and UI perf counters: it captures the pending UI perf scenario, records dirty layout/presentation/render/paint-only counters, mutates `HostInvalidationRoot`, and publishes paint-only invalidation diagnostics. `invalidation_bridge/mark_helpers.rs` owns app-internal layout/presentation/render mark helpers.
+`app/host_lifecycle/invalidation_bridge.rs` is the structural invalidation bridge entry. `invalidation_bridge/dirty_flags.rs` owns the retained-host bridge from dirty-domain masks to legacy dirty flags and UI perf counters: it captures the pending UI perf scenario, records dirty layout/presentation/render/paint-only counters, mutates `HostInvalidationRoot`, and publishes paint-only invalidation diagnostics. `invalidation_bridge/dirty_marking.rs` owns app-internal layout/presentation/render dirty-marking helpers.
 
 ## Render Submission
 
@@ -328,7 +328,7 @@ New feature-specific projection helpers should move into app child modules when 
 - Keep post-invalidation `UiHostEventEffects` side effects in `app/host_lifecycle/dispatch_effects/side_effects.rs`.
 - Keep invalidation bridge module declarations in `app/host_lifecycle/invalidation_bridge.rs`.
 - Keep retained-host dirty-domain to invalidation-root/legacy dirty-flag bridging in `app/host_lifecycle/invalidation_bridge/dirty_flags.rs`.
-- Keep app-internal layout/presentation/render mark helpers in `app/host_lifecycle/invalidation_bridge/mark_helpers.rs`.
+- Keep app-internal layout/presentation/render dirty-marking helpers in `app/host_lifecycle/invalidation_bridge/dirty_marking.rs`.
 - Keep render-dirty extract submission, render-path diagnostics, backend-not-ready retry, and viewport-content frame update scheduling in `app/host_lifecycle/render_submission.rs`.
 - Keep recompute pane payload DTOs and collection order in `app/host_lifecycle/pane_payloads.rs`.
 - Keep UI Asset and Animation Editor pane payload gathering in `app/host_lifecycle/pane_payloads/editor_panes.rs`.
@@ -378,7 +378,7 @@ The 2026-06-18 native-window presenter split reduced `host_lifecycle.rs` to 1124
 
 The 2026-06-18 effects/invalidation bridge split reduced `host_lifecycle.rs` to 952 lines. `host_lifecycle/dispatch_effects.rs` is 122 lines and owns status mutation plus `UiHostEventEffects` application; `host_lifecycle/invalidation_bridge.rs` is 78 lines and owns dirty-mask perf counters, pending UI perf scenario capture, invalidation-root mutation, paint-only invalidation diagnostics, and mark helpers. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app host-lifecycle effects/invalidation ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-19 invalidation bridge dirty-flags/mark-helper subowner split reduced `host_lifecycle/invalidation_bridge.rs` from 78 lines to a 2-line structural entry. `invalidation_bridge/dirty_flags.rs` is 64 lines and owns dirty-mask UI perf counter recording, pending UI perf scenario capture, invalidation-root mutation, legacy dirty-flag mutation, and paint-only diagnostics publication. `invalidation_bridge/mark_helpers.rs` is 17 lines and owns the app-internal layout/presentation/render mark helpers.
+The 2026-06-19 invalidation bridge dirty-flags/dirty-marking subowner split reduced `host_lifecycle/invalidation_bridge.rs` from 78 lines to a 2-line structural entry. `invalidation_bridge/dirty_flags.rs` is 64 lines and owns dirty-mask UI perf counter recording, pending UI perf scenario capture, invalidation-root mutation, legacy dirty-flag mutation, and paint-only diagnostics publication. `invalidation_bridge/dirty_marking.rs` is 17 lines and owns the app-internal layout/presentation/render dirty-marking helpers.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app host-lifecycle invalidation bridge dirty-flags/mark-helper subowner ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 

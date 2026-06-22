@@ -16,6 +16,7 @@ from .pipeline_report_native_dynamic_build_audit_common import (
 from .pipeline_report_schema_table import (
     non_empty_string_array_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 
 NATIVE_DYNAMIC_BUILD_PLAN_FIELDS = (
@@ -201,6 +202,12 @@ def native_dynamic_build_plan_schema_diagnostics(
                     build_plan.get(field),
                 )
             )
+            diagnostics.extend(
+                native_dynamic_build_plan_trimmed_non_empty_string_schema_diagnostics(
+                    f"{label}.{field}",
+                    build_plan.get(field),
+                )
+            )
     for field in NATIVE_DYNAMIC_BUILD_PLAN_BOOL_FIELDS:
         if field in build_plan and build_plan.get(field) is not None:
             diagnostics.extend(
@@ -226,29 +233,57 @@ def native_dynamic_build_plan_schema_diagnostics(
     )
     for field in NATIVE_DYNAMIC_BUILD_PLAN_STRING_ARRAY_FIELDS:
         if field in build_plan and build_plan.get(field) is not None:
-            diagnostics.extend(
-                validate_string_array_schema_diagnostics(
-                    f"{label}.{field}",
-                    build_plan.get(field),
+            field_label = f"{label}.{field}"
+            if field == "build_features":
+                diagnostics.extend(
+                    native_dynamic_build_plan_feature_array_schema_diagnostics(
+                        field_label,
+                        build_plan.get(field),
+                    )
                 )
-            )
+            elif field == "diagnostics":
+                diagnostics.extend(
+                    native_dynamic_build_plan_diagnostics_array_schema_diagnostics(
+                        field_label,
+                        build_plan.get(field),
+                    )
+                )
+            else:
+                diagnostics.extend(
+                    validate_string_array_schema_diagnostics(
+                        field_label,
+                        build_plan.get(field),
+                    )
+                )
             if field == "build_features":
                 diagnostics.extend(
                     string_array_no_blank_entries_schema_diagnostics(
-                        f"{label}.{field}",
+                        field_label,
+                        build_plan.get(field),
+                    )
+                )
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        field_label,
                         build_plan.get(field),
                     )
                 )
                 diagnostics.extend(
                     string_array_unique_entries_schema_diagnostics(
-                        f"{label}.{field}",
+                        field_label,
                         build_plan.get(field),
                     )
                 )
             if field == "diagnostics":
                 diagnostics.extend(
                     string_array_no_blank_entries_schema_diagnostics(
-                        f"{label}.{field}",
+                        field_label,
+                        build_plan.get(field),
+                    )
+                )
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        field_label,
                         build_plan.get(field),
                     )
                 )
@@ -312,7 +347,9 @@ def native_dynamic_build_plan_profile_release_diagnostics(
 ) -> list[str]:
     cargo_profile = build_plan.get("cargo_profile")
     release = build_plan.get("release")
-    if not isinstance(cargo_profile, str) or not cargo_profile.strip():
+    if not native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+        cargo_profile
+    ):
         return []
     if cargo_profile not in NATIVE_DYNAMIC_BUILD_PLAN_CARGO_PROFILES:
         return [f"{label}.cargo_profile must be debug or release"]
@@ -369,14 +406,17 @@ def native_dynamic_build_plan_package_expected_artifact_diagnostics(
         crate_name = package.get("crate_name")
         expected_loadable_artifact = package.get("expected_loadable_artifact")
         if not (
-            isinstance(target_dir, str)
-            and target_dir.strip()
+            native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+                target_dir
+            )
             and isinstance(cargo_profile, str)
             and cargo_profile in NATIVE_DYNAMIC_BUILD_PLAN_CARGO_PROFILES
-            and isinstance(crate_name, str)
-            and crate_name.strip()
-            and isinstance(expected_loadable_artifact, str)
-            and expected_loadable_artifact.strip()
+            and native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+                crate_name
+            )
+            and native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+                expected_loadable_artifact
+            )
         ):
             continue
         target_dir_normalized = native_dynamic_normalized_path(target_dir).rstrip("/")
@@ -425,11 +465,17 @@ def native_dynamic_build_plan_package_header_field_diagnostics(
 
 def native_dynamic_build_plan_header_value_is_comparable(value: Any) -> bool:
     if isinstance(value, str):
-        return bool(value.strip())
+        return native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+            value
+        )
     if type(value) is bool:
         return True
     if isinstance(value, list):
-        return all(isinstance(entry, str) and entry.strip() for entry in value)
+        return native_dynamic_build_plan_string_array_is_schema_clean(
+            value,
+            allow_empty=True,
+            require_unique=True,
+        )
     return False
 
 
@@ -474,6 +520,12 @@ def native_dynamic_build_plan_packages_schema_diagnostics(
                         package.get(field),
                     )
                 )
+                diagnostics.extend(
+                    native_dynamic_build_plan_trimmed_non_empty_string_schema_diagnostics(
+                        f"{package_label}.{field}",
+                        package.get(field),
+                    )
+                )
         for field in NATIVE_DYNAMIC_BUILD_PLAN_PACKAGE_BOOL_FIELDS:
             if field not in package or package.get(field) is None:
                 diagnostics.extend(
@@ -498,29 +550,57 @@ def native_dynamic_build_plan_packages_schema_diagnostics(
                     )
                 )
             if field in package and package.get(field) is not None:
-                diagnostics.extend(
-                    validate_string_array_schema_diagnostics(
-                        f"{package_label}.{field}",
-                        package.get(field),
+                field_label = f"{package_label}.{field}"
+                if field == "features":
+                    diagnostics.extend(
+                        native_dynamic_build_plan_feature_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
                     )
-                )
+                elif field == "command":
+                    diagnostics.extend(
+                        native_dynamic_build_plan_command_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                else:
+                    diagnostics.extend(
+                        validate_string_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
+                    )
                 if field == "command":
                     diagnostics.extend(
                         non_empty_string_array_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                    diagnostics.extend(
+                        string_array_trimmed_non_empty_entries_schema_diagnostics(
+                            field_label,
                             package.get(field),
                         )
                     )
                 if field == "features":
                     diagnostics.extend(
                         string_array_no_blank_entries_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                    diagnostics.extend(
+                        string_array_trimmed_non_empty_entries_schema_diagnostics(
+                            field_label,
                             package.get(field),
                         )
                     )
                     diagnostics.extend(
                         string_array_unique_entries_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
                             package.get(field),
                         )
                     )
@@ -536,7 +616,7 @@ def native_dynamic_build_plan_packages_schema_diagnostics(
 def native_dynamic_build_plan_package_command_semantics_diagnostics(
     package_label: str,
     package: dict[str, Any],
-    ) -> list[str]:
+) -> list[str]:
     command = package.get("command")
     workspace_manifest = package.get("workspace_manifest")
     crate_name = package.get("crate_name")
@@ -545,11 +625,10 @@ def native_dynamic_build_plan_package_command_semantics_diagnostics(
     features = package.get("features")
     owner_label = native_dynamic_build_plan_local_report_label(package_label)
     if not (
-        isinstance(command, list)
-        and command
-        and all(isinstance(part, str) and part.strip() for part in command)
-        and isinstance(workspace_manifest, str)
-        and workspace_manifest.strip()
+        native_dynamic_build_plan_string_array_is_trimmed_non_empty(command)
+        and native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+            workspace_manifest
+        )
     ):
         return []
     diagnostics = command_identity_diagnostics(
@@ -607,7 +686,9 @@ def native_dynamic_build_plan_package_command_semantics_diagnostics(
             label=f"{package_label}.command",
         )
     )
-    if isinstance(crate_name, str) and crate_name.strip():
+    if native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+        crate_name
+    ):
         diagnostics.extend(
             command_alias_string_value_match_diagnostics(
                 command,
@@ -618,7 +699,9 @@ def native_dynamic_build_plan_package_command_semantics_diagnostics(
                 option_label="-p/--package",
             )
         )
-    if isinstance(target_dir, str) and target_dir.strip():
+    if native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+        target_dir
+    ):
         diagnostics.extend(
             command_option_string_value_match_diagnostics(
                 command,
@@ -638,8 +721,10 @@ def native_dynamic_build_plan_package_command_semantics_diagnostics(
                 label=f"{package_label}.command",
             )
         )
-    if isinstance(features, list) and all(
-        isinstance(feature, str) and feature.strip() for feature in features
+    if native_dynamic_build_plan_string_array_is_schema_clean(
+        features,
+        allow_empty=True,
+        require_unique=True,
     ):
         if features:
             diagnostics.extend(
@@ -661,6 +746,97 @@ def native_dynamic_build_plan_package_command_semantics_diagnostics(
                 )
             )
     return diagnostics
+
+
+def native_dynamic_build_plan_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if isinstance(value, str) and value.strip() and value.strip() != value:
+        return [f"{label} must be a non-empty trimmed string"]
+    return []
+
+
+def native_dynamic_build_plan_feature_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
+def native_dynamic_build_plan_command_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
+def native_dynamic_build_plan_diagnostics_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
+def native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+    value: Any,
+) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and value.strip() == value
+    )
+
+
+def native_dynamic_build_plan_string_array_is_trimmed_non_empty(
+    value: Any,
+) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(
+            isinstance(entry, str) and entry.strip() and entry.strip() == entry
+            for entry in value
+        )
+    )
+
+
+def native_dynamic_build_plan_string_array_is_schema_clean(
+    value: Any,
+    *,
+    allow_empty: bool,
+    require_unique: bool,
+) -> bool:
+    if not (
+        isinstance(value, list)
+        and (allow_empty or bool(value))
+        and all(
+            native_dynamic_build_plan_trimmed_non_empty_string_is_schema_clean(
+                entry
+            )
+            for entry in value
+        )
+    ):
+        return False
+    return not require_unique or len(set(value)) == len(value)
 
 
 def native_dynamic_build_plan_local_report_label(label: str) -> str:

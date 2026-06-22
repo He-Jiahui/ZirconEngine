@@ -2,10 +2,11 @@ use std::collections::BTreeSet;
 
 use crate::core::framework::render::PostProcessPassGraph;
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, RenderColorLutReadbackReport, RenderGraphExecutionAliasReport,
-    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
-    RenderGraphMaterializationReport, RenderGraphPassProfileRecord,
-    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+    MotionVectorCameraStatus, RenderColorLutReadbackReport, RenderExposureReadbackReport,
+    RenderGraphExecutionAliasReport, RenderGraphExecutionProfileReport,
+    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -301,6 +302,7 @@ pub struct RenderGraphExecutionRecord {
     pass_profile_records: Vec<RenderGraphPassProfileRecord>,
     history_copy_report: RenderHistoryCopyReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
+    exposure_readback_report: RenderExposureReadbackReport,
     color_lut_readback_report: RenderColorLutReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
@@ -468,6 +470,11 @@ impl RenderGraphExecutionRecord {
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
+    pub fn set_exposure_readback_report(&mut self, report: RenderExposureReadbackReport) {
+        self.exposure_readback_report = report;
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn set_color_lut_readback_report(&mut self, report: RenderColorLutReadbackReport) {
         self.color_lut_readback_report = report;
     }
@@ -626,6 +633,10 @@ impl RenderGraphExecutionRecord {
         self.scene_velocity_readback_report
     }
 
+    pub fn exposure_readback_report(&self) -> RenderExposureReadbackReport {
+        self.exposure_readback_report
+    }
+
     pub fn color_lut_readback_report(&self) -> RenderColorLutReadbackReport {
         self.color_lut_readback_report
     }
@@ -767,9 +778,9 @@ impl RenderGraphExecutionRecord {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderColorLutReadbackReport, RenderGraphExecutionResourceReport,
-        RenderGraphStageExecutionReport, RenderHistoryCopyReport,
-        RenderSceneVelocityReadbackReport,
+        RenderColorLutReadbackReport, RenderExposureReadbackReport,
+        RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
+        RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
     };
     use crate::core::math::UVec2;
     use crate::graphics::pipeline::RenderPassStage;
@@ -852,6 +863,18 @@ mod tests {
         assert_eq!(record.color_lut_readback_report(), report);
         assert!(record.color_lut_readback_report().available);
         assert!(record.color_lut_readback_report().identity_within_epsilon());
+    }
+
+    #[test]
+    fn execution_record_preserves_exposure_readback_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = RenderExposureReadbackReport::from_words([1.0, 9.7, 9.7, 1.0]);
+
+        record.set_exposure_readback_report(report);
+
+        assert_eq!(record.exposure_readback_report(), report);
+        assert!(record.exposure_readback_report().available);
+        assert!(record.exposure_readback_report().history_valid());
     }
 
     #[test]

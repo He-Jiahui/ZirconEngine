@@ -1,12 +1,13 @@
 pub const PLUGIN_ID: &str = "ai";
-pub const AI_RUNTIME_CAPABILITY: &str = "runtime.plugin.ai";
-pub const AI_BEHAVIOR_TREE_CAPABILITY: &str = "runtime.feature.ai.behavior_tree";
-pub const AI_BLACKBOARD_CAPABILITY: &str = "runtime.feature.ai.blackboard";
-pub const AI_PERCEPTION_CAPABILITY: &str = "runtime.feature.ai.perception";
 
+mod capability;
 mod manager;
 mod module;
 
+pub use capability::{
+    AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY,
+    AI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use manager::DefaultAiManager;
 pub use module::{
     module_descriptor, AiDriver, AiModule, AI_DRIVER_NAME, AI_MANAGER_NAME, AI_MODULE_NAME,
@@ -45,7 +46,7 @@ impl zircon_runtime::plugin::RuntimePlugin for AiRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "AI",
         zircon_runtime::builtin::RuntimePluginId::Ai,
@@ -83,31 +84,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         AI_PERCEPTION_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .build()
 }
 
-pub fn runtime_plugin() -> AiRuntimePlugin {
-    AiRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(AiRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        AI_RUNTIME_CAPABILITY,
-        AI_BEHAVIOR_TREE_CAPABILITY,
-        AI_BLACKBOARD_CAPABILITY,
-        AI_PERCEPTION_CAPABILITY,
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

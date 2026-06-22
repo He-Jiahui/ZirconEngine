@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/graphics/solari_runtime_provider/mod.rs
+  - zircon_runtime/src/graphics/runtime_provider/registration.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
@@ -27,6 +28,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/solari/settings.rs
   - zircon_runtime/src/core/framework/render/solari/status.rs
   - zircon_runtime/src/graphics/solari_runtime_provider/provider.rs
+  - zircon_runtime/src/graphics/runtime_provider/registration.rs
   - zircon_runtime/src/graphics/solari_runtime_provider/provider_registration.rs
   - zircon_plugins/solari/runtime/src/lib.rs
 plan_sources:
@@ -87,7 +89,7 @@ Status precedence is capability missing, provider missing, experimental disabled
 
 ## Provider Placement
 
-`SolariRuntimeProviderRegistration` follows the same runtime provider registration pattern as Virtual Geometry and Hybrid GI. `RuntimeExtensionRegistry` collects provider registrations from plugins, `GraphicsModule` carries them into `WgpuRenderFramework`, and framework construction selects one provider by priority.
+`SolariRuntimeProviderRegistration` follows the same runtime provider registration pattern as Virtual Geometry and Hybrid GI. The public type is generated from the shared graphics-internal `RuntimeProviderRegistration<P: ?Sized>` owner, so Solari keeps its own provider trait and public registration name without duplicating provider ID, priority, provider object, or debug storage. `RuntimeExtensionRegistry` collects provider registrations from plugins, `GraphicsModule` carries them into `WgpuRenderFramework`, and framework construction selects one provider by priority.
 
 The selected provider is not a render feature descriptor and does not add graph passes. It only reports availability for the neutral Solari status contract. This keeps M9B separate from any later implementation of a concrete raytraced lighting pass.
 

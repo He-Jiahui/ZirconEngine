@@ -6,8 +6,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/union.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/visibility.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/root_frames.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/skeleton.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/root_frames.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs

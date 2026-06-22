@@ -109,6 +109,7 @@ fn worker_pool_bounded_queue_rejects_overflow_with_explicit_error() {
     let pool = AssetWorkerPool::new_without_workers_for_test(
         AssetWorkerPoolOptions::new(1).with_queue_depth(0),
     );
+    assert!(pool.request_channel_guard_is_alive_for_test());
 
     let error = pool
         .request(AssetRequest::Texture(TextureSource::BuiltinChecker))
@@ -127,6 +128,7 @@ fn concurrent_requests_for_same_asset_decode_once_and_notify_all() {
     let pool = AssetWorkerPool::new_without_workers_for_test(
         AssetWorkerPoolOptions::new(1).with_queue_depth(1),
     );
+    assert!(pool.request_channel_guard_is_alive_for_test());
     let completions = pool.completion_receiver();
     let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
 

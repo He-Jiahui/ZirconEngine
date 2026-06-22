@@ -166,6 +166,158 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_diagnostic_entry(
+        self,
+    ) -> None:
+        cases = ("native_signing", "native_notarization")
+        for operation in cases:
+            with self.subTest(operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        diagnostics=[" signing warning "]
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.diagnostics[0] "
+                            "must be a non-empty trimmed string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            f"NativeDynamic report {operation} is malformed"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_non_string_diagnostic_entry_before_array_shape(
+        self,
+    ) -> None:
+        cases = ("native_signing", "native_notarization")
+        for operation in cases:
+            with self.subTest(operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        diagnostics=["signing warning", 42]
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.diagnostics[1] "
+                            "must be a string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.diagnostics "
+                            "must be a string array"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_command_non_string_entry_before_array_shape(
+        self,
+    ) -> None:
+        cases = ("native_signing", "native_notarization")
+        for operation in cases:
+            with self.subTest(operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        packages=[
+                            _native_operation_audit_package(
+                                artifacts=[
+                                    _native_operation_audit_artifact(
+                                        command=["signtool", 42],
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation} packages[0] "
+                            "artifacts[0].command[1] must be a string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "native_dynamic report "
+                            f"{operation} packages[0] "
+                            "artifacts[0].command must be a string array"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            f"NativeDynamic report {operation} is malformed"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_stage_rejects_native_dynamic_operation_audit_negative_counts(
         self,
     ) -> None:
@@ -213,6 +365,17 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                         ),
                         report["diagnostics"],
                     )
+                    if field == "package_relative_artifact":
+                        self.assertFalse(
+                            any(
+                                "native_dynamic report native_signing packages[0] "
+                                "artifacts[0].package_relative_artifact "
+                                "must be a safe relative path"
+                                in diagnostic
+                                for diagnostic in report["diagnostics"]
+                            ),
+                            report["diagnostics"],
+                        )
 
     def test_report_stage_rejects_native_dynamic_operation_audit_unsafe_relative_artifact(
         self,
@@ -341,6 +504,65 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_duplicate_package_relative_artifact_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                packages=[
+                    _native_operation_audit_package(
+                        artifact_count=2,
+                        artifacts=[
+                            _native_operation_audit_artifact(
+                                package_relative_artifact=(
+                                    " native/zircon_plugin_animation.dll "
+                                )
+                            ),
+                            _native_operation_audit_artifact(
+                                package_relative_artifact=(
+                                    " native/zircon_plugin_animation.dll "
+                                )
+                            ),
+                        ],
+                    )
+                ]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts[0].package_relative_artifact "
+                    "must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts.package_relative_artifact "
+                    "must not contain duplicate entries"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_stage_rejects_native_dynamic_operation_audit_empty_required_identity_string(
         self,
     ) -> None:
@@ -415,6 +637,128 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                 ),
                 "native_dynamic report native_signing packages[0] "
                 "artifacts[0].after_sha256 must be a non-empty string",
+            ),
+        )
+        for field, make_audit, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report["native_signing"] = make_audit()
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_required_identity_string(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "package_id",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            package_id=" animation ",
+                        ),
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0].package_id "
+                "must be a non-empty trimmed string",
+            ),
+            (
+                "artifact",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    artifact=(
+                                        " plugins/animation/native/"
+                                        "zircon_plugin_animation.dll "
+                                    )
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].artifact must be a non-empty trimmed string",
+            ),
+            (
+                "package_relative_artifact",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    package_relative_artifact=(
+                                        " native/zircon_plugin_animation.dll "
+                                    )
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].package_relative_artifact "
+                "must be a non-empty trimmed string",
+            ),
+            (
+                "before_sha256",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    before_sha256=(
+                                        " 0000000000000000000000000000000000000000"
+                                        "000000000000000000000000 "
+                                    )
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].before_sha256 "
+                "must be a non-empty trimmed string",
+            ),
+            (
+                "after_sha256",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    after_sha256=(
+                                        " 1111111111111111111111111111111111111111"
+                                        "111111111111111111111111 "
+                                    )
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].after_sha256 "
+                "must be a non-empty trimmed string",
             ),
         )
         for field, make_audit, expected_diagnostic in cases:
@@ -570,6 +914,65 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_summary_string(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "target_platform",
+                "native_signing",
+                {"target_platform": " windows-x86_64 "},
+                "native_dynamic report native_signing.target_platform "
+                "must be a non-empty trimmed string",
+            ),
+            (
+                "profile",
+                "native_notarization",
+                {"profile": " windows-store "},
+                "native_dynamic report native_notarization.profile "
+                "must be a non-empty trimmed string",
+            ),
+        )
+        for field, operation, overrides, expected_diagnostic in cases:
+            with self.subTest(field=field, operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        **overrides
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    if field == "target_platform":
+                        self.assertFalse(
+                            any(
+                                "native_dynamic report "
+                                f"{operation}.platform_allowed does not match "
+                                "target_platform and allowed_platforms"
+                                in diagnostic
+                                for diagnostic in report["diagnostics"]
+                            ),
+                            report["diagnostics"],
+                        )
+
     def test_report_stage_rejects_native_dynamic_operation_audit_duplicate_allowed_platform(
         self,
     ) -> None:
@@ -601,6 +1004,149 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_duplicate_allowed_platform_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                allowed_platforms=[" windows ", " windows "]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing.allowed_platforms[0] "
+                    "must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_dynamic report native_signing.allowed_platforms "
+                    "must not contain duplicate entries"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_padded_allowed_platform_entry(
+        self,
+    ) -> None:
+        cases = ("native_signing", "native_notarization")
+        for operation in cases:
+            with self.subTest(operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        allowed_platforms=[" windows "],
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.allowed_platforms[0] "
+                            "must be a non-empty trimmed string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.platform_allowed does not match "
+                            "target_platform and allowed_platforms"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_non_string_allowed_platform_entry_before_array_shape(
+        self,
+    ) -> None:
+        cases = ("native_signing", "native_notarization")
+        for operation in cases:
+            with self.subTest(operation=operation):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        allowed_platforms=["windows", 42],
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.allowed_platforms[1] "
+                            "must be a string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.allowed_platforms "
+                            "must be a string array"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.platform_allowed does not match "
+                            "target_platform and allowed_platforms"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
 
     def test_report_stage_rejects_native_dynamic_operation_audit_platform_allowed_mismatch(
         self,

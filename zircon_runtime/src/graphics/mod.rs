@@ -1,10 +1,11 @@
 //! Core rendering, scene rasterization, and host-agnostic GPU services.
 
+// Crate-private implementation owners. Public callers should enter graphics
+// through the curated facade exports and subsystem prelude below.
 pub(crate) mod backend;
 pub(crate) mod debug_markers;
 pub(crate) mod extract;
 pub(crate) mod feature;
-pub mod hybrid_gi_extract_sources;
 pub(crate) mod hybrid_gi_runtime_provider;
 pub(crate) mod material;
 pub(crate) mod particle_runtime_provider;
@@ -12,6 +13,7 @@ pub(crate) mod pipeline;
 pub(crate) mod resource_limits;
 pub(crate) mod runtime;
 mod runtime_prepare_collector;
+pub(crate) mod runtime_provider;
 pub(crate) mod scene;
 pub(crate) mod shader;
 pub(crate) mod solari_runtime_provider;
@@ -19,8 +21,14 @@ pub(crate) mod types;
 pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;
 
+// Public module entries: feature-specific extract source contracts, the common
+// prelude, and the module descriptor surface.
+pub mod hybrid_gi_extract_sources;
+pub mod prelude;
 pub mod runtime_builtin_graphics;
 
+// Public facade exports. These are intentionally grouped by owner module so the
+// facade remains reviewable while implementation modules stay crate-private.
 pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
 pub use feature::{
     BuiltinRenderFeature, RenderFeature, RenderFeatureCapabilityRequirement,
@@ -49,11 +57,16 @@ pub use runtime_builtin_graphics::{
     module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
     RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };
+
+// Crate-visible bridge used by runtime preparation paths without widening the
+// public graphics API.
 pub(crate) use runtime_prepare_collector::RuntimePrepareExternalBufferBinding;
 pub use runtime_prepare_collector::{
     RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
     RuntimePrepareCollectorRegistration,
 };
+
+// Test-only access for graphics surface assertions.
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
 pub use scene::{

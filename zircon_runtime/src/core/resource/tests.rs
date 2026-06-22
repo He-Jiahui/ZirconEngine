@@ -1,8 +1,11 @@
-use crate::core::resource::{
-    AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEventKind,
-    ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
-    ResourceManager, ResourceRecord, ResourceScheme, ResourceState, RuntimeResourceState,
-    UntypedResourceHandle,
+use crate::core::{
+    resource::{
+        AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic,
+        ResourceEventKind, ResourceHandle, ResourceId, ResourceKind, ResourceLocator,
+        ResourceLocatorError, ResourceManager, ResourceRecord, ResourceScheme, ResourceState,
+        RuntimeResourceState, UntypedResourceHandle,
+    },
+    CoreError,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -143,6 +146,24 @@ fn registry_rename_preserves_id_and_remove_clears_lookup() {
         .expect("remove should succeed");
     assert_eq!(removed.id, id);
     assert!(registry.get(id).is_none());
+}
+
+#[test]
+fn registry_rename_reports_missing_locator_with_core_error() {
+    let mut registry = crate::core::resource::ResourceRegistry::default();
+    let missing = locator("res://materials/missing.zmaterial");
+    let target = locator("res://materials/target.zmaterial");
+
+    let error = registry
+        .rename(&missing, target)
+        .expect_err("missing locator should return CoreError");
+
+    match error {
+        CoreError::MissingResourceRecordForLocator { locator } => {
+            assert_eq!(locator, missing.to_string());
+        }
+        other => panic!("expected missing resource locator CoreError, got {other:?}"),
+    }
 }
 
 #[test]

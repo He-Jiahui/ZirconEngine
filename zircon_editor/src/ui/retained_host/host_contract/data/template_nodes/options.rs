@@ -1,6 +1,6 @@
 use crate::ui::retained_host::primitives::SharedString;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct TemplatePaneOptionData {
     pub id: SharedString,
     pub label: SharedString,

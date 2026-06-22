@@ -1,6 +1,9 @@
-use crate::core::resource::{
-    ResourceDiagnostic, ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator,
-    ResourceRecord, ResourceState, RuntimeResourceState, UntypedResourceHandle,
+use crate::core::{
+    resource::{
+        ResourceDiagnostic, ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator,
+        ResourceRecord, ResourceState, RuntimeResourceState, UntypedResourceHandle,
+    },
+    CoreResult,
 };
 
 use super::resource_manager::ResourceManager;
@@ -137,7 +140,7 @@ impl ResourceManager {
         &self,
         from: &ResourceLocator,
         to: ResourceLocator,
-    ) -> Result<ResourceRecord, String> {
+    ) -> CoreResult<ResourceRecord> {
         let renamed = {
             let mut registry = self
                 .registry

@@ -117,6 +117,48 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_source_template_padded_required_string_field(
+        self,
+    ) -> None:
+        padded_fields = (
+            (
+                "project",
+                " padded-project ",
+                "SourceTemplate report project must be a non-empty trimmed string",
+            ),
+            (
+                "validate_report",
+                " padded-validate-report ",
+                "SourceTemplate report validate_report must be a non-empty trimmed string",
+            ),
+        )
+        for field, value, expected_diagnostic in padded_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    _write_source_template_report(out)
+                    report_path = out / "stages" / "source_template" / "report.json"
+                    stage_report = json.loads(report_path.read_text(encoding="utf-8"))
+                    stage_report[field] = value
+                    report_path.write_text(
+                        json.dumps(stage_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn("SourceTemplate", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_stage_rejects_source_template_blank_cleanup_reason(
         self,
     ) -> None:
@@ -136,6 +178,32 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     "SourceTemplate report cleanup_reason must be a non-empty string or null"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_source_template_padded_cleanup_reason(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            _write_source_template_report(
+                out,
+                report_overrides={"cleanup_reason": " fatal_diagnostics "},
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn("SourceTemplate", report["fatal_stages"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "SourceTemplate report cleanup_reason "
+                    "must be a non-empty trimmed string or null"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -282,6 +350,48 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_report_rejects_source_template_generated_file_padded_string_field(
+        self,
+    ) -> None:
+        padded_fields = (
+            (
+                "path",
+                " Cargo.toml ",
+                "SourceTemplate generated file path must be a non-empty trimmed string",
+            ),
+            (
+                "purpose",
+                " generated runtime package manifest ",
+                "SourceTemplate generated file Cargo.toml purpose must be a non-empty trimmed string",
+            ),
+        )
+        for field, value, expected_diagnostic in padded_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    _write_source_template_report(out)
+                    report_path = out / "stages" / "source_template" / "report.json"
+                    stage_report = json.loads(report_path.read_text(encoding="utf-8"))
+                    stage_report["generated_files"][0][field] = value
+                    report_path.write_text(
+                        json.dumps(stage_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn("SourceTemplate", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_rejects_source_template_build_validation_unknown_field(
         self,
     ) -> None:
@@ -373,6 +483,48 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
                     report_path = out / "stages" / "source_template" / "report.json"
                     stage_report = json.loads(report_path.read_text(encoding="utf-8"))
                     stage_report["build_validation"][field] = "   "
+                    report_path.write_text(
+                        json.dumps(stage_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn("SourceTemplate", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_source_template_build_validation_padded_required_string(
+        self,
+    ) -> None:
+        padded_fields = (
+            (
+                "status",
+                " skipped ",
+                "SourceTemplate build_validation status must be a non-empty trimmed string",
+            ),
+            (
+                "working_dir",
+                " padded-working-dir ",
+                "SourceTemplate build_validation working_dir must be a non-empty trimmed string",
+            ),
+        )
+        for field, value, expected_diagnostic in padded_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    _write_source_template_report(out)
+                    report_path = out / "stages" / "source_template" / "report.json"
+                    stage_report = json.loads(report_path.read_text(encoding="utf-8"))
+                    stage_report["build_validation"][field] = value
                     report_path.write_text(
                         json.dumps(stage_report, indent=2),
                         encoding="utf-8",
@@ -556,3 +708,47 @@ class PipelineReportSourceTemplateSchemaTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+
+    def test_report_rejects_source_template_validate_generated_file_padded_string_field(
+        self,
+    ) -> None:
+        padded_fields = (
+            (
+                "path",
+                " Cargo.toml ",
+                "SourceTemplate Validate generated file path must be a non-empty trimmed string",
+            ),
+            (
+                "purpose",
+                " generated runtime package manifest ",
+                "SourceTemplate Validate generated_files[0].purpose must be a non-empty trimmed string",
+            ),
+        )
+        for field, value, expected_diagnostic in padded_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    validate_path = out / "stages" / "validate" / "report.json"
+                    validate_report = json.loads(
+                        validate_path.read_text(encoding="utf-8")
+                    )
+                    validate_report["plan_summary"]["generated_files"][0][field] = value
+                    validate_path.write_text(
+                        json.dumps(validate_report, indent=2),
+                        encoding="utf-8",
+                    )
+                    _write_source_template_report(out)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertIn("Validate", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )

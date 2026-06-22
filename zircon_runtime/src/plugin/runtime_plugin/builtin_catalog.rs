@@ -1,4 +1,4 @@
-use super::RuntimePluginDescriptor;
+use super::{RuntimePluginDescriptor, RuntimePluginDescriptorBuilder};
 
 mod advanced_rendering;
 mod asset_rows;
@@ -23,11 +23,13 @@ use classification::classify_descriptor;
 use optional_features::attach_optional_features;
 use rows::builtin_catalog_rows;
 
+type BuiltinCatalogDescriptorBuilder = RuntimePluginDescriptorBuilder;
+
 impl RuntimePluginDescriptor {
     pub fn builtin_catalog() -> Vec<Self> {
         builtin_catalog_rows()
             .map(|row| {
-                Self::new(
+                Self::builder(
                     row.package_id,
                     row.display_name,
                     row.runtime_id,
@@ -39,6 +41,7 @@ impl RuntimePluginDescriptor {
             .map(augment_descriptor)
             .map(attach_optional_features)
             .map(classify_descriptor)
+            .map(RuntimePluginDescriptorBuilder::build)
             .collect()
     }
 }

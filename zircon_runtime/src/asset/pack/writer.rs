@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::net::{ZrChunkEntry, ZrPackManifest};
 
+use super::manifest::validate_zrpack_asset_path;
 use super::{
     zrpack_content_hash, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
     ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
@@ -39,6 +40,7 @@ impl ZrPackWriter {
         assets: impl IntoIterator<Item = ZrPackInputAsset>,
     ) -> Result<ZrPackWriteReport, ZrPackError> {
         let mut assets = assets.into_iter().collect::<Vec<_>>();
+        validate_asset_paths(&assets)?;
         assets.sort_by(|left, right| left.path.cmp(&right.path));
         reject_duplicate_paths(&assets)?;
 
@@ -100,6 +102,13 @@ impl ZrPackWriter {
             deduplicated_assets,
         })
     }
+}
+
+fn validate_asset_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> {
+    for asset in assets {
+        validate_zrpack_asset_path(&asset.path)?;
+    }
+    Ok(())
 }
 
 fn reject_duplicate_paths(assets: &[ZrPackInputAsset]) -> Result<(), ZrPackError> {

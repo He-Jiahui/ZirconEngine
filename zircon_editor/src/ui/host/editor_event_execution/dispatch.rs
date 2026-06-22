@@ -9,10 +9,10 @@ use super::{
     layout_command::execute_layout_command, menu_action::execute_menu_action,
     selection_event::execute_selection, viewport_event::execute_viewport_event,
 };
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(crate) fn execute_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     event: &EditorEvent,
 ) -> Result<ExecutionOutcome, String> {
     match event {

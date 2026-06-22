@@ -1055,7 +1055,8 @@ fn runtime_fixture_assets_live_under_crate_assets() {
 #[test]
 fn runtime_fixture_loader_stays_on_asset_paths() {
     let fixture_source = fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/runtime_ui_fixture.rs"),
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs"),
     )
     .expect("runtime_ui_fixture.rs should be readable");
 
@@ -1082,7 +1083,8 @@ fn runtime_fixture_loader_stays_on_asset_paths() {
 #[test]
 fn runtime_ui_manager_loads_fixture_documents_from_asset_files() {
     let manager_source = fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/runtime_ui/runtime_ui_manager.rs"),
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/ui/tests/runtime_ui_support/runtime_ui_manager.rs"),
     )
     .expect("runtime_ui_manager.rs should be readable");
 

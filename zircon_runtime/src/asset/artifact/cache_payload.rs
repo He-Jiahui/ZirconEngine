@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::{
     AlphaMode, AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset,
-    AnimationSkeletonAsset, AnimationStateMachineAsset, AssetReference, AssetUri, DataAsset,
-    FontAsset, ImportedAsset, MaterialAsset, MaterialGraphAsset, MaterialTextureSlotValue,
-    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
-    ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
-    ShaderMaterialPropertyAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset,
-    UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    AnimationSkeletonAsset, AnimationStateMachineAsset, AssetImportError, AssetReference, AssetUri,
+    DataAsset, FontAsset, ImportedAsset, MaterialAsset, MaterialGraphAsset,
+    MaterialTextureSlotValue, ModelAsset, NavMeshAsset, NavigationSettingsAsset,
+    PhysicsMaterialAsset, PrefabAsset, ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
+    ShaderSourceLanguage, ShaderTextureSlotAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
+    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::core::framework::physics::PhysicsMaterialMetadata;
 use crate::core::framework::render::{
@@ -59,19 +59,19 @@ pub(super) enum ArtifactCacheAsset {
     AnimationSequence(AnimationSequenceAsset),
     AnimationGraph(AnimationGraphAsset),
     AnimationStateMachine(AnimationStateMachineAsset),
-    UiLayout(UiLayoutAsset),
-    UiWidget(UiWidgetAsset),
-    UiStyle(UiStyleAsset),
+    UiLayout(ArtifactCacheUiAssetDocument),
+    UiWidget(ArtifactCacheUiAssetDocument),
+    UiStyle(ArtifactCacheUiAssetDocument),
     UiTheme(UiThemeAsset),
     UiIcon(UiIconAsset),
-    UiV2View(UiV2ViewAsset),
-    UiV2Component(UiV2ComponentAsset),
-    UiV2Style(UiV2StyleAsset),
+    UiV2View(ArtifactCacheUiV2AssetDocument),
+    UiV2Component(ArtifactCacheUiV2AssetDocument),
+    UiV2Style(ArtifactCacheUiV2AssetDocument),
 }
 
 impl ArtifactCacheAsset {
-    pub(super) fn from_imported(asset: &ImportedAsset) -> Self {
-        match asset {
+    pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetImportError> {
+        Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
             ImportedAsset::Texture(asset) => Self::Texture(ArtifactCacheTextureAsset::from(asset)),
             ImportedAsset::Shader(asset) => Self::Shader(ArtifactCacheShaderAsset::from(asset)),
@@ -101,18 +101,30 @@ impl ArtifactCacheAsset {
             ImportedAsset::AnimationStateMachine(asset) => {
                 Self::AnimationStateMachine(asset.clone())
             }
-            ImportedAsset::UiLayout(asset) => Self::UiLayout(asset.clone()),
-            ImportedAsset::UiWidget(asset) => Self::UiWidget(asset.clone()),
-            ImportedAsset::UiStyle(asset) => Self::UiStyle(asset.clone()),
+            ImportedAsset::UiLayout(asset) => Self::UiLayout(
+                ArtifactCacheUiAssetDocument::from_document(&asset.document)?,
+            ),
+            ImportedAsset::UiWidget(asset) => Self::UiWidget(
+                ArtifactCacheUiAssetDocument::from_document(&asset.document)?,
+            ),
+            ImportedAsset::UiStyle(asset) => Self::UiStyle(
+                ArtifactCacheUiAssetDocument::from_document(&asset.document)?,
+            ),
             ImportedAsset::UiTheme(asset) => Self::UiTheme(asset.clone()),
             ImportedAsset::UiIcon(asset) => Self::UiIcon(asset.clone()),
-            ImportedAsset::UiV2View(asset) => Self::UiV2View(asset.clone()),
-            ImportedAsset::UiV2Component(asset) => Self::UiV2Component(asset.clone()),
-            ImportedAsset::UiV2Style(asset) => Self::UiV2Style(asset.clone()),
-        }
+            ImportedAsset::UiV2View(asset) => Self::UiV2View(
+                ArtifactCacheUiV2AssetDocument::from_document(&asset.document)?,
+            ),
+            ImportedAsset::UiV2Component(asset) => Self::UiV2Component(
+                ArtifactCacheUiV2AssetDocument::from_document(&asset.document)?,
+            ),
+            ImportedAsset::UiV2Style(asset) => Self::UiV2Style(
+                ArtifactCacheUiV2AssetDocument::from_document(&asset.document)?,
+            ),
+        })
     }
 
-    pub(super) fn into_imported(self) -> Result<ImportedAsset, String> {
+    pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetImportError> {
         Ok(match self {
             Self::Data(asset) => ImportedAsset::Data(asset.into()),
             Self::Texture(asset) => ImportedAsset::Texture(asset.into_asset()),
@@ -137,14 +149,106 @@ impl ArtifactCacheAsset {
             Self::AnimationSequence(asset) => ImportedAsset::AnimationSequence(asset),
             Self::AnimationGraph(asset) => ImportedAsset::AnimationGraph(asset),
             Self::AnimationStateMachine(asset) => ImportedAsset::AnimationStateMachine(asset),
-            Self::UiLayout(asset) => ImportedAsset::UiLayout(asset),
-            Self::UiWidget(asset) => ImportedAsset::UiWidget(asset),
-            Self::UiStyle(asset) => ImportedAsset::UiStyle(asset),
+            Self::UiLayout(asset) => ImportedAsset::UiLayout(asset.into_layout_asset()?),
+            Self::UiWidget(asset) => ImportedAsset::UiWidget(asset.into_widget_asset()?),
+            Self::UiStyle(asset) => ImportedAsset::UiStyle(asset.into_style_asset()?),
             Self::UiTheme(asset) => ImportedAsset::UiTheme(asset),
             Self::UiIcon(asset) => ImportedAsset::UiIcon(asset),
-            Self::UiV2View(asset) => ImportedAsset::UiV2View(asset),
-            Self::UiV2Component(asset) => ImportedAsset::UiV2Component(asset),
-            Self::UiV2Style(asset) => ImportedAsset::UiV2Style(asset),
+            Self::UiV2View(asset) => ImportedAsset::UiV2View(asset.into_view_asset()?),
+            Self::UiV2Component(asset) => {
+                ImportedAsset::UiV2Component(asset.into_component_asset()?)
+            }
+            Self::UiV2Style(asset) => ImportedAsset::UiV2Style(asset.into_style_asset()?),
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(super) struct ArtifactCacheUiAssetDocument {
+    document_toml: String,
+}
+
+impl ArtifactCacheUiAssetDocument {
+    fn from_document(
+        document: &zircon_runtime_interface::ui::template::UiAssetDocument,
+    ) -> Result<Self, AssetImportError> {
+        toml::to_string(document)
+            .map(|document_toml| Self { document_toml })
+            .map_err(|source| AssetImportError::TomlSerialize {
+                context: "serialize ui asset document cache",
+                source,
+            })
+    }
+
+    fn into_layout_asset(self) -> Result<UiLayoutAsset, AssetImportError> {
+        UiLayoutAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiDocument {
+                context: "deserialize ui layout document cache",
+                source,
+            }
+        })
+    }
+
+    fn into_widget_asset(self) -> Result<UiWidgetAsset, AssetImportError> {
+        UiWidgetAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiDocument {
+                context: "deserialize ui widget document cache",
+                source,
+            }
+        })
+    }
+
+    fn into_style_asset(self) -> Result<UiStyleAsset, AssetImportError> {
+        UiStyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiDocument {
+                context: "deserialize ui style document cache",
+                source,
+            }
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(super) struct ArtifactCacheUiV2AssetDocument {
+    document_toml: String,
+}
+
+impl ArtifactCacheUiV2AssetDocument {
+    fn from_document(
+        document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
+    ) -> Result<Self, AssetImportError> {
+        toml::to_string(document)
+            .map(|document_toml| Self { document_toml })
+            .map_err(|source| AssetImportError::TomlSerialize {
+                context: "serialize ui v2 asset document cache",
+                source,
+            })
+    }
+
+    fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetImportError> {
+        UiV2ViewAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiV2Document {
+                context: "deserialize ui v2 view document cache",
+                source,
+            }
+        })
+    }
+
+    fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetImportError> {
+        UiV2ComponentAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiV2Document {
+                context: "deserialize ui v2 component document cache",
+                source,
+            }
+        })
+    }
+
+    fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetImportError> {
+        UiV2StyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            AssetImportError::UiV2Document {
+                context: "deserialize ui v2 style document cache",
+                source,
+            }
         })
     }
 }
@@ -284,7 +388,7 @@ impl From<&PrefabAsset> for ArtifactCachePrefabAsset {
 }
 
 impl ArtifactCachePrefabAsset {
-    fn into_asset(self) -> Result<PrefabAsset, String> {
+    fn into_asset(self) -> Result<PrefabAsset, AssetImportError> {
         Ok(PrefabAsset {
             uri: self.uri,
             name: self.name,
@@ -347,7 +451,7 @@ impl From<&MaterialAsset> for ArtifactCacheMaterialAsset {
 }
 
 impl ArtifactCacheMaterialAsset {
-    fn into_asset(self) -> Result<MaterialAsset, String> {
+    fn into_asset(self) -> Result<MaterialAsset, AssetImportError> {
         Ok(MaterialAsset {
             name: self.name,
             shader: self.shader,
@@ -431,7 +535,7 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
 }
 
 impl ArtifactCacheShaderAsset {
-    fn into_asset(self) -> Result<ShaderAsset, String> {
+    fn into_asset(self) -> Result<ShaderAsset, AssetImportError> {
         Ok(ShaderAsset {
             uri: self.uri,
             source_language: self.source_language,
@@ -590,7 +694,7 @@ impl From<&ShaderMaterialPropertyAsset> for ArtifactCacheShaderMaterialPropertyA
 }
 
 impl ArtifactCacheShaderMaterialPropertyAsset {
-    fn into_asset(self) -> Result<ShaderMaterialPropertyAsset, String> {
+    fn into_asset(self) -> Result<ShaderMaterialPropertyAsset, AssetImportError> {
         Ok(ShaderMaterialPropertyAsset {
             name: self.name,
             kind: self.kind,

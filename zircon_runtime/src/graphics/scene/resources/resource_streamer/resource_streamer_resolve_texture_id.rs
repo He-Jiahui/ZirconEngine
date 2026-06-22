@@ -131,12 +131,4 @@ impl ResourceStreamer {
             slot_fallback: None,
         }
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn resolve_texture_id(
-        &self,
-        reference: Option<&AssetReference>,
-    ) -> Option<ResourceId> {
-        self.resolve_texture_reference("texture", reference).id()
-    }
 }

@@ -8,6 +8,7 @@ mod collect_manifests;
 mod discover;
 mod discover_load_manifest;
 mod dynamic_library_name;
+mod ffi_panic_guard;
 mod host_api_adapter;
 mod host_callbacks;
 mod load_discovered;

@@ -28,7 +28,8 @@ pub(super) fn dispatch_analog_input(
     let changed = surface
         .input
         .update_analog_control(analog.control.as_str(), analog.value);
-    let analog_navigation = analog_navigation_decision(&mut surface.input, &analog);
+    let navigation_analog = analog_with_retained_control_value(surface, &analog);
+    let analog_navigation = analog_navigation_decision(&mut surface.input, &navigation_analog);
     if let AnalogNavigationDecision::Navigate(navigation_kind) = analog_navigation {
         let mut navigation_result = dispatch_navigation_input(
             surface,
@@ -79,4 +80,15 @@ fn with_analog_route_policy(
     annotate_route_policy(surface, &event, &mut result);
     annotate_result_route_steps(&mut result);
     result
+}
+
+fn analog_with_retained_control_value(
+    surface: &UiSurface,
+    analog: &UiAnalogInputEvent,
+) -> UiAnalogInputEvent {
+    let mut analog = analog.clone();
+    if let Some(state) = surface.input.analog_controls.get(analog.control.as_str()) {
+        analog.value = state.value;
+    }
+    analog
 }

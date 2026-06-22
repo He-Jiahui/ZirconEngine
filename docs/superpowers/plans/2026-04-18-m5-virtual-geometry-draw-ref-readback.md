@@ -9,7 +9,7 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_draw_refs.rs
   - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
@@ -23,7 +23,7 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_draw_refs.rs
   - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
 plan_sources:

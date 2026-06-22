@@ -6,18 +6,20 @@ related_code:
   - docs/engine-architecture/runtime-interface-convergence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
 implementation_files:
   - docs/engine-architecture/runtime-root-surface-m1.md
   - docs/engine-architecture/runtime-architecture-review-m0.md
   - docs/engine-architecture/runtime-interface-convergence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
   - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - docs/engine-architecture/runtime-reference-engine-evidence.md
 tests:
-  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - git diff --check -- .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py docs/engine-architecture/runtime-root-surface-m1.md docs/engine-architecture/runtime-architecture-review-m0.md docs/engine-architecture/runtime-interface-convergence.md .codex/sessions/20260604-1232-runtime-architecture-review.md
@@ -68,6 +70,8 @@ The current root `pub use` classification is:
 - `zircon_runtime_reflection_macros`: stable developer-facing macro facade.
 
 The current migration debt list is empty.
+
+Markdown rendering for this gate is split out to `runtime_root_surface_markdown.py`. `runtime_root_surface.py` remains the 268-line audit and risk owner, while the Markdown owner is 35 lines and only formats the current `root_surface_audit` facts. The split preserves the current direct audit output: 19 public modules, 2 public `pub use` locations, 19 module decisions, 2 public-use decisions, zero unclassified root entries, zero migration debt, zero crate-visible graphics re-exports, M1 gate `classified-and-clear`, and `risks = []`.
 
 `rhi_wgpu` backend root public exposure is removed. The backend module is now a crate-private owner behind `rhi`; direct external `zircon_runtime::rhi_wgpu` paths must not return.
 

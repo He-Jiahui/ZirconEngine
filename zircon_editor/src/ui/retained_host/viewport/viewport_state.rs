@@ -17,7 +17,6 @@ pub(super) struct ViewportState {
     pub(super) latest_generation: Option<u64>,
     pub(super) latest_image: Option<Image>,
     pub(super) last_error: Option<String>,
-    #[allow(dead_code)]
     pub(super) last_world_space_ui_surfaces: Vec<WorldSpaceUiSurfaceSubmission>,
     pub(super) world_space_ui_pointer_capture: Option<WorldSpaceUiSurfaceSubmission>,
 }

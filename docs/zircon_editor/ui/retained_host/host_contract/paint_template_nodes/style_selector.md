@@ -1,6 +1,11 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/feedback.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/form_controls.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/colors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/model.rs
@@ -65,6 +70,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/checkbox.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/radio.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/toggle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/selector.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs
@@ -75,6 +85,11 @@ related_code:
   - zircon_runtime_interface/src/ui/style.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/feedback.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/form_controls.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/colors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/model.rs
@@ -135,6 +150,11 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/checkbox.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/radio.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/toggle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/style/selector.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs
@@ -174,6 +194,8 @@ tests:
   - cargo test -p zircon_editor --lib selection_control_loading_state_mutes_active_checked_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib template_selection_controls --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls.rs zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
+  - template selection controls style checkbox/radio/toggle ownership scan
+  - style-selector exports chrome/feedback/form-controls/rows ownership scan
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider.rs zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown.rs
   - cargo test -p zircon_editor --lib template_popup_rows --locked --jobs 1 --message-format short --color never
@@ -192,7 +214,7 @@ tests:
   - E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe notification_center --nocapture --test-threads=1 (2026-06-15: passed, 3 passed / 0 failed / 1992 filtered; covers open NotificationCenter panel/row painting and closed no-fallback consumption)
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs::standalone_dropdown_popup_paints_rows_inside_projected_popup_frame
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs::template_option_popup_frame_within_uses_projected_dropdown_popup_frame
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after popup shell role/projected frame geometry baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after popup shell role/projected frame geometry baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row.rs
   - git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row.rs docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/style_selector.md
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows.rs
@@ -226,7 +248,11 @@ doc_type: module-detail
 
 # Workbench Style Selectors
 
-The retained Workbench painter keeps visual state resolution in `style_selector/*` files and leaves the template painters responsible for recognition, geometry, and command emission. Selectors consume the shared `UiPainterState` / `UiPainterResolvedState` priority model, so hover, focus, press, selected, checked, open, disabled, dragging, drop-hover, and loading states do not drift across component families.
+The retained Workbench painter keeps visual state resolution in `style_selector/*` files and leaves the template painters responsible for recognition, geometry, and command emission. `style_selector/mod.rs` is now the structural declaration/re-export entry, `style_selector/exports.rs` owns only export module wiring, and `exports/{chrome,feedback,form_controls,rows}.rs` own the restricted selector export surface by UI family. Selectors consume the shared `UiPainterState` / `UiPainterResolvedState` priority model, so hover, focus, press, selected, checked, open, disabled, dragging, drop-hover, and loading states do not drift across component families.
+
+The 2026-06-21 style-selector export split reduced `style_selector/mod.rs` from 101 lines to a 20-line structural entry. `exports.rs` owns the child selector re-export list for state projection and Workbench family selectors. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a style-selector export ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 style-selector exports chrome/feedback/form-controls/rows split reduced `style_selector/exports.rs` from 93 lines to a 9-line structural export entry. `exports/chrome.rs` is 17 lines and owns chrome/status selector re-exports plus test-only chrome/status constants; `feedback.rs` is 18 lines and owns alert/toast/tooltip re-exports; `form_controls.rs` is 39 lines and owns button/dropdown/icon-button/segmented/selection/slider/text-field re-exports; `rows.rs` is 19 lines and owns list/popup/table/tree row re-exports. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a style-selector exports ownership scan, docs marker scan, scoped whitespace scan, and scoped `git diff --check`; package-level editor Cargo check and full Cargo tests remain deferred to the milestone testing stage per the user's implementation-first instruction.
 
 ## Workbench Chrome
 
@@ -274,6 +300,8 @@ The focused regression `segmented_and_tab_styles_use_shared_state_priority` veri
 - unavailable controls suppress declared `.zui` background, border, foreground, label, and value colors so loading cannot render as an active checked toggle or focused checked checkbox;
 - pressed, focus, hover, drag, and drop-hover still produce active focus-ring or pressed treatment only when the resolved state is available;
 - `template_selection_controls.rs` remains responsible for Workbench role recognition, mark geometry, radio dot size, toggle track/thumb placement, text lanes, and paint-command ordering.
+
+`template_selection_controls/style.rs` is now a structural style accessor entry. `style/checkbox.rs` owns checkbox surface/border/label/state accessors, `style/radio.rs` owns radio surface/border/accent accessors, `style/toggle.rs` owns toggle track/thumb/border/text accessors, and `style/selector.rs` owns the one handoff to `workbench_selection_control.rs`. This keeps per-control retained painter helpers separated while preserving the public helper names used by checkbox, radio, toggle, and template regressions.
 
 The selector-local regression `selection_controls_loading_state_uses_unavailable_visuals` locks loading-state precedence over checked/selected, press/drop-hover, and declared colors. The template regression `selection_control_loading_state_mutes_active_checked_visuals` keeps the retained painter helper path aligned with the shared selector while preserving existing checked-control geometry tests.
 

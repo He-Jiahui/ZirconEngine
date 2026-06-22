@@ -12,7 +12,7 @@ impl EventBus {
         let Some(subscribers) = self.snapshot_topic_subscribers(&event.topic) else {
             return;
         };
-        let _delivery_guard = self.delivery_lock.lock().unwrap();
+        let _delivery_guard = self.lock_delivery();
 
         match subscribers.as_ref() {
             [] => return,
@@ -257,7 +257,7 @@ impl EventBus {
     }
 
     fn snapshot_topic_subscribers(&self, topic: &str) -> Option<Arc<[ChannelSender<EngineEvent>]>> {
-        let subscribers = self.subscribers.lock().unwrap();
+        let subscribers = self.lock_subscribers();
         let snapshot = subscribers.get(topic)?;
         if snapshot.is_empty() {
             None

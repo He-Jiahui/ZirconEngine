@@ -41,7 +41,10 @@ fn mouse_wheel_events_reject_invalid_unit_and_delta() {
 
 #[test]
 fn mouse_wheel_at_events_decode_delta_bits_for_dynamic_session() {
-    let source = include_str!("../session.rs");
+    let source = concat!(
+        include_str!("../session.rs"),
+        include_str!("../session/events.rs"),
+    );
     let wheel_handler = source
         .split("fn handle_mouse_wheel(&mut self, event: ZrRuntimeEventV1) -> ZrStatus")
         .nth(1)

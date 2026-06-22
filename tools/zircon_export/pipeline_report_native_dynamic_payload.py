@@ -65,6 +65,8 @@ def is_non_empty_safe_relative_path(value: str) -> bool:
 def platform_bundle_native_plugins_payload_diagnostics(
     report: dict[str, Any],
     native_dynamic_report_path: Path | None,
+    *,
+    native_dynamic_stage_report_failed: bool = False,
 ) -> list[str]:
     native_plugins = report.get("native_plugins")
     payload = report.get("native_plugins_payload")
@@ -98,6 +100,7 @@ def platform_bundle_native_plugins_payload_diagnostics(
         return diagnostics
 
     payload_stage_report_matches = False
+    suppress_unbacked_stage_audits = False
     effective_native_dynamic_report_path = native_dynamic_report_path
     payload_stage_report = payload.get("stage_report")
     if payload_stage_report is None:
@@ -134,6 +137,8 @@ def platform_bundle_native_plugins_payload_diagnostics(
                     f"{payload_stage_report_path} does not match NativeDynamic report "
                     f"{expected_stage_report_path}"
                 )
+            elif native_dynamic_stage_report_failed:
+                suppress_unbacked_stage_audits = True
             elif payload_stage_report_path is None:
                 pass
             elif not payload_stage_report_path.exists():
@@ -299,15 +304,16 @@ def platform_bundle_native_plugins_payload_diagnostics(
                 stage_backed_payload=payload_stage_report_matches,
             )
         )
-    diagnostics.extend(
-        platform_bundle_native_plugins_operation_audit_diagnostics(
-            payload,
-            effective_native_dynamic_report_path,
-            profile=report.get("profile"),
-            payload_packages=payload_packages,
-            stage_backed_payload=payload_stage_report_matches,
+    if not suppress_unbacked_stage_audits:
+        diagnostics.extend(
+            platform_bundle_native_plugins_operation_audit_diagnostics(
+                payload,
+                effective_native_dynamic_report_path,
+                profile=report.get("profile"),
+                payload_packages=payload_packages,
+                stage_backed_payload=payload_stage_report_matches,
+            )
         )
-    )
     payload_package_count = payload.get("package_count")
     if payload_package_count is None:
         diagnostics.append(
@@ -651,12 +657,13 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
     except tomllib.TOMLDecodeError as error:
         return [f"{label} {package_report_path} is not valid TOML: {error}"]
 
-    diagnostics.extend(
+    package_report_schema_diagnostics = (
         platform_bundle_native_plugins_package_report_schema_diagnostics(
             label,
             package_report,
         )
     )
+    diagnostics.extend(package_report_schema_diagnostics)
     package_report_id = package_report.get("package_id")
     if package_report_id is None:
         diagnostics.append(f"{label} package_id must be a non-empty string")
@@ -671,7 +678,11 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
             f"{label} format_version {format_version} is not supported; expected 1"
         )
     package_id = str(package["package_id"])
-    if package_report_id != package_id:
+    if (
+        isinstance(package_report_id, str)
+        and package_report_id.strip() == package_report_id
+        and package_report_id != package_id
+    ):
         diagnostics.append(
             f"{label} package_id {package_report_id} "
             f"does not match materialized package {package_id}"
@@ -680,6 +691,8 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
     expected_directory = package_dir.relative_to(plugins_root).as_posix()
     if directory is not None:
         if isinstance(directory, str) and not directory.strip():
+            pass
+        elif isinstance(directory, str) and directory.strip() != directory:
             pass
         elif isinstance(directory, str) and not is_non_empty_safe_relative_path(
             directory
@@ -700,6 +713,8 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
         if value is None:
             continue
         if isinstance(value, str) and not value.strip():
+            continue
+        if isinstance(value, str) and value.strip() != value:
             continue
         if isinstance(value, str) and not is_non_empty_safe_relative_path(value):
             continue
@@ -734,12 +749,13 @@ def platform_bundle_native_plugins_package_report_abi_diagnostics(
     if not isinstance(abi, dict):
         return [f"{label} abi must be an object"]
     diagnostics: list[str] = []
-    diagnostics.extend(
+    abi_schema_diagnostics = (
         platform_bundle_native_plugins_package_report_abi_schema_diagnostics(
             label,
             abi,
         )
     )
+    diagnostics.extend(abi_schema_diagnostics)
     abi_version = abi.get("abi_version")
     if abi_version is None:
         diagnostics.append(f"{label} abi.abi_version must be an integer")
@@ -751,6 +767,8 @@ def platform_bundle_native_plugins_package_report_abi_diagnostics(
             diagnostics.append(f"{label} abi.{field} must be a non-empty string")
             continue
         if isinstance(value, str) and not value.strip():
+            continue
+        if isinstance(value, str) and value.strip() != value:
             continue
         if not isinstance(value, str):
             continue

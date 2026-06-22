@@ -3,6 +3,7 @@
 mod level_system;
 mod level_system_render_extract;
 mod module;
+pub mod prelude;
 mod runtime_level_traits;
 
 pub use level_system::{
@@ -59,7 +60,7 @@ pub use reflect::{
     scene_value_from_reflected, ReflectComponent, ReflectResource, RuntimeTypeRegistration,
     TypeRegistry, WorldReflection,
 };
-pub use world::{ComponentTypeRegistry, DynamicComponentInstance, World};
+pub use world::{ComponentTypeRegistry, DynamicComponentInstance, SceneError, SceneResult, World};
 
 #[allow(unused_imports)]
 pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};

@@ -12,7 +12,7 @@ use crate::plugin::{
 fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins() {
     let feature = SoundTimelineFeaturePlugin;
     let mut catalog = RuntimePluginCatalog::from_descriptors([
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
@@ -23,8 +23,9 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
             RuntimeTargetMode::EditorHost,
         ])
         .with_capability("runtime.plugin.sound")
-        .with_optional_feature(feature.manifest()),
-        RuntimePluginDescriptor::new(
+        .with_optional_feature(feature.manifest())
+        .build(),
+        RuntimePluginDescriptor::builder(
             "animation",
             "Animation",
             RuntimePluginId::Animation,
@@ -34,7 +35,8 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
             RuntimeTargetMode::ClientRuntime,
             RuntimeTargetMode::EditorHost,
         ])
-        .with_capability("runtime.feature.animation.timeline_event_track"),
+        .with_capability("runtime.feature.animation.timeline_event_track")
+        .build(),
     ]);
     catalog.register_feature(&feature);
     let manifest = ProjectPluginManifest {
@@ -63,7 +65,7 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
 fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
     let feature = SoundTimelineFeaturePlugin;
     let mut catalog = RuntimePluginCatalog::from_descriptors([
-        RuntimePluginDescriptor::new(
+        RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
@@ -74,8 +76,9 @@ fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
             RuntimeTargetMode::EditorHost,
         ])
         .with_capability("runtime.plugin.sound")
-        .with_optional_feature(feature.manifest()),
-        RuntimePluginDescriptor::new(
+        .with_optional_feature(feature.manifest())
+        .build(),
+        RuntimePluginDescriptor::builder(
             "animation",
             "Animation",
             RuntimePluginId::Animation,
@@ -85,7 +88,8 @@ fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
             RuntimeTargetMode::ClientRuntime,
             RuntimeTargetMode::EditorHost,
         ])
-        .with_capability("runtime.feature.animation.timeline_event_track"),
+        .with_capability("runtime.feature.animation.timeline_event_track")
+        .build(),
     ]);
     catalog.register_feature(&feature);
     catalog.register_feature(&feature);
@@ -120,14 +124,15 @@ fn runtime_plugin_catalog_reports_conflicting_feature_defaults_between_package_a
         .manifest()
         .with_default_packaging([ExportPackagingStrategy::NativeDynamic])
         .enabled_by_default(true);
-    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
         "zircon_plugin_sound_runtime",
     )
     .with_capability("runtime.plugin.sound")
-    .with_optional_feature(declared_feature)]);
+    .with_optional_feature(declared_feature)
+    .build()]);
     catalog.register_feature(&feature);
 
     let report = catalog.feature_dependency_report(
@@ -144,7 +149,7 @@ fn runtime_plugin_catalog_reports_conflicting_feature_defaults_between_package_a
 
 #[test]
 fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
-    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -154,7 +159,8 @@ fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.sound")]);
+    .with_capability("runtime.plugin.sound")
+    .build()]);
     let feature = SoundTimelineFeaturePlugin;
     catalog.register_feature(&feature);
     let manifest = ProjectPluginManifest {
@@ -180,7 +186,7 @@ fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
 
 #[test]
 fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
-    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -190,7 +196,8 @@ fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.sound")]);
+    .with_capability("runtime.plugin.sound")
+    .build()]);
     let feature = SoundTimelineFeaturePlugin;
     catalog.register_feature(&feature);
     let manifest = ProjectPluginManifest {
@@ -218,7 +225,7 @@ fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
 
 #[test]
 fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
-    let sound = RuntimePluginDescriptor::new(
+    let sound = RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -228,7 +235,8 @@ fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.sound");
+    .with_capability("runtime.plugin.sound")
+    .build();
     let feature = SoundTimelineFeaturePlugin;
     let sound_registration = RuntimePluginRegistrationReport::from_plugin(&sound);
     let feature_registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);
@@ -261,7 +269,7 @@ fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
 
 #[test]
 fn runtime_module_load_reports_blocked_required_features_as_errors() {
-    let sound = RuntimePluginDescriptor::new(
+    let sound = RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -271,7 +279,8 @@ fn runtime_module_load_reports_blocked_required_features_as_errors() {
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.sound");
+    .with_capability("runtime.plugin.sound")
+    .build();
     let feature = SoundTimelineFeaturePlugin;
     let sound_registration = RuntimePluginRegistrationReport::from_plugin(&sound);
     let feature_registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);

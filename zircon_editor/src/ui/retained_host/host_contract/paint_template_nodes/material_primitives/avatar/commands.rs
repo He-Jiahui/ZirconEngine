@@ -1,13 +1,14 @@
+mod content;
+mod surface;
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
-use super::geometry::{avatar_corner_radius, avatar_fallback_child_frame, avatar_frame};
-use super::glyph::push_avatar_fallback_glyph;
+use super::geometry::{avatar_corner_radius, avatar_frame};
 use super::identity::is_avatar_node;
-use super::image::{avatar_icon_pixels, avatar_image_pixels, push_avatar_image};
-use super::style::{
-    avatar_background_color, avatar_border_color, avatar_border_width, avatar_foreground_color,
-};
-use super::text::{avatar_label, push_avatar_text};
+use super::image::avatar_image_pixels;
+use super::style::{avatar_background_color, avatar_foreground_color};
+use content::push_avatar_content;
+use surface::{push_avatar_background, push_avatar_border};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_avatar_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -30,55 +31,35 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
     let avatar_image = avatar_image_pixels(node, &avatar_rect, corner_radius);
     let background = avatar_background_color(node, avatar_image.is_none());
     let foreground = avatar_foreground_color(node);
-    commands.push(HostPaintCommand::quad(
+
+    push_avatar_background(
+        commands,
         avatar_rect.clone(),
-        Some(clip.clone()),
+        clip,
         order,
-        Some(background),
-        None,
-        0.0,
+        background,
         corner_radius,
         opacity,
-    ));
-
-    if let Some(image) = avatar_image {
-        push_avatar_image(
-            commands,
-            image,
-            avatar_rect.clone(),
-            clip,
-            order + 1,
-            opacity,
-        );
-    } else if !avatar_label(node).is_empty() {
-        push_avatar_text(
-            commands,
-            node,
-            &avatar_rect,
-            clip,
-            order + 1,
-            foreground,
-            opacity,
-        );
-    } else if let Some(icon) = avatar_icon_pixels(node, &avatar_rect, foreground) {
-        let icon_rect = avatar_fallback_child_frame(&avatar_rect);
-        push_avatar_image(commands, icon, icon_rect, clip, order + 1, opacity);
-    } else {
-        push_avatar_fallback_glyph(commands, &avatar_rect, clip, order + 1, foreground, opacity);
-    }
-
-    if let Some(border_color) = avatar_border_color(node) {
-        commands.push(HostPaintCommand::quad(
-            avatar_rect,
-            Some(clip.clone()),
-            order + 2,
-            None,
-            Some(border_color),
-            avatar_border_width(node),
-            corner_radius,
-            opacity,
-        ));
-    }
+    );
+    push_avatar_content(
+        commands,
+        node,
+        &avatar_rect,
+        clip,
+        order + 1,
+        foreground,
+        avatar_image,
+        opacity,
+    );
+    push_avatar_border(
+        commands,
+        node,
+        avatar_rect,
+        clip,
+        order + 2,
+        corner_radius,
+        opacity,
+    );
 
     true
 }

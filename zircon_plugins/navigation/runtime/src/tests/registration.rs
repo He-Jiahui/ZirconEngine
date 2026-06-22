@@ -50,6 +50,10 @@ fn navigation_registration_contributes_runtime_module_and_components() {
     assert_eq!(bake_backend.value_type, "enum");
     assert_eq!(bake_backend.default_value, "recast");
     assert_eq!(bake_backend.enum_values, vec!["recast".to_string()]);
+    assert_eq!(
+        bake_backend.required_capability.as_deref(),
+        Some("runtime.plugin.navigation.recast")
+    );
     let event_catalog = report
         .extensions
         .plugin_event_catalogs()
@@ -83,6 +87,13 @@ fn navigation_registration_contributes_runtime_module_and_components() {
         report.package_manifest.maturity,
         zircon_runtime::plugin::PluginMaturity::Beta
     );
+    assert!(report
+        .package_manifest
+        .capabilities
+        .contains(&"runtime.plugin.navigation.recast".to_string()));
+    assert!(report.package_manifest.modules[0]
+        .capabilities
+        .contains(&"runtime.plugin.navigation.recast".to_string()));
     assert!(report
         .package_manifest
         .capability_statuses

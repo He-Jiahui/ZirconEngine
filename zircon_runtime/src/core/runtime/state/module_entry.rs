@@ -5,7 +5,6 @@ use crate::core::LifecycleState;
 use super::super::descriptors::{ModuleDescriptor, RegistryName};
 
 pub(crate) struct ModuleEntry {
-    #[allow(dead_code)]
     pub(crate) descriptor: ModuleDescriptor,
     // Immutable after registration; this is the complete owner list for module
     // local lifecycle and diagnostics paths.
@@ -17,4 +16,10 @@ pub(crate) struct ModuleEntry {
     // does not rebuild or sort service names on every lifecycle transition.
     pub(crate) shutdown_service_names: Arc<[RegistryName]>,
     pub(crate) lifecycle: LifecycleState,
+}
+
+impl ModuleEntry {
+    pub(crate) fn descriptor(&self) -> &ModuleDescriptor {
+        &self.descriptor
+    }
 }

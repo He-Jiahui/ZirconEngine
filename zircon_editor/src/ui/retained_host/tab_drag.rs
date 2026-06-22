@@ -21,7 +21,9 @@ pub(crate) use bridge::{
     resolve_host_drag_target_group_with_workbench_layout_frames,
 };
 #[cfg(test)]
-pub(crate) use drop_resolution::resolve_tab_drop_with_root_frames;
+pub(crate) use drop_resolution::{
+    resolve_tab_drop_with_root_frames, resolve_tab_drop_with_workbench_layout_frames,
+};
 #[cfg(test)]
 pub(crate) use group::document_edge_group_key;
 #[cfg(test)]

@@ -1,19 +1,17 @@
-use zircon_runtime::diagnostic_log::{
-    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
-};
+mod log;
+mod submit;
 
 use super::super::super::chrome_command_stream::build_chrome_command_stream;
 use super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::backbuffer::{can_region_repaint, repaint_backbuffer};
-use super::diagnostics::{
-    frame_summary, plan_present_for_diagnostics, presentation_summary,
-    record_chrome_command_stream_counters,
-};
+use super::diagnostics::{plan_present_for_diagnostics, record_chrome_command_stream_counters};
 use super::lifecycle::resize_presenter;
-use super::surface_io::{copy_rgba_to_softbuffer, current_window_size, softbuffer_damage_rect};
+use super::surface_io::current_window_size;
 use super::SoftbufferHostPresenter;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use log::write_verbose_present_log;
+use submit::submit_presented_frame;
 
 pub(in crate::ui::retained_host::host_contract) fn present(
     presenter: &mut SoftbufferHostPresenter,
@@ -61,66 +59,8 @@ pub(in crate::ui::retained_host::host_contract) fn present(
     presenter.last_debug_overlay_text = Some(planned.overlay_text);
     presenter.diagnostics = planned.diagnostics;
     write_verbose_present_log(presenter, &planned.presentation, &outcome, size);
-
-    let frame = presenter
-        .backbuffer
-        .as_ref()
-        .expect("presenter repaint path always creates a backbuffer");
-    let window = presenter.surface.window().clone();
-    let mut buffer = presenter.surface.buffer_mut()?;
-    {
-        zircon_runtime::profile_scope!("editor", "host_presenter", "copy_rgba_to_softbuffer");
-        copy_rgba_to_softbuffer(frame, &mut *buffer, outcome.damage.as_ref(), size);
-    }
-
-    window.pre_present_notify();
-    zircon_runtime::profile_scope!("editor", "host_presenter", "softbuffer_present");
-    let result = if let Some(damage) = softbuffer_damage_rect(outcome.damage.as_ref(), size) {
-        buffer.present_with_damage(&[damage])
-    } else {
-        buffer.present()
-    };
-    result?;
+    submit_presented_frame(presenter, outcome.damage.as_ref(), size)?;
     Ok(presenter
         .diagnostics_snapshot()
         .with_invalidation_diagnostics(invalidation))
-}
-
-fn write_verbose_present_log(
-    presenter: &mut SoftbufferHostPresenter,
-    presentation: &HostWindowPresentationData,
-    outcome: &super::backbuffer::RepaintOutcome,
-    size: (u32, u32),
-) {
-    if !diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
-        return;
-    }
-    let summary = presentation_summary(presentation);
-    if presenter.diagnostics.present_count > 8
-        && presenter.last_logged_size == Some(size)
-        && presenter.last_logged_presentation.as_deref() == Some(summary.as_str())
-    {
-        return;
-    }
-    write_diagnostic_log(
-        "editor_host_presenter",
-        format!(
-            "present frame={} frame_size={}x{} damage={} painted_pixels={} full_paints={} region_paints={} total_painted_pixels={} {}",
-            presenter.diagnostics.present_count,
-            size.0,
-            size.1,
-            outcome
-                .damage
-                .as_ref()
-                .map(frame_summary)
-                .unwrap_or_else(|| "full".to_string()),
-            outcome.painted_pixels,
-            presenter.diagnostics.full_paint_count,
-            presenter.diagnostics.region_paint_count,
-            presenter.diagnostics.painted_pixel_count,
-            summary
-        ),
-    );
-    presenter.last_logged_size = Some(size);
-    presenter.last_logged_presentation = Some(summary);
 }

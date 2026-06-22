@@ -72,6 +72,14 @@ plan_sources:
 - 阶段 C（前端）：05 → 06。组件拆分与类型安全先行，布局与参考图对齐殿后（避免在待拆组件上做样式微调被重做）。
 - 阶段 D（口径收口）：07。消息 schema 化必须等 02/03 把消息产生点收敛后做，coming-soon 目录可提前并行。
 
+## 代码结构规范
+
+Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code-structure-convention.md)：
+
+- 巨型文件（P8：`tauri_app/view_model.rs`(1357)、`runtime_state.rs`(1076)、`project_actions.rs`(966)、`ui_text.rs`(947)、`project_delivery_actions.rs`(832)、`settings_dto.rs`(806)）按规范 §1（owner 叶子拆分、行数预算软 800 / 硬 1000）治理，与 `large-file-ownership-m1.md` 的 `support-hub`(3) owner 类联动；拆分进度计入相关子计划（01/02/07）。
+- 前端组件化（P11：`HubWindow.tsx` 7 分支 if-else、`ProjectsDashboard.tsx`(341)、`SettingsPage.tsx`(304) 内联）按规范 §1/§4 的 owner 边界 + 单一测试 owner 治理（计划 05/06）。
+- façade/命名/测试组织遵循规范 §1–§4；`tauri_app` 模块去 `_inner`/`util` 类无主名（规范 §2）。
+
 ## 3. 全局边界约束（各子计划必须遵守）
 
 1. 所有 Hub 功能留在 `zircon_hub`：不把 Hub 注册进 `zircon_runtime` 生命周期，不新增非网络语义的 `server` 命名层，不向 `zircon_editor` 回引 Slint 路径。

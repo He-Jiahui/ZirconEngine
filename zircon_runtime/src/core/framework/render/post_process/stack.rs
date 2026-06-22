@@ -596,13 +596,12 @@ fn effect_stack_requires_scene_depth(
 
 fn effect_stack_outputs(
     _effect_stack: &RenderPostProcessEffectStackSettings,
-    upscale_required: bool,
+    _upscale_required: bool,
 ) -> Vec<&'static str> {
-    let mut outputs = vec![PostProcessGraphResourceNames::EFFECT_STACKED];
-    if upscale_required {
-        outputs.push(PostProcessGraphResourceNames::TONEMAPPED);
-    }
-    outputs
+    vec![
+        PostProcessGraphResourceNames::EFFECT_STACKED,
+        PostProcessGraphResourceNames::TONEMAPPED,
+    ]
 }
 
 fn exposure_resolve_inputs(histogram_enabled: bool) -> Vec<&'static str> {
@@ -673,6 +672,16 @@ mod tests {
         RenderVignetteSettings,
     };
 
+    fn expected_uber_effect_stack_outputs() -> Vec<String> {
+        [
+            PostProcessGraphResourceNames::EFFECT_STACKED,
+            PostProcessGraphResourceNames::TONEMAPPED,
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+    }
+
     #[test]
     fn manual_exposure_declares_resolve_without_histogram() {
         let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
@@ -730,6 +739,36 @@ mod tests {
         assert!(stack
             .initial_resources
             .contains(&PostProcessGraphResourceNames::LIGHT_LIST.to_string()));
+    }
+
+    #[test]
+    fn enabled_effect_stack_declares_tonemapped_for_uber_descriptor() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    vignette: RenderVignetteSettings {
+                        intensity: 0.25,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+        let uber = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::Uber)
+            .expect("enabled effect stack should keep the uber pass");
+
+        assert!(
+            uber.produced_outputs
+                .contains(&PostProcessGraphResourceNames::TONEMAPPED.to_string()),
+            "uber writes TONEMAPPED in the built-in pass descriptor, so the stack must declare it"
+        );
     }
 
     #[test]
@@ -1375,10 +1414,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
         assert_eq!(
             effect_stack.produced_outputs,
-            [PostProcessGraphResourceNames::EFFECT_STACKED]
-                .into_iter()
-                .map(str::to_string)
-                .collect::<Vec<_>>()
+            expected_uber_effect_stack_outputs()
         );
 
         let graph = stack.validated_graph();
@@ -1435,10 +1471,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
         assert_eq!(
             effect_stack.produced_outputs,
-            [PostProcessGraphResourceNames::EFFECT_STACKED]
-                .into_iter()
-                .map(str::to_string)
-                .collect::<Vec<_>>()
+            expected_uber_effect_stack_outputs()
         );
 
         let graph = stack.validated_graph();
@@ -1628,10 +1661,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
         assert_eq!(
             effect_stack.produced_outputs,
-            [PostProcessGraphResourceNames::EFFECT_STACKED]
-                .into_iter()
-                .map(str::to_string)
-                .collect::<Vec<_>>()
+            expected_uber_effect_stack_outputs()
         );
 
         let graph = stack.validated_graph();
@@ -1674,10 +1704,7 @@ mod tests {
 
         assert_eq!(
             effect_stack.produced_outputs,
-            [PostProcessGraphResourceNames::EFFECT_STACKED]
-                .into_iter()
-                .map(str::to_string)
-                .collect::<Vec<_>>()
+            expected_uber_effect_stack_outputs()
         );
     }
 }

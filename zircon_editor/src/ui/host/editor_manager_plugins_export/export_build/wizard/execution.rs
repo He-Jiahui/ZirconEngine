@@ -288,10 +288,16 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
         }
         emit_output(output, progress);
     };
+    let mut cancel_observed_during_run = false;
+    let mut observe_cancel = || {
+        let requested = should_cancel();
+        cancel_observed_during_run |= requested;
+        requested
+    };
 
-    match runner.run_with_output_and_cancel(command, &mut observe_output, should_cancel) {
+    match runner.run_with_output_and_cancel(command, &mut observe_output, &mut observe_cancel) {
         Ok(execution) => {
-            let cancelled = should_cancel();
+            let cancelled = cancel_observed_during_run;
             if cancelled {
                 diagnostics.push(format!(
                     "export stage {:?} was cancelled during process execution",
@@ -337,7 +343,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
             }
         }
         Err(error) => {
-            let cancelled = should_cancel();
+            let cancelled = cancel_observed_during_run || should_cancel();
             fatal = !cancelled;
             diagnostics.push(error);
             ExportWizardStageExecution {

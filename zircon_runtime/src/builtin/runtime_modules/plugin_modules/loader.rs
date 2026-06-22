@@ -41,11 +41,23 @@ pub(in crate::builtin::runtime_modules) fn module_for_plugin(
         RuntimePluginId::ObjImporter => {
             externalized_runtime_plugin_module("obj_importer", warnings)
         }
+        RuntimePluginId::AssetImporterData => {
+            externalized_runtime_plugin_module("asset_importers/data", warnings)
+        }
+        RuntimePluginId::AssetImporterModel => {
+            externalized_runtime_plugin_module("asset_importers/model", warnings)
+        }
+        RuntimePluginId::AssetImporterShader => {
+            externalized_runtime_plugin_module("asset_importers/shader", warnings)
+        }
         RuntimePluginId::TextureImporter => {
             externalized_runtime_plugin_module("texture_importer", warnings)
         }
         RuntimePluginId::AudioImporter => {
             externalized_runtime_plugin_module("audio_importer", warnings)
+        }
+        RuntimePluginId::OpusImporter => {
+            externalized_runtime_plugin_module("opus_importer", warnings)
         }
         RuntimePluginId::ShaderWgslImporter => {
             externalized_runtime_plugin_module("shader_wgsl_importer", warnings)

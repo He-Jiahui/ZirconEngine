@@ -8,17 +8,35 @@ use wgpu::util::DeviceExt;
 pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 144;
 
 pub(crate) struct GpuMaterialUniformResource {
-    #[allow(dead_code)]
     pub(in crate::graphics::scene::resources) buffer: wgpu::Buffer,
-    #[allow(dead_code)]
     pub(crate) payload_byte_len: u64,
-    #[allow(dead_code)]
     pub(crate) buffer_byte_len: u64,
 }
 
 impl GpuMaterialUniformResource {
+    pub(crate) const RETAINED_MATERIAL_UNIFORM_OWNER_COUNT: usize = 3;
+
+    pub(crate) fn retained_material_uniform_owner_count(&self) -> usize {
+        let _retained_material_uniform_owners =
+            (&self.buffer, &self.payload_byte_len, &self.buffer_byte_len);
+        Self::RETAINED_MATERIAL_UNIFORM_OWNER_COUNT
+    }
+
     pub(crate) fn binding_resource(&self) -> wgpu::BindingResource<'_> {
+        debug_assert_eq!(
+            self.retained_material_uniform_owner_count(),
+            Self::RETAINED_MATERIAL_UNIFORM_OWNER_COUNT,
+            "GpuMaterialUniformResource must retain buffer and byte-length diagnostics while exposing uniform bindings",
+        );
         self.buffer.as_entire_binding()
+    }
+
+    pub(crate) fn payload_byte_len(&self) -> u64 {
+        self.payload_byte_len
+    }
+
+    pub(crate) fn buffer_byte_len(&self) -> u64 {
+        self.buffer_byte_len
     }
 
     pub(crate) fn from_payload(

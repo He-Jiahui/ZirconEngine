@@ -1,15 +1,14 @@
 use crate::core::framework::render::RenderVirtualGeometryExtract;
 use crate::graphics::{
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
-    VisibilityVirtualGeometryPageUploadPlan,
+    runtime_provider::RuntimeProviderPrepareInput, VisibilityVirtualGeometryCluster,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryPageUploadPlan,
 };
 
 pub struct VirtualGeometryRuntimePrepareInput<'a> {
-    extract: Option<&'a RenderVirtualGeometryExtract>,
+    input: RuntimeProviderPrepareInput<'a, RenderVirtualGeometryExtract>,
     page_upload_plan: Option<&'a VisibilityVirtualGeometryPageUploadPlan>,
     visible_clusters: &'a [VisibilityVirtualGeometryCluster],
     visibility_draw_segments: &'a [VisibilityVirtualGeometryDrawSegment],
-    generation: u64,
 }
 
 impl<'a> VirtualGeometryRuntimePrepareInput<'a> {
@@ -21,16 +20,15 @@ impl<'a> VirtualGeometryRuntimePrepareInput<'a> {
         generation: u64,
     ) -> Self {
         Self {
-            extract,
+            input: RuntimeProviderPrepareInput::new(extract, generation),
             page_upload_plan,
             visible_clusters,
             visibility_draw_segments,
-            generation,
         }
     }
 
     pub fn extract(&self) -> Option<&RenderVirtualGeometryExtract> {
-        self.extract
+        self.input.extract()
     }
 
     pub fn page_upload_plan(&self) -> Option<&VisibilityVirtualGeometryPageUploadPlan> {
@@ -46,6 +44,6 @@ impl<'a> VirtualGeometryRuntimePrepareInput<'a> {
     }
 
     pub fn generation(&self) -> u64 {
-        self.generation
+        self.input.generation()
     }
 }

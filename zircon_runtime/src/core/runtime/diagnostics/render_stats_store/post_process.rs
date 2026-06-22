@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderColorLutReadbackReport, RenderStats};
+use crate::core::framework::render::{
+    RenderColorLutReadbackReport, RenderExposureReadbackReport, RenderStats,
+};
 
 use super::{record_bool, record_bytes, record_count, DiagnosticStore};
 
@@ -17,10 +19,75 @@ const COLOR_LUT_READBACK_REFERENCE_TAGS: &[&str] = &[
     "readback",
     "reference",
 ];
+const EXPOSURE_READBACK_TAGS: &[&str] = &["render", "post_process", "exposure", "readback"];
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
+    record_exposure_readback(store, frame_index, stats.last_exposure_readback_report);
     record_color_lut_readback(store, frame_index, stats.last_color_lut_readback_report);
+}
+
+fn record_exposure_readback(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    report: RenderExposureReadbackReport,
+) {
+    record_bool(
+        store,
+        "render.post_process.exposure.readback.available",
+        frame_index,
+        report.available,
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_bool(
+        store,
+        "render.post_process.exposure.readback.history_valid",
+        frame_index,
+        report.history_valid(),
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_bytes(
+        store,
+        "render.post_process.exposure.readback.byte_len",
+        frame_index,
+        report.byte_len as u64,
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_bytes(
+        store,
+        "render.post_process.exposure.readback.expected_byte_len",
+        frame_index,
+        report.expected_byte_len as u64,
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_bool(
+        store,
+        "render.post_process.exposure.readback.invalid_byte_len",
+        frame_index,
+        report.invalid_byte_len,
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_count(
+        store,
+        "render.post_process.exposure.readback.invalid_word_count",
+        frame_index,
+        report.invalid_word_count,
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_count(
+        store,
+        "render.post_process.exposure.readback.multiplier_micro",
+        frame_index,
+        report.multiplier_micro(),
+        EXPOSURE_READBACK_TAGS,
+    );
+    record_count(
+        store,
+        "render.post_process.exposure.readback.valid_flag_micro",
+        frame_index,
+        report.valid_flag_micro(),
+        EXPOSURE_READBACK_TAGS,
+    );
 }
 
 fn record_color_lut_readback(
@@ -151,7 +218,9 @@ fn record_color_lut_readback(
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{RenderColorLutReadbackReport, RenderStats};
+    use crate::core::framework::render::{
+        RenderColorLutReadbackReport, RenderExposureReadbackReport, RenderStats,
+    };
     use crate::core::runtime::diagnostics::DiagnosticStore;
 
     use super::record;
@@ -306,6 +375,56 @@ mod tests {
                 "reference",
                 "render",
             ],
+        );
+    }
+
+    #[test]
+    fn post_process_diagnostics_record_exposure_readback_report() {
+        let mut store = DiagnosticStore::default();
+        let stats = RenderStats {
+            submitted_frames: 12,
+            last_exposure_readback_report: RenderExposureReadbackReport::from_words([
+                1.25, 9.5, 9.5, 1.0,
+            ]),
+            ..RenderStats::default()
+        };
+
+        record(&mut store, &stats);
+
+        assert_series(
+            &store,
+            "render.post_process.exposure.readback.available",
+            1.0,
+            "bool",
+            &["exposure", "post_process", "readback", "render"],
+        );
+        assert_series(
+            &store,
+            "render.post_process.exposure.readback.history_valid",
+            1.0,
+            "bool",
+            &["exposure", "post_process", "readback", "render"],
+        );
+        assert_series(
+            &store,
+            "render.post_process.exposure.readback.byte_len",
+            16.0,
+            "bytes",
+            &["exposure", "post_process", "readback", "render"],
+        );
+        assert_series(
+            &store,
+            "render.post_process.exposure.readback.invalid_word_count",
+            0.0,
+            "count",
+            &["exposure", "post_process", "readback", "render"],
+        );
+        assert_series(
+            &store,
+            "render.post_process.exposure.readback.multiplier_micro",
+            1_250_000.0,
+            "count",
+            &["exposure", "post_process", "readback", "render"],
         );
     }
 

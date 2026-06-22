@@ -5,6 +5,7 @@ use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name};
 
+mod capability;
 mod component_json;
 mod components;
 mod manager;
@@ -13,6 +14,9 @@ mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
 
+pub use capability::{
+    NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use components::navigation_component_descriptors;
 pub use manager::{count_navigation_components, default_agent_type, DefaultNavigationManager};
 
@@ -113,7 +117,7 @@ pub fn navigation_plugin_options() -> Vec<zircon_runtime::plugin::PluginOptionMa
             "bool",
             "true",
         )
-        .with_required_capability("runtime.plugin.navigation"),
+        .with_required_capability(NAVIGATION_RUNTIME_CAPABILITY),
         zircon_runtime::plugin::PluginOptionManifest::new(
             "navigation.bake_backend",
             "Navigation Bake Backend",
@@ -121,7 +125,7 @@ pub fn navigation_plugin_options() -> Vec<zircon_runtime::plugin::PluginOptionMa
             "recast",
         )
         .with_enum_values(["recast"])
-        .with_required_capability("runtime.plugin.navigation.recast"),
+        .with_required_capability(NAVIGATION_RECAST_CAPABILITY),
     ]
 }
 
@@ -155,7 +159,7 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Navigation",
         zircon_runtime::builtin::RuntimePluginId::Navigation,
@@ -166,39 +170,23 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.navigation")
-    .with_capability("runtime.plugin.navigation.recast")
+    .with_capability(NAVIGATION_RUNTIME_CAPABILITY)
+    .with_capability(NAVIGATION_RECAST_CAPABILITY)
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_capability_status(
         zircon_runtime::plugin::CapabilityStatusManifest::new(
-            "runtime.plugin.navigation",
+            NAVIGATION_RUNTIME_CAPABILITY,
             zircon_runtime::plugin::CapabilityStatus::Partial,
         )
         .with_note("Gameplay navmesh/pathfinding is optional; UI navigation parity is separate."),
     )
+    .build()
 }
 
-pub fn runtime_plugin() -> NavigationRuntimePlugin {
-    NavigationRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(NavigationRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.navigation",
-        "runtime.plugin.navigation.recast",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

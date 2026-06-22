@@ -1,5 +1,67 @@
 pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
-    if matches!(
+    if slice == "Runtime 15 F9 runtime prelude required type coverage" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 runtime UI dead-code support split" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 graphics facade visibility note" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F14 diagnostics normalization" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F13 provider registration shared owner" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F13 provider update shared stats owner" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F13 provider feedback shared payload owner" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F13 provider prepare input shared frame owner" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F13 full provider boilerplate audit" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 runtime-owned dead-code suppression cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 script host value descriptor dead-code cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 offscreen target texture owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 render backend state owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 gpu texture resource owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 gpu material uniform owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 gpu mesh order signature cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 gpu model identity cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 post-process LUT texture owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 output target texture owner cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 material runtime capture seed cleanup" {
+        "2026-06-22"
+    } else if slice == "Runtime 15 F12 resource streamer diagnostics accessor cleanup" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 F12 resource streamer resolve texture id cleanup" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 F12 particle GPU readback output accessor cleanup" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 F12 advanced plugin output test accessor cleanup" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 graphics dead-code guard module split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 provider boilerplate guard module split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 facade surface guard module split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 runtime dead-code guard module split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 diagnostics guard module split" {
+        "2026-06-23"
+    } else if slice == "Runtime 10 F18 asset manager resolution return shape" {
+        "2026-06-22"
+    } else if slice == "Runtime 08 F17 entity path lookup verb rename" {
+        "2026-06-22"
+    } else if matches!(
         slice,
         "Runtime 09 UI architecture 镜像文档守卫"
             | "Runtime 09 surface default interaction fallback rename"
@@ -132,6 +194,19 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
         "2026-06-15"
     } else if slice == "Runtime 05 plan-status Cargo timeout 状态审计" {
         "2026-06-15"
+    } else if slice == "Runtime 05 scene/project serialization Markdown renderer split"
+        || slice == "Runtime 05 scene/editor surface Markdown renderer split"
+        || slice == "Runtime 05 non-network server Markdown renderer split"
+        || slice == "Runtime 05 runtime naming Markdown renderer split"
+        || slice == "Runtime 05 hard-cutover migration-smell Markdown renderer split"
+        || slice == "Runtime M0 entry static dependencies Markdown renderer split"
+        || slice == "Runtime M0 legacy standalone references Markdown renderer split"
+        || slice == "Runtime M0 module inventory Markdown renderer split"
+        || slice == "Runtime M0 plugin runtime gaps Markdown renderer split"
+        || slice == "Runtime M0 large-file ownership Markdown renderer split"
+        || slice == "Runtime 05 plan-status markdown direct import hard-cutover"
+    {
+        "2026-06-21"
     } else if slice == "Runtime 12 gamepad event-owner 漂移同步"
         || slice == "Runtime 01 Tech-stack 行为测试锚审计同步"
         || slice == "Runtime 02 core/root/generated 镜像文档守卫"
@@ -184,20 +259,72 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
         "2026-06-15"
     } else if slice == "Runtime 05 full scene compile-pass graphics-scene blocker" {
         "2026-06-20"
+    } else if slice == "Runtime 05 render product streamer 2026-06-21 no-result diagnostic" {
+        "2026-06-21"
+    } else if slice == "Runtime 05 scene_asset 2026-06-21 no-result diagnostic" {
+        "2026-06-21"
+    } else if slice == "Runtime 05 ecs_query 2026-06-21 no-result diagnostic" {
+        "2026-06-21"
     } else if slice == "Runtime 11 JobSystem 2026-06-20 验证窗口探测" {
         "2026-06-20"
     } else if slice == "Runtime 11 JobSystem core-min 验证窗口探测" {
         "2026-06-20"
     } else if slice == "Runtime 11 JobSystem current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 11 JobSystem inventory split" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 JobSystem Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 worker wait-assist" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 worker wait-assist core-min 验证窗口探测" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 worker wait-assist core-min test binary 验证" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 core-min test binary task/guard batch" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 ecs_schedule source-guard lifetime anchor repair" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 ecs_schedule core-min Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 tasks core-min Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 worker_pool core-min Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 rayon core-min Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 tasks default Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 worker_pool default Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 rayon default Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 ecs_schedule default Cargo 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 full-lib default Cargo closeout attempt" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 core runtime full-lib triage recheck" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 asset broader failure triage core-min 复验" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 full-lib default after asset triage recheck" {
+        "2026-06-21"
+    } else if slice == "Runtime 11 full-lib default after graphics exposure retry" {
+        "2026-06-21"
     } else if slice == "Runtime 12 cursor host requests" {
         "2026-06-20"
     } else if slice == "Runtime 10 host-request payload ABI boundary" {
         "2026-06-20"
     } else if slice == "Runtime 10 Dynamic API current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 10 Dynamic API test boundary Markdown renderer split" {
+        "2026-06-21"
     } else if slice == "Runtime 01 Tech-stack current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 01 Tech-stack inventory split" {
+        "2026-06-21"
+    } else if slice == "Runtime 01 Tech-stack Markdown renderer split" {
+        "2026-06-21"
     } else if slice == "Runtime 10 dynamic_api_session Cargo 验证窗口探测" {
         "2026-06-20"
     } else if slice == "Runtime 10 runtime diagnostics profile-control snapshot" {
@@ -216,23 +343,103 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
         "2026-06-20"
     } else if slice == "Runtime 10 ABI source inventory split" {
         "2026-06-21"
+    } else if slice == "Runtime 10 runtime API Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 10 dynamic runtime API Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 10 dynamic input mouse-wheel event owner guard" {
+        "2026-06-21"
+    } else if slice == "Runtime 10 Vampire W input real-backend gate" {
+        "2026-06-21"
+    } else if slice == "Runtime 09 UI architecture Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 06 plugin surface/lifecycle Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 06 native plugin public-surface Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 06 F8 RuntimePluginDescriptor builder scaffold" {
+        "2026-06-22"
+    } else if slice == "Runtime 06 F8 first-party RuntimePluginDescriptor builder migration" {
+        "2026-06-22"
+    } else if slice == "Runtime 06 F8 RuntimePluginDescriptor test fixture builder migration" {
+        "2026-06-22"
+    } else if slice == "Runtime 06 F8 RuntimePluginDescriptor public-field convergence" {
+        "2026-06-22"
+    } else if slice == "Runtime 06 F8 RuntimePluginDescriptor public constructor retired" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 Performance hotpath Markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 07 scene/EventBus poison-safe locks" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render submit source-extract sharing" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render camera-loop descriptor submissions" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render camera-loop frame terminal move" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render submit feedback sideband owned merge" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render prepared sideband frame owner move" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render direct runtime-frame streaming camera loop" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render shared effective extract frame source" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render direct runtime-frame shared context extract" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render VG debug overlay frame override" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render direct runtime-frame trace export" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render submit effective extract projection" {
+        "2026-06-22"
+    } else if slice == "Runtime 08 F5 world typed mutation errors" {
+        "2026-06-22"
+    } else if slice == "Runtime 08 F5 dynamic component typed errors" {
+        "2026-06-22"
+    } else if slice == "Runtime 02 F6 core resource registry typed errors" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 Performance hotpath inventory split" {
+        "2026-06-21"
     } else if slice == "Runtime 12 input validation window recheck" {
         "2026-06-20"
     } else if slice == "Runtime 12 Input stack current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 12 Input stack inventory split"
+        || slice == "Runtime 12 Input stack Markdown renderer split"
+        || slice == "Runtime 12 input boundary grouped manager import guard repair"
+    {
+        "2026-06-21"
     } else if slice == "Runtime 14 module family current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 14 module family markdown renderer split" {
+        "2026-06-21"
     } else if slice == "Runtime 02 core/root/generated current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 02 core/root/generated Markdown renderer split"
+        || slice == "Runtime 02 generated-code Markdown renderer split"
+        || slice == "Runtime 02 root-surface Markdown renderer split"
+    {
+        "2026-06-21"
     } else if slice == "Runtime 03 Schedule/frame-loop current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 03 Schedule/frame-loop inventory split" {
+        "2026-06-21"
+    } else if slice == "Runtime 03 Schedule/frame-loop markdown renderer split" {
+        "2026-06-21"
     } else if slice == "Runtime 13 Script binding current audit recheck" {
         "2026-06-20"
+    } else if slice == "Runtime 13 script binding Markdown renderer split" {
+        "2026-06-21"
     } else if slice == "Runtime 08 ECS 数据面 current audit recheck" {
         "2026-06-20"
     } else if slice == "Runtime 08 ECS source/test inventory split" {
         "2026-06-21"
     } else if slice == "Runtime 08 ECS anchor inventory split" {
+        "2026-06-21"
+    } else if slice == "Runtime 08 ECS markdown renderer split" {
+        "2026-06-21"
+    } else if slice == "Runtime 08 QueryState Markdown renderer split" {
         "2026-06-21"
     } else if slice == "Runtime 08 ECS event owner folder split" {
         "2026-06-20"
@@ -281,6 +488,14 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
         || slice == "Runtime 04 Asset pipeline current audit recheck"
     {
         "2026-06-20"
+    } else if slice == "Runtime 04 Asset pipeline inventory split"
+        || slice == "Runtime 04 Asset pipeline Markdown renderer split"
+    {
+        "2026-06-21"
+    } else if slice == "Runtime 04 F7 asset artifact/importer typed errors"
+        || slice == "Runtime 04 F8 texture import settings apply API"
+    {
+        "2026-06-22"
     } else {
         "2026-06-14"
     }

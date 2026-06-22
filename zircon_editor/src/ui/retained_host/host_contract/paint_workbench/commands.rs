@@ -1,6 +1,6 @@
 use super::super::data::HostWindowPresentationData;
 use super::super::paint_frame::HostRgbaFrame;
-use super::super::paint_workbench_impl as workbench;
+use super::super::paint_workbench_renderer as workbench;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_workbench_presentation_commands(
     frame: &mut HostRgbaFrame,

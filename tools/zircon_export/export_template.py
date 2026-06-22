@@ -19,6 +19,7 @@ REPORT_FILE_NAME = "report.json"
 EXPORT_TEMPLATE_FORMAT_VERSION = 1
 EXPORT_TEMPLATE_MANIFEST_NAME = "template.toml"
 EXPORT_TEMPLATE_ALLOWED_HOST_KINDS = {"desktop", "mobile_app", "browser", "headless"}
+EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS = {"placeholder", "precompiled"}
 EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES = {
     "filesystem_bundle",
     "mobile_asset_bundle",
@@ -42,6 +43,7 @@ EXPORT_TEMPLATE_MANIFEST_FIELDS = (
     "engine_version",
     "files",
     "format_version",
+    "host_artifact",
     "host_kind",
     "paths",
     "plugin_strategy",
@@ -242,6 +244,7 @@ def template_resolution_candidate(
         "template_id": manifest.get("template_id"),
         "engine_version": manifest.get("engine_version"),
         "target_platform": manifest.get("target_platform"),
+        "host_artifact": manifest.get("host_artifact"),
         "compatible_profiles": manifest.get("compatible_profiles", []),
         "bundle_format": manifest.get("bundle_format"),
     }
@@ -333,6 +336,7 @@ def validate_export_template(
     template_id = template_string_field(manifest, "template_id", diagnostics)
     target_platform = template_string_field(manifest, "target_platform", diagnostics)
     host_kind = template_string_field(manifest, "host_kind", diagnostics)
+    host_artifact = template_string_field(manifest, "host_artifact", diagnostics)
     resource_strategy = template_string_field(manifest, "resource_strategy", diagnostics)
     plugin_strategy = template_string_field(manifest, "plugin_strategy", diagnostics)
     bundle_format = template_string_field(manifest, "bundle_format", diagnostics)
@@ -342,6 +346,7 @@ def validate_export_template(
             "template_id": template_id,
             "target_platform": target_platform,
             "host_kind": host_kind,
+            "host_artifact": host_artifact,
             "resource_strategy": resource_strategy,
             "plugin_strategy": plugin_strategy,
             "bundle_format": bundle_format,
@@ -350,6 +355,12 @@ def validate_export_template(
     )
 
     validate_allowed_field("host_kind", host_kind, EXPORT_TEMPLATE_ALLOWED_HOST_KINDS, diagnostics)
+    validate_allowed_field(
+        "host_artifact",
+        host_artifact,
+        EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
+        diagnostics,
+    )
     validate_allowed_field(
         "resource_strategy",
         resource_strategy,
@@ -383,26 +394,53 @@ def validate_export_template(
     compatible_profiles = manifest.get("compatible_profiles", [])
     if compatible_profiles is None:
         compatible_profiles = []
-    if not isinstance(compatible_profiles, list) or any(
-        not isinstance(value, str) for value in compatible_profiles
-    ):
+    compatible_profiles_schema_clean = False
+    if not isinstance(compatible_profiles, list):
         diagnostics.append("template.toml field compatible_profiles must be a string array")
         compatible_profiles = []
     else:
-        diagnostics.extend(
-            string_array_no_blank_entries_schema_diagnostics(
-                "template.toml field compatible_profiles",
-                compatible_profiles,
-            )
+        type_diagnostics: list[str] = []
+        for index, compatible_profile in enumerate(compatible_profiles):
+            if not isinstance(compatible_profile, str):
+                type_diagnostics.append(
+                    f"template.toml field compatible_profiles[{index}] must be a string"
+                )
+        diagnostics.extend(type_diagnostics)
+        blank_diagnostics = string_array_no_blank_entries_schema_diagnostics(
+            "template.toml field compatible_profiles",
+            compatible_profiles,
         )
-        diagnostics.extend(
-            string_array_unique_entries_schema_diagnostics(
-                "template.toml field compatible_profiles",
-                compatible_profiles,
-            )
+        diagnostics.extend(blank_diagnostics)
+        trimmed_diagnostics: list[str] = []
+        for index, compatible_profile in enumerate(compatible_profiles):
+            if not isinstance(compatible_profile, str):
+                continue
+            if (
+                compatible_profile.strip()
+                and compatible_profile.strip() != compatible_profile
+            ):
+                trimmed_diagnostics.append(
+                    f"template.toml field compatible_profiles[{index}] "
+                    "must be a non-empty trimmed string"
+                )
+        diagnostics.extend(trimmed_diagnostics)
+        unique_diagnostics = string_array_unique_entries_schema_diagnostics(
+            "template.toml field compatible_profiles",
+            compatible_profiles,
+        )
+        diagnostics.extend(unique_diagnostics)
+        compatible_profiles_schema_clean = not (
+            type_diagnostics
+            or blank_diagnostics
+            or trimmed_diagnostics
+            or unique_diagnostics
         )
     report["compatible_profiles"] = compatible_profiles
-    if compatible_profiles and profile not in compatible_profiles:
+    if (
+        compatible_profiles_schema_clean
+        and compatible_profiles
+        and profile not in compatible_profiles
+    ):
         diagnostics.append(
             f"template compatible_profiles does not include requested profile {profile}"
         )
@@ -422,6 +460,12 @@ def validate_export_template(
         host_relative_path = paths.get("host_executable")
         if not isinstance(host_relative_path, str) or not host_relative_path.strip():
             diagnostics.append("template.toml field paths.host_executable must be a non-empty string")
+            host_relative_path = None
+        elif host_relative_path.strip() != host_relative_path:
+            diagnostics.append(
+                "template.toml field paths.host_executable "
+                "must be a non-empty trimmed string"
+            )
             host_relative_path = None
         else:
             host_relative_path = normalize_relative_path(host_relative_path)
@@ -472,7 +516,13 @@ def template_string_field(
 ) -> str | None:
     value = manifest.get(field_name)
     if isinstance(value, str) and value.strip():
-        return value.strip()
+        trimmed = value.strip()
+        if trimmed != value:
+            diagnostics.append(
+                f"template.toml field {field_name} must be a non-empty trimmed string"
+            )
+            return None
+        return value
     diagnostics.append(f"template.toml field {field_name} must be a non-empty string")
     return None
 
@@ -546,6 +596,12 @@ def template_optional_path_field(
     if not value.strip():
         diagnostics.append(f"template.toml field bundle.{field_name} must be a non-empty string")
         return default
+    if value.strip() != value:
+        diagnostics.append(
+            f"template.toml field bundle.{field_name} "
+            "must be a non-empty trimmed string"
+        )
+        return default
     normalized = normalize_relative_path(value)
     if normalized in {"", "."}:
         return normalized
@@ -583,6 +639,12 @@ def template_file_manifest(
         if not isinstance(relative_path, str) or not relative_path.strip():
             diagnostics.append(f"template.toml [[files]] entry {index} needs a non-empty path")
             continue
+        if relative_path.strip() != relative_path:
+            diagnostics.append(
+                f"template.toml [[files]] entry {index} path "
+                "must be a non-empty trimmed string"
+            )
+            continue
         normalized_path = normalize_relative_path(relative_path)
         if not is_safe_relative_path(normalized_path):
             diagnostics.append(
@@ -596,7 +658,18 @@ def template_file_manifest(
 
         file_path = resolve_template_child(template_root, normalized_path, diagnostics)
         declared_sha256 = entry.get("sha256")
-        if not isinstance(declared_sha256, str) or not is_sha256_hex(declared_sha256):
+        if not isinstance(declared_sha256, str) or not declared_sha256.strip():
+            diagnostics.append(
+                f"template file {normalized_path} must declare a SHA-256 hex digest"
+            )
+            continue
+        if declared_sha256.strip() != declared_sha256:
+            diagnostics.append(
+                f"template file {normalized_path} sha256 "
+                "must be a non-empty trimmed string"
+            )
+            continue
+        if not is_sha256_hex(declared_sha256):
             diagnostics.append(
                 f"template file {normalized_path} must declare a SHA-256 hex digest"
             )
@@ -620,6 +693,8 @@ def template_file_manifest(
             )
             continue
         bundle_path = template_bundle_file_path(entry, normalized_path, diagnostics)
+        if bundle_path is None:
+            continue
         if bundle_path in seen_bundle_paths:
             diagnostics.append(f"template bundle path {bundle_path} is declared more than once")
             continue
@@ -630,6 +705,12 @@ def template_file_manifest(
             continue
         if "purpose" in entry and not purpose.strip():
             diagnostics.append(f"template file {normalized_path} purpose must be non-empty when present")
+            continue
+        if "purpose" in entry and purpose.strip() != purpose:
+            diagnostics.append(
+                f"template file {normalized_path} purpose "
+                "must be a non-empty trimmed string"
+            )
             continue
         checked_files.append(
             {
@@ -646,17 +727,23 @@ def template_bundle_file_path(
     entry: dict[str, Any],
     normalized_path: str,
     diagnostics: list[str],
-) -> str:
+) -> str | None:
     value = entry.get("bundle_path", normalized_path)
     if value is None:
         return normalized_path
     if not isinstance(value, str) or not value.strip():
         diagnostics.append(f"template file {normalized_path} has an invalid bundle_path")
-        return normalized_path
+        return None
+    if value.strip() != value:
+        diagnostics.append(
+            f"template file {normalized_path} bundle_path "
+            "must be a non-empty trimmed string"
+        )
+        return None
     normalized = normalize_relative_path(value)
     if not is_safe_relative_path(normalized):
         diagnostics.append(f"template file {normalized_path} bundle_path must be a safe relative path")
-        return normalized_path
+        return None
     return normalized
 
 

@@ -54,8 +54,7 @@ fn native_live_host_reports_unloaded_plugin_by_module_kind() {
 #[test]
 fn native_live_host_runtime_behavior_calls_report_unloaded_plugin() {
     let host = NativePluginLiveHost::default();
-    let expected =
-        "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package";
+    let expected = "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package";
     assert_eq!(
         host.runtime_behavior_descriptor("physics").unwrap_err(),
         expected

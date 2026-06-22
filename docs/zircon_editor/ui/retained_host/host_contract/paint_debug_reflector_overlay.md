@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay/colors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay/draw.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/native_panes/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs

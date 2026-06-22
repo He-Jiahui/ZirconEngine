@@ -1,51 +1,25 @@
-use std::ffi::{c_char, CStr, CString};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::ffi::{c_char, CStr};
 
 use serde::Deserialize;
 use serde_json::json;
+use zircon_plugin_sdk::native::{
+    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginAbiV3,
+    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    NativePluginEntryPointV3, NativePluginEntryReportV3, NativePluginHostFunctionTableV3,
+    NativePluginOwnedByteBufferV2, NativePluginSchemaVersionsV3, NativePluginStatic,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+};
 
-const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = 3;
 #[cfg(feature = "abi_unknown_version")]
 const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = 99;
 #[cfg(not(feature = "abi_unknown_version"))]
 const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
-const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
-const ZIRCON_NATIVE_PLUGIN_STATUS_ERROR: u32 = 1;
-const ZIRCON_NATIVE_PLUGIN_STATUS_DENIED: u32 = 2;
-const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
-const FIXTURE_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
 const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
 
-const PLUGIN_MANIFEST: &str = concat!(
-    r#"id = "native_dynamic_fixture"
-version = "0.1.0"
-sdk_api_version = "0.1.0"
-display_name = "Native Dynamic Fixture"
-category = "sdk"
-description = "Real dynamic library fixture for ABI v3 native plugin loading and unknown-version rejection coverage."
-maturity = "experimental"
-supported_targets = ["client_runtime", "server_runtime", "editor_host"]
-capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
-default_packaging = ["native_dynamic"]
-
-[[modules]]
-name = "native_dynamic_fixture.runtime"
-kind = "runtime"
-crate_name = "zircon_plugin_native_dynamic_fixture_native"
-target_modes = ["client_runtime", "server_runtime", "editor_host"]
-capabilities = ["runtime.plugin.native_dynamic_fixture"]
-
-[[modules]]
-name = "native_dynamic_fixture.editor"
-kind = "editor"
-crate_name = "zircon_plugin_native_dynamic_fixture_native"
-target_modes = ["editor_host"]
-capabilities = ["editor.extension.native_dynamic_fixture"]
-"#,
-    "\0"
-);
+const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
 const PLUGIN_ID: &[u8] = b"native_dynamic_fixture\0";
 const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v3\0";
@@ -60,8 +34,6 @@ const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated 
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3: &[u8] = b"runtime v3 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
 const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
-const COMMAND_MANIFEST_SCHEMA: &[u8] = b"zircon.native.command-manifest/3\0";
-const EVENT_MANIFEST_SCHEMA: &[u8] = b"zircon.native.event-manifest/3\0";
 const RUNTIME_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.runtime\0";
 const EDITOR_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.editor\0";
 const RUNTIME_HOST_LOG_MESSAGE: &[u8] = b"runtime v3 host log callback reached\0";
@@ -73,7 +45,6 @@ const RUNTIME_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,runtime\0";
 const EDITOR_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,editor\0";
 const EDITOR_COMMAND_MANIFEST: &[u8] = b"\0";
 const EDITOR_EVENT_MANIFEST: &[u8] = b"\0";
-const STATUS_OK_DIAGNOSTICS: &[u8] = b"\0";
 const STATUS_ECHO_DIAGNOSTICS: &[u8] = b"serialized command echo completed\0";
 const STATUS_ASSET_IMPORT_DIAGNOSTICS: &[u8] = b"native fixture asset import completed\0";
 const STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS: &[u8] =
@@ -89,7 +60,6 @@ const STATUS_UNLOAD_DIAGNOSTICS: &[u8] = b"unload callback reached\0";
 const STATUS_STATELESS_UNLOAD_DIAGNOSTICS: &[u8] = b"stateless unload callback reached\0";
 const STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS: &[u8] =
     b"stateless editor command dispatch has no commands\0";
-const STATUS_FREE_MISMATCH_DIAGNOSTICS: &[u8] = b"allocation/free owner mismatch\0";
 const RUNTIME_STATE_BLOB: &[u8] = b"state:v3:native_dynamic_fixture";
 
 #[derive(Deserialize)]
@@ -99,272 +69,116 @@ struct NativeAssetImportRequestMetadata {
     source_path: String,
 }
 
-#[repr(C)]
-pub struct NativePluginAbiV3 {
-    pub abi_version: u32,
-    pub plugin_id: *const c_char,
-    pub package_manifest_toml: *const c_char,
-    pub runtime_entry_name: *const c_char,
-    pub editor_entry_name: *const c_char,
-    pub requested_capabilities: *const c_char,
-}
+static DESCRIPTOR_V3: NativePluginStatic<NativePluginAbiV3> =
+    NativePluginStatic::new(NativePluginAbiV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
+        plugin_id: PLUGIN_ID.as_ptr().cast(),
+        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
+        runtime_entry_name: RUNTIME_ENTRY.as_ptr().cast(),
+        editor_entry_name: EDITOR_ENTRY.as_ptr().cast(),
+        requested_capabilities: REQUESTED_CAPABILITIES.as_ptr().cast(),
+    });
 
-#[repr(C)]
-pub struct NativePluginSchemaVersionsV3 {
-    pub state_schema_version: u32,
-    pub command_manifest_schema: *const c_char,
-    pub event_manifest_schema: *const c_char,
-}
+static RUNTIME_BEHAVIOR_V3: NativePluginStatic<NativePluginBehaviorV3> =
+    NativePluginStatic::new(NativePluginBehaviorV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        is_stateless: 0,
+        schema_versions: NativePluginSchemaVersionsV3 {
+            state_schema_version: 3,
+            command_manifest_schema: native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3.as_ptr().cast(),
+            event_manifest_schema: native::NATIVE_EVENT_MANIFEST_SCHEMA_V3.as_ptr().cast(),
+        },
+        command_manifest: RUNTIME_COMMAND_MANIFEST.as_ptr().cast(),
+        event_manifest: RUNTIME_EVENT_MANIFEST.as_ptr().cast(),
+        invoke_command: Some(fixture_invoke_command),
+        save_state: Some(fixture_save_state),
+        restore_state: Some(fixture_restore_state),
+        unload: Some(fixture_unload),
+    });
 
-#[repr(C)]
-pub struct NativePluginEntryReportV3 {
-    pub abi_version: u32,
-    pub package_manifest_toml: *const c_char,
-    pub diagnostics: *const c_char,
-    pub negotiated_capabilities: *const c_char,
-    pub behavior: *const NativePluginBehaviorV3,
-    pub bridge_methods: *const NativePluginBridgeMethodTableV3,
-}
+static EDITOR_BEHAVIOR_V3: NativePluginStatic<NativePluginBehaviorV3> =
+    NativePluginStatic::new(NativePluginBehaviorV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        is_stateless: 1,
+        schema_versions: NativePluginSchemaVersionsV3 {
+            state_schema_version: 0,
+            command_manifest_schema: std::ptr::null(),
+            event_manifest_schema: std::ptr::null(),
+        },
+        command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
+        event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
+        invoke_command: Some(fixture_stateless_invoke_command),
+        save_state: None,
+        restore_state: None,
+        unload: Some(fixture_stateless_unload),
+    });
 
-#[repr(C)]
-pub struct NativePluginHostFunctionTableV3 {
-    pub abi_version: u32,
-    pub host_handle: u64,
-    pub granted_capabilities: *const c_char,
-    pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
-    pub host_has_capability:
-        Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV3, *const c_char) -> u32>,
-    pub host_log: Option<
-        unsafe extern "C" fn(
-            *const NativePluginHostFunctionTableV3,
-            u32,
-            *const c_char,
-            *const c_char,
-        ) -> u32,
-    >,
-    pub host_diagnostic: Option<
-        unsafe extern "C" fn(
-            *const NativePluginHostFunctionTableV3,
-            *const c_char,
-            f64,
-            *const c_char,
-            *const c_char,
-        ) -> u32,
-    >,
-}
+static RUNTIME_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
+    NativePluginStatic::new(NativePluginEntryReportV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
+        diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3
+            .as_ptr()
+            .cast(),
+        negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
+        behavior: RUNTIME_BEHAVIOR_V3.as_ptr(),
+        bridge_methods: std::ptr::null(),
+    });
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct NativePluginByteSliceV2 {
-    pub data: *const u8,
-    pub len: usize,
-}
+static EDITOR_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
+    NativePluginStatic::new(NativePluginEntryReportV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
+        diagnostics: EDITOR_DIAGNOSTICS_V3.as_ptr().cast(),
+        negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
+        behavior: EDITOR_BEHAVIOR_V3.as_ptr(),
+        bridge_methods: std::ptr::null(),
+    });
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct NativePluginOwnedByteBufferV2 {
-    pub data: *mut u8,
-    pub len: usize,
-    pub capacity: usize,
-    pub owner_token: u64,
-    pub free: Option<NativePluginFreeBytesFnV2>,
-}
+static MISSING_HOST_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
+    NativePluginStatic::new(NativePluginEntryReportV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
+        diagnostics: MISSING_HOST_DIAGNOSTICS_V3.as_ptr().cast(),
+        negotiated_capabilities: b"\0".as_ptr().cast(),
+        behavior: std::ptr::null(),
+        bridge_methods: std::ptr::null(),
+    });
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct NativePluginCallbackStatusV2 {
-    pub code: u32,
-    pub diagnostics: *const c_char,
-}
+static RUNTIME_ENTRY_POINT_V3: NativePluginEntryPointV3 = NativePluginEntryPointV3::new(
+    &RUNTIME_REPORT_V3,
+    &MISSING_HOST_REPORT_V3,
+    &["runtime.plugin.native_dynamic_fixture"],
+    &["runtime.plugin.denied_fixture"],
+    Some(emit_host_v3_runtime_signals),
+);
 
-#[repr(C)]
-pub struct NativePluginBehaviorV3 {
-    pub abi_version: u32,
-    pub is_stateless: u32,
-    pub schema_versions: NativePluginSchemaVersionsV3,
-    pub command_manifest: *const c_char,
-    pub event_manifest: *const c_char,
-    pub invoke_command: Option<NativePluginInvokeCommandFnV2>,
-    pub save_state: Option<NativePluginSaveStateFnV2>,
-    pub restore_state: Option<NativePluginRestoreStateFnV2>,
-    pub unload: Option<NativePluginUnloadFnV2>,
-}
+static EDITOR_ENTRY_POINT_V3: NativePluginEntryPointV3 = NativePluginEntryPointV3::new(
+    &EDITOR_REPORT_V3,
+    &MISSING_HOST_REPORT_V3,
+    &["editor.extension.native_dynamic_fixture"],
+    &[],
+    Some(emit_host_v3_editor_signals),
+);
 
-#[repr(C)]
-pub struct NativePluginBridgeMethodTableV3 {
-    pub abi_version: u32,
-    pub methods: *const NativePluginBridgeMethodV3,
-    pub method_count: usize,
-}
-
-#[repr(C)]
-pub struct NativePluginBridgeMethodV3 {
-    pub interface_id: *const c_char,
-    pub method_name: *const c_char,
-    pub method: Option<NativePluginBridgeMethodFnV3>,
-    pub user_data: u64,
-}
-
-#[repr(C)]
-pub struct NativePluginBridgeMethodCallV3 {
-    pub interface_slot: u32,
-    pub method_slot: u32,
-    pub payload: NativePluginByteSliceV2,
-    pub output: NativePluginByteBufferRefV3,
-    pub user_data: u64,
-}
-
-#[repr(C)]
-pub struct NativePluginByteBufferRefV3 {
-    pub data: *mut u8,
-    pub len: usize,
-}
-
-#[repr(C)]
-pub struct NativePluginHostStatusV3 {
-    pub code: u32,
-    pub diagnostics: NativePluginByteSliceV2,
-}
-
-pub type NativePluginFreeBytesFnV2 =
-    unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
-    *const c_char,
-    NativePluginByteSliceV2,
-    *mut NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2;
-pub type NativePluginSaveStateFnV2 =
-    unsafe extern "C" fn(*mut NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginRestoreStateFnV2 =
-    unsafe extern "C" fn(NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallbackStatusV2;
-pub type NativePluginBridgeMethodFnV3 =
-    unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> NativePluginHostStatusV3;
-
-struct SyncDescriptorV3(NativePluginAbiV3);
-struct SyncEntryReportV3(NativePluginEntryReportV3);
-struct SyncBehaviorV3(NativePluginBehaviorV3);
-
-unsafe impl Sync for SyncDescriptorV3 {}
-unsafe impl Sync for SyncEntryReportV3 {}
-unsafe impl Sync for SyncBehaviorV3 {}
-
-static DESCRIPTOR_V3: SyncDescriptorV3 = SyncDescriptorV3(NativePluginAbiV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
-    plugin_id: PLUGIN_ID.as_ptr().cast(),
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    runtime_entry_name: RUNTIME_ENTRY.as_ptr().cast(),
-    editor_entry_name: EDITOR_ENTRY.as_ptr().cast(),
-    requested_capabilities: REQUESTED_CAPABILITIES.as_ptr().cast(),
-});
-
-static RUNTIME_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    is_stateless: 0,
-    schema_versions: NativePluginSchemaVersionsV3 {
-        state_schema_version: 3,
-        command_manifest_schema: COMMAND_MANIFEST_SCHEMA.as_ptr().cast(),
-        event_manifest_schema: EVENT_MANIFEST_SCHEMA.as_ptr().cast(),
-    },
-    command_manifest: RUNTIME_COMMAND_MANIFEST.as_ptr().cast(),
-    event_manifest: RUNTIME_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: Some(fixture_invoke_command),
-    save_state: Some(fixture_save_state),
-    restore_state: Some(fixture_restore_state),
-    unload: Some(fixture_unload),
-});
-
-static EDITOR_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    is_stateless: 1,
-    schema_versions: NativePluginSchemaVersionsV3 {
-        state_schema_version: 0,
-        command_manifest_schema: std::ptr::null(),
-        event_manifest_schema: std::ptr::null(),
-    },
-    command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
-    event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: Some(fixture_stateless_invoke_command),
-    save_state: None,
-    restore_state: None,
-    unload: Some(fixture_stateless_unload),
-});
-
-static RUNTIME_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3
-        .as_ptr()
-        .cast(),
-    negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-    behavior: &RUNTIME_BEHAVIOR_V3.0,
-    bridge_methods: std::ptr::null(),
-});
-
-static EDITOR_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: EDITOR_DIAGNOSTICS_V3.as_ptr().cast(),
-    negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-    behavior: &EDITOR_BEHAVIOR_V3.0,
-    bridge_methods: std::ptr::null(),
-});
-
-static MISSING_HOST_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: MISSING_HOST_DIAGNOSTICS_V3.as_ptr().cast(),
-    negotiated_capabilities: b"\0".as_ptr().cast(),
-    behavior: std::ptr::null(),
-    bridge_methods: std::ptr::null(),
-});
-
-#[no_mangle]
-pub extern "C" fn zircon_native_plugin_descriptor_v3() -> *const NativePluginAbiV3 {
-    &DESCRIPTOR_V3.0
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v3(
-    host_functions: *const NativePluginHostFunctionTableV3,
-) -> *const NativePluginEntryReportV3 {
-    if host_supports_capability_v3(host_functions, "runtime.plugin.native_dynamic_fixture")
-        && !host_supports_capability_v3(host_functions, "runtime.plugin.denied_fixture")
-    {
-        emit_host_v3_runtime_signals(host_functions);
-        &RUNTIME_REPORT_V3.0
-    } else {
-        &MISSING_HOST_REPORT_V3.0
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_editor_entry_v3(
-    host_functions: *const NativePluginHostFunctionTableV3,
-) -> *const NativePluginEntryReportV3 {
-    if host_supports_capability_v3(host_functions, "editor.extension.native_dynamic_fixture") {
-        emit_host_v3_editor_signals(host_functions);
-        &EDITOR_REPORT_V3.0
-    } else {
-        &MISSING_HOST_REPORT_V3.0
-    }
-}
+zircon_plugin_sdk::export_native_plugin_descriptor_v3!(DESCRIPTOR_V3);
+zircon_plugin_sdk::export_native_plugin_entry_v3!(
+    zircon_native_dynamic_fixture_runtime_entry_v3,
+    RUNTIME_ENTRY_POINT_V3
+);
+zircon_plugin_sdk::export_native_plugin_entry_v3!(
+    zircon_native_dynamic_fixture_editor_entry_v3,
+    EDITOR_ENTRY_POINT_V3
+);
 
 unsafe extern "C" fn fixture_invoke_command(
     command_name: *const c_char,
     payload: NativePluginByteSliceV2,
     output: *mut NativePluginOwnedByteBufferV2,
 ) -> NativePluginCallbackStatusV2 {
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
-    let result = catch_unwind(AssertUnwindSafe(|| unsafe {
+    native::catch_native_callback_panic(STATUS_PANIC_DIAGNOSTICS, || unsafe {
         fixture_invoke_command_inner(command_name, payload, output)
-    }));
-    std::panic::set_hook(previous_hook);
-    match result {
-        Ok(status) => status,
-        Err(_) => status(ZIRCON_NATIVE_PLUGIN_STATUS_PANIC, STATUS_PANIC_DIAGNOSTICS),
-    }
+    })
 }
 
 unsafe fn fixture_invoke_command_inner(
@@ -566,89 +380,6 @@ unsafe extern "C" fn fixture_stateless_invoke_command(
     )
 }
 
-unsafe extern "C" fn fixture_free_bytes(
-    buffer: NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
-    if buffer.data.is_null() || buffer.capacity == 0 {
-        return status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_OK_DIAGNOSTICS);
-    }
-    let owner_matches = buffer.owner_token == owner_token(buffer.data, buffer.len, buffer.capacity);
-    let _ = Vec::from_raw_parts(buffer.data, buffer.len, buffer.capacity);
-    if owner_matches {
-        status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_OK_DIAGNOSTICS)
-    } else {
-        status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            STATUS_FREE_MISMATCH_DIAGNOSTICS,
-        )
-    }
-}
-
-fn status(code: u32, diagnostics: &[u8]) -> NativePluginCallbackStatusV2 {
-    NativePluginCallbackStatusV2 {
-        code,
-        diagnostics: diagnostics.as_ptr().cast(),
-    }
-}
-
-fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV2 {
-    let data = bytes.as_mut_ptr();
-    let len = bytes.len();
-    let capacity = bytes.capacity();
-    let owner_token = owner_token(data, len, capacity);
-    std::mem::forget(bytes);
-    NativePluginOwnedByteBufferV2 {
-        data,
-        len,
-        capacity,
-        owner_token,
-        free: Some(fixture_free_bytes),
-    }
-}
-
-fn owner_token(data: *mut u8, len: usize, capacity: usize) -> u64 {
-    FIXTURE_OWNER_TOKEN_SALT
-        ^ data as usize as u64
-        ^ ((len as u64) << 7)
-        ^ ((capacity as u64) << 17)
-}
-
-unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV2) -> &'a [u8] {
-    if slice.data.is_null() || slice.len == 0 {
-        &[]
-    } else {
-        std::slice::from_raw_parts(slice.data, slice.len)
-    }
-}
-
-fn host_supports_capability_v3(
-    host_functions: *const NativePluginHostFunctionTableV3,
-    capability: &str,
-) -> bool {
-    if host_functions.is_null() {
-        return false;
-    }
-    let host_functions = unsafe { &*host_functions };
-    let host_version = host_functions
-        .host_abi_version
-        .map(|host_abi_version| unsafe { host_abi_version() })
-        .unwrap_or_default();
-    if host_functions.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION
-        || host_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION
-        || host_functions.host_handle == 0
-    {
-        return false;
-    }
-    if let Some(host_has_capability) = host_functions.host_has_capability {
-        let Ok(capability) = CString::new(capability) else {
-            return false;
-        };
-        return unsafe { host_has_capability(host_functions, capability.as_ptr()) }
-            == ZIRCON_NATIVE_PLUGIN_STATUS_OK;
-    }
-    capability_list_contains(host_functions.granted_capabilities, capability)
-}
-
 fn emit_host_v3_runtime_signals(host_functions: *const NativePluginHostFunctionTableV3) {
     if host_functions.is_null() {
         return;
@@ -703,17 +434,4 @@ fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTa
             );
         }
     }
-}
-
-fn capability_list_contains(capabilities: *const c_char, capability: &str) -> bool {
-    if capabilities.is_null() {
-        return false;
-    }
-    let Ok(capabilities) = unsafe { CStr::from_ptr(capabilities) }.to_str() else {
-        return false;
-    };
-    capabilities
-        .split(|character| matches!(character, '\n' | ',' | ';'))
-        .map(str::trim)
-        .any(|entry| entry == capability)
 }

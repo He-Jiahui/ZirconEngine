@@ -3,6 +3,8 @@
 mod render_backend;
 
 #[cfg(test)]
+pub(crate) use render_backend::read_buffer_f32x4;
+#[cfg(test)]
 pub(crate) use render_backend::read_texture_rgba16float_3d;
 #[cfg(test)]
 pub(crate) use render_backend::RenderBackendConfig;

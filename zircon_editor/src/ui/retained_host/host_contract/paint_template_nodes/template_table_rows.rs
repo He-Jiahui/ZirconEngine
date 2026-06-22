@@ -10,5 +10,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use comman
 };
 
 #[cfg(test)]
-#[path = "template_table_rows_tests.rs"]
+#[path = "template_table_rows_tests/mod.rs"]
 mod tests;

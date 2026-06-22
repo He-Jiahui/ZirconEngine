@@ -2,24 +2,25 @@ use std::collections::BTreeMap;
 
 use crate::plugin::ComponentTypeDescriptor;
 
+use super::error::{SceneError, SceneResult};
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ComponentTypeRegistry {
     descriptors: BTreeMap<String, ComponentTypeDescriptor>,
 }
 
 impl ComponentTypeRegistry {
-    pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> Result<(), String> {
+    pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> SceneResult<()> {
         if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id) {
-            return Err(format!(
-                "component type {} must be prefixed by plugin id {}",
-                descriptor.type_id, descriptor.plugin_id
-            ));
+            return Err(SceneError::ComponentTypePluginPrefixMismatch {
+                type_id: descriptor.type_id,
+                plugin_id: descriptor.plugin_id,
+            });
         }
         if self.descriptors.contains_key(&descriptor.type_id) {
-            return Err(format!(
-                "component type {} already registered",
-                descriptor.type_id
-            ));
+            return Err(SceneError::DuplicateComponentType {
+                type_id: descriptor.type_id,
+            });
         }
         self.descriptors
             .insert(descriptor.type_id.clone(), descriptor);

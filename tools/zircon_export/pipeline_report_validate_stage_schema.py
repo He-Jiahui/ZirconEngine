@@ -15,11 +15,11 @@ from .pipeline_report_source_template_validate_schema import (
 from .pipeline_report_schema_primitives import (
     validate_bool_schema_diagnostics,
     validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
 from .pipeline_report_schema_table import (
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 from .pipeline_report_validate_compile_host_schema import (
     validate_library_embed_compile_host_schema_diagnostics,
@@ -33,6 +33,9 @@ from .pipeline_report_validate_profile_summary_schema import (
 )
 from .pipeline_report_validate_runtime_availability_schema import (
     validate_runtime_plugin_availability_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 VALIDATE_REPORT_FIELDS = (
@@ -99,6 +102,12 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
             )
             diagnostics.extend(
                 string_array_no_blank_entries_schema_diagnostics(
+                    f"validate report {field}",
+                    report.get(field),
+                )
+            )
+            diagnostics.extend(
+                string_array_trimmed_non_empty_entries_schema_diagnostics(
                     f"validate report {field}",
                     report.get(field),
                 )

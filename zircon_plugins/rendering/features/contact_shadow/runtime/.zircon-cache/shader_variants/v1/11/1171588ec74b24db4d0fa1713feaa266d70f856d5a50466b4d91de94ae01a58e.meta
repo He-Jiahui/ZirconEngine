@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "hash": "1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e",
+  "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|geometry=0|shading=2|pass=forward|features=0x00000000|quality=medium|platform=wgpu-runtime",
+  "template_revision": "mesh-template-v1",
+  "naga_version": "naga-29.0.1",
+  "wgpu_version": "wgpu-29.0.1",
+  "created_unix_seconds": 1782066485
+}

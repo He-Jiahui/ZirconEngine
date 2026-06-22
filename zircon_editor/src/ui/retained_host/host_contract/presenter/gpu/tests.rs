@@ -1,6 +1,6 @@
 use super::*;
 use crate::ui::retained_host::host_contract::chrome_command_stream::{
-    ChromeCommandLayer, ChromeImagePayload,
+    ChromeCommandLayer, ChromeCommandStream, ChromeImagePayload,
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::presenter::error::HostPresenterError;

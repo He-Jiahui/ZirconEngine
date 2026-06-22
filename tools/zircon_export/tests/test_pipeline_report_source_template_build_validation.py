@@ -135,13 +135,74 @@ class PipelineReportSourceTemplateBuildValidationTests(unittest.TestCase):
             self.assertTrue(report["fatal"])
             self.assertTrue(
                 any(
-                    "SourceTemplate build_validation stdout_lines must be a string array"
+                    "SourceTemplate build_validation stdout_lines[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
             )
             self.assertTrue(
+                any(
+                    "SourceTemplate build_validation stderr_lines must be a string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_build_validation_non_string_log_line_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "build_executed": True,
+                    "build_validation": {
+                        "requested": True,
+                        "executed": True,
+                        "status": "passed",
+                        "exit_code": 0,
+                        "working_dir": str(
+                            out / "stages" / "source_template" / "project"
+                        ),
+                        "command": ["cargo", "build"],
+                        "stdout_lines": ["ok", 123],
+                        "stderr_lines": ["warning", None],
+                    },
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertTrue(
+                any(
+                    "SourceTemplate build_validation stdout_lines[1] must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertTrue(
+                any(
+                    "SourceTemplate build_validation stderr_lines[1] must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "SourceTemplate build_validation stdout_lines must be a string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
                 any(
                     "SourceTemplate build_validation stderr_lines must be a string array"
                     in diagnostic

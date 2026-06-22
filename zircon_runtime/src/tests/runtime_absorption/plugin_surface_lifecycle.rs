@@ -87,7 +87,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-06-16"),
+        plan_doc.contains("last_refined: 2026-06-21"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 

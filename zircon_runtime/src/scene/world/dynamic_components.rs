@@ -7,6 +7,7 @@ use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
 use zircon_runtime_interface::reflect::ReflectError;
 
+use super::error::{SceneError, SceneResult};
 use super::World;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -20,29 +21,24 @@ impl World {
     pub fn register_component_type(
         &mut self,
         descriptor: ComponentTypeDescriptor,
-    ) -> Result<(), String> {
+    ) -> SceneResult<()> {
         let registration =
-            match crate::scene::reflect::registration_from_component_descriptor(&descriptor) {
-                Ok(registration) => registration,
-                Err(error) => return Err(error.to_string()),
-            };
+            crate::scene::reflect::registration_from_component_descriptor(&descriptor)?;
         if self.type_registry.contains(&descriptor.type_id) {
             return Err(ReflectError::DuplicateTypePath {
                 type_path: descriptor.type_id.clone(),
             }
-            .to_string());
+            .into());
         }
         let component =
             crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);
         self.component_types.register(descriptor)?;
-        match self.type_registry.register(RuntimeTypeRegistration {
+        self.type_registry.register(RuntimeTypeRegistration {
             registration,
             component: Some(component),
             resource: None,
-        }) {
-            Ok(()) => Ok(()),
-            Err(error) => Err(error.to_string()),
-        }
+        })?;
+        Ok(())
     }
 
     pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
@@ -63,10 +59,11 @@ impl World {
         entity: EntityId,
         component_id: impl Into<String>,
         value: Value,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot attach dynamic component to missing entity {entity}"
+            return Err(SceneError::missing_entity(
+                "attach dynamic component to",
+                entity,
             ));
         }
         let component_id = component_id.into();
@@ -105,10 +102,11 @@ impl World {
         &mut self,
         entity: EntityId,
         component_id: &str,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot remove dynamic component from missing entity {entity}"
+            return Err(SceneError::missing_entity(
+                "remove dynamic component from",
+                entity,
             ));
         }
         let Some(components) = self.dynamic_components.get_mut(&entity) else {
@@ -136,7 +134,7 @@ impl World {
         count
     }
 
-    pub fn ensure_plugin_components_can_unload(&self, plugin_id: &str) -> Result<(), String> {
+    pub fn ensure_plugin_components_can_unload(&self, plugin_id: &str) -> SceneResult<()> {
         let mut active_components = String::new();
         let mut has_active_components = false;
         for (entity, components) in &self.dynamic_components {
@@ -154,10 +152,10 @@ impl World {
         if !has_active_components {
             return Ok(());
         }
-        Err(format!(
-            "plugin `{plugin_id}` cannot unload while dynamic components are active: {}",
-            active_components
-        ))
+        Err(SceneError::PluginComponentsActive {
+            plugin_id: plugin_id.to_string(),
+            active_components,
+        })
     }
 
     pub(crate) fn dynamic_component_property(
@@ -176,28 +174,30 @@ impl World {
         entity: EntityId,
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update missing entity {entity}"));
+            return Err(SceneError::missing_entity("update", entity));
         }
         let Some((component_id, property)) = split_dynamic_property_path(property_path) else {
-            return Err(format!("unknown property `{property_path}`"));
+            return Err(SceneError::UnknownDynamicComponentProperty {
+                property_path: property_path.to_string(),
+            });
         };
         self.validate_dynamic_component_type(component_id)?;
         self.validate_dynamic_component_property_write(component_id, property)?;
         let Some(json_value) = json_from_scene_value(value) else {
-            return Err(format!(
-                "property `{property_path}` cannot be written to a dynamic component"
-            ));
+            return Err(SceneError::DynamicComponentPropertyUnsupportedValue {
+                property_path: property_path.to_string(),
+            });
         };
         let components = self.dynamic_components.entry(entity).or_default();
         let component = components
             .entry(component_id.to_string())
             .or_insert_with(|| Value::Object(Map::new()));
         let Some(object) = component.as_object_mut() else {
-            return Err(format!(
-                "dynamic component `{component_id}` is not an object"
-            ));
+            return Err(SceneError::DynamicComponentNotObject {
+                component_id: component_id.to_string(),
+            });
         };
         if object.get(property) == Some(&json_value) {
             return Ok(false);
@@ -207,20 +207,20 @@ impl World {
         Ok(true)
     }
 
-    fn validate_dynamic_component_type(&self, component_id: &str) -> Result<(), String> {
+    fn validate_dynamic_component_type(&self, component_id: &str) -> SceneResult<()> {
         if self.component_types.is_empty() || self.component_types.contains(component_id) {
             return Ok(());
         }
-        Err(format!(
-            "dynamic component type `{component_id}` is not registered"
-        ))
+        Err(SceneError::UnregisteredDynamicComponentType {
+            component_id: component_id.to_string(),
+        })
     }
 
     fn validate_dynamic_component_property_write(
         &self,
         component_id: &str,
         property: &str,
-    ) -> Result<(), String> {
+    ) -> SceneResult<()> {
         let Some(descriptor) = self.component_types.descriptor(component_id) else {
             return Ok(());
         };
@@ -235,14 +235,16 @@ impl World {
             }
         }
         let Some(property_descriptor) = property_descriptor else {
-            return Err(format!(
-                "dynamic component type `{component_id}` does not declare property `{property}`"
-            ));
+            return Err(SceneError::UndeclaredDynamicComponentProperty {
+                component_id: component_id.to_string(),
+                property: property.to_string(),
+            });
         };
         if !property_descriptor.editable {
-            return Err(format!(
-                "dynamic component property `{component_id}.{property}` is not editable"
-            ));
+            return Err(SceneError::NonEditableDynamicComponentProperty {
+                component_id: component_id.to_string(),
+                property: property.to_string(),
+            });
         }
         Ok(())
     }

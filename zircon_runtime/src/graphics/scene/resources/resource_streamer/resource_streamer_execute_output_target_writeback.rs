@@ -9,6 +9,7 @@ use crate::graphics::types::{
     GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
     ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
 };
+use std::sync::Arc;
 
 use super::ResourceStreamer;
 
@@ -30,7 +31,7 @@ impl ResourceStreamer {
         let prepared_resource = self
             .output_target_textures
             .get(&texture_id)
-            .map(|prepared| prepared.resource.clone())
+            .map(|prepared| Arc::clone(prepared.resource()))
             .ok_or_else(|| missing_prepared_output_target(texture_id))?;
         let plan =
             frame.texture_writeback_plan(Some(prepared_resource.descriptor().format.as_str()));
@@ -88,7 +89,7 @@ impl ResourceStreamer {
         let Some(prepared_resource) = self
             .output_target_textures
             .get(&texture_id)
-            .map(|prepared| prepared.resource.clone())
+            .map(|prepared| Arc::clone(prepared.resource()))
         else {
             self.last_output_target_writeback_report =
                 RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());

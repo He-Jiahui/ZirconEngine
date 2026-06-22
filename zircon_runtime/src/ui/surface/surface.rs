@@ -39,8 +39,7 @@ use super::{
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
     input::{
         apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event,
-        dispatch_window_input_pump_batch, dispatch_window_input_pump_event, is_valid_input_owner,
-        UiSurfaceInputState,
+        is_valid_input_owner, UiSurfaceInputState,
     },
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
     property_mutation::{
@@ -372,36 +371,18 @@ impl UiSurface {
 
     pub fn dispatch_window_input_pump_event(
         &mut self,
-        pointer_dispatcher: &UiPointerDispatcher,
-        navigation_dispatcher: &UiNavigationDispatcher,
-        event: UiWindowInputPumpEvent,
-    ) -> Result<UiInputDispatchResult, UiTreeError> {
-        dispatch_window_input_pump_event(self, pointer_dispatcher, navigation_dispatcher, event)
-    }
-
-    pub fn dispatch_window_input_pump_event_with_manager(
-        &mut self,
         manager: &mut UiInputManager,
         event: UiWindowInputPumpEvent,
     ) -> Result<UiInputDispatchResult, UiTreeError> {
-        manager.dispatch_window_event(self, event)
+        manager.dispatch_window_input_pump_event(self, event)
     }
 
     pub fn dispatch_window_input_pump_batch(
         &mut self,
-        pointer_dispatcher: &UiPointerDispatcher,
-        navigation_dispatcher: &UiNavigationDispatcher,
-        batch: UiWindowInputPumpBatch,
-    ) -> Result<Vec<UiInputDispatchResult>, UiTreeError> {
-        dispatch_window_input_pump_batch(self, pointer_dispatcher, navigation_dispatcher, batch)
-    }
-
-    pub fn dispatch_window_input_pump_batch_with_manager(
-        &mut self,
         manager: &mut UiInputManager,
         batch: UiWindowInputPumpBatch,
     ) -> Result<UiInputDispatchOutcome, UiTreeError> {
-        manager.dispatch_window_batch(self, batch)
+        manager.dispatch_window_input_pump_batch(self, batch)
     }
 
     pub fn route_pointer_event(

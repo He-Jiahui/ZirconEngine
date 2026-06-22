@@ -25,5 +25,5 @@ use style::button_opacity;
 use style::button_style;
 
 #[cfg(test)]
-#[path = "template_buttons_tests.rs"]
+#[path = "template_buttons_tests/mod.rs"]
 mod tests;

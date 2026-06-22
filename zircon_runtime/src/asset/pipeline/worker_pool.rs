@@ -25,7 +25,6 @@ pub struct AssetWorkerPool {
     options: AssetWorkerPoolOptions,
     request_tx: Option<ChannelSender<AssetRequest>>,
     #[cfg(test)]
-    #[allow(dead_code)]
     // Keeps the request channel connected while tests exercise bounded overflow without workers.
     request_rx_guard: Option<ChannelReceiver<AssetRequest>>,
     in_flight: Arc<Mutex<HashMap<AssetRequest, usize>>>,
@@ -274,6 +273,11 @@ impl AssetWorkerPool {
             completion_rx,
             joins: Vec::new(),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn request_channel_guard_is_alive_for_test(&self) -> bool {
+        self.request_rx_guard.is_some()
     }
 
     pub fn options(&self) -> &AssetWorkerPoolOptions {

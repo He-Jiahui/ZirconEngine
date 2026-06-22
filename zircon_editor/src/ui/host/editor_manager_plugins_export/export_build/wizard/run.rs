@@ -94,7 +94,7 @@ pub fn run_export_wizard_job(
             },
             &mut || cancel_signal.is_cancel_requested(),
         );
-        let stage_was_cancelled = stage_execution.cancelled || cancel_signal.is_cancel_requested();
+        let stage_was_cancelled = stage_execution.cancelled;
         let stage_was_fatal = stage_execution.fatal;
         job.record_stage_execution(stage_execution);
         emit_job_event(emit_event, ExportWizardJobEventKind::StageFinished, &job);

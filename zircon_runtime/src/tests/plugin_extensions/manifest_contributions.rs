@@ -18,22 +18,22 @@ fn builtin_rendering_catalog_declares_owner_features_and_defaults() {
 
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "rendering")
+        .find(|descriptor| descriptor.package_id() == "rendering")
         .expect("rendering catalog entry");
     let manifest = descriptor.package_manifest();
 
-    assert_eq!(descriptor.category, "rendering");
+    assert_eq!(descriptor.category(), "rendering");
     assert_eq!(manifest.category, "rendering");
     assert_eq!(
-        descriptor.target_modes,
-        vec![
+        descriptor.target_modes(),
+        &[
             RuntimeTargetMode::ClientRuntime,
             RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(
         descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .map(|feature| feature.id.as_str())
             .collect::<Vec<_>>(),
@@ -51,7 +51,7 @@ fn builtin_rendering_catalog_declares_owner_features_and_defaults() {
     );
     assert_eq!(
         descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .filter(|feature| feature.enabled_by_default)
             .map(|feature| feature.id.as_str())
@@ -64,7 +64,7 @@ fn builtin_rendering_catalog_declares_owner_features_and_defaults() {
         ]
     );
     let vfx_graph = descriptor
-        .optional_features
+        .optional_features()
         .iter()
         .find(|feature| feature.id == "rendering.vfx_graph")
         .expect("vfx graph feature");
@@ -88,7 +88,7 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
         toml::from_str(&encoded).expect("rendering plugin manifest roundtrip");
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == RuntimePluginId::Rendering)
+        .find(|descriptor| descriptor.runtime_id() == RuntimePluginId::Rendering)
         .expect("rendering plugin should be in the runtime catalog");
     let projected_manifest = descriptor.package_manifest();
     let expected_targets = vec![
@@ -112,11 +112,14 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
         status.capability == "runtime.plugin.rendering"
             && status.status == CapabilityStatus::Complete
     }));
-    assert_eq!(descriptor.category, manifest.category);
-    assert_eq!(descriptor.maturity, manifest.maturity);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), manifest.category);
+    assert_eq!(descriptor.maturity(), manifest.maturity);
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.rendering"
             && status.status == CapabilityStatus::Complete
     }));
@@ -247,7 +250,7 @@ fn sound_plugin_manifest_matches_catalog_beta_partial_metadata() {
         .expect("sound plugin should declare a runtime module");
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == RuntimePluginId::Sound)
+        .find(|descriptor| descriptor.runtime_id() == RuntimePluginId::Sound)
         .expect("sound plugin should be in the runtime catalog");
     let projected_manifest = descriptor.package_manifest();
     let expected_targets = vec![
@@ -275,11 +278,14 @@ fn sound_plugin_manifest_matches_catalog_beta_partial_metadata() {
                 .bevy_references
                 .contains(&"dev/bevy/crates/bevy_audio/src/lib.rs".to_string())
     }));
-    assert_eq!(descriptor.category, manifest.category);
-    assert_eq!(descriptor.maturity, manifest.maturity);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), manifest.category);
+    assert_eq!(descriptor.maturity(), manifest.maturity);
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.sound"
             && status.status == CapabilityStatus::Partial
             && status
@@ -320,18 +326,18 @@ fn animation_plugin_toml_matches_catalog_beta_partial_metadata() {
 
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "animation")
+        .find(|descriptor| descriptor.package_id() == "animation")
         .expect("animation catalog entry");
-    assert_eq!(descriptor.category, "runtime");
-    assert_eq!(descriptor.maturity, crate::plugin::PluginMaturity::Beta);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), "runtime");
+    assert_eq!(descriptor.maturity(), crate::plugin::PluginMaturity::Beta);
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.animation"
             && status.status == CapabilityStatus::Partial
             && status
                 .bevy_references
                 .contains(&"dev/bevy/crates/bevy_animation/src/lib.rs".to_string())
     }));
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.feature.animation.timeline_event_track"
             && status.status == CapabilityStatus::Partial
     }));
@@ -375,13 +381,16 @@ fn navigation_plugin_toml_matches_catalog_beta_partial_metadata() {
 
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "navigation")
+        .find(|descriptor| descriptor.package_id() == "navigation")
         .expect("navigation catalog entry");
-    assert_eq!(descriptor.category, "runtime");
-    assert_eq!(descriptor.maturity, crate::plugin::PluginMaturity::Beta);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), "runtime");
+    assert_eq!(descriptor.maturity(), crate::plugin::PluginMaturity::Beta);
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.navigation"
             && status.status == CapabilityStatus::Partial
             && status.note.as_deref()
@@ -436,22 +445,25 @@ fn particles_plugin_toml_matches_catalog_optional_feature_metadata() {
 
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "particles")
+        .find(|descriptor| descriptor.package_id() == "particles")
         .expect("particles catalog entry");
-    assert_eq!(descriptor.category, "runtime");
+    assert_eq!(descriptor.category(), "runtime");
     assert_eq!(
-        descriptor.maturity,
+        descriptor.maturity(),
         crate::plugin::PluginMaturity::Experimental
     );
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.particles"
             && status.status == CapabilityStatus::Partial
             && status.note.as_deref()
                 == Some("Advanced optional VFX capability; not a Bevy default parity blocker.")
     }));
-    assert_particles_optional_features(&descriptor.optional_features);
+    assert_particles_optional_features(descriptor.optional_features());
 }
 
 #[test]
@@ -470,7 +482,7 @@ fn texture_plugin_manifest_matches_catalog_stable_complete_metadata() {
         .expect("texture plugin should declare a runtime module");
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == RuntimePluginId::Texture)
+        .find(|descriptor| descriptor.runtime_id() == RuntimePluginId::Texture)
         .expect("texture plugin should be in the runtime catalog");
     let projected_manifest = descriptor.package_manifest();
     let expected_targets = vec![
@@ -494,11 +506,14 @@ fn texture_plugin_manifest_matches_catalog_stable_complete_metadata() {
     assert!(manifest.capability_statuses.iter().any(|status| {
         status.capability == "runtime.plugin.texture" && status.status == CapabilityStatus::Complete
     }));
-    assert_eq!(descriptor.category, manifest.category);
-    assert_eq!(descriptor.maturity, manifest.maturity);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), manifest.category);
+    assert_eq!(descriptor.maturity(), manifest.maturity);
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.texture" && status.status == CapabilityStatus::Complete
     }));
     assert_eq!(projected_manifest.category, manifest.category);
@@ -558,14 +573,14 @@ fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata() {
 
         let descriptor = RuntimePluginDescriptor::builtin_catalog()
             .into_iter()
-            .find(|descriptor| descriptor.package_id == id)
+            .find(|descriptor| descriptor.package_id() == id)
             .expect("runtime plugin catalog entry");
-        assert_eq!(descriptor.category, "runtime");
+        assert_eq!(descriptor.category(), "runtime");
         assert_eq!(
-            descriptor.maturity,
+            descriptor.maturity(),
             crate::plugin::PluginMaturity::Experimental
         );
-        assert_runtime_partial_capability_statuses(&descriptor.capability_statuses, &capabilities);
+        assert_runtime_partial_capability_statuses(descriptor.capability_statuses(), &capabilities);
     }
 }
 
@@ -789,7 +804,7 @@ fn net_plugin_toml_declares_content_download_http_dependency() {
         .expect("net plugin should declare a runtime module");
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == RuntimePluginId::Net)
+        .find(|descriptor| descriptor.runtime_id() == RuntimePluginId::Net)
         .expect("net plugin should be in the runtime catalog");
     let expected_targets = vec![
         RuntimeTargetMode::ServerRuntime,
@@ -806,8 +821,11 @@ fn net_plugin_toml_declares_content_download_http_dependency() {
     assert_eq!(manifest.capabilities, expected_capabilities);
     assert_eq!(runtime_module.target_modes, manifest.supported_targets);
     assert_eq!(runtime_module.capabilities, manifest.capabilities);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
+    assert_eq!(
+        descriptor.target_modes(),
+        manifest.supported_targets.as_slice()
+    );
+    assert_eq!(descriptor.capabilities(), manifest.capabilities.as_slice());
     assert!(manifest.capability_statuses.iter().any(|status| {
         status.capability == "runtime.plugin.net" && status.status == CapabilityStatus::Partial
     }));
@@ -833,12 +851,12 @@ fn net_plugin_toml_declares_content_download_http_dependency() {
 fn builtin_net_catalog_declares_layered_optional_features() {
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.package_id == "net")
+        .find(|descriptor| descriptor.package_id() == "net")
         .expect("net catalog entry");
 
     assert_eq!(
         descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .map(|feature| feature.id.as_str())
             .collect::<Vec<_>>(),
@@ -906,7 +924,7 @@ fn builtin_net_catalog_declares_layered_optional_features() {
         ),
     ] {
         let feature = descriptor
-            .optional_features
+            .optional_features()
             .iter()
             .find(|feature| feature.id == feature_id)
             .expect("net optional feature should be present in the built-in catalog");
@@ -927,7 +945,7 @@ fn builtin_net_catalog_declares_layered_optional_features() {
     }
 
     let content_download = descriptor
-        .optional_features
+        .optional_features()
         .iter()
         .find(|feature| feature.id == "net.content_download")
         .expect("content download feature");

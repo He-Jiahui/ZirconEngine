@@ -99,6 +99,8 @@ fn runtime_01_tech_stack_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "tech_stack_boundary",
+            "tech_stack_source_inventory.py",
+            "tech_stack_anchor_inventory.py",
             "expected_manifest_count = 5",
             "expected_non_dependency_count = 5",
             "zip_dependency_count = 1",

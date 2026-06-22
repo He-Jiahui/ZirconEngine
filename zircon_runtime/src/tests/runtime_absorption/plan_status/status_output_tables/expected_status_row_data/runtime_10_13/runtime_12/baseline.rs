@@ -37,4 +37,31 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "input/action_map/gamepad/app Cargo gates",
         ],
     ),
+    (
+        "Runtime 12 Input stack inventory split",
+        [
+            "input_stack_inventory_split_static_passed_cargo_deferred_tests_deferred",
+            "input_stack_source_inventory.py",
+            "input_stack_anchor_inventory.py",
+            "input_stack_boundary.py",
+        ],
+    ),
+    (
+        "Runtime 12 Input stack Markdown renderer split",
+        [
+            "input_stack_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "input_stack_markdown.py",
+            "input_stack_boundary.py` now owns audit read, missing-anchor calculation, and risk aggregation at 337 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 12 input boundary grouped manager import guard repair",
+        [
+            "input_boundary_grouped_manager_import_guard_passed_broader_input_failures_pending",
+            "input_protocol_types_live_in_runtime_input_surface",
+            "1 passed; 0 failed; 4704 filtered out",
+            "342 passed; 11 failed; 1 ignored",
+        ],
+    ),
 ];

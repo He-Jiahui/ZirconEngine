@@ -10,11 +10,6 @@ use identity::{axis_label_kind, AxisLabelKind};
 use scale_link::push_scale_link;
 use text::push_axis_text;
 
-#[cfg(test)]
-use scale_link::scale_link_origin;
-#[cfg(test)]
-use style::{axis_label_color, AXIS_LABEL_COLOR, AXIS_LABEL_SCALE_COLOR};
-
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_axis_label_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -37,5 +32,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
 }
 
 #[cfg(test)]
-#[path = "template_axis_labels_tests.rs"]
+#[path = "template_axis_labels_tests/mod.rs"]
 mod tests;

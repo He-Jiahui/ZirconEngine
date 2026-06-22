@@ -34,6 +34,8 @@ mod tests {
         assert!(
             DEFERRED_GEOMETRY_SHADER.contains("output.tint = zr_gpu_scene_tint(instance_index);")
         );
+        assert!(DEFERRED_GEOMETRY_SHADER
+            .contains("output.shadow_params = zr_gpu_scene_shadow_params(instance_index);"));
         assert!(!DEFERRED_GEOMETRY_SHADER.contains("model_data"));
     }
 
@@ -111,27 +113,36 @@ mod tests {
         assert!(DEFERRED_GEOMETRY_SHADER.contains(
             "let shading_model_id = select(decode_shading_model_id(material_properties.data8.y), ZR_SHADING_MODEL_UNLIT_ID, material_properties.data0.w >= 0.5);"
         ));
+        assert!(
+            DEFERRED_GEOMETRY_SHADER.contains("let receive_shadows = input.shadow_params.z > 0.5;")
+        );
         assert!(DEFERRED_GEOMETRY_SHADER.contains(
-            "vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_shading_model_id(shading_model_id))"
+            "vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_deferred_material_flags(shading_model_id, receive_shadows))"
         ));
     }
 
     #[test]
-    fn deferred_geometry_shader_encodes_shading_model_id_into_gbuffer_material_alpha() {
+    fn deferred_geometry_shader_encodes_shading_model_and_receive_shadow_flag_into_gbuffer_material_alpha(
+    ) {
         for expected in [
             "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
             "const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;",
-            "fn encode_shading_model_id(id: u32) -> f32",
+            "const ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK: u32 = 0x7Fu;",
+            "const ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG: u32 = 0x80u;",
+            "fn encode_deferred_material_flags(shading_model_id: u32, receive_shadows: bool) -> f32",
             "fn decode_shading_model_id(encoded: f32) -> u32",
-            "return f32(id) / 255.0;",
+            "let receive_shadow_flag = select(0u, ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG, receive_shadows);",
+            "return f32(model | receive_shadow_flag) / 255.0;",
             "round(clamp(encoded, 0.0, 1.0) * 255.0)",
+            "& ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK",
             "material_properties.data8.y",
             "material_properties.data0.w >= 0.5",
-            "encode_shading_model_id(shading_model_id)",
+            "input.shadow_params.z > 0.5",
+            "encode_deferred_material_flags(shading_model_id, receive_shadows)",
         ] {
             assert!(
                 DEFERRED_GEOMETRY_SHADER.contains(expected),
-                "deferred geometry shader should use `{expected}` for shading-model G-buffer packing"
+                "deferred geometry shader should use `{expected}` for material G-buffer packing"
             );
         }
     }

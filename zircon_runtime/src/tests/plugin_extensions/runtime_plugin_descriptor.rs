@@ -2,20 +2,22 @@ use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
-    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
+    RuntimePluginRegistrationReport,
 };
 use crate::scene::SystemStage;
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
-    let uppercase = RuntimePluginDescriptor::new(
+    let uppercase = RuntimePluginDescriptor::builder(
         "Weather",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&uppercase);
 
     assert!(!registration.is_success());
@@ -25,14 +27,15 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
         .any(|diagnostic| diagnostic.contains("package_id `Weather`")
             && diagnostic.contains("lowercase ASCII")));
 
-    let dotted = RuntimePluginDescriptor::new(
+    let dotted = RuntimePluginDescriptor::builder(
         "weather.layer",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let catalog = RuntimePluginCatalog::from_descriptors([dotted]);
 
     assert!(!catalog.is_success());
@@ -43,14 +46,15 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_display_names() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "weather",
         " Weather ",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&descriptor);
 
     assert!(!registration.is_success());
@@ -63,14 +67,15 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_display_names()
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
-    let hyphenated = RuntimePluginDescriptor::new(
+    let hyphenated = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
         "zircon-plugin-weather-runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&hyphenated);
 
     assert!(!registration.is_success());
@@ -78,14 +83,15 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
         .contains("crate_name `zircon-plugin-weather-runtime`")
         && diagnostic.contains("lowercase ASCII")));
 
-    let missing_prefix = RuntimePluginDescriptor::new(
+    let missing_prefix = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
         "weather_runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&missing_prefix);
 
     assert!(!registration.is_success());
@@ -93,14 +99,15 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
         .contains("descriptor crate_name `weather_runtime`")
         && diagnostic.contains("`zircon_plugin_` prefix")));
 
-    let repeated_underscore = RuntimePluginDescriptor::new(
+    let repeated_underscore = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather__runtime",
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&repeated_underscore);
 
     assert!(!registration.is_success());
@@ -111,7 +118,7 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
 
 #[test]
 fn runtime_plugin_registration_report_rejects_empty_descriptor_default_packaging() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
@@ -119,7 +126,8 @@ fn runtime_plugin_registration_report_rejects_empty_descriptor_default_packaging
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
     .with_capability("runtime.plugin.weather")
-    .with_default_packaging(Vec::<ExportPackagingStrategy>::new());
+    .with_default_packaging(Vec::<ExportPackagingStrategy>::new())
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&descriptor);
 
     assert!(!registration.is_success());
@@ -130,7 +138,7 @@ fn runtime_plugin_registration_report_rejects_empty_descriptor_default_packaging
 
 #[test]
 fn runtime_plugin_registration_report_rejects_duplicate_descriptor_default_packaging() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
@@ -141,7 +149,8 @@ fn runtime_plugin_registration_report_rejects_duplicate_descriptor_default_packa
     .with_default_packaging([
         ExportPackagingStrategy::LibraryEmbed,
         ExportPackagingStrategy::LibraryEmbed,
-    ]);
+    ])
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&descriptor);
 
     assert!(!registration.is_success());
@@ -152,13 +161,14 @@ fn runtime_plugin_registration_report_rejects_duplicate_descriptor_default_packa
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_target_modes() {
-    let empty = RuntimePluginDescriptor::new(
+    let empty = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
     )
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&empty);
 
     assert!(!registration.is_success());
@@ -168,7 +178,7 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_target_modes() 
         .any(|diagnostic| diagnostic.contains("descriptor target_modes")
             && diagnostic.contains("at least one target mode")));
 
-    let duplicate = RuntimePluginDescriptor::new(
+    let duplicate = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
@@ -178,7 +188,8 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_target_modes() 
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::ClientRuntime,
     ])
-    .with_capability("runtime.plugin.weather");
+    .with_capability("runtime.plugin.weather")
+    .build();
     let registration = RuntimePluginRegistrationReport::from_plugin(&duplicate);
 
     assert!(!registration.is_success());
@@ -189,7 +200,7 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_target_modes() 
 
 #[test]
 fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "weather",
         "Weather",
         RuntimePluginId::Particles,
@@ -204,7 +215,8 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
     .with_capability("runtime.capability.weather.forecast")
     .with_system_sets(["weather.main", "weather.simulation"])
     .with_system_anchors(["weather.tick"])
-    .with_optional_feature(sound_timeline_feature_manifest());
+    .with_optional_feature(sound_timeline_feature_manifest())
+    .build();
 
     let manifest = descriptor.package_manifest();
 
@@ -247,6 +259,70 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
 }
 
 #[test]
+fn runtime_plugin_descriptor_builder_matches_fluent_descriptor_projection() {
+    let builder: RuntimePluginDescriptorBuilder = RuntimePluginDescriptor::builder(
+        "weather",
+        "Weather",
+        RuntimePluginId::Particles,
+        "zircon_plugin_weather_runtime",
+    );
+    let built = builder
+        .with_category("simulation")
+        .with_required_by_default(true)
+        .with_enabled_by_default(false)
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capability("runtime.plugin.weather")
+        .with_capability("runtime.capability.weather.forecast")
+        .with_system_sets(["weather.main", "weather.simulation"])
+        .with_system_anchors(["weather.tick"])
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+        ])
+        .with_optional_feature(sound_timeline_feature_manifest())
+        .build();
+
+    let expected = RuntimePluginDescriptor::builder(
+        "weather",
+        "Weather",
+        RuntimePluginId::Particles,
+        "zircon_plugin_weather_runtime",
+    )
+    .with_category("simulation")
+    .with_required_by_default(true)
+    .with_enabled_by_default(false)
+    .with_target_modes([
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ])
+    .with_capability("runtime.plugin.weather")
+    .with_capability("runtime.capability.weather.forecast")
+    .with_system_sets(["weather.main", "weather.simulation"])
+    .with_system_anchors(["weather.tick"])
+    .with_default_packaging([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+    ])
+    .with_optional_feature(sound_timeline_feature_manifest())
+    .build();
+
+    assert_eq!(built, expected);
+    let manifest = built.package_manifest();
+    assert_eq!(manifest.category, "simulation");
+    assert_eq!(
+        manifest.supported_targets,
+        vec![
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost
+        ]
+    );
+    assert_eq!(manifest.optional_features.len(), 1);
+}
+
+#[test]
 fn runtime_plugin_registration_report_validates_declared_system_anchors() {
     let missing = WeatherAnchorPlugin::new(WeatherAnchorRegistrationMode::Missing);
     let registration = RuntimePluginRegistrationReport::from_plugin(&missing);
@@ -280,13 +356,14 @@ fn runtime_plugin_registration_report_validates_declared_system_anchors() {
 
 #[test]
 fn runtime_plugin_descriptor_projects_default_packaging_to_project_selection() {
-    let descriptor = RuntimePluginDescriptor::new(
+    let descriptor = RuntimePluginDescriptor::builder(
         "native_weather",
         "Native Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_native_weather_runtime",
     )
-    .with_default_packaging([ExportPackagingStrategy::NativeDynamic]);
+    .with_default_packaging([ExportPackagingStrategy::NativeDynamic])
+    .build();
 
     let selection = descriptor.project_selection();
 
@@ -336,7 +413,7 @@ struct WeatherAnchorPlugin {
 impl WeatherAnchorPlugin {
     fn new(registration_mode: WeatherAnchorRegistrationMode) -> Self {
         Self {
-            descriptor: RuntimePluginDescriptor::new(
+            descriptor: RuntimePluginDescriptor::builder(
                 "weather",
                 "Weather",
                 RuntimePluginId::Particles,
@@ -345,7 +422,8 @@ impl WeatherAnchorPlugin {
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
             .with_capability("runtime.plugin.weather")
             .with_system_sets(["weather.main"])
-            .with_system_anchors(["weather.tick"]),
+            .with_system_anchors(["weather.tick"])
+            .build(),
             registration_mode,
         }
     }

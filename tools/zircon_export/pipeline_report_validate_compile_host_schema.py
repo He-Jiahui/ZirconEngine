@@ -9,17 +9,22 @@ from .export_template import is_safe_relative_path, normalize_relative_path
 from .pipeline_report_schema_primitives import (
     validate_bool_schema_diagnostics,
     validate_object_array_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
 from .pipeline_report_schema_table import (
+    string_array_duplicate_entry_index_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 from .pipeline_report_validate_compile_host_linkage_schema import (
     validate_linked_runtime_crate_schema_diagnostics,
 )
 from .pipeline_report_validate_identifier_schema import (
     validate_project_plugin_package_id_array_schema_diagnostics,
+    validate_unique_project_plugin_package_id_array_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 VALIDATE_LIBRARY_EMBED_COMPILE_HOST_FIELDS = (
@@ -140,11 +145,32 @@ def validate_library_embed_compile_host_schema_diagnostics(value: Any) -> list[s
                     value.get(field),
                 )
             )
+            if field in ("app_features", "command", "runtime_features"):
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        field_label,
+                        value.get(field),
+                    )
+                )
+            if field in ("app_features", "runtime_features"):
+                diagnostics.extend(
+                    string_array_duplicate_entry_index_schema_diagnostics(
+                        field_label,
+                        value.get(field),
+                    )
+                )
     for field in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in value:
+            field_label = f"{label}.{field}"
             diagnostics.extend(
                 validate_project_plugin_package_id_array_schema_diagnostics(
-                    f"{label}.{field}",
+                    field_label,
+                    value.get(field),
+                )
+            )
+            diagnostics.extend(
+                validate_unique_project_plugin_package_id_array_schema_diagnostics(
+                    field_label,
                     value.get(field),
                 )
             )
@@ -187,16 +213,19 @@ def library_embed_compile_host_profile_release_diagnostics(
     cargo_profile = value.get("cargo_profile")
     release = value.get("release")
     diagnostics: list[str] = []
-    if isinstance(cargo_profile, str):
-        if cargo_profile not in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_CARGO_PROFILES:
-            diagnostics.append(f"{label}.cargo_profile must be debug or release")
-            return diagnostics
-    else:
+    if not compile_host_cargo_profile_is_schema_clean(cargo_profile):
+        return diagnostics
+    if cargo_profile not in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_CARGO_PROFILES:
+        diagnostics.append(f"{label}.cargo_profile must be debug or release")
         return diagnostics
 
     if isinstance(release, bool) and release != (cargo_profile == "release"):
         diagnostics.append(f"{label}.release must match cargo_profile")
     return diagnostics
+
+
+def compile_host_cargo_profile_is_schema_clean(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value == value.strip()
 
 
 def validate_non_empty_trimmed_string_schema_diagnostics(
@@ -254,6 +283,8 @@ def library_embed_compile_host_command_schema_diagnostics(
         not isinstance(command, list)
         or any(not isinstance(entry, str) for entry in command)
     ):
+        return []
+    if any(not entry.strip() or entry != entry.strip() for entry in command):
         return []
 
     command_label = f"{label}.command"
@@ -619,6 +650,12 @@ def compile_host_release_flag_schema_diagnostics(
 ) -> list[str]:
     release = value.get("release")
     cargo_profile = value.get("cargo_profile")
+    if (
+        not isinstance(release, bool)
+        or not compile_host_cargo_profile_is_schema_clean(cargo_profile)
+        or cargo_profile not in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_CARGO_PROFILES
+    ):
+        return []
     has_release_flag = "--release" in command
     if release is True or cargo_profile == "release":
         if not has_release_flag:

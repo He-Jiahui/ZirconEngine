@@ -70,8 +70,8 @@ impl TextureAsset {
         self
     }
 
-    pub fn with_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
-        let mut descriptor = self.texture_descriptor().with_import_settings(settings)?;
+    pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
+        let mut descriptor = self.texture_descriptor().apply_import_settings(settings)?;
         if let Some(array_layout) = TextureArrayLayout::from_import_settings(settings)? {
             self.apply_array_layout(array_layout, &mut descriptor)?;
         }

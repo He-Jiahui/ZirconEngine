@@ -74,45 +74,12 @@ mod template_viewport_scene_structure;
 mod template_viewport_scene_surfaces;
 mod visual_assets;
 
-use crate::ui::retained_host::primitives::ModelRc;
-
-use super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
-use super::paint_frame::HostRgbaFrame;
-
-pub(super) fn draw_template_nodes(
-    frame: &mut HostRgbaFrame,
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    origin: &FrameRect,
-    clip: &FrameRect,
-    text_input_focus: Option<&HostTextInputFocusData>,
-) -> bool {
-    template_node_pipeline::draw_template_nodes(frame, nodes, origin, clip, text_input_focus)
-}
-
-pub(super) fn has_template_nodes(nodes: &ModelRc<TemplatePaneNodeData>) -> bool {
-    template_node_pipeline::has_template_nodes(nodes)
-}
+pub(super) use template_node_pipeline::{draw_template_nodes, has_template_nodes};
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;
 
 #[cfg(test)]
-pub(crate) fn paint_template_nodes_for_test(
-    width: u32,
-    height: u32,
-    nodes: ModelRc<TemplatePaneNodeData>,
-) -> Vec<u8> {
-    template_node_pipeline::paint_template_nodes_for_test(width, height, nodes)
-}
-
-#[cfg(test)]
-pub(crate) fn paint_template_nodes_for_test_with_background(
-    width: u32,
-    height: u32,
-    background: [u8; 4],
-    nodes: ModelRc<TemplatePaneNodeData>,
-) -> Vec<u8> {
-    template_node_pipeline::paint_template_nodes_for_test_with_background(
-        width, height, background, nodes,
-    )
-}
+pub(crate) use template_node_pipeline::{
+    paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
+};

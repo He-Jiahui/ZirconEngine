@@ -144,6 +144,93 @@ class PlatformBundleTemplateFileSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_rejects_template_file_padded_required_path_field(
+        self,
+    ) -> None:
+        for field in ("bundle_path", "path"):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_template_file=True,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    template = platform_report["template"]
+                    self.assertIsInstance(template, dict)
+                    files = template["files"]
+                    self.assertIsInstance(files, list)
+                    entry = files[0]
+                    self.assertIsInstance(entry, dict)
+                    value = entry[field]
+                    self.assertIsInstance(value, str)
+                    entry[field] = f" {value} "
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"PlatformBundle report template.files[0].{field} "
+                            "must be a non-empty trimmed string" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "does not exist" in diagnostic
+                            or "must be listed in template.files[].path" in diagnostic
+                            or "does not match computed content hash" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_template_file_padded_sha256(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            files = template["files"]
+            self.assertIsInstance(files, list)
+            entry = files[0]
+            self.assertIsInstance(entry, dict)
+            sha256 = entry["sha256"]
+            self.assertIsInstance(sha256, str)
+            entry["sha256"] = f" {sha256} "
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report template.files[0].sha256 "
+                    "must be a non-empty trimmed string" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_rejects_template_file_malformed_sha256(
         self,
     ) -> None:
@@ -328,6 +415,42 @@ class PlatformBundleTemplateFileSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_rejects_template_file_purpose_padded_when_present(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            files = template["files"]
+            self.assertIsInstance(files, list)
+            entry = files[0]
+            self.assertIsInstance(entry, dict)
+            entry["purpose"] = " platform_metadata "
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report template.files[0].purpose "
+                    "must be a non-empty trimmed string" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_rejects_template_file_purpose_blank_when_present(
         self,
     ) -> None:
@@ -395,6 +518,54 @@ class PlatformBundleTemplateFileSchemaTests(unittest.TestCase):
                         any(
                             f"PlatformBundle report template_files[0].{field} must be a non-empty string"
                             in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_template_copied_file_padded_required_string(
+        self,
+    ) -> None:
+        for field in ("destination", "source"):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_template_file=True,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    template_files = platform_report["template_files"]
+                    self.assertIsInstance(template_files, list)
+                    entry = template_files[0]
+                    self.assertIsInstance(entry, dict)
+                    value = entry[field]
+                    self.assertIsInstance(value, str)
+                    entry[field] = f" {value} "
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"PlatformBundle report template_files[0].{field} "
+                            "must be a non-empty trimmed string" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "template_files destination" in diagnostic
+                            or "cannot be matched to template file sha256" in diagnostic
+                            or "sha256" in diagnostic
+                            and "must be a non-empty trimmed string" not in diagnostic
                             for diagnostic in report["diagnostics"]
                         ),
                         report["diagnostics"],

@@ -1,13 +1,14 @@
+use crate::graphics::runtime_provider::RuntimeProviderFeedback;
 use crate::graphics::VisibilityVirtualGeometryFeedback;
 
 use super::VirtualGeometryGpuCompletion;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VirtualGeometryRuntimeFeedback {
-    gpu_completion: Option<VirtualGeometryGpuCompletion>,
+    feedback:
+        RuntimeProviderFeedback<VirtualGeometryGpuCompletion, VisibilityVirtualGeometryFeedback>,
     node_and_cluster_cull_page_requests: Vec<u32>,
     evictable_page_ids: Vec<u32>,
-    visibility_feedback: Option<VisibilityVirtualGeometryFeedback>,
     generation: u64,
 }
 
@@ -19,10 +20,9 @@ impl VirtualGeometryRuntimeFeedback {
         generation: u64,
     ) -> Self {
         Self {
-            gpu_completion,
+            feedback: RuntimeProviderFeedback::new(gpu_completion, visibility_feedback),
             node_and_cluster_cull_page_requests,
             evictable_page_ids: Vec::new(),
-            visibility_feedback,
             generation,
         }
     }
@@ -33,7 +33,7 @@ impl VirtualGeometryRuntimeFeedback {
     }
 
     pub fn gpu_completion(&self) -> Option<&VirtualGeometryGpuCompletion> {
-        self.gpu_completion.as_ref()
+        self.feedback.gpu_completion()
     }
 
     pub fn node_and_cluster_cull_page_requests(&self) -> &[u32] {
@@ -45,7 +45,7 @@ impl VirtualGeometryRuntimeFeedback {
     }
 
     pub fn visibility_feedback(&self) -> Option<&VisibilityVirtualGeometryFeedback> {
-        self.visibility_feedback.as_ref()
+        self.feedback.visibility_feedback()
     }
 
     pub fn generation(&self) -> u64 {

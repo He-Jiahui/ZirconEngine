@@ -70,7 +70,6 @@ pub(crate) fn component_drawer_operation_result(
         .with_transaction(format!("component_drawer:{operation_path}"))
 }
 
-#[allow(dead_code)]
 pub(crate) fn apply_component_drawer_envelope(
     _state: &mut EditorState,
     _manager: &EditorManager,

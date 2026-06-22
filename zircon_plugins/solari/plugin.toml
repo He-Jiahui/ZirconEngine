@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "solari"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ category = "rendering"
 description = "Experimental realtime raytraced lighting runtime provider contract."
 maturity = "experimental"
 supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 default_packaging = ["source_template", "library_embed"]
 capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]
 

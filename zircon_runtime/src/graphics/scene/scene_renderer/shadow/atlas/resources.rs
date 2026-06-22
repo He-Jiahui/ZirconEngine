@@ -10,6 +10,8 @@ use super::ShadowAtlasConfig;
 
 pub(crate) const SHADOW_ATLAS_DEFAULT_SLOT_CAPACITY: u32 = 256;
 pub(crate) const SHADOW_ATLAS_FALLBACK_SIZE: u32 = 2048;
+pub(crate) const SHADOW_ATLAS_COMPARE_FUNCTION: wgpu::CompareFunction =
+    wgpu::CompareFunction::GreaterEqual;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ShadowAtlasResourceConfig {
@@ -212,7 +214,7 @@ fn create_compare_sampler(device: &wgpu::Device) -> wgpu::Sampler {
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Linear,
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
-        compare: Some(wgpu::CompareFunction::LessEqual),
+        compare: Some(SHADOW_ATLAS_COMPARE_FUNCTION),
         ..Default::default()
     })
 }
@@ -261,6 +263,14 @@ mod tests {
         assert_eq!(
             config.slot_buffer_size_bytes(),
             SHADOW_ATLAS_DEFAULT_SLOT_CAPACITY as u64 * GPU_SHADOW_SLOT_STRIDE as u64
+        );
+    }
+
+    #[test]
+    fn render_shadow_atlas_compare_function_matches_forward_depth_contract() {
+        assert_eq!(
+            SHADOW_ATLAS_COMPARE_FUNCTION,
+            wgpu::CompareFunction::GreaterEqual
         );
     }
 

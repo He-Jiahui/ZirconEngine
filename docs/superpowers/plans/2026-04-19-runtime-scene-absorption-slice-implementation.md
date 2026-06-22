@@ -73,7 +73,7 @@
 - Modify: `zircon_editor/src/tests/host/binding_dispatch.rs`
 - Modify: `zircon_editor/src/tests/host/manager.rs`
 - Modify: `zircon_editor/src/tests/workbench/project.rs`
-- Modify: `zircon_editor/src/ui/slint_host/app/tests.rs`
+- Modify: `zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 - Modify: `zircon_app/src/entry/runtime_entry_app/mod.rs`
 - Modify: `zircon_graphics/src/tests/project_render.rs`
   - Switch all `LevelSystem` / `DefaultLevelManager` imports to `zircon_runtime::scene`
@@ -344,7 +344,7 @@ Expected: PASS or zero matching tests if the file contains only compile-owned ru
 - Modify: `E:/Git/ZirconEngine/zircon_editor/src/tests/host/binding_dispatch.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_editor/src/tests/host/manager.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_editor/src/tests/workbench/project.rs`
-- Modify: `E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests.rs`
+- Modify: `E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_app/src/entry/runtime_entry_app/mod.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_graphics/src/tests/project_render.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_scene/src/tests/asset_scene.rs`

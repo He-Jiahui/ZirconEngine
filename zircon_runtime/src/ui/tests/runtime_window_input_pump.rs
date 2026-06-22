@@ -1,7 +1,4 @@
-use crate::ui::{
-    dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
-    surface::UiSurface,
-};
+use crate::ui::{dispatch::UiInputManager, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     component::UiComponentEvent,
@@ -17,7 +14,7 @@ use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint, UiSize},
     surface::UiPointerEventKind,
     template::UiBindingRef,
-    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeError, UiTreeNode},
     window::{
         UiWindowAction, UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata,
         UiWindowInputContext, UiWindowInputPumpBatch, UiWindowInputPumpEvent, UiWindowMetrics,
@@ -32,16 +29,14 @@ fn window_input_pump_app_deactivation_closes_popup_stack_and_tooltip() {
     open_popup(&mut surface, "menu.edit", UiNodeId::new(3));
     show_tooltip(&mut surface, "status.hint", UiNodeId::new(2));
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::application_activation_changed(
-                window_metadata(7, false),
-                false,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::application_activation_changed(
+            window_metadata(7, false),
+            false,
+        )),
+    )
+    .unwrap();
 
     assert_eq!(surface.window_state.application_active, Some(false));
     assert_eq!(
@@ -102,16 +97,14 @@ fn window_input_pump_focus_loss_closes_popup_stack_and_tooltip() {
     open_popup(&mut surface, "menu.edit", UiNodeId::new(3));
     show_tooltip(&mut surface, "status.hint", UiNodeId::new(2));
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::window_focused(
-                window_metadata(8, false),
-                false,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::window_focused(
+            window_metadata(8, false),
+            false,
+        )),
+    )
+    .unwrap();
 
     assert_eq!(surface.window_state.focused, Some(false));
     assert_eq!(surface.surface_frame().window_state.focused, Some(false));
@@ -167,36 +160,30 @@ fn window_input_pump_retains_focus_activation_and_occlusion_facts() {
     let mut surface = route_surface();
     surface.clear_dirty_flags();
 
-    let focused = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::window_focused(
-                window_metadata(23, false),
-                true,
-            )),
-        )
-        .unwrap();
-    let active = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::application_activation_changed(
-                window_metadata(24, false),
-                true,
-            )),
-        )
-        .unwrap();
-    let occluded = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(25, false),
-                UiWindowEventKind::Occluded { occluded: true },
-            )),
-        )
-        .unwrap();
+    let focused = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::window_focused(
+            window_metadata(23, false),
+            true,
+        )),
+    )
+    .unwrap();
+    let active = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::application_activation_changed(
+            window_metadata(24, false),
+            true,
+        )),
+    )
+    .unwrap();
+    let occluded = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(25, false),
+            UiWindowEventKind::Occluded { occluded: true },
+        )),
+    )
+    .unwrap();
 
     assert_eq!(surface.window_state.focused, Some(true));
     assert_eq!(surface.window_state.application_active, Some(true));
@@ -253,13 +240,7 @@ fn window_input_pump_batch_preserves_order_and_non_client_area_keeps_tooltip() {
         ),
     ));
 
-    let results = surface
-        .dispatch_window_input_pump_batch(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            batch,
-        )
-        .unwrap();
+    let results = dispatch_window_input_pump_batch(&mut surface, batch).unwrap();
 
     assert_eq!(results.len(), 2);
     assert!(matches!(
@@ -301,19 +282,17 @@ fn window_input_pump_batch_preserves_order_and_non_client_area_keeps_tooltip() {
 fn window_input_pump_cursor_move_dispatches_unified_pointer_hover_route() {
     let mut surface = route_surface_with_hover_bindings();
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(11, true),
-                UiWindowEventKind::CursorMoved {
-                    position: UiPoint::new(20.0, 60.0),
-                    delta: Some(UiPoint::new(1.0, 2.0)),
-                },
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(11, true),
+            UiWindowEventKind::CursorMoved {
+                position: UiPoint::new(20.0, 60.0),
+                delta: Some(UiPoint::new(1.0, 2.0)),
+            },
+        )),
+    )
+    .unwrap();
 
     let UiInputEvent::Pointer(pointer) = &result.event else {
         panic!("expected cursor move to normalize into pointer input");
@@ -361,19 +340,17 @@ fn window_input_pump_cursor_move_dispatches_unified_pointer_hover_route() {
 fn window_input_pump_cursor_left_replays_pointer_cancel_and_clears_hover() {
     let mut surface = route_surface_with_hover_bindings();
 
-    surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(12, true),
-                UiWindowEventKind::CursorMoved {
-                    position: UiPoint::new(20.0, 60.0),
-                    delta: None,
-                },
-            )),
-        )
-        .unwrap();
+    dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(12, true),
+            UiWindowEventKind::CursorMoved {
+                position: UiPoint::new(20.0, 60.0),
+                delta: None,
+            },
+        )),
+    )
+    .unwrap();
 
     assert_eq!(
         surface.input.last_cursor_point(),
@@ -387,16 +364,14 @@ fn window_input_pump_cursor_left_replays_pointer_cancel_and_clears_hover() {
         .component_state(UiNodeId::new(3))
         .is_some_and(|state| state.flags.hovered));
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(13, true),
-                UiWindowEventKind::CursorLeft,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(13, true),
+            UiWindowEventKind::CursorLeft,
+        )),
+    )
+    .unwrap();
 
     let UiInputEvent::Pointer(pointer) = &result.event else {
         panic!("expected cursor leave to normalize into pointer cancel");
@@ -430,19 +405,17 @@ fn window_input_pump_cursor_left_replays_pointer_cancel_and_clears_hover() {
 fn window_input_pump_touch_move_does_not_replace_last_mouse_cursor_point() {
     let mut surface = route_surface_with_hover_bindings();
 
-    surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(14, true),
-                UiWindowEventKind::CursorMoved {
-                    position: UiPoint::new(20.0, 60.0),
-                    delta: None,
-                },
-            )),
-        )
-        .unwrap();
+    dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(14, true),
+            UiWindowEventKind::CursorMoved {
+                position: UiPoint::new(20.0, 60.0),
+                delta: None,
+            },
+        )),
+    )
+    .unwrap();
 
     let touch_input = UiWindowPlatformInputEvent::pointer(
         UiWindowInputContext::from_window_metadata(&window_metadata(15, true))
@@ -451,12 +424,7 @@ fn window_input_pump_touch_move_does_not_replace_last_mouse_cursor_point() {
         None,
     )
     .normalize();
-    surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Input(touch_input),
-        )
+    dispatch_window_input_pump_event(&mut surface, UiWindowInputPumpEvent::Input(touch_input))
         .unwrap();
 
     assert_eq!(
@@ -464,16 +432,14 @@ fn window_input_pump_touch_move_does_not_replace_last_mouse_cursor_point() {
         Some(UiPoint::new(20.0, 60.0))
     );
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(16, true),
-                UiWindowEventKind::CursorLeft,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(16, true),
+            UiWindowEventKind::CursorLeft,
+        )),
+    )
+    .unwrap();
 
     let UiInputEvent::Pointer(pointer) = &result.event else {
         panic!("expected cursor leave to normalize into pointer cancel");
@@ -488,16 +454,14 @@ fn window_input_pump_closed_without_cursor_point_clears_hover_without_fake_point
     surface.focus.hovered = vec![UiNodeId::new(3), UiNodeId::new(1)];
     let _ = surface.component_states.set_hovered(UiNodeId::new(3), true);
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(17, true),
-                UiWindowEventKind::Closed,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(17, true),
+            UiWindowEventKind::Closed,
+        )),
+    )
+    .unwrap();
 
     assert!(surface.window_state.closed);
     assert!(surface.surface_frame().window_state.closed);
@@ -540,13 +504,11 @@ fn window_input_pump_retains_close_request_without_closing_the_surface() {
     let mut surface = route_surface();
     surface.clear_dirty_flags();
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::window_close(window_metadata(26, false))),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::window_close(window_metadata(26, false))),
+    )
+    .unwrap();
 
     assert!(surface.window_state.close_requested);
     assert!(surface.surface_frame().window_state.close_requested);
@@ -572,16 +534,14 @@ fn window_input_pump_destroyed_retains_lifecycle_fact_and_clears_hover() {
     surface.focus.hovered = vec![UiNodeId::new(3), UiNodeId::new(1)];
     let _ = surface.component_states.set_hovered(UiNodeId::new(3), true);
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(27, true),
-                UiWindowEventKind::Destroyed,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(27, true),
+            UiWindowEventKind::Destroyed,
+        )),
+    )
+    .unwrap();
 
     assert!(surface.window_state.destroyed);
     assert!(surface.surface_frame().window_state.destroyed);
@@ -614,16 +574,14 @@ fn window_input_pump_resize_updates_frame_metrics_and_layout_dirty_domains() {
         2.0,
     );
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
-                window_metadata(18, false),
-                metrics,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+            window_metadata(18, false),
+            metrics,
+        )),
+    )
+    .unwrap();
 
     assert_eq!(surface.window_state.metrics, Some(metrics));
     assert_eq!(surface.surface_frame().window_state.metrics, Some(metrics));
@@ -656,28 +614,24 @@ fn window_input_pump_scale_factor_updates_retained_metrics_without_losing_size()
         UiWindowPixelSize::new(960, 540),
         2.0,
     );
-    surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
-                window_metadata(19, false),
-                metrics,
-            )),
-        )
-        .unwrap();
+    dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+            window_metadata(19, false),
+            metrics,
+        )),
+    )
+    .unwrap();
     surface.clear_dirty_flags();
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::new(
-                window_metadata(20, false),
-                UiWindowEventKind::ScaleFactorChanged { scale_factor: 1.5 },
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+            window_metadata(20, false),
+            UiWindowEventKind::ScaleFactorChanged { scale_factor: 1.5 },
+        )),
+    )
+    .unwrap();
 
     assert_eq!(
         surface.window_state.metrics,
@@ -709,16 +663,14 @@ fn window_input_pump_move_updates_position_without_dirty_domains() {
     let mut surface = route_surface();
     surface.clear_dirty_flags();
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::moved_window(
-                window_metadata(21, false),
-                UiWindowPixelPosition::new(44, 88),
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::moved_window(
+            window_metadata(21, false),
+            UiWindowPixelPosition::new(44, 88),
+        )),
+    )
+    .unwrap();
 
     assert_eq!(
         surface.window_state.position,
@@ -742,16 +694,14 @@ fn window_input_pump_redraw_request_marks_render_dirty_only() {
     let mut surface = route_surface();
     surface.clear_dirty_flags();
 
-    let result = surface
-        .dispatch_window_input_pump_event(
-            &UiPointerDispatcher::default(),
-            &UiNavigationDispatcher::default(),
-            UiWindowInputPumpEvent::Window(UiWindowEvent::request_redraw(
-                window_metadata(22, false),
-                UiWindowRedrawReason::Animation,
-            )),
-        )
-        .unwrap();
+    let result = dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::request_redraw(
+            window_metadata(22, false),
+            UiWindowRedrawReason::Animation,
+        )),
+    )
+    .unwrap();
 
     assert!(surface.window_state.redraw_requested);
     assert_eq!(surface.window_state.redraw_request_count, 1);
@@ -821,6 +771,24 @@ fn route_surface_with_hover_bindings() -> UiSurface {
     }
     surface.rebuild();
     surface
+}
+
+fn dispatch_window_input_pump_event(
+    surface: &mut UiSurface,
+    event: UiWindowInputPumpEvent,
+) -> Result<zircon_runtime_interface::ui::dispatch::UiInputDispatchResult, UiTreeError> {
+    let mut manager = UiInputManager::default();
+    surface.dispatch_window_input_pump_event(&mut manager, event)
+}
+
+fn dispatch_window_input_pump_batch(
+    surface: &mut UiSurface,
+    batch: UiWindowInputPumpBatch,
+) -> Result<Vec<zircon_runtime_interface::ui::dispatch::UiInputDispatchResult>, UiTreeError> {
+    let mut manager = UiInputManager::default();
+    surface
+        .dispatch_window_input_pump_batch(&mut manager, batch)
+        .map(|outcome| outcome.results)
 }
 
 fn input_state() -> UiStateFlags {

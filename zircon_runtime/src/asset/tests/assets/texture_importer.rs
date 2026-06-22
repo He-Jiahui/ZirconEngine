@@ -4,7 +4,9 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
-use crate::asset::{AssetUri, ImportedAsset, TextureUploadSupport, RGBA8_UNORM_FORMAT};
+use crate::asset::{
+    AssetUri, ImportedAsset, TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT,
+};
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
     RenderSamplerAddressMode, RenderSamplerFilter,
@@ -447,13 +449,17 @@ fn importer_texture_fixture_reinterprets_stacked_array_layout() {
                     RenderImageDimension::D2,
                     "{layout_key}"
                 );
-                assert_eq!(
-                    texture
-                        .upload_readiness(TextureUploadSupport::uncompressed_only())
-                        .unsupported_reason(),
-                    Some("rgba8 texture array/cubemap upload is not implemented"),
-                    "{layout_key}"
-                );
+                let TextureUploadReadiness::Ready { plan } =
+                    texture.upload_readiness(TextureUploadSupport::uncompressed_only())
+                else {
+                    panic!("stacked rgba8 array should be upload-ready for {layout_key}");
+                };
+                assert_eq!(plan.data_offset, 0, "{layout_key}");
+                assert_eq!(plan.data_length, Some(texture.rgba.len()), "{layout_key}");
+                assert_eq!(plan.block_width, 1, "{layout_key}");
+                assert_eq!(plan.block_height, 1, "{layout_key}");
+                assert_eq!(plan.block_depth, 1, "{layout_key}");
+                assert_eq!(plan.bytes_per_block, 4, "{layout_key}");
             }
             other => panic!("unexpected imported asset for {layout_key}: {other:?}"),
         }

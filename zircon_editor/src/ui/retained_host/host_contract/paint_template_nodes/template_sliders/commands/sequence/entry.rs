@@ -6,7 +6,7 @@ use super::values::push_sequence_values;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
-pub(super) fn push_ready_slider_commands(
+pub(in super::super) fn push_ready_slider_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     clip: &FrameRect,

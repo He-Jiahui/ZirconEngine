@@ -9,7 +9,7 @@ mod registration_report;
 mod runtime_plugin;
 mod runtime_plugin_catalog;
 
-pub use descriptor::RuntimePluginDescriptor;
+pub use descriptor::{RuntimePluginDescriptor, RuntimePluginDescriptorBuilder};
 pub use feature_registration_report::RuntimePluginFeatureRegistrationReport;
 pub use lifecycle_context::{CapabilityView, PluginFinishContext, PluginRuntimeContext};
 pub use registration_report::RuntimePluginRegistrationReport;

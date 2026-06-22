@@ -5,11 +5,15 @@ related_code:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
 implementation_files:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/index.md
@@ -19,6 +23,7 @@ tests:
   - graphics_alias_block_removed_static_passed_cargo_pending static checks passed 2026-06-17
   - rhi_wgpu_root_backend_private_static_passed_cargo_pending static checks passed 2026-06-17
   - builtin_root_facade_removed_static_passed_cargo_pending static checks passed 2026-06-17
+  - runtime_root_surface_markdown_split_static_passed_cargo_deferred_tests_deferred static checks passed 2026-06-21
   - builtin_helper_types_removed_from_prelude_static_pending added 2026-06-17
   - root_surface_interface_convergence_mirror_uses_current_audit_counts added 2026-06-14; Cargo pending active compile lanes
   - runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts added 2026-06-14; Cargo pending active compile lanes
@@ -63,5 +68,7 @@ The current status anchor is `graphics_alias_block_removed_static_passed_cargo_p
 `root_surface_interface_convergence_mirror_uses_current_audit_counts` also binds the interface convergence review to the current root-surface audit facts: 19 public modules, 2 public `pub use` locations, 0 crate-visible graphics re-export symbols, `rhi_wgpu` is crate-private backend owner, builtin facade cutover complete, and M1 gate status `classified-and-clear`. It rejects the stale 17-module / 20-module / 3-public-use / migration-debt / 75-symbol / 80-symbol mirrors after the graphics alias, backend root-public, and builtin facade cutovers.
 
 `runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts` binds this root-surface document to the wider Runtime 02 `core_spine_root_generated_boundary`: core root entries 6/6, core public modules 5/5, retired core root entries 0, runtime root public modules 19/19, public `pub use` sites 2/2, crate-visible graphics alias debt 0/0, root-surface M1 gate `classified-and-clear`, generated export templates 10/10, generated behavior 6/6, generated allowed adapters 6/6, generated migration debt 0/0, generated-code M1 gate `classified-and-clear`, root_entries guard tests 13, root_surface guard tests 6/6, generated-code guard tests 7/7, `guard_test_anchor_count = 26`, `missing_guard_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`.
+
+`runtime_root_surface.py` remains the root public-surface audit and risk owner, while `runtime_root_surface_markdown.py` owns `render_runtime_root_surface_markdown`. The 2026-06-21 split keeps the audit owner at 268 lines and the Markdown owner at 35 lines; the current direct audit reports 19 public modules, 2 public `pub use` sites, 19 module decisions, 2 public-use decisions, 0 unclassified root entries, 0 migration debt, 0 crate-visible graphics re-exports, M1 gate `classified-and-clear`, and `risks = []`.
 
 `runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation` keeps the broader Runtime 02 validation lane visible after these static guards: core/root/generated/export_build_plan/app/editor/plugin checks and default lib-test reruns must still have evidence before Runtime 02 can be promoted.

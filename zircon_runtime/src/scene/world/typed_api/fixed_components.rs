@@ -9,7 +9,7 @@ use crate::scene::components::{
 use crate::scene::ecs::Component;
 use crate::scene::EntityId;
 
-use crate::scene::World;
+use crate::scene::{SceneResult, World};
 
 macro_rules! impl_component_for_scene_type {
     ($($ty:ty),* $(,)?) => {
@@ -48,7 +48,7 @@ impl_component_for_scene_type!(
 );
 
 trait FixedSceneComponent: Component {
-    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) -> Result<(), String>;
+    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) -> SceneResult<()>;
 }
 
 macro_rules! fixed_component_map {
@@ -58,7 +58,7 @@ macro_rules! fixed_component_map {
                 world: &mut World,
                 entity: EntityId,
                 component: &Self,
-            ) -> Result<(), String> {
+            ) -> SceneResult<()> {
                 world.$field.insert(entity, component.clone());
                 Ok(())
             }
@@ -102,7 +102,7 @@ impl World {
         &mut self,
         entity: EntityId,
         component: &T,
-    ) -> Result<(), String>
+    ) -> SceneResult<()>
     where
         T: Component,
     {

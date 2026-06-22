@@ -171,7 +171,7 @@ impl EditorEventRuntime {
 }
 
 fn dynamic_operation_for_event(
-    inner: &crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner,
+    inner: &crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState,
     event: &EditorEvent,
 ) -> Option<EditorOperationDescriptor> {
     let path = match event {

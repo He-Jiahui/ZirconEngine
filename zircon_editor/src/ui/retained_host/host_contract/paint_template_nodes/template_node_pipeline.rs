@@ -4,11 +4,6 @@ mod draw;
 #[cfg(test)]
 mod test_support;
 
-#[cfg(test)]
-use super::super::data::{FrameRect, TemplatePaneNodeData};
-#[cfg(test)]
-use super::super::paint_frame::HostRgbaFrame;
-
 pub(in crate::ui::retained_host::host_contract) use draw::{
     draw_template_nodes, has_template_nodes,
 };
@@ -19,5 +14,5 @@ pub(crate) use test_support::{
 };
 
 #[cfg(test)]
-#[path = "template_node_pipeline_tests.rs"]
+#[path = "template_node_pipeline_tests/mod.rs"]
 mod tests;

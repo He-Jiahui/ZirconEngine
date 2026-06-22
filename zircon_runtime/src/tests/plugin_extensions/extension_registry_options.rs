@@ -14,14 +14,15 @@ fn runtime_plugin_extension_registry_preserves_enum_option_value_sets() {
         "cinematic".to_string(),
     ];
     let plugin = EnumOptionRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
             "zircon_plugin_sound_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.sound"),
+        .with_capability("runtime.plugin.sound")
+        .build(),
     };
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
@@ -55,14 +56,15 @@ fn runtime_plugin_extension_registry_preserves_enum_option_value_sets() {
 #[test]
 fn runtime_plugin_registration_report_validates_shadowed_manifest_plugin_options() {
     let plugin = ShadowedInvalidOptionRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
             RuntimePluginId::Sound,
             "zircon_plugin_sound_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.sound"),
+        .with_capability("runtime.plugin.sound")
+        .build(),
     };
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);

@@ -25,6 +25,7 @@ related_code:
   - docs/engine-architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
 implementation_files:
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
@@ -38,13 +39,14 @@ implementation_files:
   - docs/editor-and-tooling/crate-boundary-audit-round-2.md
   - docs/engine-architecture/index.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
   - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - docs/engine-architecture/runtime-reference-engine-evidence.md
 tests:
-  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - non_network_server_references M1 gate status, explicit count fields, classification count, migration debt, and unclassified reference checks
@@ -71,23 +73,25 @@ The structural audit now reports `non_network_server_references.m1_gate_status`.
 
 Current evidence:
 
-- `count = 59` suspect non-network references;
+- `count = 77` suspect non-network references;
 - `sample_location_count = 20`;
-- `reference_decision_count = 59`;
+- `reference_decision_count = 77`;
 - `reference_decision_group_count = 2`;
 - `classification_count = 2`;
-- `observer_false_positive_count = 87`, because `observer` contains the letters `server` but is not server vocabulary;
-- `allowed_context_count = 99` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
+- `observer_false_positive_count = 95`, because `observer` contains the letters `server` but is not server vocabulary;
+- `allowed_context_count = 94` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
 - `non_network_server_migration_debt_count = 2`;
 - `unclassified_location_count = 0`;
 - `unclassified_locations = []`.
 
 Current classification:
 
-- `graphics-render-framework-debt = 58`
+- `graphics-render-framework-debt = 76`
 - `editor-workbench-authority-label-debt = 1`
 
 The classification means every current suspect reference has an explicit migration owner. It does not mean the naming is converged.
+
+`non_network_server_naming.py` owns token scanning, allowed-context filtering, classification, and risk aggregation at 323 lines. `non_network_server_naming_markdown.py` owns `render_non_network_server_naming_markdown(...)` at 41 lines so the audit owner no longer mixes gate logic with report formatting.
 
 ## M1 Decision Rules
 

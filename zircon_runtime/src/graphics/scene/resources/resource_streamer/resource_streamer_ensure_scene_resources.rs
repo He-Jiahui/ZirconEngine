@@ -148,7 +148,7 @@ impl ResourceStreamer {
             .output_target()
             .texture_handle()
             .and_then(|texture| self.output_target_textures.get(&texture.id()))
-            .map(|prepared| prepared.resource.descriptor().format.as_str());
+            .map(|prepared| prepared.resource().descriptor().format.as_str());
         let plan = frame.output_target().graph_import_plan(target_format);
         self.last_output_target_graph_import_report = output_target_graph_import_report(&plan);
     }

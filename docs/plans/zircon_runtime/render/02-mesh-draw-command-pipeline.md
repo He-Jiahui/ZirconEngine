@@ -165,7 +165,7 @@ mesh batch(extract 快照)→ 每 pass 的 MeshPassProcessor 转换 → 不可�
 | `mesh/prepared_queue.rs` | `prepare_mesh_queue` 的 early-z 列表职责移除(归 `DepthPrepassProcessor`);`PreparedMeshQueueStats` 保留并新增命令/缓存/重放计数字段,输入改为批次+命令元数据 |
 | `mesh/build_mesh_draws/build/build.rs` | `build_mesh_draws` → `build_mesh_batches`,输出 `Vec<MeshBatch>`(`BuiltMeshDraws` → `BuiltMeshBatches`);`phase_ordered_meshes` 排序逻辑保留 |
 | `core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs` | 包装方法同步改名 |
-| `core/scene_renderer_core/scene_renderer_core.rs`(及 `scene_renderer_core_new/construct/construct.rs`) | `SceneRendererCore` 新增 `cached_mesh_draw_commands: CachedMeshDrawCommands` 字段与构造 |
+| `core/scene_renderer_core/scene_renderer_core.rs`(及 `scene_renderer_core_construct/construct/construct.rs`) | `SceneRendererCore` 新增 `cached_mesh_draw_commands: CachedMeshDrawCommands` 字段与构造 |
 | `core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs` | 改名 `build_compiled_scene_commands.rs`:批次构建 → 缓存查询/processor 转换 → `MeshPassCommandBuffers` 输出 |
 | `core/scene_renderer_core_render_compiled_scene/render/partition_mesh_draws.rs` | **整文件删除**(`MeshDrawPartitions`/`partition_mesh_draws` 被 per-phase 命令列表取代) |
 | `core/scene_renderer_core_render_compiled_scene/render/render.rs` | `render_compiled_scene` 集成点改造(见"帧时序与集成点") |
@@ -332,7 +332,7 @@ pub fn packed_sort_key_u64(
 
 ### GPU 数据布局与 WGSL 约定
 
-本计划不新增 GPU buffer,只固化命令所引用的绑定布局。现行 mesh 链物理槽位(`fallback_mesh.wgsl` / `scene_renderer_core_new/layouts/` 既有事实,逐 binding 核对自 `create_mesh_draw.rs`):
+本计划不新增 GPU buffer,只固化命令所引用的绑定布局。现行 mesh 链物理槽位(`fallback_mesh.wgsl` / `scene_renderer_core_construct/layouts/` 既有事实,逐 binding 核对自 `create_mesh_draw.rs`):
 
 | 物理 group | 内容 | binding | 命令内归属 |
 |---|---|---|---|

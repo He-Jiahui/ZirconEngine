@@ -5,6 +5,7 @@ pub enum RenderColorLutReadbackReference {
     #[default]
     Identity,
     UserLut,
+    ColorTransform,
 }
 
 impl RenderColorLutReadbackReference {
@@ -12,6 +13,7 @@ impl RenderColorLutReadbackReference {
         match self {
             Self::Identity => 0,
             Self::UserLut => 1,
+            Self::ColorTransform => 2,
         }
     }
 }
@@ -52,6 +54,19 @@ impl RenderColorLutReadbackReport {
             size,
             bytes,
             RenderColorLutReadbackReference::UserLut,
+            expected_rgb,
+        )
+    }
+
+    pub fn from_raw_rgba16_float_color_transform_bytes(
+        size: [u32; 3],
+        bytes: &[u8],
+        expected_rgb: impl Fn([f32; 3]) -> [f32; 3],
+    ) -> Self {
+        Self::from_raw_rgba16_float_reference_bytes(
+            size,
+            bytes,
+            RenderColorLutReadbackReference::ColorTransform,
             expected_rgb,
         )
     }
@@ -130,7 +145,8 @@ impl RenderColorLutReadbackReport {
                     && self.identity_out_of_tolerance_sample_count == 0
                     && self.identity_max_abs_error_micro <= COLOR_LUT_IDENTITY_EPSILON_MICRO
             }
-            RenderColorLutReadbackReference::UserLut => false,
+            RenderColorLutReadbackReference::UserLut
+            | RenderColorLutReadbackReference::ColorTransform => false,
         }
     }
 
@@ -138,6 +154,15 @@ impl RenderColorLutReadbackReport {
         match self.reference {
             RenderColorLutReadbackReference::Identity => false,
             RenderColorLutReadbackReference::UserLut => self.reference_within_epsilon(),
+            RenderColorLutReadbackReference::ColorTransform => false,
+        }
+    }
+
+    pub const fn color_transform_within_epsilon(self) -> bool {
+        match self.reference {
+            RenderColorLutReadbackReference::Identity
+            | RenderColorLutReadbackReference::UserLut => false,
+            RenderColorLutReadbackReference::ColorTransform => self.reference_within_epsilon(),
         }
     }
 }
@@ -271,6 +296,30 @@ mod tests {
         assert_eq!(report.out_of_tolerance_sample_count, 0);
         assert!(report.reference_within_epsilon());
         assert!(report.user_lut_within_epsilon());
+        assert!(!report.identity_within_epsilon());
+        assert!(report.identity_out_of_tolerance_sample_count > 0);
+    }
+
+    #[test]
+    fn color_lut_readback_report_accepts_color_transform_reference_rgba16float_bytes() {
+        let bytes = user_lut_2x2x2_rgba16float_bytes();
+
+        let report = RenderColorLutReadbackReport::from_raw_rgba16_float_color_transform_bytes(
+            [2, 2, 2],
+            &bytes,
+            expected_user_lut_color,
+        );
+
+        assert_eq!(
+            report.reference,
+            RenderColorLutReadbackReference::ColorTransform
+        );
+        assert_eq!(report.reference.diagnostic_id(), 2);
+        assert_eq!(report.max_abs_error_micro, 0);
+        assert_eq!(report.out_of_tolerance_sample_count, 0);
+        assert!(report.reference_within_epsilon());
+        assert!(report.color_transform_within_epsilon());
+        assert!(!report.user_lut_within_epsilon());
         assert!(!report.identity_within_epsilon());
         assert!(report.identity_out_of_tolerance_sample_count > 0);
     }

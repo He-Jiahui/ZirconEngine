@@ -634,6 +634,15 @@ def run_pack(args: argparse.Namespace) -> int:
     pack_file_diagnostic = pack_file_argument_diagnostic(args)
     if pack_file_diagnostic:
         diagnostics.append(pack_file_diagnostic)
+    packer_diagnostic = pack_optional_path_argument_diagnostic(args.packer, "packer")
+    if packer_diagnostic:
+        diagnostics.append(packer_diagnostic)
+    target_dir_diagnostic = pack_optional_path_argument_diagnostic(
+        args.target_dir,
+        "target_dir",
+    )
+    if target_dir_diagnostic:
+        diagnostics.append(target_dir_diagnostic)
     cook_assets_handoff_diagnostic = None
     diagnostics.extend(pack_delta_argument_diagnostics(args))
     validate_strategy_diagnostics = validate_report_requires_bundle_strategy_diagnostics(
@@ -678,8 +687,16 @@ def run_pack(args: argparse.Namespace) -> int:
         "delta_pack",
         diagnostics,
     )
-    packer = resolve_pack_optional_path(args.packer, "packer", diagnostics)
-    target_dir = resolve_pack_optional_path(args.target_dir, "target_dir", diagnostics)
+    packer = (
+        None
+        if packer_diagnostic
+        else resolve_pack_optional_path(args.packer, "packer", diagnostics)
+    )
+    target_dir = (
+        None
+        if target_dir_diagnostic
+        else resolve_pack_optional_path(args.target_dir, "target_dir", diagnostics)
+    )
 
     command = (
         pack_command(
@@ -788,20 +805,29 @@ def run_pack(args: argparse.Namespace) -> int:
 
 
 def pack_asset_manifest_argument_diagnostic(args: argparse.Namespace) -> str | None:
-    asset_manifest = getattr(args, "asset_manifest", None)
-    if asset_manifest is None:
-        return None
-    if not isinstance(asset_manifest, str) or not asset_manifest:
-        return "asset_manifest argument must be a non-empty string"
-    return None
+    return pack_optional_path_argument_diagnostic(
+        getattr(args, "asset_manifest", None),
+        "asset_manifest",
+    )
 
 
 def pack_file_argument_diagnostic(args: argparse.Namespace) -> str | None:
-    pack_file = getattr(args, "pack_file", None)
-    if pack_file is None:
+    return pack_optional_path_argument_diagnostic(
+        getattr(args, "pack_file", None),
+        "pack_file",
+    )
+
+
+def pack_optional_path_argument_diagnostic(
+    value: object,
+    label: str,
+) -> str | None:
+    if value is None:
         return None
-    if not isinstance(pack_file, str) or not pack_file:
-        return "pack_file argument must be a non-empty string"
+    if not isinstance(value, str) or not value.strip():
+        return f"{label} argument must be a non-empty string"
+    if value.strip() != value:
+        return f"{label} argument must be a non-empty trimmed string"
     return None
 
 
@@ -839,7 +865,7 @@ def resolve_pack_optional_path(
 ) -> Path | None:
     if value is None:
         return None
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         return None
     try:
         return resolve_user_path(value)
@@ -860,12 +886,18 @@ def pack_delta_argument_diagnostics(args: argparse.Namespace) -> list[str]:
     previous_pack = getattr(args, "previous_pack", None)
     delta_pack = getattr(args, "delta_pack", None)
     diagnostics: list[str] = []
-    if previous_pack is not None and (
-        not isinstance(previous_pack, str) or not previous_pack
-    ):
-        diagnostics.append("previous_pack argument must be a non-empty string")
-    if delta_pack is not None and (not isinstance(delta_pack, str) or not delta_pack):
-        diagnostics.append("delta_pack argument must be a non-empty string")
+    previous_pack_diagnostic = pack_optional_path_argument_diagnostic(
+        previous_pack,
+        "previous_pack",
+    )
+    if previous_pack_diagnostic:
+        diagnostics.append(previous_pack_diagnostic)
+    delta_pack_diagnostic = pack_optional_path_argument_diagnostic(
+        delta_pack,
+        "delta_pack",
+    )
+    if delta_pack_diagnostic:
+        diagnostics.append(delta_pack_diagnostic)
     if not diagnostics and ((previous_pack is None) != (delta_pack is None)):
         diagnostics.append("previous_pack and delta_pack must be supplied together")
     return diagnostics

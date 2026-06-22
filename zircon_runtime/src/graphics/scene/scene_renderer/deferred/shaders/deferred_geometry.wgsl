@@ -44,6 +44,7 @@ struct VertexOutput {
     @location(1) vertex_color: vec4<f32>,
     @location(2) uv1: vec2<f32>,
     @location(3) tint: vec4<f32>,
+    @location(4) shadow_params: vec4<f32>,
 };
 
 struct DeferredGeometryOutput {
@@ -54,13 +55,17 @@ struct DeferredGeometryOutput {
 const EPSILON: f32 = 0.000001;
 const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
 const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+const ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK: u32 = 0x7Fu;
+const ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG: u32 = 0x80u;
 
-fn encode_shading_model_id(id: u32) -> f32 {
-    return f32(id) / 255.0;
+fn encode_deferred_material_flags(shading_model_id: u32, receive_shadows: bool) -> f32 {
+    let model = shading_model_id & ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK;
+    let receive_shadow_flag = select(0u, ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG, receive_shadows);
+    return f32(model | receive_shadow_flag) / 255.0;
 }
 
 fn decode_shading_model_id(encoded: f32) -> u32 {
-    return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
+    return u32(round(clamp(encoded, 0.0, 1.0) * 255.0)) & ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK;
 }
 
 fn skin_weight(joint_index: u32, weight: f32) -> f32 {
@@ -141,6 +146,7 @@ fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> 
     output.vertex_color = input.color;
     output.uv1 = input.uv1;
     output.tint = zr_gpu_scene_tint(instance_index);
+    output.shadow_params = zr_gpu_scene_shadow_params(instance_index);
     return output;
 }
 
@@ -163,8 +169,9 @@ fn fs_main(input: VertexOutput) -> DeferredGeometryOutput {
     }
     occlusion = occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r;
     let shading_model_id = select(decode_shading_model_id(material_properties.data8.y), ZR_SHADING_MODEL_UNLIT_ID, material_properties.data0.w >= 0.5);
+    let receive_shadows = input.shadow_params.z > 0.5;
     return DeferredGeometryOutput(
         albedo,
-        vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_shading_model_id(shading_model_id))
+        vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_deferred_material_flags(shading_model_id, receive_shadows))
     );
 }

@@ -142,9 +142,6 @@ pub enum ShadingModelRegistrationError {
         existing_id: ShadingModelId,
         new_id: ShadingModelId,
     },
-    PluginIdBelowReservedRange {
-        id: ShadingModelId,
-    },
     RequiredChannelsUnsupported {
         token: String,
         required: GBufferChannelMask,
@@ -170,10 +167,6 @@ impl Display for ShadingModelRegistrationError {
             } => write!(
                 f,
                 "shading model token {token} is already registered as id {existing_id} and cannot be reused by id {new_id}"
-            ),
-            Self::PluginIdBelowReservedRange { id } => write!(
-                f,
-                "plugin shading model id {id} is below the reserved plugin range start {SHADING_MODEL_PLUGIN_ID_START}"
             ),
             Self::RequiredChannelsUnsupported {
                 token,

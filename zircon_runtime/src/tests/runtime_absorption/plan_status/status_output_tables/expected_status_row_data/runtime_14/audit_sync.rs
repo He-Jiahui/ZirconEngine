@@ -37,4 +37,13 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "full lib Cargo gates pending",
         ],
     ),
+    (
+        "Runtime 14 module family markdown renderer split",
+        [
+            "module_family_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "module_family_markdown.py",
+            "module_family_boundary.py` now owns only audit data/risk aggregation at 305 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
 ];

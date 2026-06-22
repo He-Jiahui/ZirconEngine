@@ -34,6 +34,28 @@ fn project_manifest_roundtrip_preserves_default_scene_and_paths() {
 }
 
 #[test]
+fn project_manifest_roundtrip_preserves_asset_manifest_path() {
+    let root = unique_temp_project_root("manifest_asset_manifest");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+
+    let mut manifest = ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        3,
+    );
+    manifest.asset_manifest = Some("export/assets.json".to_string());
+    manifest.save(paths.manifest_path()).unwrap();
+
+    let loaded = ProjectManifest::load(paths.manifest_path()).unwrap();
+
+    assert_eq!(loaded.asset_manifest.as_deref(), Some("export/assets.json"));
+    assert_eq!(loaded, manifest);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
     let root = unique_temp_project_root("manifest_plugins");
     let paths = ProjectPaths::from_root(&root).unwrap();

@@ -1,5 +1,5 @@
-mod phase_item;
 mod packed_sort_key;
+mod phase_item;
 mod phase_queue;
 mod phase_queue_ordering_key;
 mod phase_queue_summary;
@@ -11,6 +11,7 @@ mod pipeline_kind;
 mod render_phase;
 mod render_queue;
 
+pub use packed_sort_key::packed_sort_key_u64;
 pub use phase_item::{RenderPhaseItem, RenderPhaseMeshSource};
 pub use phase_queue::{
     build_mesh_phase_queue, build_sprite_phase_queue, MeshPhaseInput, RenderPhaseQueue,
@@ -21,7 +22,6 @@ pub use phase_queue_summary::{
     RenderPhaseQueueSummary, RenderPhaseQueueSummaryPhaseCount,
     RenderPhaseQueueSummaryPhaseOrderSpan,
 };
-pub use packed_sort_key::packed_sort_key_u64;
 pub use phase_sort::{RenderPhaseSortComponents, RenderPhaseSortKey};
 pub use phase_sort_decision::RenderPhaseSortDecision;
 pub use phase_sort_decision_field::RenderPhaseSortDecisionField;

@@ -70,6 +70,126 @@ class PipelineReportPackDeltaSchemaTests(unittest.TestCase):
 
                     _assert_pack_schema_diagnostic(self, report, expected)
 
+    def test_report_stage_rejects_pack_delta_manifest_asset_path_shape(self) -> None:
+        cases = (
+            (
+                "base.assets.unsafe",
+                {
+                    **_delta_manifest(),
+                    "base": _manifest_override(
+                        {
+                            "assets": [
+                                {
+                                    **_asset_entry(hash_value=1),
+                                    "path": "../escape.png",
+                                }
+                            ]
+                        }
+                    ),
+                },
+                _pack_manifest(hash_value=2),
+                "pack report delta_manifest.base.assets[0].path "
+                "must be a safe relative asset path",
+            ),
+            (
+                "target.assets.unnormalized",
+                {
+                    **_delta_manifest(),
+                    "target": _manifest_override(
+                        {
+                            "assets": [
+                                {
+                                    **_asset_entry(hash_value=2),
+                                    "path": "textures\\hero.png",
+                                }
+                            ]
+                        },
+                        hash_value=2,
+                    ),
+                },
+                _manifest_override(
+                    {
+                        "assets": [
+                            {
+                                **_asset_entry(hash_value=2),
+                                "path": "textures\\hero.png",
+                            }
+                        ]
+                    },
+                    hash_value=2,
+                ),
+                "pack report delta_manifest.target.assets[0].path "
+                "must use a normalized relative asset path",
+            ),
+            (
+                "changed_assets.unsafe",
+                {
+                    **_delta_manifest(),
+                    "changed_assets": [
+                        {**_asset_entry(hash_value=2), "path": "../escape.png"}
+                    ],
+                },
+                _pack_manifest(hash_value=2),
+                "pack report delta_manifest.changed_assets[0].path "
+                "must be a safe relative asset path",
+            ),
+            (
+                "changed_assets.duplicate",
+                {
+                    **_delta_manifest(),
+                    "changed_assets": [
+                        _asset_entry(hash_value=2, path="scenes/main.zscene"),
+                        _asset_entry(hash_value=2, path="scenes/main.zscene"),
+                    ],
+                    "chunks": [_chunk_entry(hash_value=2)],
+                },
+                _pack_manifest(hash_value=2),
+                "pack report delta_manifest.changed_assets path "
+                "scenes/main.zscene is declared more than once",
+            ),
+        )
+        for label, delta_manifest, manifest, expected in cases:
+            with self.subTest(label=label):
+                _assert_delta_pack_schema_diagnostic(
+                    self,
+                    delta_manifest=delta_manifest,
+                    manifest=manifest,
+                    expected=expected,
+                )
+
+    def test_report_stage_rejects_pack_delta_removed_asset_path_shape(self) -> None:
+        cases = (
+            (
+                "unsafe",
+                {**_delta_manifest(), "removed_assets": ["../old.png"]},
+                "pack report delta_manifest.removed_assets[0] "
+                "must be a safe relative asset path",
+            ),
+            (
+                "unnormalized",
+                {**_delta_manifest(), "removed_assets": ["textures\\old.png"]},
+                "pack report delta_manifest.removed_assets[0] "
+                "must use a normalized relative asset path",
+            ),
+            (
+                "duplicate",
+                {
+                    **_delta_manifest(),
+                    "removed_assets": ["textures/old.png", "textures/old.png"],
+                },
+                "pack report delta_manifest.removed_assets path textures/old.png "
+                "is declared more than once",
+            ),
+        )
+        for label, delta_manifest, expected in cases:
+            with self.subTest(label=label):
+                _assert_delta_pack_schema_diagnostic(
+                    self,
+                    delta_manifest=delta_manifest,
+                    manifest=_pack_manifest(hash_value=2),
+                    expected=expected,
+                )
+
     def test_report_stage_rejects_pack_delta_manifest_version_mismatch(
         self,
     ) -> None:
@@ -247,6 +367,25 @@ class PipelineReportPackDeltaSchemaTests(unittest.TestCase):
                     manifest=manifest,
                     expected=expected,
                 )
+
+    def test_report_stage_rejects_pack_delta_manifest_unsorted_assets(
+        self,
+    ) -> None:
+        target = _manifest_for_assets(
+            [
+                _asset_entry(hash_value=2, path="textures/hero.png"),
+                _asset_entry(hash_value=1, path="scenes/main.zscene"),
+            ],
+            hash_values=[1, 2],
+        )
+
+        _assert_delta_pack_schema_diagnostic(
+            self,
+            delta_manifest={**_delta_manifest(), "target": target},
+            manifest=target,
+            expected="pack report delta_manifest.target.assets "
+            "must be sorted by asset path",
+        )
 
     def test_report_stage_rejects_pack_delta_manifest_asset_missing_chunk_hash(
         self,

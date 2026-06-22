@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
-use super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::PALETTE;
 
 const FALLBACK_TEXT: [u8; 4] = PALETTE.text;
 

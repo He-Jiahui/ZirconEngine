@@ -3,6 +3,8 @@ use crate::ui::layouts::windows::workbench_host_window::{
     ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize, PaneData,
 };
 use crate::ui::retained_host as host_contract;
+
+use super::model_projection::map_model_rc;
 const MODULE_PLUGIN_ROW_HEIGHT: f32 = 112.0;
 const MODULE_PLUGIN_ROW_GAP: f32 = 8.0;
 const MODULE_PLUGIN_ROW_PADDING: f32 = 8.0;
@@ -21,7 +23,7 @@ pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane(
 
     host_contract::ModulePluginsPaneData {
         nodes: model_rc(nodes),
-        plugins: super::map_model_rc(&native.plugins, to_host_contract_module_plugin_status),
+        plugins: map_model_rc(&native.plugins, to_host_contract_module_plugin_status),
         diagnostics: native.diagnostics.clone(),
     }
 }

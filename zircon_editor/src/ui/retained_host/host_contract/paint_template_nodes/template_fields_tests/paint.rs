@@ -1,0 +1,92 @@
+use super::super::super::style_selector::{
+    WORKBENCH_TEXT_FIELD_BORDER as FIELD_BORDER,
+    WORKBENCH_TEXT_FIELD_DISABLED_BORDER as FIELD_DISABLED_BORDER,
+    WORKBENCH_TEXT_FIELD_DISABLED_SURFACE as FIELD_DISABLED_SURFACE,
+    WORKBENCH_TEXT_FIELD_DISABLED_TEXT as FIELD_DISABLED_TEXT,
+    WORKBENCH_TEXT_FIELD_FOCUSED_BORDER as FIELD_FOCUSED_BORDER,
+    WORKBENCH_TEXT_FIELD_SURFACE as FIELD_SURFACE,
+};
+use super::super::super::template_field_stepper::STEPPER_DIVIDER;
+use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::style::field_style;
+use super::support::{changed_pixel_count, pixel_at, positioned_field_node};
+use crate::ui::layouts::common::model_rc;
+
+#[test]
+fn workbench_field_paints_surface_border_and_text() {
+    let bytes = paint_template_nodes_for_test(
+        200,
+        48,
+        model_rc(vec![positioned_field_node(
+            "WorkbenchInputText",
+            "Text field",
+            12.0,
+            8.0,
+            170.0,
+            32.0,
+        )]),
+    );
+
+    assert_eq!(pixel_at(&bytes, 200, 170, 24), FIELD_SURFACE);
+    assert_eq!(pixel_at(&bytes, 200, 80, 8), FIELD_BORDER);
+    assert!(changed_pixel_count(&bytes, 200, 22, 16, 64, 18) > 0);
+}
+
+#[test]
+fn focused_workbench_field_uses_focused_border() {
+    let mut node = positioned_field_node(
+        "WorkbenchInputFocused",
+        "Focused input",
+        12.0,
+        8.0,
+        170.0,
+        32.0,
+    );
+    node.focused = true;
+    let bytes = paint_template_nodes_for_test(200, 48, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 200, 80, 8), FIELD_FOCUSED_BORDER);
+}
+
+#[test]
+fn disabled_workbench_field_paints_placeholder_tone() {
+    let mut node = positioned_field_node("WorkbenchInputDisabled", "", 12.0, 8.0, 170.0, 32.0);
+    node.disabled = true;
+    let text_color = field_style(&node).text;
+    let bytes = paint_template_nodes_for_test(200, 48, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 200, 170, 24), FIELD_DISABLED_SURFACE);
+    assert_eq!(pixel_at(&bytes, 200, 80, 8), FIELD_DISABLED_BORDER);
+    assert_eq!(text_color, FIELD_DISABLED_TEXT);
+    assert!(changed_pixel_count(&bytes, 200, 22, 16, 90, 18) > 0);
+}
+
+#[test]
+fn stepper_workbench_field_paints_right_arrows() {
+    let bytes = paint_template_nodes_for_test(
+        112,
+        48,
+        model_rc(vec![positioned_field_node(
+            "WorkbenchInputStepper",
+            "42",
+            12.0,
+            8.0,
+            67.0,
+            32.0,
+        )]),
+    );
+
+    assert_eq!(pixel_at(&bytes, 112, 61, 16), STEPPER_DIVIDER);
+    assert!(changed_pixel_count(&bytes, 112, 64, 15, 12, 20) > 0);
+}
+
+#[test]
+fn stepper_workbench_field_honors_declared_layout_offset() {
+    let mut node = positioned_field_node("WorkbenchInputStepper", "42", 12.0, 8.0, 67.0, 32.0);
+    node.layout_offset_x = 5.0;
+    node.layout_offset_y = 6.0;
+    let bytes = paint_template_nodes_for_test(128, 72, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 128, 66, 20), STEPPER_DIVIDER);
+    assert_eq!(pixel_at(&bytes, 128, 14, 24), [0, 0, 0, 255]);
+}

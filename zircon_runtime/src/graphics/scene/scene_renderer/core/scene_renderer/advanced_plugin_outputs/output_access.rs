@@ -1,6 +1,8 @@
 use super::scene_renderer_advanced_plugin_outputs::SceneRendererAdvancedPluginOutputs;
+#[cfg(test)]
+use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::core::framework::render::{
-    RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
     RenderVirtualGeometryReadbackOutputs,
 };
 
@@ -9,7 +11,7 @@ impl SceneRendererAdvancedPluginOutputs {
         *self = Self::default();
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn has_virtual_geometry_gpu_readback(
         &self,
     ) -> bool {
@@ -19,15 +21,14 @@ impl SceneRendererAdvancedPluginOutputs {
             .is_empty()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn plugin_renderer_outputs(
         &self,
     ) -> &RenderPluginRendererOutputs {
         self.plugin_renderer_outputs_ref()
     }
 
-    // Particle GPU readback detection is test-covered before a feedback consumer lands.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn has_particle_gpu_readback(
         &self,
     ) -> bool {

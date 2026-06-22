@@ -5,6 +5,7 @@ use super::bind_group_entries::bind_group_entries;
 pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn create_bind_group(
     resources: &ScenePostProcessResources,
     device: &wgpu::Device,
+    post_process_params_buffer: &wgpu::Buffer,
     scene_color_view: &wgpu::TextureView,
     scene_depth_view: &wgpu::TextureView,
     motion_vector_neighbor_max_view: &wgpu::TextureView,
@@ -31,6 +32,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn creat
 ) -> wgpu::BindGroup {
     let entries = bind_group_entries(
         resources,
+        post_process_params_buffer,
         scene_color_view,
         scene_depth_view,
         motion_vector_neighbor_max_view,

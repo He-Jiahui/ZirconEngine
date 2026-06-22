@@ -2,16 +2,15 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport, AntiAliasMode,
-    FrameHistoryInvalidationReason, PostProcessPassGraph, PostProcessStackDescriptor,
-    RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderReport,
-    RenderCameraTargetResolutionReport, RenderCapabilitySummary, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderParticlePreviousSpriteSnapshot,
-    RenderPipelineHandle, RenderPointLightSnapshot, RenderPostProcessEffectStackSettings,
-    RenderRectLightSnapshot, RenderSpotLightSnapshot,
-    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
-    SolariRuntimeReport, TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
+    FrameHistoryInvalidationReason, PostProcessPassGraph, RenderAmbientLightSnapshot,
+    RenderCameraOrderReport, RenderCameraTargetResolutionReport, RenderCapabilitySummary,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract,
+    RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
+    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
+    RenderSpotLightSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
+    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPayloadSource, ShaderQualityTier, SolariRuntimeReport,
+    TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
@@ -53,15 +52,10 @@ pub(super) struct FrameSubmissionContext {
     camera_target_resolution: RenderCameraTargetResolutionReport,
     scene_camera_order_report: Option<RenderCameraOrderReport>,
     ui_stats: UiSubmissionStats,
-    post_process_bloom: RenderBloomSettings,
-    post_process_exposure: RenderExposureSettings,
-    post_process_color_grading: RenderColorGradingSettings,
     post_process_effect_stack: RenderPostProcessEffectStackSettings,
     anti_alias_fallback: AntiAliasFallbackReport,
-    temporal_jitter: TemporalJitterSample,
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
     solari_runtime_report: SolariRuntimeReport,
-    post_process_stack: PostProcessStackDescriptor,
     post_process_graph: PostProcessPassGraph,
     hybrid_gi_enabled: bool,
     virtual_geometry_enabled: bool,
@@ -69,13 +63,9 @@ pub(super) struct FrameSubmissionContext {
     hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
     hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
-    scene_meshes: Vec<RenderMeshSnapshot>,
-    scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
-    scene_point_lights: Vec<RenderPointLightSnapshot>,
-    scene_spot_lights: Vec<RenderSpotLightSnapshot>,
-    scene_ambient_lights: Vec<RenderAmbientLightSnapshot>,
-    scene_rect_lights: Vec<RenderRectLightSnapshot>,
-    particle_previous_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
+    // Owns the viewport-sized extract once so submit/prepare/stat readers can borrow heavy scene
+    // payload slices without cloning meshes, lights, or particle previous-state vectors.
+    source_extract: Arc<RenderFrameExtract>,
     particle_sprite_count: usize,
     particle_previous_state_sprite_count: usize,
     particle_anonymous_stream_ambiguity_sprite_count: usize,
@@ -109,15 +99,10 @@ impl FrameSubmissionContext {
         camera_target_resolution: RenderCameraTargetResolutionReport,
         scene_camera_order_report: Option<RenderCameraOrderReport>,
         ui_stats: UiSubmissionStats,
-        post_process_bloom: RenderBloomSettings,
-        post_process_exposure: RenderExposureSettings,
-        post_process_color_grading: RenderColorGradingSettings,
         post_process_effect_stack: RenderPostProcessEffectStackSettings,
         anti_alias_fallback: AntiAliasFallbackReport,
-        temporal_frame_index: u64,
         advanced_runtime_plan: AdvancedProfileRuntimePlan,
         solari_runtime_report: SolariRuntimeReport,
-        post_process_stack: PostProcessStackDescriptor,
         post_process_graph: PostProcessPassGraph,
         hybrid_gi_enabled: bool,
         virtual_geometry_enabled: bool,
@@ -125,13 +110,7 @@ impl FrameSubmissionContext {
         hybrid_gi_payload_source: RenderHybridGiPayloadSource,
         hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
         hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
-        scene_meshes: Vec<RenderMeshSnapshot>,
-        scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
-        scene_point_lights: Vec<RenderPointLightSnapshot>,
-        scene_spot_lights: Vec<RenderSpotLightSnapshot>,
-        scene_ambient_lights: Vec<RenderAmbientLightSnapshot>,
-        scene_rect_lights: Vec<RenderRectLightSnapshot>,
-        particle_previous_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
+        source_extract: Arc<RenderFrameExtract>,
         particle_sprite_count: usize,
         particle_previous_state_sprite_count: usize,
         particle_anonymous_stream_ambiguity_sprite_count: usize,
@@ -146,8 +125,6 @@ impl FrameSubmissionContext {
         predicted_generation: u64,
     ) -> Self {
         // Degraded or descriptor-disabled advanced features must not carry stale runtime payloads forward.
-        let temporal_jitter =
-            temporal_jitter_for_submission(anti_alias_fallback, temporal_frame_index);
         let hybrid_gi_enabled =
             hybrid_gi_enabled && advanced_runtime_plan.hybrid_global_illumination_enabled();
         let virtual_geometry_enabled =
@@ -200,15 +177,10 @@ impl FrameSubmissionContext {
             camera_target_resolution,
             scene_camera_order_report,
             ui_stats,
-            post_process_bloom,
-            post_process_exposure,
-            post_process_color_grading,
             post_process_effect_stack,
             anti_alias_fallback,
-            temporal_jitter,
             advanced_runtime_plan,
             solari_runtime_report,
-            post_process_stack,
             post_process_graph,
             hybrid_gi_enabled,
             virtual_geometry_enabled,
@@ -216,13 +188,7 @@ impl FrameSubmissionContext {
             hybrid_gi_payload_source,
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
-            scene_meshes,
-            scene_directional_lights,
-            scene_point_lights,
-            scene_spot_lights,
-            scene_ambient_lights,
-            scene_rect_lights,
-            particle_previous_sprites,
+            source_extract,
             particle_sprite_count,
             particle_previous_state_sprite_count,
             particle_anonymous_stream_ambiguity_sprite_count,
@@ -272,6 +238,10 @@ impl FrameSubmissionContext {
         &self.visibility_context
     }
 
+    pub(super) fn source_extract(&self) -> Arc<RenderFrameExtract> {
+        Arc::clone(&self.source_extract)
+    }
+
     pub(super) fn view_visibility(
         &self,
         key: &VisibilityViewKey,
@@ -311,18 +281,6 @@ impl FrameSubmissionContext {
         &self.ui_stats
     }
 
-    pub(super) fn post_process_bloom(&self) -> RenderBloomSettings {
-        self.post_process_bloom
-    }
-
-    pub(super) fn post_process_exposure(&self) -> RenderExposureSettings {
-        self.post_process_exposure
-    }
-
-    pub(super) fn post_process_color_grading(&self) -> RenderColorGradingSettings {
-        self.post_process_color_grading
-    }
-
     pub(super) fn post_process_effect_stack(&self) -> RenderPostProcessEffectStackSettings {
         self.post_process_effect_stack
     }
@@ -331,20 +289,12 @@ impl FrameSubmissionContext {
         self.anti_alias_fallback
     }
 
-    pub(super) fn temporal_jitter(&self) -> TemporalJitterSample {
-        self.temporal_jitter
-    }
-
     pub(super) fn advanced_provider_reports(&self) -> &[AdvancedProviderReport] {
         &self.advanced_runtime_plan.reports
     }
 
     pub(super) fn solari_runtime_report(&self) -> &SolariRuntimeReport {
         &self.solari_runtime_report
-    }
-
-    pub(super) fn post_process_stack(&self) -> &PostProcessStackDescriptor {
-        &self.post_process_stack
     }
 
     pub(super) fn post_process_graph(&self) -> &PostProcessPassGraph {
@@ -376,31 +326,27 @@ impl FrameSubmissionContext {
     }
 
     pub(super) fn scene_meshes(&self) -> &[RenderMeshSnapshot] {
-        &self.scene_meshes
+        &self.source_extract.geometry.meshes
     }
 
     pub(super) fn scene_directional_lights(&self) -> &[RenderDirectionalLightSnapshot] {
-        &self.scene_directional_lights
+        &self.source_extract.lighting.directional_lights
     }
 
     pub(super) fn scene_point_lights(&self) -> &[RenderPointLightSnapshot] {
-        &self.scene_point_lights
+        &self.source_extract.lighting.point_lights
     }
 
     pub(super) fn scene_spot_lights(&self) -> &[RenderSpotLightSnapshot] {
-        &self.scene_spot_lights
+        &self.source_extract.lighting.spot_lights
     }
 
     pub(super) fn scene_ambient_lights(&self) -> &[RenderAmbientLightSnapshot] {
-        &self.scene_ambient_lights
+        &self.source_extract.lighting.ambient_lights
     }
 
     pub(super) fn scene_rect_lights(&self) -> &[RenderRectLightSnapshot] {
-        &self.scene_rect_lights
-    }
-
-    pub(super) fn particle_previous_sprites(&self) -> &[RenderParticlePreviousSpriteSnapshot] {
-        &self.particle_previous_sprites
+        &self.source_extract.lighting.rect_lights
     }
 
     pub(super) fn particle_sprite_count(&self) -> usize {
@@ -452,7 +398,7 @@ impl FrameSubmissionContext {
 
 const DEFAULT_TAA_JITTER_PERIOD: u32 = 8;
 
-fn temporal_jitter_for_submission(
+pub(super) fn temporal_jitter_for_submission(
     anti_alias_fallback: AntiAliasFallbackReport,
     temporal_frame_index: u64,
 ) -> TemporalJitterSample {
@@ -737,6 +683,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(1),
             World::new().to_render_snapshot(),
         );
+        let source_extract = Arc::new(extract.clone());
         FrameSubmissionContext::new(
             UVec2::new(64, 64),
             UVec2::new(64, 64),
@@ -762,12 +709,7 @@ mod tests {
             Default::default(),
             Default::default(),
             Default::default(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            1,
             advanced_runtime_plan,
-            Default::default(),
             Default::default(),
             Default::default(),
             true,
@@ -776,13 +718,7 @@ mod tests {
             hybrid_gi_payload_source,
             None,
             None,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
+            source_extract,
             0,
             0,
             0,

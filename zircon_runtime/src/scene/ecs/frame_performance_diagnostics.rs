@@ -1,4 +1,4 @@
-use crate::core::diagnostics::DiagnosticStore;
+use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 
 use super::{ChangeDetectionScanStats, QueryStateCacheStats};
 
@@ -49,5 +49,28 @@ impl EcsFramePerformanceDiagnostics {
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         self.query.record_diagnostics(store, frame_index);
         self.change_detection.record_diagnostics(store, frame_index);
+    }
+}
+
+impl FrameDiagnostics for EcsFramePerformanceDiagnostics {
+    fn diagnostics_domain(&self) -> &'static str {
+        "scene.ecs"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::diagnostics::FrameDiagnostics;
+
+    use super::EcsFramePerformanceDiagnostics;
+
+    #[test]
+    fn ecs_frame_performance_diagnostics_uses_scene_ecs_frame_domain() {
+        let diagnostics = EcsFramePerformanceDiagnostics::default();
+        let status = diagnostics.frame_diagnostics_status();
+
+        assert_eq!(status.domain, "scene.ecs");
+        assert!(status.available);
+        assert_eq!(status.error, None);
     }
 }

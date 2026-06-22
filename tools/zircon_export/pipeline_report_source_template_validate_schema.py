@@ -9,6 +9,12 @@ from .pipeline_report_schema_primitives import (
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
+from .pipeline_report_schema_table import (
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
+)
+from .pipeline_report_source_template_string_array_schema import (
+    source_template_non_empty_string_array_schema_diagnostics,
+)
 
 SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_FIELDS = (
     "cargo_profile",
@@ -59,6 +65,11 @@ def source_template_validate_build_plan_schema_diagnostics(
                 f"SourceTemplate Validate source_template_build {field} "
                 "must be a non-empty string"
             )
+        elif value != value.strip():
+            diagnostics.append(
+                f"SourceTemplate Validate source_template_build {field} "
+                "must be a non-empty trimmed string"
+            )
     for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_BOOL_FIELDS:
         diagnostics.extend(
             validate_bool_schema_diagnostics(
@@ -67,15 +78,23 @@ def source_template_validate_build_plan_schema_diagnostics(
             )
         )
     for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_STRING_ARRAY_FIELDS:
-        if not source_template_is_non_empty_string_array(
-            source_template_build.get(field)
-        ):
-            diagnostics.append(
-                f"SourceTemplate Validate source_template_build {field} "
-                "must be a non-empty string array"
+        value = source_template_build.get(field)
+        string_array_diagnostics = (
+            source_template_non_empty_string_array_schema_diagnostics(
+                f"SourceTemplate Validate source_template_build {field}",
+                value,
+            )
+        )
+        if string_array_diagnostics:
+            diagnostics.extend(string_array_diagnostics)
+        else:
+            diagnostics.extend(
+                string_array_trimmed_non_empty_entries_schema_diagnostics(
+                    f"SourceTemplate Validate source_template_build {field}",
+                    value,
+                )
             )
     return diagnostics
-
 
 def source_template_validate_generated_file_schema_diagnostics(
     file: dict[str, Any],
@@ -96,6 +115,11 @@ def source_template_validate_generated_file_schema_diagnostics(
                 "SourceTemplate Validate generated file path "
                 "must be a non-empty string"
             )
+        elif field == "path" and value != value.strip():
+            diagnostics.append(
+                "SourceTemplate Validate generated file path "
+                "must be a non-empty trimmed string"
+            )
         elif not isinstance(value, str):
             diagnostics.extend(
                 validate_string_schema_diagnostics(
@@ -107,6 +131,11 @@ def source_template_validate_generated_file_schema_diagnostics(
             diagnostics.append(
                 f"SourceTemplate Validate generated_files[{index}].{field} "
                 "must be a non-empty string"
+            )
+        elif field == "purpose" and value != value.strip():
+            diagnostics.append(
+                f"SourceTemplate Validate generated_files[{index}].{field} "
+                "must be a non-empty trimmed string"
             )
     return diagnostics
 
@@ -128,11 +157,3 @@ def source_template_validate_generated_files_schema_diagnostics(
             source_template_validate_generated_file_schema_diagnostics(file, index)
         )
     return diagnostics
-
-
-def source_template_is_non_empty_string_array(value: Any) -> bool:
-    return (
-        isinstance(value, list)
-        and bool(value)
-        and all(isinstance(item, str) and item.strip() for item in value)
-    )

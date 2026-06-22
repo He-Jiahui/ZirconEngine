@@ -9,10 +9,10 @@ use crate::core::framework::physics::PhysicsWorldStepPlan;
 use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::ecs::Resource;
 use crate::scene::{
-    DefaultLevelManager, DynamicScene, NodeKind, ReflectResource, RuntimeSessionArchive,
-    RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata, RuntimeSessionSlot, ScenePatch,
-    World,
+    DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, ReflectResource,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
+    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata, RuntimeSessionSlot, SceneError,
+    ScenePatch, World,
 };
 
 use super::authoring_boundary::{
@@ -254,6 +254,27 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
         target_before
     );
     assert!(!target.contains_entity(child));
+}
+
+#[test]
+fn dynamic_scene_world_mutation_preserves_scene_error_source() {
+    let mut scene = DynamicScene::empty();
+    scene.component_types.push(
+        ComponentTypeDescriptor::new(CLOUD_LAYER_TYPE_PATH, "weather", "Cloud Layer")
+            .with_property("", "Scalar", true),
+    );
+
+    let error = scene
+        .spawn_into(&mut World::empty())
+        .expect_err("invalid dynamic component registration should preserve scene error source");
+
+    assert!(matches!(
+        error,
+        DynamicSceneError::WorldMutation(SceneError::Reflect(
+            ReflectError::InvalidRegistration { type_path, reason }
+        )) if type_path == CLOUD_LAYER_TYPE_PATH
+            && reason == "dynamic component field name must not be empty"
+    ));
 }
 
 #[test]

@@ -1,3 +1,5 @@
+use crate::graphics::scene::scene_renderer::post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT;
+
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::pipeline_bundle::PipelineBundle;
 use super::bloom_pipeline::bloom_pipeline;
@@ -67,7 +69,7 @@ pub(crate) fn create_pipeline_bundle(
         ),
         depth_of_field_pipeline: depth_of_field_pipeline(
             device,
-            target_format,
+            POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
             post_process_bind_group_layout,
             depth_sampling_mode,
         ),
@@ -91,19 +93,19 @@ pub(crate) fn create_pipeline_bundle(
         ),
         motion_blur_pipeline: motion_blur_pipeline(
             device,
-            target_format,
+            POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
             post_process_bind_group_layout,
             depth_sampling_mode,
         ),
         blur_pipeline: blur_pipeline(
             device,
-            target_format,
+            POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
             post_process_bind_group_layout,
             depth_sampling_mode,
         ),
         scene_composite_pipeline: scene_composite_pipeline(
             device,
-            target_format,
+            POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
             post_process_bind_group_layout,
             depth_sampling_mode,
         ),

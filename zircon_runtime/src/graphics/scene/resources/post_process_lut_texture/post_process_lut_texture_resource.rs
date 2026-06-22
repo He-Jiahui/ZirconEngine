@@ -7,12 +7,27 @@ const RGBA8_BYTES_PER_TEXEL: u32 = 4;
 
 pub(in crate::graphics::scene::resources) struct PostProcessLutTextureResource {
     pub(in crate::graphics::scene::resources) descriptor: RenderImageDescriptor,
-    #[allow(dead_code)]
     texture: wgpu::Texture,
-    pub(in crate::graphics::scene::resources) view: wgpu::TextureView,
+    view: wgpu::TextureView,
 }
 
 impl PostProcessLutTextureResource {
+    pub(in crate::graphics::scene::resources) const RETAINED_LUT_TEXTURE_OWNER_COUNT: usize = 2;
+
+    pub(in crate::graphics::scene::resources) fn retained_lut_texture_owner_count(&self) -> usize {
+        let _retained_lut_texture_owners = (&self.texture, &self.view);
+        Self::RETAINED_LUT_TEXTURE_OWNER_COUNT
+    }
+
+    pub(in crate::graphics::scene::resources) fn view(&self) -> &wgpu::TextureView {
+        debug_assert_eq!(
+            self.retained_lut_texture_owner_count(),
+            Self::RETAINED_LUT_TEXTURE_OWNER_COUNT,
+            "PostProcessLutTextureResource must retain texture and view while exposing 3D LUT bindings",
+        );
+        &self.view
+    }
+
     pub(in crate::graphics::scene::resources) fn from_rgba8_asset(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

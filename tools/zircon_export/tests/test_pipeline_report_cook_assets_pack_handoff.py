@@ -7,7 +7,12 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
+from tools.zircon_export.pipeline_report_pack_stage_schema import (
+    PACK_BINARY_HEADER_SIZE,
+    zrpack_content_hash,
+)
 from tools.zircon_export.tests.export_test_support import (
+    _pack_binary_bytes,
     _write_compile_host_report,
     _write_pack_report,
     _write_platform_bundle_report_with_native_plugins_payload,
@@ -15,7 +20,6 @@ from tools.zircon_export.tests.export_test_support import (
     json_dumps,
     json_loads,
 )
-from tools.zircon_export.tests.pack_test_support import asset_entry, manifest_for_assets
 
 
 class PipelineReportCookAssetsPackHandoffTests(unittest.TestCase):
@@ -76,6 +80,158 @@ class PipelineReportCookAssetsPackHandoffTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+
+    def test_report_stage_rejects_pack_asset_schema_before_source_byte_semantics(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            out = root / "out"
+            source = root / "source" / "main.scene"
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b"scene-bytes")
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
+            write_cook_assets_report(
+                out,
+                {
+                    "roots": ["scenes/main.zscene"],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "source": str(source),
+                            "dependencies": [],
+                            "labels": [],
+                        },
+                    ],
+                },
+            )
+            _write_pack_report(out, out / "stages" / "pack" / "assets.zrpack")
+            rewrite_pack_report_for_trim_evidence(
+                out,
+                included_assets=["scenes/main.zscene"],
+                trimmed_assets=[],
+            )
+            pack_report_path = out / "stages" / "pack" / "report.json"
+            pack_report = json_loads(pack_report_path.read_text(encoding="utf-8"))
+            assert isinstance(pack_report, dict)
+            manifest = pack_report["manifest"]
+            assert isinstance(manifest, dict)
+            assets = manifest["assets"]
+            assert isinstance(assets, list)
+            asset = assets[0]
+            assert isinstance(asset, dict)
+            asset["size"] = -1
+            pack = pack_report.get("pack")
+            assert isinstance(pack, str)
+            Path(pack).write_bytes(
+                _pack_binary_bytes(
+                    pack_report["manifest"],
+                    b"ZRPK",
+                    payload=pack_payload_for_asset(0),
+                )
+            )
+            pack_report_path.write_text(
+                json_dumps(pack_report),
+                encoding="utf-8",
+            )
+            _write_platform_bundle_report_with_native_plugins_payload(out, {})
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "pack report manifest.assets[0].size must be non-negative"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "CookAssets source byte length" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_cook_assets_source_path_before_pack_source_byte_semantics(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "relative_source",
+                lambda root: "main.scene",
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].source must be an absolute path"
+                ),
+            ),
+            (
+                "missing_source",
+                lambda root: str(root / "source" / "missing.scene"),
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].source does not exist"
+                ),
+            ),
+        )
+        for label, source_value, expected in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    out = root / "out"
+                    _write_validate_report_with_strategies(out, ["library_embed"])
+                    _write_compile_host_report(
+                        out,
+                        out / "compile" / "zircon_runtime.exe",
+                    )
+                    write_cook_assets_report(
+                        out,
+                        {
+                            "roots": ["scenes/main.zscene"],
+                            "assets": [
+                                {
+                                    "path": "scenes/main.zscene",
+                                    "source": source_value(root),
+                                    "dependencies": [],
+                                    "labels": [],
+                                },
+                            ],
+                        },
+                    )
+                    _write_pack_report(
+                        out,
+                        out / "stages" / "pack" / "assets.zrpack",
+                    )
+                    rewrite_pack_report_for_trim_evidence(
+                        out,
+                        included_assets=["scenes/main.zscene"],
+                        trimmed_assets=[],
+                    )
+                    _write_platform_bundle_report_with_native_plugins_payload(out, {})
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "CookAssets source" in diagnostic
+                            and "could not be read" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
 
     def test_report_stage_rejects_pack_included_asset_missing_cook_assets_source(
         self,
@@ -429,13 +585,12 @@ def rewrite_pack_report_for_trim_evidence(
     report_path = out / "stages" / "pack" / "report.json"
     report = json_loads(report_path.read_text(encoding="utf-8"))
     assert isinstance(report, dict)
-    report["manifest"] = manifest_for_assets(
-        [
-            asset_entry(hash_value=index + 1, path=path)
-            for index, path in enumerate(included_assets)
-        ],
-        hash_values=list(range(1, len(included_assets) + 1)),
-    )
+    report["manifest"], payload = pack_manifest_for_included_assets(included_assets)
+    pack = report.get("pack")
+    if isinstance(pack, str) and pack.strip():
+        Path(pack).write_bytes(
+            _pack_binary_bytes(report["manifest"], b"ZRPK", payload=payload)
+        )
     report["asset_count"] = len(included_assets)
     report["chunk_count"] = len(included_assets)
     report["trim_report"] = {
@@ -446,6 +601,50 @@ def rewrite_pack_report_for_trim_evidence(
         "diagnostics": diagnostics or [],
     }
     report_path.write_text(json_dumps(report), encoding="utf-8")
+
+
+def pack_manifest_for_included_assets(
+    included_assets: list[str],
+) -> tuple[dict[str, object], bytes]:
+    payload_chunks = [
+        pack_payload_for_asset(index)
+        for index, _ in enumerate(included_assets)
+    ]
+    manifest_assets: list[dict[str, object]] = []
+    manifest_chunks: list[dict[str, object]] = []
+    payload_offset = PACK_BINARY_HEADER_SIZE
+    for path, payload in zip(included_assets, payload_chunks, strict=True):
+        content_hash = zrpack_content_hash(payload)
+        manifest_assets.append(
+            {
+                "path": path,
+                "chunk_hash": content_hash,
+                "size": len(payload),
+            }
+        )
+        manifest_chunks.append(
+            {
+                "hash": content_hash,
+                "offset": payload_offset,
+                "size": len(payload),
+            }
+        )
+        payload_offset += len(payload)
+    return (
+        {
+            "pack": {
+                "version": 1,
+                "chunks": manifest_chunks,
+                "total_size": sum(len(chunk) for chunk in payload_chunks),
+            },
+            "assets": manifest_assets,
+        },
+        b"".join(payload_chunks),
+    )
+
+
+def pack_payload_for_asset(index: int) -> bytes:
+    return f"asset-{index}".encode("ascii").ljust(8, b"-")
 
 
 if __name__ == "__main__":

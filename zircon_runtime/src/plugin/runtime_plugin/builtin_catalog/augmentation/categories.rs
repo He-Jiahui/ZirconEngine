@@ -1,7 +1,10 @@
-use super::super::super::RuntimePluginDescriptor;
+use super::super::BuiltinCatalogDescriptorBuilder;
 
-pub(super) fn assign_category(descriptor: RuntimePluginDescriptor) -> RuntimePluginDescriptor {
-    match descriptor.package_id.as_str() {
+pub(super) fn assign_category(
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
+    let package_id = descriptor.package_id().to_string();
+    match package_id.as_str() {
         "texture" => descriptor.with_category("runtime"),
         "terrain" | "tilemap_2d" | "prefab_tools" => descriptor.with_category("authoring"),
         "virtual_geometry" | "hybrid_gi" | "solari" => descriptor.with_category("rendering"),

@@ -1,5 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
+use super::FrameDiagnostics;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeRenderDiagnostics {
     pub available: bool,
@@ -16,5 +18,19 @@ impl RuntimeRenderDiagnostics {
             virtual_geometry_debug_available: false,
             error: Some(error.into()),
         }
+    }
+}
+
+impl FrameDiagnostics for RuntimeRenderDiagnostics {
+    fn diagnostics_domain(&self) -> &'static str {
+        "render"
+    }
+
+    fn diagnostics_available(&self) -> bool {
+        self.available
+    }
+
+    fn diagnostics_error(&self) -> Option<&str> {
+        self.error.as_deref()
     }
 }

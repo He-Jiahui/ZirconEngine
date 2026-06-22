@@ -45,10 +45,42 @@ mod world_basics;
 use crate::scene::{DefaultLevelManager, RuntimeObject, RuntimeSystem};
 
 #[test]
+fn level_system_state_locks_use_poison_recovery_helpers() {
+    fn production_source(source: &str) -> &str {
+        source.split("\n#[cfg(test)]").next().unwrap_or(source)
+    }
+
+    let sources = [
+        production_source(include_str!("../level_system.rs")),
+        include_str!("../module/default_level_manager.rs"),
+        include_str!("../module/level_manager_lifecycle.rs"),
+    ]
+    .join("\n");
+    let normalized_sources: String = sources
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+
+    assert!(normalized_sources.contains(".lock().unwrap_or_else("));
+    assert!(!normalized_sources.contains(".lock().unwrap("));
+}
+
+#[test]
 fn level_manager_produces_level_systems() {
     let manager = DefaultLevelManager::default();
     let level = manager.create_default_level();
     assert!(manager.level(level.handle()).is_some());
+}
+
+#[test]
+fn level_system_recovers_world_lock_after_writer_panic() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let poison_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        level.with_world_mut(|_| panic!("poison level world lock"));
+    }));
+
+    assert!(poison_result.is_err());
+    let _snapshot_after_poison = level.snapshot();
 }
 
 #[test]

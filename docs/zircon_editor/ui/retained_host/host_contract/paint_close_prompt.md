@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/colors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/draw.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/scene_layers.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/button.rs

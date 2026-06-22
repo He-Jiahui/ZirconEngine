@@ -28,6 +28,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
@@ -54,6 +55,7 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
@@ -79,6 +81,7 @@ tests:
   - target: cargo test -p zircon_runtime --lib profile_dynamic_scope_macro_captures_runtime_generated_names --profile profiling --features profiling --locked --message-format=short
   - target: cargo test -p zircon_runtime --lib render_submit_records_render_graph_pass_and_wait_spans --profile profiling --features profiling --locked --message-format=short
   - target: cargo test -p zircon_runtime --lib direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope --profile profiling --features profiling --locked --message-format=short
+  - target: cargo test -p zircon_runtime --lib direct_runtime_frame_submit_exports_perfetto_trace_artifacts --profile profiling --features "profiling profiling-chrome" --locked --message-format=short
   - target: cargo check -p zircon_runtime --profile profiling --features "profiling profiling-tracy" --locked
   - target: python tools/zircon_build.py --targets runtime --out E:\builds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
   - target: ./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
@@ -152,7 +155,7 @@ The first profiling slice records coarse CPU spans at stable engine seams:
 
 - Dynamic runtime ABI calls: event handling, frame capture, accessibility capture, viewport surface bind/unbind, and present.
 - `RuntimeRenderBridge`: extract submit, surface bind/unbind, and present.
-- Render framework submit/present/capture internals: submission context build, runtime submission preparation, render/present pipeline, feedback collection, and counters for submitted frames.
+- Render framework submit/present/direct-runtime-frame/capture internals: submission context build, runtime submission preparation, render/present pipeline, feedback collection, and counters for submitted frames.
 - Render-framework contention: `WgpuRenderFramework::lock_operation` and `lock_state` wrap acquisition of the serialized operation mutex and mutable framework-state mutex in `render_framework.wait` spans. These spans measure CPU lock-acquire time at the runtime render-framework boundary without exposing editor/UI batching internals.
 - Render graph execution: `execute_graph_stage` records `render_graph.stage:<Stage>` spans and each non-culled executable pass records `render_graph.pass:<pass-name>` beneath the active runtime render/present pipeline span. The pass span surrounds executor dispatch plus execution-record update so the M4 timeline can attribute CPU render work by compiled graph stage and pass while GPU timestamp work remains a later extension.
 - Core lifecycle: module register, activate, deactivate, and service resolution.
@@ -173,7 +176,7 @@ M10.8 promotion therefore needs two linked but separate outputs: store-backed re
 
 ## Test Coverage
 
-Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Counter hotspot tests cover counter grouping, ordering, finite-positive filtering, latest sample tracking, and `counter_hotspots.json` export/summary presence. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit a real headless runtime frame in a profiling build and assert that operation/state wait spans plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting.
+Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Counter hotspot tests cover counter grouping, ordering, finite-positive filtering, latest sample tracking, and `counter_hotspots.json` export/summary presence. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit real headless generated and direct runtime frames in profiling builds and assert that operation/state wait spans, render-framework build/prepare/render/feedback spans, plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting. Runtime 07 F3 also has `direct_runtime_frame_submit_exports_perfetto_trace_artifacts` for `profiling-chrome`: it submits a direct `ViewportRenderFrame`, exports `timeline.zrtrace.json`, `timeline.perfetto.json`, `hotspots.json`, and `summary.md`, and requires both trace files to retain the `submit_runtime_frame` / `render_frame_with_pipeline` / `DepthPrepass` / `depth-prepass` path. Its status anchor is `render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending`: static guards cover the source/docs anchors, while the cargo profiling test still needs a clean build lane and the authoritative vampire FPS gate remains open.
 
 2026-05-26 M10W evidence:
 

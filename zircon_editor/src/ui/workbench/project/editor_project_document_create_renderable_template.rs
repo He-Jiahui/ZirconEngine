@@ -8,7 +8,7 @@ use zircon_runtime::scene::Scene;
 use super::constants::DEFAULT_SCENE_URI;
 use super::editor_project_document::EditorProjectDocument;
 use super::project_root_path::project_root_path;
-use super::runtime_asset_helpers::{invalid_data, parse_asset_uri};
+use super::runtime_asset_resolution::{invalid_data, parse_asset_uri};
 use crate::ui::workbench::startup::NewProjectDraft;
 
 impl EditorProjectDocument {

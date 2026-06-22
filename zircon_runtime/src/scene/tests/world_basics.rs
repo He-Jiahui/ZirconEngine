@@ -270,7 +270,7 @@ fn set_parent_checked_rejects_hierarchy_cycles() {
 
     let error = world.set_parent_checked(parent, Some(child)).unwrap_err();
 
-    assert!(error.contains("cycle"));
+    assert!(error.to_string().contains("cycle"));
     assert_eq!(world.find_node(parent).unwrap().parent, None);
     assert_eq!(world.find_node(child).unwrap().parent, Some(parent));
 }

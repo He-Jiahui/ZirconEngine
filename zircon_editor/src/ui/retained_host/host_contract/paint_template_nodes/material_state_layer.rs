@@ -45,5 +45,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 }
 
 #[cfg(test)]
-#[path = "material_state_layer_tests.rs"]
+#[path = "material_state_layer_tests/mod.rs"]
 mod tests;

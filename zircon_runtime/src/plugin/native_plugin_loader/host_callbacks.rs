@@ -10,24 +10,35 @@ use super::abi_declarations::{
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
+use super::ffi_panic_guard::catch_native_plugin_host_callback_panic;
 use super::native_plugin_abi::NativePluginDescriptor;
 use super::native_strings::{parse_native_string_list, read_optional_c_string};
 
 pub(super) unsafe extern "C" fn native_host_abi_version_v3() -> u32 {
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+    catch_native_plugin_host_callback_panic(|| ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3)
 }
 
 pub(super) unsafe extern "C" fn native_host_has_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: *const std::ffi::c_char,
 ) -> u32 {
+    catch_native_plugin_host_callback_panic(|| unsafe {
+        native_host_has_capability_v3_inner(host_functions, capability)
+    })
+}
+
+unsafe fn native_host_has_capability_v3_inner(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    capability: *const std::ffi::c_char,
+) -> u32 {
     if host_functions.is_null() || capability.is_null() {
         return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
     }
-    let Some(capability) = CStr::from_ptr(capability).to_str().ok() else {
+    let Some(capability) = unsafe { CStr::from_ptr(capability) }.to_str().ok() else {
         return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
     };
-    let Some(granted_capabilities) = read_optional_c_string((*host_functions).granted_capabilities)
+    let Some(granted_capabilities) =
+        (unsafe { read_optional_c_string((*host_functions).granted_capabilities) })
     else {
         return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
     };
@@ -42,6 +53,17 @@ pub(super) unsafe extern "C" fn native_host_has_capability_v3(
 }
 
 pub(super) unsafe extern "C" fn native_host_log_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    level: u32,
+    target: *const std::ffi::c_char,
+    message: *const std::ffi::c_char,
+) -> u32 {
+    catch_native_plugin_host_callback_panic(|| unsafe {
+        native_host_log_v3_inner(host_functions, level, target, message)
+    })
+}
+
+unsafe fn native_host_log_v3_inner(
     host_functions: *const NativePluginHostFunctionTableV3,
     level: u32,
     target: *const std::ffi::c_char,
@@ -63,6 +85,18 @@ pub(super) unsafe extern "C" fn native_host_log_v3(
 }
 
 pub(super) unsafe extern "C" fn native_host_diagnostic_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    path: *const std::ffi::c_char,
+    value: f64,
+    unit: *const std::ffi::c_char,
+    tags: *const std::ffi::c_char,
+) -> u32 {
+    catch_native_plugin_host_callback_panic(|| unsafe {
+        native_host_diagnostic_v3_inner(host_functions, path, value, unit, tags)
+    })
+}
+
+unsafe fn native_host_diagnostic_v3_inner(
     host_functions: *const NativePluginHostFunctionTableV3,
     path: *const std::ffi::c_char,
     value: f64,

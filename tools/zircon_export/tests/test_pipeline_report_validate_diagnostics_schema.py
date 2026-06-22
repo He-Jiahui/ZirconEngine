@@ -48,6 +48,35 @@ class PipelineReportValidateDiagnosticsSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_validate_padded_fatal_diagnostic_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
+            _write_stage_report(out, "cook_assets", fatal=False)
+            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+            _write_stage_report(out, "platform_bundle", fatal=False)
+            validate_report_path = out / "stages" / "validate" / "report.json"
+            validate_report = json.loads(
+                validate_report_path.read_text(encoding="utf-8")
+            )
+            validate_report["fatal_diagnostics"] = [" validate warning "]
+            validate_report_path.write_text(
+                json.dumps(validate_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertEqual(report["fatal_stages"], ["Validate"])
+            self.assertIn(
+                "validate report fatal_diagnostics[0] "
+                "must be a non-empty trimmed string",
+                report["diagnostics"],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

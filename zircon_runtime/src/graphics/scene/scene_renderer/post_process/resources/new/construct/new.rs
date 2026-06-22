@@ -120,7 +120,6 @@ impl ScenePostProcessResources {
             depth_of_field_prepare_params_buffer: buffer_bundle
                 .depth_of_field_prepare_params_buffer,
             velocity_camera_params_buffer: buffer_bundle.velocity_camera_params_buffer,
-            post_process_params_buffer: buffer_bundle.post_process_params_buffer,
             light_buffer: buffer_bundle.light_buffer,
             hybrid_gi_probe_buffer: buffer_bundle.hybrid_gi_probe_buffer,
             hybrid_gi_trace_region_buffer: buffer_bundle.hybrid_gi_trace_region_buffer,

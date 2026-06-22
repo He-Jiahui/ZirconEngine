@@ -11,10 +11,10 @@ use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::common::{asset_effects, open_view, parse_asset_kind_filter};
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
+use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
 
 pub(super) fn execute_asset_event(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     event: &EditorAssetEvent,
 ) -> Result<ExecutionOutcome, String> {
     match event {
@@ -140,7 +140,7 @@ pub(super) fn execute_asset_event(
 }
 
 fn open_asset_document_view(
-    inner: &mut EditorEventRuntimeInner,
+    inner: &mut EditorEventRuntimeState,
     descriptor_id: &str,
     asset_path: &str,
     fallback_title: &str,

@@ -15,6 +15,7 @@ from .pipeline_report_schema_table import (
     object_array_schema_diagnostics,
     optional_fields,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
     table_bool_schema_diagnostics,
     table_field_schema_diagnostics,
     table_integer_schema_diagnostics,
@@ -155,6 +156,45 @@ NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_ARRAY_FIELDS = (
 )
 
 
+def operation_audit_allowed_platforms_schema_diagnostics(
+    label: str,
+    audit: dict[str, Any],
+    *,
+    require_present: bool = False,
+) -> list[str]:
+    field = "allowed_platforms"
+    if field not in audit or audit.get(field) is None:
+        if require_present:
+            return [f"{label}.{field} must be a string array"]
+        return []
+
+    value = audit.get(field)
+    if not isinstance(value, list):
+        return [f"{label}.{field} must be a string array"]
+
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, str):
+            diagnostics.append(f"{label}.{field}[{index}] must be a string")
+    return diagnostics
+
+
+def operation_audit_artifact_command_schema_diagnostics(
+    label: str,
+    artifact: dict[str, Any],
+) -> list[str]:
+    field = "command"
+    value = artifact.get(field)
+    if not isinstance(value, list):
+        return [f"{label}.{field} must be a string array"]
+
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, str):
+            diagnostics.append(f"{label}.{field}[{index}] must be a string")
+    return diagnostics
+
+
 def platform_bundle_native_plugins_operation_audit_schema_diagnostics(
     label: str,
     audit: dict[str, Any],
@@ -188,10 +228,9 @@ def platform_bundle_native_plugins_operation_audit_schema_diagnostics(
         )
     )
     diagnostics.extend(
-        table_string_array_schema_diagnostics(
+        operation_audit_allowed_platforms_schema_diagnostics(
             label,
             audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
             require_present=True,
         )
     )
@@ -201,6 +240,14 @@ def platform_bundle_native_plugins_operation_audit_schema_diagnostics(
             audit,
             NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
             string_array_no_blank_entries_schema_diagnostics,
+        )
+    )
+    diagnostics.extend(
+        table_field_schema_diagnostics(
+            label,
+            audit,
+            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
+            string_array_trimmed_non_empty_entries_schema_diagnostics,
         )
     )
     diagnostics.extend(
@@ -220,6 +267,13 @@ def platform_bundle_native_plugins_operation_audit_schema_diagnostics(
     )
     diagnostics.extend(
         table_required_non_empty_string_schema_diagnostics(
+            label,
+            audit,
+            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_NON_EMPTY_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_required_trimmed_non_empty_string_schema_diagnostics(
             label,
             audit,
             NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_NON_EMPTY_STRING_FIELDS,
@@ -292,10 +346,9 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
         )
     )
     diagnostics.extend(
-        table_string_array_schema_diagnostics(
+        operation_audit_allowed_platforms_schema_diagnostics(
             label,
             audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
             require_present=True,
         )
     )
@@ -305,6 +358,14 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
             audit,
             NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
             string_array_no_blank_entries_schema_diagnostics,
+        )
+    )
+    diagnostics.extend(
+        table_field_schema_diagnostics(
+            label,
+            audit,
+            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
+            string_array_trimmed_non_empty_entries_schema_diagnostics,
         )
     )
     diagnostics.extend(
@@ -324,6 +385,13 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
     )
     diagnostics.extend(
         table_required_non_empty_string_schema_diagnostics(
+            label,
+            audit,
+            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_NON_EMPTY_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_required_trimmed_non_empty_string_schema_diagnostics(
             label,
             audit,
             NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_NON_EMPTY_STRING_FIELDS,
@@ -354,10 +422,7 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
         table_string_array_schema_diagnostics(
             label,
             audit,
-            (
-                *NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-                *NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
-            ),
+            NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
             require_present=True,
         )
     )
@@ -380,6 +445,14 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
             audit,
             NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
             string_array_no_blank_entries_schema_diagnostics,
+        )
+    )
+    diagnostics.extend(
+        table_field_schema_diagnostics(
+            label,
+            audit,
+            NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
+            string_array_trimmed_non_empty_entries_schema_diagnostics,
         )
     )
     diagnostics.extend(
@@ -418,6 +491,14 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
             NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_NON_EMPTY_STRING_FIELDS,
         )
     )
+    diagnostics.extend(
+        object_array_required_trimmed_non_empty_string_schema_diagnostics(
+            label,
+            audit,
+            "packages",
+            NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_NON_EMPTY_STRING_FIELDS,
+        )
+    )
     packages = audit.get("packages")
     if isinstance(packages, list):
         for index, package in enumerate(packages):
@@ -435,22 +516,24 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
                     integer_fields=(
                         NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_INTEGER_FIELDS
                     ),
-                    string_array_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_STRING_ARRAY_FIELDS
-                    ),
                     required_string_fields=(
                         NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_FIELDS
                     ),
                     required_integer_fields=(
                         NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_INTEGER_FIELDS
                     ),
-                    required_string_array_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_ARRAY_FIELDS
-                    ),
                 )
             )
             diagnostics.extend(
                 object_array_required_non_empty_string_schema_diagnostics(
+                    f"{label} packages[{index}]",
+                    package,
+                    "artifacts",
+                    NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_NON_EMPTY_STRING_FIELDS,
+                )
+            )
+            diagnostics.extend(
+                object_array_required_trimmed_non_empty_string_schema_diagnostics(
                     f"{label} packages[{index}]",
                     package,
                     "artifacts",
@@ -479,24 +562,31 @@ def native_dynamic_operation_audit_stage_schema_diagnostics(
             for artifact_index, artifact in enumerate(artifacts):
                 if not isinstance(artifact, dict):
                     continue
+                artifact_label = (
+                    f"{label} packages[{index}] artifacts[{artifact_index}]"
+                )
+                diagnostics.extend(
+                    operation_audit_artifact_command_schema_diagnostics(
+                        artifact_label,
+                        artifact,
+                    )
+                )
                 diagnostics.extend(
                     non_empty_string_array_schema_diagnostics(
-                        f"{label} packages[{index}] "
-                        f"artifacts[{artifact_index}].command",
+                        f"{artifact_label}.command",
                         artifact.get("command"),
                     )
                 )
                 diagnostics.extend(
                     artifact_safe_relative_path_schema_diagnostics(
-                        f"{label} packages[{index}] artifacts[{artifact_index}]",
+                        artifact_label,
                         artifact,
                     )
                 )
                 if audit.get("fatal") is False:
                     diagnostics.extend(
                         artifact_exit_code_success_schema_diagnostics(
-                            f"{label} packages[{index}] "
-                            f"artifacts[{artifact_index}]",
+                            artifact_label,
                             artifact,
                         )
                     )
@@ -516,6 +606,21 @@ def table_required_non_empty_string_schema_diagnostics(
     return diagnostics
 
 
+def table_required_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if isinstance(value, str) and value.strip() and value.strip() != value:
+            diagnostics.append(
+                f"{label}.{field} must be a non-empty trimmed string"
+            )
+    return diagnostics
+
+
 def operation_audit_platform_allowed_schema_diagnostics(
     label: str,
     audit: dict[str, Any],
@@ -528,9 +633,12 @@ def operation_audit_platform_allowed_schema_diagnostics(
     if (
         not isinstance(target_platform, str)
         or not target_platform.strip()
+        or target_platform.strip() != target_platform
         or not isinstance(allowed_platforms, list)
         or not all(
-            isinstance(platform, str) and platform.strip()
+            isinstance(platform, str)
+            and platform.strip()
+            and platform.strip() == platform
             for platform in allowed_platforms
         )
         or type(platform_allowed) is not bool
@@ -571,6 +679,29 @@ def object_array_required_non_empty_string_schema_diagnostics(
     return diagnostics
 
 
+def object_array_required_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        diagnostics.extend(
+            table_required_trimmed_non_empty_string_schema_diagnostics(
+                f"{label} {field}[{index}]",
+                entry,
+                fields,
+            )
+        )
+    return diagnostics
+
+
 def table_sha256_hex_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -579,7 +710,12 @@ def table_sha256_hex_string_schema_diagnostics(
     diagnostics: list[str] = []
     for field in fields:
         value = table.get(field)
-        if isinstance(value, str) and value.strip() and not is_sha256_hex(value):
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() == value
+            and not is_sha256_hex(value)
+        ):
             diagnostics.append(f"{label}.{field} must be a SHA-256 hex digest")
     return diagnostics
 
@@ -615,6 +751,8 @@ def string_array_unique_entries_schema_diagnostics(
         return []
     seen: set[str] = set()
     for item in value:
+        if not item.strip() or item.strip() != item:
+            continue
         if item in seen:
             return [f"{label} must not contain duplicate entries"]
         seen.add(item)
@@ -638,6 +776,8 @@ def object_array_unique_string_field_schema_diagnostics(
         field_value = entry.get(value_field)
         if not isinstance(field_value, str):
             return []
+        if not field_value.strip() or field_value.strip() != field_value:
+            continue
         entries.append(field_value)
 
     return string_array_unique_entries_schema_diagnostics(

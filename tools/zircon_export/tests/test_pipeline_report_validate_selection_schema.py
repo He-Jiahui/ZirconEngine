@@ -46,7 +46,7 @@ class PipelineReportValidateSelectionSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report profile_summary.selected_plugins must be a string array"
+                    "validate report profile_summary.selected_plugins[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -130,6 +130,44 @@ class PipelineReportValidateSelectionSchemaTests(unittest.TestCase):
                         ),
                         report["diagnostics"],
                     )
+
+    def test_report_stage_rejects_validate_selected_plugins_duplicate(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
+            _write_stage_report(out, "cook_assets", fatal=False)
+            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+            _write_stage_report(out, "platform_bundle", fatal=False)
+            validate_report_path = out / "stages" / "validate" / "report.json"
+            validate_report = json.loads(
+                validate_report_path.read_text(encoding="utf-8")
+            )
+            validate_report["profile_summary"]["selected_plugins"] = [
+                "rendering",
+                "rendering",
+            ]
+            validate_report_path.write_text(
+                json.dumps(validate_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertEqual(report["fatal_stages"], ["Validate"])
+            self.assertTrue(
+                any(
+                    "validate report profile_summary.selected_plugins[1] "
+                    "duplicates entry 0"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
 
     def test_report_stage_rejects_validate_enabled_runtime_plugin_ids_invalid(
         self,

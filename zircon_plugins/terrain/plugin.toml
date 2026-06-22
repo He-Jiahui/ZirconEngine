@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "terrain"
 version = "0.1.0"
 sdk_api_version = "0.1.0"
@@ -6,6 +7,7 @@ category = "authoring"
 description = "Optional runtime and editor package for terrain heightfield authoring."
 maturity = "beta"
 supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.terrain"]
 default_packaging = ["source_template", "library_embed"]
 

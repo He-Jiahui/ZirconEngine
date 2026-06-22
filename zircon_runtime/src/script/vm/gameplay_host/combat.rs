@@ -26,6 +26,7 @@ pub(super) fn set_animation_bool(
             .insert(parameter, AnimationParameterValue::Bool(value));
         world
             .set_animation_state_machine_player(entity, Some(player))
+            .map_err(|error| error.to_string())
             .map(|_| true)
     });
     result
@@ -54,6 +55,7 @@ pub(super) fn damage_entity(
         } else {
             world
                 .set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)
+                .map_err(|error| error.to_string())
                 .map(|_| true)
         }
     });
@@ -81,6 +83,7 @@ pub(super) fn heal_entity(
         }
         world
             .set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)
+            .map_err(|error| error.to_string())
             .map(|_| true)
     });
     result
@@ -126,7 +129,9 @@ pub(super) fn damage_entity_report(
         if killed {
             world.remove_entity(entity);
         } else {
-            world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)?;
+            world
+                .set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)
+                .map_err(|error| error.to_string())?;
         }
         Ok(DamageReport {
             hit: true,

@@ -5,7 +5,7 @@ use crate::core::math::{Transform, Vec3};
 use crate::plugin::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use crate::scene::components::{LocalTransform, Name, RenderLayerMask, RigidBodyComponent};
 use crate::scene::ecs::{Component, Resource};
-use crate::scene::World;
+use crate::scene::{SceneError, World};
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
@@ -135,6 +135,71 @@ fn world_resources_are_registered_and_replaced_by_type() {
     assert_eq!(
         world.registered_resource_id::<FrameCounter>(),
         Some(resource_id)
+    );
+}
+
+#[test]
+fn world_typed_mutation_errors_report_missing_entities_as_scene_errors() {
+    let mut world = World::empty();
+    let missing = u64::MAX;
+
+    assert_eq!(
+        world.insert(missing, Health(1)),
+        Err(SceneError::MissingEntity {
+            operation: "insert component on",
+            entity: missing
+        })
+    );
+    assert_eq!(
+        world.insert_bundle(missing, (Health(2),)),
+        Err(SceneError::MissingEntity {
+            operation: "insert component on",
+            entity: missing
+        })
+    );
+    assert_eq!(
+        world.remove::<Health>(missing),
+        Err(SceneError::MissingEntity {
+            operation: "remove component from",
+            entity: missing
+        })
+    );
+}
+
+#[test]
+fn dynamic_component_mutation_errors_report_scene_error_variants() {
+    let mut world = World::empty();
+    let missing = u64::MAX;
+
+    assert_eq!(
+        world.set_dynamic_component(missing, "weather.cloud", json!({})),
+        Err(SceneError::MissingEntity {
+            operation: "attach dynamic component to",
+            entity: missing
+        })
+    );
+    assert_eq!(
+        world.register_component_type(ComponentTypeDescriptor::new("cloud", "weather", "Cloud")),
+        Err(SceneError::ComponentTypePluginPrefixMismatch {
+            type_id: "cloud".to_string(),
+            plugin_id: "weather".to_string()
+        })
+    );
+
+    let entity = world.spawn((Name("Dynamic Entity".to_string()),)).unwrap();
+    world
+        .register_component_type(ComponentTypeDescriptor::new(
+            "weather.cloud",
+            "weather",
+            "Cloud",
+        ))
+        .unwrap();
+
+    assert_eq!(
+        world.set_dynamic_component(entity, "weather.rain", json!({})),
+        Err(SceneError::UnregisteredDynamicComponentType {
+            component_id: "weather.rain".to_string()
+        })
     );
 }
 
@@ -423,13 +488,13 @@ fn typed_world_component_insert_remove_use_direct_result_branches() {
             && insert.contains("component")
             && insert.contains("tick")
             && insert.contains("Ok(old) => old")
-            && insert.contains("Err(error) => return Err(error.to_string())")
+            && insert.contains("Err(error) => return Err(error.into())")
             && !insert.contains(".map_err(|error| error.to_string())")
             && remove.contains("match self.component_storage.remove::<T>(component_id, internal)")
             && remove.contains("Ok(_) => {}")
             && remove.contains("Ok(Some(ComponentRemoveResult { value, .. })) => Some(value)")
             && remove.contains("Ok(None) => None")
-            && remove.contains("Err(error) => return Err(error.to_string())")
+            && remove.contains("Err(error) => return Err(error.into())")
             && !remove.contains(".map_err(|error| error.to_string())")
             && !remove.contains(".map(|ComponentRemoveResult { value, .. }| value)"),
         "typed component insert/remove must use direct Result branches instead of map_err/map adapters"

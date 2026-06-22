@@ -46,6 +46,7 @@ fn deferred_lighting_shader_receives_gpu_light_buffer() {
         "ZR_GPU_LIGHT_TYPE_RECT",
         "zr_gpu_light_casts_shadow(light)",
         "zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)",
+        "if (receive_shadows)",
         "let direct_lights = gpu_light_lighting(position.xy",
     ] {
         assert!(
@@ -96,6 +97,8 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
         "fn zr_sample_shadow_slot",
         "fn zr_shadow_slot_pcf_quality",
         "ZR_SHADOW_PCF_QUALITY_MEDIUM",
+        "ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS",
+        "ZR_SHADOW_PCF_HIGH_RADIUS_TEXELS",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
@@ -110,14 +113,22 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
 }
 
 #[test]
-fn deferred_lighting_shader_decodes_shading_model_id_from_gbuffer_material_alpha() {
+fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha(
+) {
     for expected in [
         "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
         "const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;",
         "const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;",
+        "const ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK: u32 = 0x7Fu;",
+        "const ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG: u32 = 0x80u;",
+        "fn deferred_material_flags(encoded: f32) -> u32",
         "fn decode_shading_model_id(encoded: f32) -> u32",
+        "fn decode_receive_shadows(encoded: f32) -> bool",
         "round(clamp(encoded, 0.0, 1.0) * 255.0)",
+        "& ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK",
+        "& ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG",
         "let shading_model_id = decode_shading_model_id(material.a);",
+        "let receive_shadows = decode_receive_shadows(material.a);",
         "fn shade_standard_pbr_light_vector",
         "fn shade_blinn_phong_light_vector",
         "fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32)",
@@ -126,7 +137,7 @@ fn deferred_lighting_shader_decodes_shading_model_id_from_gbuffer_material_alpha
         "return shade_standard_pbr_light_vector(light_vector, radiance, normal, roughness, metallic, diffuse_color, view_dir);",
         "fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u32) -> vec3<f32>",
         "fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32)",
-        "let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id);",
+        "let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);",
         "return shade_deferred_unlit(albedo);",
         "return shade_deferred_blinn_phong(position, coord, albedo, material, normal);",
         "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);",

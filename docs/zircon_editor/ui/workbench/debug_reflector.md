@@ -32,7 +32,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/ecs.rs
@@ -66,7 +66,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
 plan_sources:
   - docs/superpowers/specs/2026-05-07-debug-observatory-design.md
   - docs/superpowers/plans/2026-05-08-debug-observatory-m2.md
@@ -107,7 +107,7 @@ tests:
   - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - zircon_editor/src/tests/host/retained_window/shell_window.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - tests/acceptance/ui-debug-reflector-full-closure.md
 doc_type: module-detail
 ---

@@ -19,4 +19,13 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "standalone `dynamic_api_session.rs` 5/5",
         ],
     ),
+    (
+        "Runtime 10 Dynamic API test boundary Markdown renderer split",
+        [
+            "dynamic_api_test_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "dynamic_api_test_markdown.py",
+            "folder-backed owner modules 11/11",
+            "legacy `zircon_runtime/src/dynamic_api/tests.rs` absent",
+        ],
+    ),
 ];

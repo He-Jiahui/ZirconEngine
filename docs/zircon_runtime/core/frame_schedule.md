@@ -15,6 +15,9 @@ related_code:
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_markdown.py
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
@@ -31,6 +34,9 @@ implementation_files:
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
   - docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_markdown.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/zircon_runtime/runtime/index.md
@@ -38,6 +44,8 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - source scans for retired raw-delta level tick and world-driver second advance paths
   - schedule_frame_loop_boundary targeted audit: source files 18/18, guard/test files 8/8, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, Runtime 03 guard anchors 14/14, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], doc_anchors = 10/10, mirror-doc aggregate guard present, frame schedule module-doc anchors 3/3, risks = []
+  - schedule_frame_loop_inventory_split_static_passed_cargo_deferred_tests_deferred: source/guard inventory split into schedule_frame_loop_source_inventory.py, anchor inventory split into schedule_frame_loop_anchor_inventory.py, boundary audit kept at 475 lines, standalone schedule_frame_loop.rs 1/1, standalone plan_status.rs 33/33, Cargo gates deferred
+  - schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred: Markdown renderer split into schedule_frame_loop_markdown.py, boundary audit reduced to 368 lines, markdown owner 146 lines, standalone schedule_frame_loop.rs 1/1, standalone plan_status.rs 33/33, Cargo gates deferred
   - schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration
   - session_ui_extract_remains_documented_dynamic_session_side_path
   - world_driver_consumes_runtime_time_advance_without_advancing_clocks_again
@@ -57,7 +65,7 @@ doc_type: module-detail
 
 # Runtime Frame Schedule
 
-This document is the runtime-owned frame-loop record for plan 03. It records the current frame path after the M2.1 single-time-advance handoff, the M2.2 fixed overstep interpolation accessor, and the 2026-06-13 schedule/frame-loop structural audit owner.
+This document is the runtime-owned frame-loop record for plan 03. It records the current frame path after the M2.1 single-time-advance handoff, the M2.2 fixed overstep interpolation accessor, the 2026-06-13 schedule/frame-loop structural audit owner, and the 2026-06-21 splits of source/guard inventory, anchor inventory, and Markdown rendering.
 
 ## Current Conclusion
 
@@ -184,7 +192,7 @@ Detailed owner notes live in `docs/zircon_runtime/scene/ecs/schedule_parallel_ex
 
 ## Structural Audit Mirror
 
-`schedule_frame_loop_boundary` mirrors this document without running Cargo. Current static evidence reports source files 18/18, guard/test files 8/8, `SystemStage` count and variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 14/14, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `doc_anchors = 10/10`, `mirror_docs_guard_present = true`, frame schedule module-doc anchors 3/3, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`. `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 03, the runtime index, the M0 review, and runtime-interface convergence.
+`schedule_frame_loop_source_inventory.py` now owns the source/guard file inventory, stage count, fixed-loop count, and dynamic-session tick-count source scans; `schedule_frame_loop_anchor_inventory.py` owns the SystemStage, RuntimeTimeAdvance, FixedStepPlan, UI extract, stage ordering, schedule runner, parallel executor, behavior-test, mirror-doc, and Cargo gate anchors; `schedule_frame_loop_markdown.py` owns `render_schedule_frame_loop_boundary_markdown`. `schedule_frame_loop_boundary` mirrors this document without running Cargo and is now the audit reader, missing-anchor checker, and risk classifier at 368 lines; the Markdown owner is 146 lines. Current static evidence reports source files 18/18, guard/test files 8/8, `SystemStage` count and variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 14/14, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `doc_anchors = 10/10`, `mirror_docs_guard_present = true`, frame schedule module-doc anchors 3/3, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`. `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 03, the runtime index, the M0 review, and runtime-interface convergence; `schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred` records the renderer split plus standalone `schedule_frame_loop.rs` 1/1 and `plan_status.rs` 33/33 evidence while `ecs_schedule/time/session/schedule_parallel` Cargo gates remain deferred.
 
 ## Follow-Up Work
 

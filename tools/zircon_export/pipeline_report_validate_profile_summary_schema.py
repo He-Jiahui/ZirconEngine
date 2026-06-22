@@ -5,15 +5,16 @@ from __future__ import annotations
 from typing import Any
 
 from .export_strategy_contract import normalize_export_strategy
-from .pipeline_report_schema_primitives import (
-    validate_string_array_schema_diagnostics,
-    validate_string_schema_diagnostics,
-)
+from .pipeline_report_schema_primitives import validate_string_schema_diagnostics
 from .pipeline_report_validate_identifier_schema import (
     validate_non_empty_trimmed_string_schema_diagnostics,
     validate_project_plugin_feature_id_schema_diagnostics,
     validate_project_plugin_package_id_array_schema_diagnostics,
     validate_project_plugin_package_id_schema_diagnostics,
+    validate_unique_project_plugin_package_id_array_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 VALIDATE_PROFILE_SUMMARY_FIELDS = (
@@ -185,10 +186,18 @@ def validate_profile_summary_schema_diagnostics(
         )
     for field in VALIDATE_PROFILE_SUMMARY_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in profile_summary:
+            label = f"validate report profile_summary.{field}"
+            value = profile_summary.get(field)
             diagnostics.extend(
                 validate_project_plugin_package_id_array_schema_diagnostics(
-                    f"validate report profile_summary.{field}",
-                    profile_summary.get(field),
+                    label,
+                    value,
+                )
+            )
+            diagnostics.extend(
+                validate_unique_project_plugin_package_id_array_schema_diagnostics(
+                    label,
+                    value,
                 )
             )
     if "features" in profile_summary:
@@ -265,22 +274,24 @@ def validate_profile_features_schema_diagnostics(features: Any) -> list[str]:
             )
         )
         diagnostics.extend(plugin_id_diagnostics)
+        plugin_id_schema_diagnostics: list[str] = []
         if not plugin_id_diagnostics:
-            diagnostics.extend(
+            plugin_id_schema_diagnostics = (
                 validate_project_plugin_package_id_schema_diagnostics(
                     "validate report profile_summary.features plugin id",
                     plugin_id,
                 )
             )
-        if not isinstance(feature_list, list) or any(
-            not isinstance(feature, str) for feature in feature_list
-        ):
-            diagnostics.append(
-                "validate report profile_summary.features."
-                f"{plugin_id} must be a string array"
-            )
+            diagnostics.extend(plugin_id_schema_diagnostics)
+        feature_list_diagnostics = validate_string_array_schema_diagnostics(
+            "validate report profile_summary.features." f"{plugin_id}",
+            feature_list,
+        )
+        if feature_list_diagnostics:
+            diagnostics.extend(feature_list_diagnostics)
             continue
-        for feature_id in feature_list:
+        seen_feature_ids: dict[str, int] = {}
+        for index, feature_id in enumerate(feature_list):
             feature_id_diagnostics = (
                 validate_non_empty_trimmed_string_schema_diagnostics(
                     "validate report profile_summary.features."
@@ -289,13 +300,28 @@ def validate_profile_features_schema_diagnostics(features: Any) -> list[str]:
                 )
             )
             diagnostics.extend(feature_id_diagnostics)
-            if not plugin_id_diagnostics and not feature_id_diagnostics:
-                diagnostics.extend(
+            if (
+                not plugin_id_diagnostics
+                and not plugin_id_schema_diagnostics
+                and not feature_id_diagnostics
+            ):
+                feature_schema_diagnostics = (
                     validate_project_plugin_feature_id_schema_diagnostics(
                         "validate report profile_summary.features."
                         f"{plugin_id} feature id",
                         plugin_id,
                         feature_id,
                     )
+                )
+                diagnostics.extend(feature_schema_diagnostics)
+                if feature_schema_diagnostics:
+                    continue
+                previous_index = seen_feature_ids.get(feature_id)
+                if previous_index is None:
+                    seen_feature_ids[feature_id] = index
+                    continue
+                diagnostics.append(
+                    "validate report profile_summary.features."
+                    f"{plugin_id}[{index}] duplicates entry {previous_index}"
                 )
     return diagnostics

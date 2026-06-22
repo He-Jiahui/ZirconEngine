@@ -31,7 +31,7 @@ def cook_assets_pack_source_byte_diagnostics(
         if cook_asset is None or pack_asset is None:
             continue
         source = cook_asset.get("source")
-        if not isinstance(source, str) or not source:
+        if not cook_assets_source_path_is_readable_file(source):
             continue
         try:
             source_bytes = Path(source).read_bytes()
@@ -50,6 +50,18 @@ def cook_assets_pack_source_byte_diagnostics(
             )
         )
     return diagnostics
+
+
+def cook_assets_source_path_is_readable_file(value: object) -> bool:
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        return False
+    source_path = Path(value)
+    if not source_path.is_absolute():
+        return False
+    try:
+        return source_path.is_file()
+    except OSError:
+        return False
 
 
 def pack_manifest_assets_by_path(

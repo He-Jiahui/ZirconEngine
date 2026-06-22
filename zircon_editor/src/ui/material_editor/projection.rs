@@ -247,6 +247,19 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 message: format!("lighting model `{value}` is not supported"),
             }
         }
+        RenderMaterialValidationError::RenderQueueAlphaModeConflict {
+            source,
+            path,
+            alpha_mode,
+            render_queue,
+            expected,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(source),
+            path,
+            message: format!(
+                "alpha mode `{alpha_mode}` uses render queue {render_queue}, expected {expected}"
+            ),
+        },
         RenderMaterialValidationError::UnregisteredShadingModel { path, token } => {
             MaterialEditorDiagnosticRow {
                 source: None,

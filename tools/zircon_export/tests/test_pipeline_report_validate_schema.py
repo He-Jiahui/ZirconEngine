@@ -395,7 +395,7 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report profile_summary.strategies must be a string array"
+                    "validate report profile_summary.strategies[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -470,7 +470,7 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report profile_summary.features.rendering must be a string array"
+                    "validate report profile_summary.features.rendering[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -610,7 +610,7 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
             (
                 "fatal_diagnostics",
                 ["project manifest is missing", 42],
-                "validate report fatal_diagnostics must be a string array",
+                "validate report fatal_diagnostics[1] must be a string",
             ),
         )
         for field, value, expected_diagnostic in cases:
@@ -932,10 +932,24 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
                     self.assertTrue(report["fatal"])
                     self.assertEqual(report["missing_stages"], [])
                     self.assertEqual(report["fatal_stages"], ["Validate"])
+                    expected_diagnostic = (
+                        "validate report plan_summary.library_embed_compile_host."
+                        f"{field}[1] must be a string"
+                        if field
+                        in (
+                            "app_features",
+                            "command",
+                            "expected_runtime_plugins",
+                            "runtime_features",
+                        )
+                        else (
+                            "validate report plan_summary.library_embed_compile_host."
+                            f"{field} must be a string array"
+                        )
+                    )
                     self.assertTrue(
                         any(
-                            "validate report plan_summary.library_embed_compile_host."
-                            f"{field} must be a string array" in diagnostic
+                            expected_diagnostic in diagnostic
                             for diagnostic in report["diagnostics"]
                         ),
                         report["diagnostics"],

@@ -56,6 +56,51 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 08 ECS markdown renderer split",
+        [
+            "ecs_kernel_data_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "ecs_kernel_data_markdown.py",
+            "ecs_kernel_data_boundary.py` now owns audit read, missing-anchor calculation, and risk aggregation at 344 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 08 QueryState Markdown renderer split",
+        [
+            "ecs_query_state_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "ecs_query_state_markdown.py",
+            "ecs_query_state_boundary.py` now owns QueryState owner-module audit, root budget checks, forbidden-root behavior scan, and risk aggregation at 141 lines",
+            "standalone `ecs_query_structure.rs` 11/11",
+        ],
+    ),
+    (
+        "Runtime 08 F17 entity path lookup verb rename",
+        [
+            "runtime_08_entity_path_lookup_getter_rename_coremin_check_passed",
+            "review_f17_entity_path_option_lookup_uses_get_verb",
+            "get_entity_by_path",
+            "old resolve-verb entity path method absent",
+        ],
+    ),
+    (
+        "Runtime 08 F5 world typed mutation errors",
+        [
+            "world_typed_mutation_errors_coremin_check_passed_partial",
+            "SceneError::MissingEntity",
+            "SceneResult",
+            "review_f5_world_spawn_bundle_surface_uses_scene_error",
+        ],
+    ),
+    (
+        "Runtime 08 F5 dynamic component typed errors",
+        [
+            "dynamic_component_typed_errors_coremin_check_passed",
+            "SceneError::PluginComponentsActive",
+            "DynamicSceneError::WorldMutation(SceneError)",
+            "review_f5_dynamic_component_errors_preserve_scene_error_sources",
+        ],
+    ),
+    (
         "Runtime 08 QueryState cache owner split",
         [
             "query_state/cache.rs",

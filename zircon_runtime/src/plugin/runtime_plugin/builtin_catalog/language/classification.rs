@@ -1,7 +1,7 @@
 use crate::{plugin::CapabilityStatus, plugin::PluginMaturity};
 
-use super::super::super::RuntimePluginDescriptor;
 use super::super::capability_status::capability_status;
+use super::super::BuiltinCatalogDescriptorBuilder;
 
 pub(in crate::plugin::runtime_plugin::builtin_catalog) fn is_language_descriptor(
     package_id: &str,
@@ -11,8 +11,8 @@ pub(in crate::plugin::runtime_plugin::builtin_catalog) fn is_language_descriptor
 
 pub(in crate::plugin::runtime_plugin::builtin_catalog) fn classify_language_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     if package_id == "zr_vm_language" {
         return descriptor
             .with_maturity(PluginMaturity::Experimental)

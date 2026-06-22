@@ -25,7 +25,7 @@ pub fn apply_sequence_to_world(
             .target_id
             .as_deref()
             .and_then(|target_id| resolve_sequence_target_id(world, target_id))
-            .or_else(|| world.resolve_entity_path(&binding.entity_path))
+            .or_else(|| world.get_entity_by_path(&binding.entity_path))
         else {
             report
                 .missing_tracks

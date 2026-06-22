@@ -4,11 +4,13 @@ use zircon_runtime::core::framework::render::SolariRuntimeStatus;
 
 pub const PLUGIN_ID: &str = "solari";
 pub const SOLARI_MODULE_NAME: &str = "SolariPluginModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.solari";
-pub const SOLARI_CAPABILITY: &str = "runtime.render.experimental.solari";
 pub const SOLARI_PROVIDER_ID: &str = "plugin.solari.runtime";
 pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
     "Solari realtime raytraced lighting pass executor is not implemented yet";
+
+mod capability;
+
+pub use capability::{RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, SOLARI_CAPABILITY};
 
 #[derive(Clone, Debug)]
 pub struct SolariRuntimePlugin {
@@ -66,7 +68,7 @@ pub fn solari_runtime_provider_registration(
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Solari",
         zircon_runtime::builtin::RuntimePluginId::Solari,
@@ -91,26 +93,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         )
         .with_note(SOLARI_UNAVAILABLE_MESSAGE),
     )
+    .build()
 }
 
-pub fn runtime_plugin() -> SolariRuntimePlugin {
-    SolariRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(SolariRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[RUNTIME_CAPABILITY, SOLARI_CAPABILITY]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

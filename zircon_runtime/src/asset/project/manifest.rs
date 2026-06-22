@@ -16,6 +16,8 @@ pub struct ProjectManifest {
     #[serde(default = "default_project_format_version")]
     pub format_version: u32,
     pub default_scene: AssetUri,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_manifest: Option<String>,
     #[serde(alias = "schema_version")]
     pub library_version: u32,
     #[serde(default, skip_serializing_if = "ProjectPluginManifest::is_empty")]
@@ -36,6 +38,7 @@ impl ProjectManifest {
             name: name.into(),
             format_version: PROJECT_FORMAT_VERSION,
             default_scene,
+            asset_manifest: None,
             library_version,
             plugins: ProjectPluginManifest::default(),
             scripts: ProjectScriptManifest::default(),

@@ -1,6 +1,7 @@
 #[test]
 fn production_ui_entry_assets_live_under_crate_assets_not_src() {
-    let runtime_fixture_source = include_str!("../../ui/runtime_ui/runtime_ui_fixture.rs");
+    let runtime_fixture_source =
+        include_str!("../../ui/tests/runtime_ui_support/runtime_ui_fixture.rs");
     let runtime_assets = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("assets")
         .join("ui")

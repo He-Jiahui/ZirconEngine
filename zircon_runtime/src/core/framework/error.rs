@@ -11,6 +11,8 @@ pub enum ZirconError {
     ThreadSpawn(String),
 }
 
+pub type CoreResult<T> = std::result::Result<T, CoreError>;
+
 #[derive(Debug, Error)]
 pub enum CoreError {
     #[error("invalid registry name: {0}")]
@@ -56,6 +58,10 @@ pub enum CoreError {
     PluginBridgeLifecycleBlocked(String),
     #[error("service downcast failed for {0}")]
     ServiceDowncast(String),
+    #[error("missing resource record for locator {locator}")]
+    MissingResourceRecordForLocator { locator: String },
+    #[error("missing resource record for id {id}")]
+    MissingResourceRecordForId { id: String },
     #[error("config missing: {0}")]
     MissingConfig(String),
     #[error("config parse failed for {0}: {1}")]

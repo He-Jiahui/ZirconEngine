@@ -46,4 +46,22 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "ecs_schedule/time/session/schedule_parallel Cargo gates pending",
         ],
     ),
+    (
+        "Runtime 03 Schedule/frame-loop inventory split",
+        [
+            "schedule_frame_loop_inventory_split_static_passed_cargo_deferred_tests_deferred",
+            "schedule_frame_loop_source_inventory.py",
+            "schedule_frame_loop_anchor_inventory.py",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 03 Schedule/frame-loop markdown renderer split",
+        [
+            "schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "schedule_frame_loop_markdown.py",
+            "schedule_frame_loop_boundary.py` now owns only audit read/missing-anchor/risk aggregation at 368 lines",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
 ];

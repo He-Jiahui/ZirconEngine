@@ -63,22 +63,22 @@ fn dynamic_component_registration_moves_descriptor_after_reflection_setup() {
     );
 
     assert!(
-        register.contains("match crate::scene::reflect::registration_from_component_descriptor")
-            && register.contains("Ok(registration) => registration")
-            && register.contains("Err(error) => return Err(error.to_string())")
+        register.contains("crate::scene::reflect::registration_from_component_descriptor(&descriptor)?")
+            && register.contains("return Err(ReflectError::DuplicateTypePath")
+            && register.contains(".into());")
             && register.contains("let component =")
             && register.contains(
                 "crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);"
             )
             && register.contains("self.component_types.register(descriptor)?;")
-            && register.contains("match self.type_registry.register(RuntimeTypeRegistration")
-            && register.contains("Ok(()) => Ok(())")
-            && register.contains("Err(error) => Err(error.to_string())")
+            && register.contains("self.type_registry.register(RuntimeTypeRegistration")
+            && register.contains("})?;")
             && register.contains("component: Some(component),")
             && !register.contains("self.component_types.register(descriptor.clone())")
             && !register.contains("reflect_component_for_dynamic_descriptor(&descriptor),")
-            && !register.contains(".map_err(|error| error.to_string())"),
-        "dynamic component registration must build reflection state and convert errors through direct branches before moving the descriptor into the registry"
+            && !register.contains("error.to_string()")
+            && !register.contains("Result<(), String>"),
+        "dynamic component registration must build reflection state and preserve typed SceneError sources before moving the descriptor into the registry"
     );
 }
 
@@ -129,7 +129,7 @@ fn dynamic_component_property_writes_split_and_insert_only_at_map_boundaries() {
     assert!(
         write_property.contains(
             "let Some((component_id, property)) = split_dynamic_property_path(property_path) else"
-        ) && write_property.contains("return Err(format!(\"unknown property `{property_path}`\"));")
+        ) && write_property.contains("SceneError::UnknownDynamicComponentProperty")
             && write_property.contains("self.validate_dynamic_component_type(component_id)?;")
             && write_property
                 .contains("self.validate_dynamic_component_property_write(component_id, property)?;")
@@ -138,6 +138,7 @@ fn dynamic_component_property_writes_split_and_insert_only_at_map_boundaries() {
             && write_property.contains("object.insert(property.to_string(), json_value);")
             && write_property
                 .contains("self.insert_dynamic_component_presence(entity, component_id)?;")
+            && !write_property.contains("Err(format!")
             && !write_property.contains(".ok_or_else"),
         "dynamic component property writes should allocate owned strings only at the map insertion points"
     );
@@ -265,11 +266,15 @@ fn dynamic_component_type_registry_validates_borrowed_plugin_prefix_without_form
     assert!(
         register.contains(
             "if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id)"
-        ) && plugin_matcher.contains(".strip_prefix(plugin_id)")
+        ) && register.contains("SceneError::ComponentTypePluginPrefixMismatch")
+            && register.contains("SceneError::DuplicateComponentType")
+            && plugin_matcher.contains(".strip_prefix(plugin_id)")
             && plugin_matcher.contains("let Some(suffix) = type_id.strip_prefix(plugin_id) else")
             && plugin_matcher.contains("return false;")
             && plugin_matcher.contains("suffix.starts_with('.')")
             && !plugin_matcher.contains(".is_some_and(")
+            && !register.contains("Result<(), String>")
+            && !register.contains("Err(format!")
             && !register.contains("format!(\"{}.\", descriptor.plugin_id)")
             && !register.contains("expected_prefix")
             && !register.contains("starts_with(&expected_prefix)"),

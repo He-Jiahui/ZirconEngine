@@ -4,6 +4,7 @@ use super::super::super::super::super::scene_post_process_resources::ScenePostPr
 #[allow(clippy::too_many_arguments)]
 pub(super) fn bind_group_entries<'a>(
     resources: &'a ScenePostProcessResources,
+    post_process_params_buffer: &'a wgpu::Buffer,
     scene_color_view: &'a wgpu::TextureView,
     scene_depth_view: &'a wgpu::TextureView,
     motion_vector_neighbor_max_view: &'a wgpu::TextureView,
@@ -54,7 +55,7 @@ pub(super) fn bind_group_entries<'a>(
         },
         wgpu::BindGroupEntry {
             binding: 4,
-            resource: resources.post_process_params_buffer.as_entire_binding(),
+            resource: post_process_params_buffer.as_entire_binding(),
         },
         wgpu::BindGroupEntry {
             binding: 5,

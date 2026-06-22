@@ -25,6 +25,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime_provider/registration.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/types/graphics_error.rs
@@ -64,6 +65,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime_provider/registration.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/types/graphics_error.rs
@@ -189,7 +191,7 @@ The built-in runtime catalog mirrors those capability declarations and marks bot
 
 ## Provider Arbitration
 
-`VirtualGeometryRuntimeProviderRegistration` and `HybridGiRuntimeProviderRegistration` carry an integer priority. The default priority is `0`, and providers can call `with_priority(...)` when registration order should not decide selection.
+`VirtualGeometryRuntimeProviderRegistration` and `HybridGiRuntimeProviderRegistration` carry an integer priority. The default priority is `0`, and providers can call `with_priority(...)` when registration order should not decide selection. Their public wrapper types are generated from the shared graphics-internal `RuntimeProviderRegistration<P: ?Sized>` owner, so HGI and VG keep distinct public names while sharing provider ID, priority, provider object, and debug storage.
 
 `WgpuRenderFramework::new_with_plugin_render_extensions(...)` selects one provider per advanced feature before renderer state is created:
 

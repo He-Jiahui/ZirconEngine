@@ -101,14 +101,17 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
     let modules = core.inner.modules.lock().unwrap();
     let mut snapshots = modules
         .values()
-        .map(|entry| RuntimeDevtoolsModuleSnapshot {
-            name: entry.descriptor.name.clone(),
-            description: entry.descriptor.description.clone(),
-            lifecycle: entry.lifecycle,
-            service_count: entry.service_names.len(),
-            driver_count: entry.descriptor.drivers.len(),
-            manager_count: entry.descriptor.managers.len(),
-            plugin_count: entry.descriptor.plugins.len(),
+        .map(|entry| {
+            let descriptor = entry.descriptor();
+            RuntimeDevtoolsModuleSnapshot {
+                name: descriptor.name.clone(),
+                description: descriptor.description.clone(),
+                lifecycle: entry.lifecycle,
+                service_count: entry.service_names.len(),
+                driver_count: descriptor.drivers.len(),
+                manager_count: descriptor.managers.len(),
+                plugin_count: descriptor.plugins.len(),
+            }
         })
         .collect::<Vec<_>>();
     snapshots.sort_by(|left, right| left.name.cmp(&right.name));
@@ -165,13 +168,13 @@ fn collect_plugin_catalog_entries() -> Vec<RuntimeDevtoolsPluginCatalogEntry> {
     let mut entries = crate::plugin::RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
         .map(|descriptor| RuntimeDevtoolsPluginCatalogEntry {
-            package_id: descriptor.package_id,
-            display_name: descriptor.display_name,
-            crate_name: descriptor.crate_name,
-            capabilities: descriptor.capabilities,
+            package_id: descriptor.package_id().to_string(),
+            display_name: descriptor.display_name().to_string(),
+            crate_name: descriptor.crate_name().to_string(),
+            capabilities: descriptor.capabilities().to_vec(),
             target_modes: descriptor
-                .target_modes
-                .into_iter()
+                .target_modes()
+                .iter()
                 .map(|mode| format!("{:?}", mode))
                 .collect(),
         })

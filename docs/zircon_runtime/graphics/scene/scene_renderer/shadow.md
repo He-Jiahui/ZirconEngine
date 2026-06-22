@@ -23,7 +23,7 @@ related_code:
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
@@ -52,6 +53,7 @@ related_code:
   - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
   - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
@@ -62,10 +64,16 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -87,7 +95,7 @@ implementation_files:
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -95,6 +103,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
@@ -116,6 +125,7 @@ implementation_files:
   - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
   - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
@@ -125,10 +135,16 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/05-lighting-shadows.md
@@ -155,14 +171,20 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs::tests::render_shadow_globals_layout_and_atlas_params_are_stable
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs::tests::render_shadow_atlas_resource_config_normalizes_zero_values
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs::tests::render_shadow_atlas_resource_config_uses_plan_05_defaults
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs::tests::render_shadow_atlas_compare_function_matches_forward_depth_contract
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs::tests::render_shadow_atlas_resource_config_downgrades_to_capability_limit
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs::tests::render_shadow_atlas_upload_report_describes_cleared_tail
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs::tests::render_shadow_atlas_group1_bindings_avoid_legacy_shadow_and_light_grid_slots
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs::tests::render_shadow_atlas_group1_layout_entries_match_plan_05_resource_types
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_receives_shadow_atlas_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_encodes_shading_model_and_receive_shadow_flag_into_gbuffer_material_alpha
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_receives_shadow_atlas_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::deferred_material_gbuffer_shaders_encode_and_decode_material_channels
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_directional_shadow_atlas_forward_deferred_darkening_parity
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs::tests::builtin_pbr_shader_receives_shadow_atlas_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs::tests::render_shadow_frame_plan_assigns_first_directional_cascade_slots
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs::tests::render_shadow_frame_plan_caps_directional_cascade_tier_to_atlas_row
@@ -176,6 +198,8 @@ tests:
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs::tests::contact_shadow_executor_requires_gpu_after_contract_validation
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs::tests::contact_shadow_executor_rejects_resource_contract_drift
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs::tests::contact_shadow_shader_declares_expected_compute_bindings
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs::contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs::contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs::tests::pluginized_rendering_feature_names_drive_runtime_post_process_flags
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::contact_shadow_runtime_flag_is_encoded_separately_from_ssao
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_contact_shadow_occlusion_texture
@@ -186,6 +210,11 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_csm_directional
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_multi_spot_shadows
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_directional_shadow_atlas_capture_records_receiver_path
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_directional_shadow_atlas_darkens_receiver_capture
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_csm_directional_remains_stable_under_subtexel_camera_shift
+  - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs::render_product_multi_spot_shadow_atlas_darkens_receivers_capture
+  - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs::render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_forward_plus_preserves_shadow_atlas_required_external_texture_binding
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_deferred_preserves_shadow_atlas_required_external_texture_binding
 doc_type: module-detail
@@ -204,9 +233,10 @@ This module is the Plan 05 LS-M3/LS-M4 shadow foundation. The compiled graph dec
 - `shadow/cascade.rs` owns CSM split/fade/snapping math and camera frustum slice bounds. The slice-bounds helper is crate-reexported through `graphics::scene` so `ShadowFramePlan` and Plan 04 visibility build the same directional cascade coverage without exposing the private shadow module tree.
 - `shadow/plan.rs` bridges the full viewport frame to atlas allocation, `GpuShadowSlot`/`GpuShadowGlobals` upload payloads, `ShadowAtlasSlotPass` depth-write descriptors, and `GpuLightData.shadow_slot_layer` patching. It derives directional cascade, spot, and point-face view-projection matrices, and tags atlas slot passes with `VisibilityViewKey::ShadowCascade`, `VisibilityViewKey::ShadowPointFace`, or `VisibilityViewKey::ShadowSpot`.
 - `shadow/slot.rs` owns the GPU POD layout for shadow slots/globals. Buffer ownership exists in `ShadowAtlasResources`, and the forward/deferred group1 bindings now expose those buffers to fragment shaders.
-- `shadow/shaders/zr_shadow.wgsl` owns the shader-side atlas sampling helper. It reads `GpuLightData.shadow_slot_layer`, chooses directional cascades or point faces, projects through `ZrShadowSlot.view_proj`, and selects Low/Medium/High comparison-sampler PCF kernels from the slot quality flags.
+- `shadow/shaders/zr_shadow.wgsl` owns the shader-side atlas sampling helper. It reads `GpuLightData.shadow_slot_layer`, chooses directional cascades or point faces, projects through `ZrShadowSlot.view_proj`, and selects Low/Medium/High comparison-sampler PCF kernels from the slot quality flags. High keeps nine samples but uses a wider 8-texel radius so product captures can distinguish it from Low on receiver edges.
 - `PostProcessGraphResourceNames::SHADOW_ATLAS` names the graph-visible external atlas resource. The built-in `shadow-atlas` pass writes it as a required external texture, and forward mesh/deferred lighting/deferred transparent mesh declare required texture reads so graph ordering keeps atlas depth production before atlas sampling. `PostProcessGraphResourceNames::SHADOW_MAP` is no longer part of the runtime graph contract.
-- `PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION` names the optional screen-space contact shadow output. The `rendering.contact_shadow` plugin owns the HZB-driven `contact-shadow` pass and its minimal WGPU compute executor/shader, so atlas shadows remain built-in while short-distance screen-space shadowing stays opt-in. The executor reads `scene-depth`, `gbuffer-normal`, and `hzb-furthest`, writes the Rgba8Unorm visibility output, and records its compute dispatch through the public plugin-facing GPU context method. The built-in `post.stack` pass declares a read from that texture and the post-process shader samples binding 27 under `contact_shadow_enabled`; feature-off or missing-resource paths bind a white fallback, so no visual multiplier is applied.
+- `RenderShadowExecutionReport` reports graph execution, atlas write/read, receiver availability, caster draw counts, and `shadowed_light_count`. The latter is submit-side counted from the atlas-supported shadow-casting light families(directional, point, and spot), so multi-spot scenes are no longer reported as only the directional ready count.
+- `PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION` names the optional screen-space contact shadow output. The `rendering.contact_shadow` plugin owns the HZB-driven `contact-shadow` pass and its WGPU compute executor/shader, so atlas shadows remain built-in while short-distance screen-space shadowing stays opt-in. The executor reads `scene-depth`, `gbuffer-normal`, and `hzb-furthest`, writes the Rgba8Unorm visibility output, resolves pass-declared texture views through `RenderPassGpuExecutionContext::require_texture_view(...)`, and records its compute dispatch through the public plugin-facing GPU context method. The built-in `post.stack` pass declares a read from that texture and the post-process shader samples binding 27 under `contact_shadow_enabled`; feature-off or missing-resource paths bind a white fallback, so no visual multiplier is applied. `contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region` now proves that path darkens a real Forward+ product capture against a baseline pipeline, and `contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions` broadens it to a 192x128 wide receiver with left/center/right contact windows while guarding an open receiver region against blanket full-frame deltas.
 - `core/framework/render/light/shadow_settings.rs` remains the framework-facing authoring contract for `casts_shadow`, bias, strength, resolution preference, and `ShadowPcfQuality`.
 
 ## Atlas Allocator
@@ -245,7 +275,7 @@ These constants are code-owned and active in the forward/deferred group1 layouts
 `ShadowAtlasResources` is the persistent resource owner for the graph-declared `shadow-atlas` path. It creates:
 
 - A depth atlas texture using the renderer depth format, with render-attachment and texture-binding usages.
-- A default atlas view and comparison sampler.
+- A default atlas view and comparison sampler. The sampler uses `SHADOW_ATLAS_COMPARE_FUNCTION == GreaterEqual`, matching the forward-depth visibility contract where a receiver is lit when the atlas depth is greater than or equal to the receiver depth.
 - A storage buffer sized as `slot_capacity * GPU_SHADOW_SLOT_STRIDE`.
 - A uniform buffer initialized with disabled `GpuShadowGlobals`.
 
@@ -261,7 +291,7 @@ These constants are code-owned and active in the forward/deferred group1 layouts
 - `atlas_scale_bias` at offset 64.
 - `params` at offset 80, with `x = depth_bias`, `y = normal_bias`, `z = slot_texel_size`, and `w = bitcast flags`.
 
-`GpuShadowSlot::from_allocation()` converts a `ShadowSlotAllocation` plus a light-space matrix into the atlas slice transform and sets the valid flag. Slot flags distinguish directional cascades, spot slices, and point-light cube faces; bits 8..9 encode `ShadowPcfQuality` as Low=1 tap, Medium=5 tap, and High=9 tap. `ShadowPcfQuality::default()` is Low, while tests/product contracts that preserve the older fixed 3x3 behavior set High explicitly.
+`GpuShadowSlot::from_allocation()` converts a `ShadowSlotAllocation` plus a light-space matrix into the atlas slice transform and sets the valid flag. Slot flags distinguish directional cascades, spot slices, and point-light cube faces; bits 8..9 encode `ShadowPcfQuality` as Low=1 tap, Medium=5 tap, and High=9 tap. `ShadowPcfQuality::default()` is Low; current product coverage treats High as the wider quality tier by sampling the 9-tap kernel at an 8-texel radius.
 
 `GpuShadowGlobals` is a 48-byte uniform block for cascade far splits, fade lengths, and atlas size/inverse-size. The buffer exists in `ShadowAtlasResources`, and the atlas binding ABI is fixed at group1 bindings 8/9/10/11. Forward/deferred shaders include `zr_shadow.wgsl` and assert the legacy single-shadow receiver symbols are absent.
 
@@ -288,17 +318,17 @@ split_i = lerp(linear_i, logarithmic_i, lambda)
 
 `SceneRendererCore` owns both `ShadowAtlasAllocator` and `ShadowAtlasResources`. The allocator config is derived from the actual atlas resource size so capability fallback to 2048 keeps atlas rects and GPU resource dimensions aligned. Directional cascade slot tier is capped by the actual atlas width divided by cascade count and by the reserved CSM row height.
 
-This is not yet the final shadow renderer. The plan now produces real `view_proj` matrices and proves slot assignment, buffer upload, light-buffer ABI writeback, group1 binding, forward/deferred atlas sampling entry points, graph-visible `shadow-atlas` ordering, and per-slot atlas depth writes. Directional cascade, point-face, and spot atlas writes are narrowed by Plan 04 shadow-view visibility when matching views exist. Directional cascades now use camera frustum slice bounds for both atlas slot matrices and visibility shadow cameras. `mesh_visibility_states_preserve_shadow_only_casters` now guards the mesh-draw mapping layer so a caster culled from the main view but visible in a shadow view remains eligible for the shadow pass. `render_product_csm_directional` and `render_product_multi_spot_shadows` add product-contract source coverage for CSM slot generation and multi-spot atlas coexistence; remaining precision work is receiver coverage/product capture validation and any real-scene caster expansion found by that validation.
+This is not yet the final shadow renderer. The plan now produces real `view_proj` matrices and proves slot assignment, buffer upload, light-buffer ABI writeback, group1 binding, forward/deferred atlas sampling entry points, graph-visible `shadow-atlas` ordering, and per-slot atlas depth writes. Directional cascade, point-face, and spot atlas writes are narrowed by Plan 04 shadow-view visibility when matching views exist. Directional cascades now use camera frustum slice bounds for both atlas slot matrices and visibility shadow cameras. `mesh_visibility_states_preserve_shadow_only_casters` now guards the mesh-draw mapping layer so a caster culled from the main view but visible in a shadow view remains eligible for the shadow pass. `render_product_csm_directional` and `render_product_multi_spot_shadows` add product-contract source coverage for CSM slot generation and multi-spot atlas coexistence. `render_product_directional_shadow_atlas_capture_records_receiver_path` adds a real WGPU Forward+ path guard for directional atlas execution, atlas write, receiver read, caster draw, and visible receiver pixels. `render_product_directional_shadow_atlas_darkens_receiver_capture` now proves the same atlas path creates a visible receiver darkening delta under a same-color receive-shadow toggle after the comparison sampler was aligned with the atlas depth contract. `render_product_csm_directional_remains_stable_under_subtexel_camera_shift` proves the same receiver/caster product lane keeps stable darkening statistics under a subtexel camera shift after cancelling ordinary projection movement through a matching unshadowed baseline. `render_product_multi_spot_shadow_atlas_darkens_receivers_capture` extends that product lane to a 3 spot/3 caster scene and its direct WGPU execution now passes, checking `shadowed_light_count`, atlas receiver availability, caster draw count, and full-frame darkened-pixel deltas. `render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture` broadens the same product lane to one directional plus three spot shadow-casting lights in one frame, checking the shared shadow atlas and clustered light-grid executors plus left/center/right receiver darkening regions. `render_product_directional_shadow_atlas_forward_deferred_darkening_parity` now proves the same directional atlas receiver darkening contract in Forward+ and Deferred after Deferred material alpha began preserving the receive-shadow flag beside the shading model. `render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture` proves Low/High PCF quality changes are visible in a real WGPU spot receiver-edge capture. `contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region` proves the opt-in plugin contact-shadow path executes and darkens a real Forward+ product capture, and `contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions` broadens that plugin path to three localized contact regions plus an open-region false-positive guard. Remaining precision work is RenderDoc evidence, root wider sweeps, and any real-scene caster/contact expansion found by broader validation.
 
 ## Next Integration
 
-The next LS-M3 slice should validate the atlas-only receiver path under real captures:
+The current LS-M3/LS-M4 real-capture lane has directional atlas path, directional receiver darkening, CSM subtexel camera-shift stability, multi-spot receiver darkening, mixed directional+spot wider receiver darkening, Forward+/Deferred directional shadow parity, and spot PCF quality edge guards. The next slices still need to broaden shadow behavior:
 
-- Directional cascades occupy the reserved atlas row and write slots `0..cascade_count`.
+- Directional cascades occupy the reserved atlas row and write slots `0..cascade_count`; the product guards prove this path reaches a receiver frame and can visibly darken a receiver sample.
 - Spot shadows allocate one slot; point shadows allocate six cube-face slots.
-- `GpuLightData.shadow_slot_layer` writeback and shader sampling now have atlas depth input, but captured forward/deferred parity still has to prove correctness.
-- `GpuShadowSlot`, `GpuShadowGlobals`, and `ShadowAtlasSlotPass` are populated from real allocation/cascade data; directional cascade, point-face, and spot slots consume Plan 04 shadow-view visibility, and directional cascades use camera-frustum slice bounds. Source coverage now preserves shadow-only casters at mesh-draw visibility mapping, but the next CSM refinement is still capture validation plus any required real-scene caster expansion.
-- Pass/executor naming has converged to `shadow-atlas`/`shadow.atlas`; the graph/resource hard cut is complete. Source contracts now cover multi-spot coexistence and CSM slot generation, while validation still needs real-capture multi-spot coexistence, CSM stability, forward/deferred parity, and receiver coverage.
+- `GpuLightData.shadow_slot_layer` writeback and shader sampling now have atlas depth input, directional receive-shadow visual delta, Deferred receive-shadow G-buffer flag preservation, and a passing multi-spot receive-shadow WGPU product guard after the VG debug-snapshot fixtures were synced and the lib-test binary was produced with a longer `--no-run` window.
+- `GpuShadowSlot`, `GpuShadowGlobals`, and `ShadowAtlasSlotPass` are populated from real allocation/cascade data; directional cascade, point-face, and spot slots consume Plan 04 shadow-view visibility, and directional cascades use camera-frustum slice bounds. Source coverage now preserves shadow-only casters at mesh-draw visibility mapping, while the remaining CSM-adjacent risk is any real-scene caster expansion or receiver-slice issue found by broader scenes.
+- Pass/executor naming has converged to `shadow-atlas`/`shadow.atlas`; the graph/resource hard cut is complete. Source contracts now cover multi-spot coexistence and CSM slot generation, and real-capture coverage now includes directional and multi-spot receiver darkening, mixed directional+spot wider receiver darkening, CSM subtexel stability, Forward+/Deferred directional shadow parity, PCF quality edge differences, and plugin contact-shadow darkening across single and wider multi-region scenes. Validation still needs RenderDoc evidence and root wider sweeps.
 
 ## Validation State
 
@@ -312,7 +342,19 @@ The 2026-06-14 caster/receiver source-guard slice added `mesh_visibility_states_
 
 The 2026-06-14 product shadow contract slice added `render_product_csm_directional` and `render_product_multi_spot_shadows`, proving the product test suite now has source coverage for directional CSM four-slot generation and at least three simultaneous spot shadow atlas slots without overlap. Validation passed `cargo fmt --all`, `cargo fmt --all -- --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-product-shadow-contracts-coremin --message-format short --color never` with existing warnings. A focused `cargo test --no-run` attempt for `render_product_multi_spot_shadows` timed out after 904 seconds during shared lib-test compilation, so no filtered test result is claimed.
 
+The 2026-06-21 directional shadow-atlas capture slice added `render_product_directional_shadow_atlas_capture_records_receiver_path` and `render_product_directional_shadow_atlas_darkens_receiver_capture`. The first test renders a real WGPU Forward+ receiver/caster product frame and asserts `shadow.atlas` executor execution, atlas write count, receiver availability, non-zero caster draw count, and non-zero receiver luma in the captured frame. The second submits same-color receiver scenes with receive-shadows enabled and disabled, then proves the enabled receiver sample is visibly darker. Debugging showed slot projection and raw atlas depth were valid, so the sampler contract was corrected to `SHADOW_ATLAS_COMPARE_FUNCTION == GreaterEqual` and locked by `render_shadow_atlas_compare_function_matches_forward_depth_contract`. Validation passed `cargo test -p zircon_runtime --lib render_shadow_atlas_compare_function_matches_forward_depth_contract --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --quiet -- --test-threads=1 --nocapture`, direct exact reruns of both product tests from the latest warmed binary, and scoped `rustfmt --edition 2021 --check` for `shadow/atlas/resources.rs`, `render_product_shadow_captures.rs`, and `tests/mod.rs`.
+
+The 2026-06-21 multi-spot shadow-atlas guard slice added `render_product_multi_spot_shadow_atlas_darkens_receivers_capture` and `RenderShadowExecutionReport.shadowed_light_count`. The product scene registers three spot lights, three caster meshes, and one receiver, then compares receive-shadows on/off captures by counting darkened pixels and luma/RGB deltas. Submit stats now count atlas-supported shadow-casting directional/point/spot lights instead of reusing directional ready count for the shadow report. Validation passed scoped `rustfmt` and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never`. A fresh `cargo rustc -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never -- --cfg test --emit=metadata` attempt returned -1; the captured log had no Rust error, but it also had no `Finished` line, so it is not counted as passing. The support follow-up synced four direct `RenderMeshSnapshot` fixtures in `virtual_geometry_debug_snapshot_contract.rs` with `stable_instance_key`, `transform_revision`, `mesh_lod`, and `static_state`, after which `cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never` passed with existing warnings. A longer lib-test `--no-run` window then passed in 18m11s and produced `zircon_runtime-c339c28ec98a5de7.exe`; direct binary execution of `render_product_multi_spot_shadow_atlas_darkens_receivers_capture --nocapture --test-threads=1` passed 1/1 in 8.60s.
+
+The 2026-06-22 mixed shadow-atlas wider guard slice added `render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture` in `render_product_shadow_wide.rs`. The guard keeps `render_product_shadow_captures.rs` from growing further, submits a real Forward+ frame with one directional and three spot shadow-casting lights, and compares receive-shadows on/off captures across the whole frame plus left/center/right receiver regions. It also asserts `shadow.atlas`, `lighting.light-grid`, directional/spot readiness, `RenderShadowExecutionReport.shadowed_light_count == 4`, receiver availability, and caster draw count. Validation passed `cargo test -p zircon_runtime --lib render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture --locked --jobs 1 --target-dir target\codex-shadow-wide-0622 --message-format short --color never -- --test-threads=1 --nocapture` with 1/1 in 5.21s after a 28m46s first default-feature lib-test build and the existing warning set.
+
+The 2026-06-21 CSM subtexel stability slice added `render_product_csm_directional_remains_stable_under_subtexel_camera_shift`. It renders the same directional receiver/caster product scene in baseline and x=0.006 shifted camera positions, captures shadowed and unshadowed variants for each camera, then compares darkened-pixel count and luma delta between the two camera positions after the matching unshadowed baseline cancels ordinary projection movement. Validation passed `cargo test -p zircon_runtime --lib render_product_csm_directional_remains_stable_under_subtexel_camera_shift --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never -- --test-threads=1 --nocapture` with 1/1 in 3.50s after a 6m34s compile/run window and the existing warning set.
+
+The 2026-06-21 forward/deferred shadow parity slice added `render_product_directional_shadow_atlas_forward_deferred_darkening_parity`. The guard renders the same directional receiver/caster scene through Forward+ and Deferred pipelines, compares shadowed/unshadowed capture deltas, and requires the expected `mesh.opaque` versus `lighting.deferred` executor paths. Its first red run showed Deferred had `pixels=0` / `sum=0.00` darkening because Deferred material alpha carried only the shading-model id and lost the receiver `receive_shadows` policy. `deferred_geometry.wgsl` now encodes low 7 bits as shading model plus high bit as receive-shadow flag, while `deferred_lighting.wgsl` decodes that flag before calling `zr_gpu_light_shadow_visibility(...)`. Validation passed the exact parity filter 1/1, `deferred_geometry_shader` 7/7, `deferred_lighting_shader` 6/6, and `deferred_material_gbuffer_shaders_encode_and_decode_material_channels` 1/1 in `target\codex-runtime-shadow-spot-0621` with the existing warning set.
+
 The 2026-06-14 LS-M4 PCF quality source-contract slice added `ShadowPcfQuality`, encoded per-light PCF quality into `GpuShadowSlot.params.w` flags, and switched `zr_shadow.wgsl` from a fixed 3x3 PCF kernel to slot-selected 1/5/9 tap kernels. Validation passed `cargo fmt --all -- --check`, scoped `git diff --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never` with existing warnings. `cargo test -p zircon_runtime --lib pcf_quality --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never --no-run` timed out after 904 seconds while compiling/linking the shared lib-test target; no filtered test result is claimed. The target-dir cargo/rustc leftovers were stopped, and a source-contract scan confirmed the key enum, flag, frame-plan, WGSL, and shader-source symbols are present.
+
+The 2026-06-21 LS-M4 PCF quality capture slice added `render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture`. The guard submits Low, High, and unshadowed baseline frames for a spot receiver/caster edge scene, then requires receiver darkening in both PCF modes and an RGB capture delta between Low and High. The initial directional scene produced identical captures; a temporary diagnostic proved High quality reached `zr_shadow.wgsl`, so the accepted path uses the spot edge scene plus an 8-texel High kernel radius. Validation passed the exact PCF Cargo filter 1/1 and the `shadow_atlas_resources` source-contract filter 3/3 in `target\codex-runtime-shadow-spot-0621` with the existing warning set.
 
 The 2026-06-14 LS-M4 contact shadow descriptor slice added the
 `rendering.contact_shadow` optional plugin feature, its runtime/editor crates,
@@ -345,3 +387,31 @@ source-contract scan, and a 4-call-site SSR fallback scan passed. Locked Cargo
 validation was retried for root runtime and the contact-shadow plugin package,
 but both commands stopped before compilation because the corresponding lock files
 need refresh under `--locked`; no lock file was modified in this slice.
+
+The 2026-06-21 LS-M4 contact shadow product-capture slice added
+`contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region`. The
+guard submits matching Forward+ receiver/blocker frames with and without
+`rendering.contact_shadow`, checks the effective feature list, `contact-shadow`
+pass, `lighting.contact-shadow` executor id, compute dispatch/workload, and zero
+graph coverage gaps, then compares final captures for measurable contact-region
+darkening. The plugin executor now resolves its pass-declared depth, normal, HZB,
+and output texture views through `RenderPassGpuExecutionContext::require_texture_view(...)`,
+so plugin WGPU resource access stays behind the renderer-owned resolver boundary.
+Validation passed the exact contact-shadow Cargo filter 1/1 and the full
+`zircon_plugin_rendering_contact_shadow_runtime --lib` suite 7/7 under
+`--locked` in `..\target\codex-plugin-contact-shadow-0621`; `zircon_plugins/Cargo.lock`
+was synchronized for the plugin workspace.
+
+The 2026-06-22 wider contact-shadow product guard slice added
+`contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions`
+in `wgpu_product_tests.rs`. The guard keeps the change in the existing
+contact-shadow product-test owner(531 lines, under the structure-convention split
+threshold), submits plugin-enabled/baseline Forward+ frames for a 192x128 wide
+receiver with three blocker groups, requires whole-frame plus left/center/right
+contact-window darkening, and checks an open receiver window to prevent accepting
+a blanket color delta. It also keeps the feature/pass/executor/dispatch/coverage
+assertions. Validation passed exact filter 1/1 and full runtime lib 8/8 using
+`..\target\codex-plugin-contact-shadow-0621`; existing warnings only. The slice
+was checked against `engine-code-structure-convention.md` and
+`engine-code-review-findings-2026-06.md` and adds no production String-error,
+dead-code, FFI, or builder/API debt.

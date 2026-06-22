@@ -55,7 +55,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
   - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/floating_window_projection.rs
@@ -105,7 +105,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/tab_drag.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/support.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
@@ -186,7 +190,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
   - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/floating_window_projection.rs
@@ -297,7 +301,9 @@ tests:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
   - zircon_editor/tests/workbench_autolayout.rs
   - zircon_editor/tests/workbench_drag_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
@@ -444,7 +450,7 @@ doc_type: module-detail
   - [`host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/host_lifecycle.rs) 的 root recompute 现在会把 `template_bridge.root_shell_frames()` 接进 `apply_presentation(...)`；child native window presenter 路径则显式传 `None`，因此 secondary native window 仍继续走 `WorkbenchShellGeometry + configure_native_floating_window_presentation(...)` 的现有边界
 - root real-host viewport sizing 也不再和 presentation 分裂：[`host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/host_lifecycle.rs) 现在会复用同一份 resolved viewport frame 更新 `viewport_size` 与 `SharedViewportPointerBridge`，让 WGPU viewport 尺寸、shared pointer bounds 和 root shell presentation 看到的是同一份 shared/template-backed frame
 - 同一条 authority 这轮又继续推进到 root document 的 viewport toolbar 自身：[`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/viewport.rs) 现在会在 `ViewHost::Document` 上优先用 `resolve_root_viewport_content_frame(..., Some(&root_shell_frames), true)` 的宽度重算 [`BuiltinViewportToolbarTemplateBridge`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs)，不再让 stale `region_frame(Document).width` 把右侧 toolbar control group 缩回旧几何
-  - [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 新增 `root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry`；这条 real-host regression 直接证明，即使 legacy document geometry 被压窄，只要 drawer region 已折叠、shared root projection 仍然给出正确 pane width，toolbar 的 projection-backed hit-test 也必须继续命中并派发 `AlignView`
+  - [`app/tests/projection_geometry.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs) 新增 `root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry`；这条 real-host regression 直接证明，即使 legacy document geometry 被压窄，只要 drawer region 已折叠、shared root projection 仍然给出正确 pane width，toolbar 的 projection-backed hit-test 也必须继续命中并派发 `AlignView`
 - root main `document tab` pointer surface 现在也开始跟这条 shared root-frame seam 对齐：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在把 `DocumentTabsRoot` 一起纳入 builtin root-shell frame bundle
   - [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 和 [`build_workbench_document_tab_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs) 现在遵循与 `document_region_frame` / `viewport_content_frame` 相同的 mixed-authority 规则：drawer 折叠时优先 shared projection，drawer 可见时回退 legacy geometry
@@ -452,14 +458,14 @@ doc_type: module-detail
 - root main `activity rail` pointer surface 现在也开始跟这条 shared root-frame seam 对齐：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在把 `ActivityRailRoot` 一起纳入 builtin root-shell frame bundle
   - [`resolve_root_activity_rail_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs)、[`build_workbench_activity_rail_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs) 和 [`pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pointer_layout.rs) 现在让 root 左侧 rail 遵循与 `document tab` 相同的 mixed-authority 规则：drawer 可见时继续服从 legacy left-region geometry，drawer 全折叠时优先 shared `ActivityRailRoot`
-  - [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 的 `root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale` 与 [`layout_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_activity_rail_pointer/layout_projection.rs) 的 root-frame regression 共同锁住这条 seam：即使 legacy `ShellRegionId::Left` 被压成 `0x0`，root host 仍然必须继续用 shared `ActivityRailRoot` 命中左侧 rail toggle
+  - [`app/tests/projection_geometry.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs) 的 `root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale` 与 [`layout_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_activity_rail_pointer/layout_projection.rs) 的 root-frame regression 共同锁住这条 seam：即使 legacy `ShellRegionId::Left` 被压成 `0x0`，root host 仍然必须继续用 shared `ActivityRailRoot` 命中左侧 rail toggle
 - root `host page` strip 这轮也不再继续靠 `TAB_MIN_WIDTH` 估出来的 legacy metric 根框撑住命中链：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在额外导出 `WorkbenchShellRoot`，让 builtin root-frame bundle 终于覆盖整张 root shell，而不只是一组局部子控件
   - [`build_workbench_host_page_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/host_page_pointer/build_workbench_host_page_pointer_layout.rs) 和 [`pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pointer_layout.rs) 现在会在 root host path 上优先吃 shared shell width，再叠加既有 `top_bar_height/host_bar_height` 契约；这修掉了“实际 tab 很宽或落在 strip 右侧时，shared `UiSurface` 根框仍然只有 min-tab 估宽”的 mixed-authority seam
-- [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 的 `root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metric_strip_estimate` 已经 focused green，直接证明 far-right host-page tab 点击现在继续命中 shared route；[`layout_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_host_page_pointer/layout_projection.rs) 与 [`template_bridge/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs) 则把 `WorkbenchShellRoot` frame 导出和 builder 宽度契约一起锁住
+- [`app/tests/projection_geometry.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs) 的 `root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metric_strip_estimate` 已经 focused green，直接证明 far-right host-page tab 点击现在继续命中 shared route；[`layout_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_host_page_pointer/layout_projection.rs) 与 [`template_bridge/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs) 则把 `WorkbenchShellRoot` frame 导出和 builder 宽度契约一起锁住
   - Historical pre-fence reruns of `cargo test -p zircon_editor --lib shared_host_page_pointer_layout_prefers_shared_shell_width_over_metric_strip_estimate --locked` / `builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell_size --locked` could be blocked by old Slint build-script drift; current validation targets `.ui.toml` and Rust-owned `host_contract` seams instead of deleted Slint copies
-- [`ui/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/tests.rs) 新增两条 root presentation regression：`drawers collapsed -> root presentation consumes shared projection frame`，以及 `drawers visible -> document region keeps geometry while center/status already consume shared projection`
-- [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 现在又补了一条 real-host alignment regression：`root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed`
+- [`ui/tests/workbench_layout_frames.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs) 现在承接 root presentation frame regression：`apply_presentation_uses_workbench_layout_frames_for_document_and_viewport` 锁住 collapsed/root frame 投影，`apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_positions` / `..._extents` 锁住 visible drawer 下 document/viewport frame 权威
+- [`app/tests/viewport_template_bridge.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/viewport_template_bridge.rs) 现在又补了一条 real-host alignment regression：`root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed`
 - 这条 regression 在生产改动前给出的真实 red 不是抽象语义，而是具体的 frame 漂移：`host.viewport_size = 1600x876`，但 root shell 的 `viewport_content_frame = 1544x884`
 - 这一步当前已经有直接 focused green 证据，而不只是 compile green：`apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collapsed`、`apply_presentation_keeps_geometry_document_region_when_drawers_are_visible`、`builtin_workbench_template_bridge_recomputes_surface_backed_frames_with_shell_size`、`root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers_are_collapsed` 与 `cargo check -p zircon_editor --lib --locked` 都已通过
 - The 2026-05-27 M5 editor gate tightened the same root-shell path for visible bottom drawers: [`compact_bottom_height_limit(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs) now rounds its compact bottom height to a layout pixel before shared template/root projection consumes it. This prevents fractional `489.72`/`491.26` shell values from disagreeing with the integer pixel frames used by `workbench_drawer_source`, root presentation, and native host assertions. Focused regressions passed for `builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames_from_workbench_model`, `root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_header_frames`, and `builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model`.
@@ -792,7 +798,7 @@ Scene viewport toolbar 现在也不再属于 “host 自己按 callback id 猜�
 - 新增 focused regressions 已经把这条收口锁住：
   - [`retained_menu_pointer/layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_menu_pointer/layout.rs): `shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale_legacy_frames`
   - [`retained_menu_pointer/surface_contract.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs): `shared_menu_popup_presentation_drops_host_menu_button_frame_setters`
-  - [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs): `root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real_host`
+  - [`app/tests/menu_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/menu_pointer.rs): `root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real_host`
 
 因此 menu/popup 不再只是“命中在 shared core，action 仍由宿主本地猜”的半迁移状态。现在静态 menu button 和动态 preset popup item 都会先经过 shared pointer route，再进入 runtime dispatcher。
 
@@ -877,7 +883,7 @@ shared pointer authority 这一轮又补了一条真实宿主兜底：当 host c
 - [`callback_dispatch::PANE_SURFACE_CONTROL_ID`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/constants.rs) 固定指向 `PaneSurfaceRoot`，让真实宿主可以从 shared template projection 取到当前 pane surface 的 canonical frame
 - [`pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pointer_layout.rs) 的 welcome recent retained pointer sync 现在会在本地 `welcome_recent_pointer_size` 仍然无效时，回退到 `PaneSurfaceRoot` 的 shared frame；只有两边都拿不到有效尺寸时才跳过布局同步
 - 这条 fallback 会把 shared projection 解出的宽高写回宿主 `welcome_recent_pointer_size`，因此后续 hover/scroll/click 继续复用同一份 retained pointer state，而不是把 zero-size callback 当成永久 no-op
-- [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 的 `root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host` 现在直接锁住这条真实宿主回归；[`template_bridge/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs) 也同步锁住 `control_frame("PaneSurfaceRoot")`
+- [`app/tests/root_pointer_fallbacks.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/root_pointer_fallbacks.rs) 的 `root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host` 现在直接锁住这条真实宿主回归；[`template_bridge/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs) 也同步锁住 `control_frame("PaneSurfaceRoot")`
 
 这一步的意义不只在 welcome recent：它先把“真实宿主 callback 几何可能暂时缺席，但 shared template/layout 已经有权威 frame”这条边界钉死。后续 hierarchy、detail scroll 和更多 pane-local shared pointer surface 都应该沿这条 seam 扩展，而不是继续把 host callback 宽高当成唯一尺寸真源。
 
@@ -1168,7 +1174,7 @@ editor shell 的 dock target route 和 splitter route 现在不再各自维护�
   - `height` 由 shared body height 扣掉 visible bottom drawer height 与垂直 separator 计算
 - [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 在 visible drawer 下也开始复用同一份 resolved document frame，因此 root document tab pointer strip 不会继续回退到 stale document geometry `x/y/width`
 - [`resolve_root_viewport_content_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 现在也会在 visible drawer 下从 resolved document frame 推导 viewport content，而不是继续信任 legacy viewport geometry
-- [`apply_presentation_prefers_shared_root_projection_for_visible_drawer_document_region`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/tests.rs) 现在同时锁住 document shell 和 viewport frame：即使 legacy document / viewport frame 故意给出错误 `x/y/width/height`，root shell presentation 仍然必须服从 shared root/body + visible drawer extents 的组合结果
+- [`apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_positions`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs) 与 `apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_extents` 现在同时锁住 document shell 和 viewport frame：即使 legacy document / viewport frame 故意给出错误 `x/y/width/height`，root shell presentation 仍然必须服从 shared root/body + visible drawer extents 的组合结果
 
 这一步之后，visible drawer 相关 root-shell seam 里仍刻意保留的只剩：
 

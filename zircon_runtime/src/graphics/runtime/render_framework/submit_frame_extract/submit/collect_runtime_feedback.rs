@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
-    RenderVirtualGeometryReadbackOutputs,
+    RenderPreparedRuntimeSidebands, RenderVirtualGeometryReadbackOutputs,
 };
 use crate::graphics::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, ParticleGpuFeedback, ParticleRuntimeFeedback,
@@ -8,44 +8,44 @@ use crate::graphics::{
 };
 
 use super::super::frame_submission_context::FrameSubmissionContext;
-use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::runtime_feedback_batch::RuntimeFeedbackBatch;
 
 pub(super) fn collect_runtime_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    sidebands: &mut RenderPreparedRuntimeSidebands,
 ) -> RuntimeFeedbackBatch {
     RuntimeFeedbackBatch::new(
-        collect_hybrid_gi_feedback(renderer, context, prepared),
-        collect_particle_feedback(renderer, prepared),
-        collect_virtual_geometry_feedback(renderer, context, prepared),
+        collect_hybrid_gi_feedback(renderer, context, sidebands),
+        collect_particle_feedback(renderer, sidebands),
+        collect_virtual_geometry_feedback(renderer, context, sidebands),
     )
 }
 
 fn collect_hybrid_gi_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    sidebands: &mut RenderPreparedRuntimeSidebands,
 ) -> HybridGiRuntimeFeedback {
     let readback_outputs = merge_hybrid_gi_readback_outputs(
         renderer.take_last_hybrid_gi_readback_outputs(),
-        prepared.hybrid_gi_readback_outputs(),
+        sidebands.take_hybrid_gi_readback_outputs(),
     );
 
     HybridGiRuntimeFeedback::new(
         HybridGiGpuCompletion::from_readback_outputs(readback_outputs),
         context.hybrid_gi_feedback().cloned(),
     )
+    .with_evictable_probe_ids(sidebands.take_hybrid_gi_evictable_probe_ids())
 }
 
 fn collect_particle_feedback(
     renderer: &mut SceneRenderer,
-    prepared: &PreparedRuntimeSubmission,
+    sidebands: &mut RenderPreparedRuntimeSidebands,
 ) -> ParticleRuntimeFeedback {
     let readback_outputs = merge_particle_readback_outputs(
         renderer.take_last_particle_gpu_readback_outputs(),
-        prepared.particle_readback_outputs(),
+        sidebands.take_particle_readback_outputs(),
     );
     let gpu_feedback =
         (!readback_outputs.is_empty()).then(|| ParticleGpuFeedback::new(readback_outputs));
@@ -56,11 +56,11 @@ fn collect_particle_feedback(
 fn collect_virtual_geometry_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    sidebands: &mut RenderPreparedRuntimeSidebands,
 ) -> VirtualGeometryRuntimeFeedback {
     let mut readback_outputs = merge_virtual_geometry_readback_outputs(
         renderer.take_last_virtual_geometry_readback_outputs(),
-        prepared.virtual_geometry_readback_outputs(),
+        sidebands.take_virtual_geometry_readback_outputs(),
     );
     let node_and_cluster_cull_page_requests =
         readback_outputs.take_node_and_cluster_cull_page_request_ids();
@@ -71,183 +71,176 @@ fn collect_virtual_geometry_feedback(
         context.virtual_geometry_feedback().cloned(),
         context.predicted_generation(),
     )
+    .with_evictable_page_ids(sidebands.take_virtual_geometry_evictable_page_ids())
 }
 
 fn merge_hybrid_gi_readback_outputs(
     mut renderer_outputs: RenderHybridGiReadbackOutputs,
-    sideband_outputs: &RenderHybridGiReadbackOutputs,
+    sideband_outputs: RenderHybridGiReadbackOutputs,
 ) -> RenderHybridGiReadbackOutputs {
     if renderer_outputs.is_empty() {
-        return sideband_outputs.clone();
+        return sideband_outputs;
     }
     if sideband_outputs.is_empty() {
         return renderer_outputs;
     }
 
-    renderer_outputs
-        .cache_entries
-        .extend(sideband_outputs.cache_entries.iter().cloned());
+    let RenderHybridGiReadbackOutputs {
+        cache_entries,
+        completed_probe_ids,
+        completed_trace_region_ids,
+        probe_irradiance_rgb,
+        probe_rt_lighting_rgb,
+        scene_prepare,
+    } = sideband_outputs;
+    renderer_outputs.cache_entries.extend(cache_entries);
     renderer_outputs
         .completed_probe_ids
-        .extend(sideband_outputs.completed_probe_ids.iter().copied());
+        .extend(completed_probe_ids);
     renderer_outputs
         .completed_trace_region_ids
-        .extend(sideband_outputs.completed_trace_region_ids.iter().copied());
+        .extend(completed_trace_region_ids);
     renderer_outputs
         .probe_irradiance_rgb
-        .extend(sideband_outputs.probe_irradiance_rgb.iter().copied());
+        .extend(probe_irradiance_rgb);
     renderer_outputs
         .probe_rt_lighting_rgb
-        .extend(sideband_outputs.probe_rt_lighting_rgb.iter().copied());
+        .extend(probe_rt_lighting_rgb);
     if renderer_outputs
         .scene_prepare
         .has_runtime_feedback_payload()
     {
-        append_hybrid_gi_scene_prepare_readback(
-            &mut renderer_outputs.scene_prepare,
-            &sideband_outputs.scene_prepare,
-        );
+        append_hybrid_gi_scene_prepare_readback(&mut renderer_outputs.scene_prepare, scene_prepare);
     } else {
-        renderer_outputs.scene_prepare = sideband_outputs.scene_prepare.clone();
+        renderer_outputs.scene_prepare = scene_prepare;
     }
     renderer_outputs
 }
 
 fn append_hybrid_gi_scene_prepare_readback(
     renderer_outputs: &mut crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
-    sideband_outputs: &crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
+    sideband_outputs: crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
 ) {
+    let crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs {
+        occupied_atlas_slots,
+        occupied_capture_slots,
+        atlas_samples,
+        capture_samples,
+        voxel_clipmap_ids,
+        voxel_samples,
+        voxel_occupancy,
+        voxel_occupancy_masks,
+        voxel_cells,
+        voxel_cell_samples,
+        voxel_cell_dominant_nodes,
+        voxel_cell_dominant_samples,
+        texture_width,
+        texture_height,
+        texture_layers,
+    } = sideband_outputs;
+
     renderer_outputs
         .occupied_atlas_slots
-        .extend(sideband_outputs.occupied_atlas_slots.iter().copied());
+        .extend(occupied_atlas_slots);
     renderer_outputs
         .occupied_capture_slots
-        .extend(sideband_outputs.occupied_capture_slots.iter().copied());
-    renderer_outputs
-        .atlas_samples
-        .extend(sideband_outputs.atlas_samples.iter().cloned());
-    renderer_outputs
-        .capture_samples
-        .extend(sideband_outputs.capture_samples.iter().cloned());
-    renderer_outputs
-        .voxel_clipmap_ids
-        .extend(sideband_outputs.voxel_clipmap_ids.iter().copied());
-    renderer_outputs
-        .voxel_samples
-        .extend(sideband_outputs.voxel_samples.iter().cloned());
-    renderer_outputs
-        .voxel_occupancy
-        .extend(sideband_outputs.voxel_occupancy.iter().copied());
+        .extend(occupied_capture_slots);
+    renderer_outputs.atlas_samples.extend(atlas_samples);
+    renderer_outputs.capture_samples.extend(capture_samples);
+    renderer_outputs.voxel_clipmap_ids.extend(voxel_clipmap_ids);
+    renderer_outputs.voxel_samples.extend(voxel_samples);
+    renderer_outputs.voxel_occupancy.extend(voxel_occupancy);
     renderer_outputs
         .voxel_occupancy_masks
-        .extend(sideband_outputs.voxel_occupancy_masks.iter().cloned());
-    renderer_outputs
-        .voxel_cells
-        .extend(sideband_outputs.voxel_cells.iter().cloned());
+        .extend(voxel_occupancy_masks);
+    renderer_outputs.voxel_cells.extend(voxel_cells);
     renderer_outputs
         .voxel_cell_samples
-        .extend(sideband_outputs.voxel_cell_samples.iter().cloned());
+        .extend(voxel_cell_samples);
     renderer_outputs
         .voxel_cell_dominant_nodes
-        .extend(sideband_outputs.voxel_cell_dominant_nodes.iter().cloned());
+        .extend(voxel_cell_dominant_nodes);
     renderer_outputs
         .voxel_cell_dominant_samples
-        .extend(sideband_outputs.voxel_cell_dominant_samples.iter().cloned());
-    renderer_outputs.texture_width = renderer_outputs
-        .texture_width
-        .max(sideband_outputs.texture_width);
-    renderer_outputs.texture_height = renderer_outputs
-        .texture_height
-        .max(sideband_outputs.texture_height);
-    renderer_outputs.texture_layers = renderer_outputs
-        .texture_layers
-        .max(sideband_outputs.texture_layers);
+        .extend(voxel_cell_dominant_samples);
+    renderer_outputs.texture_width = renderer_outputs.texture_width.max(texture_width);
+    renderer_outputs.texture_height = renderer_outputs.texture_height.max(texture_height);
+    renderer_outputs.texture_layers = renderer_outputs.texture_layers.max(texture_layers);
 }
 
 fn merge_particle_readback_outputs(
     renderer_outputs: RenderParticleGpuReadbackOutputs,
-    sideband_outputs: &RenderParticleGpuReadbackOutputs,
+    sideband_outputs: RenderParticleGpuReadbackOutputs,
 ) -> RenderParticleGpuReadbackOutputs {
     if !renderer_outputs.is_empty() {
         return renderer_outputs;
     }
 
-    sideband_outputs.clone()
+    sideband_outputs
 }
 
 fn merge_virtual_geometry_readback_outputs(
     mut renderer_outputs: RenderVirtualGeometryReadbackOutputs,
-    sideband_outputs: &RenderVirtualGeometryReadbackOutputs,
+    sideband_outputs: RenderVirtualGeometryReadbackOutputs,
 ) -> RenderVirtualGeometryReadbackOutputs {
     if renderer_outputs.is_empty() {
-        return sideband_outputs.clone();
+        return sideband_outputs;
     }
     if sideband_outputs.is_empty() {
         return renderer_outputs;
     }
 
+    let RenderVirtualGeometryReadbackOutputs {
+        page_table_entries,
+        completed_page_assignments,
+        page_replacements,
+        selected_clusters,
+        visbuffer64_entries,
+        hardware_rasterization_records,
+        node_cluster_cull,
+    } = sideband_outputs;
+    let crate::core::framework::render::RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+        traversal_records,
+        child_work_items,
+        cluster_work_items,
+        launch_worklist_snapshots,
+        page_request_ids,
+    } = node_cluster_cull;
+
     renderer_outputs
         .page_table_entries
-        .extend(sideband_outputs.page_table_entries.iter().copied());
+        .extend(page_table_entries);
     renderer_outputs
         .completed_page_assignments
-        .extend(sideband_outputs.completed_page_assignments.iter().cloned());
-    renderer_outputs
-        .page_replacements
-        .extend(sideband_outputs.page_replacements.iter().cloned());
-    renderer_outputs
-        .selected_clusters
-        .extend(sideband_outputs.selected_clusters.iter().cloned());
+        .extend(completed_page_assignments);
+    renderer_outputs.page_replacements.extend(page_replacements);
+    renderer_outputs.selected_clusters.extend(selected_clusters);
     renderer_outputs
         .visbuffer64_entries
-        .extend(sideband_outputs.visbuffer64_entries.iter().cloned());
-    renderer_outputs.hardware_rasterization_records.extend(
-        sideband_outputs
-            .hardware_rasterization_records
-            .iter()
-            .cloned(),
-    );
-    renderer_outputs.node_cluster_cull.traversal_records.extend(
-        sideband_outputs
-            .node_cluster_cull
-            .traversal_records
-            .iter()
-            .cloned(),
-    );
-    renderer_outputs.node_cluster_cull.child_work_items.extend(
-        sideband_outputs
-            .node_cluster_cull
-            .child_work_items
-            .iter()
-            .cloned(),
-    );
+        .extend(visbuffer64_entries);
+    renderer_outputs
+        .hardware_rasterization_records
+        .extend(hardware_rasterization_records);
+    renderer_outputs
+        .node_cluster_cull
+        .traversal_records
+        .extend(traversal_records);
+    renderer_outputs
+        .node_cluster_cull
+        .child_work_items
+        .extend(child_work_items);
     renderer_outputs
         .node_cluster_cull
         .cluster_work_items
-        .extend(
-            sideband_outputs
-                .node_cluster_cull
-                .cluster_work_items
-                .iter()
-                .cloned(),
-        );
+        .extend(cluster_work_items);
     renderer_outputs
         .node_cluster_cull
         .launch_worklist_snapshots
-        .extend(
-            sideband_outputs
-                .node_cluster_cull
-                .launch_worklist_snapshots
-                .iter()
-                .cloned(),
-        );
-    renderer_outputs.node_cluster_cull.page_request_ids.extend(
-        sideband_outputs
-            .node_cluster_cull
-            .page_request_ids
-            .iter()
-            .copied(),
-    );
+        .extend(launch_worklist_snapshots);
+    renderer_outputs
+        .node_cluster_cull
+        .page_request_ids
+        .extend(page_request_ids);
     renderer_outputs
 }
 
@@ -279,7 +272,7 @@ mod tests {
                 },
                 ..RenderHybridGiReadbackOutputs::default()
             },
-            &RenderHybridGiReadbackOutputs {
+            RenderHybridGiReadbackOutputs {
                 completed_probe_ids: vec![11],
                 scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
                     voxel_samples: vec![RenderHybridGiScenePrepareSample {
@@ -309,7 +302,7 @@ mod tests {
                 }],
                 ..RenderVirtualGeometryReadbackOutputs::default()
             },
-            &RenderVirtualGeometryReadbackOutputs {
+            RenderVirtualGeometryReadbackOutputs {
                 node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
                     page_request_ids: vec![300, 301],
                     ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
@@ -340,11 +333,14 @@ mod tests {
         };
 
         assert_eq!(
-            merge_particle_readback_outputs(RenderParticleGpuReadbackOutputs::default(), &sideband),
+            merge_particle_readback_outputs(
+                RenderParticleGpuReadbackOutputs::default(),
+                sideband.clone()
+            ),
             sideband
         );
         assert_eq!(
-            merge_particle_readback_outputs(renderer.clone(), &sideband),
+            merge_particle_readback_outputs(renderer.clone(), sideband),
             renderer
         );
     }

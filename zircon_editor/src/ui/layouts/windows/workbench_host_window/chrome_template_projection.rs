@@ -13,12 +13,14 @@ use super::{
     HostWindowSurfaceMetricsData, TabData,
 };
 
+mod activity_rail;
+mod dock_header;
+mod status_bar;
+
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
 #[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.v2.ui.toml";
 const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.v2.ui.toml";
-#[allow(dead_code)]
-const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.v2.ui.toml";
 const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.v2.ui.toml";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.v2.ui.toml";
 
@@ -522,179 +524,18 @@ pub(super) fn activity_rail_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_activity_rail_nodes(tabs, shell_preset_id, width, height);
-    }
-
-    model_rc(expand_activity_rail_button_nodes(
-        raw_template_nodes(
-            "host.activity.rail",
-            ACTIVITY_RAIL_ASSET,
-            width,
-            height,
-            &BTreeMap::new(),
-        ),
-        tabs,
-        shell_preset_id,
-    ))
+    activity_rail::activity_rail_nodes(tabs, shell_preset_id, width, height)
 }
 
 pub(super) fn activity_rail_button_frames(
     nodes: &ModelRc<ViewTemplateNodeData>,
     tabs: &ModelRc<TabData>,
 ) -> ModelRc<HostChromeControlFrameData> {
-    control_frames(nodes, ACTIVITY_RAIL_BUTTON_PREFIX, tabs.row_count())
+    activity_rail::activity_rail_button_frames(nodes, tabs)
 }
 
 pub(super) fn activity_rail_active_control_id(tabs: &ModelRc<TabData>) -> SharedString {
-    (0..tabs.row_count())
-        .find(|row| tabs.row_data(*row).is_some_and(|tab| tab.active))
-        .map(|row| format!("{ACTIVITY_RAIL_BUTTON_PREFIX}{row}").into())
-        .unwrap_or_default()
-}
-
-fn expand_activity_rail_button_nodes(
-    raw_nodes: Vec<ViewTemplateNodeData>,
-    tabs: &ModelRc<TabData>,
-    shell_preset_id: &SharedString,
-) -> Vec<ViewTemplateNodeData> {
-    let mut output_nodes = Vec::new();
-    let mut button_templates = BTreeMap::new();
-    let mut icon_templates = BTreeMap::new();
-
-    for node in raw_nodes {
-        if let Some(row) = slot_index(node.control_id.as_str(), ACTIVITY_RAIL_BUTTON_ICON_PREFIX) {
-            icon_templates.insert(row, node);
-        } else if let Some(row) = slot_index(node.control_id.as_str(), ACTIVITY_RAIL_BUTTON_PREFIX)
-        {
-            button_templates.insert(row, node);
-        } else {
-            output_nodes.push(node);
-        }
-    }
-
-    let row_step = indexed_row_step(&button_templates, ACTIVITY_RAIL_ROW_STEP_FALLBACK_PX);
-    for item_index in 0..tabs.row_count() {
-        let Some(tab) = tabs.row_data(item_index) else {
-            continue;
-        };
-
-        if let Some(mut button_node) = indexed_slot_node(
-            &button_templates,
-            ACTIVITY_RAIL_BUTTON_PREFIX,
-            ACTIVITY_RAIL_STENCIL_COUNT,
-            item_index,
-            row_step,
-            None,
-        ) {
-            button_node.surface_variant = if tab.active { "inset" } else { "" }.into();
-            button_node.selected = tab.active;
-            button_node.focused = tab.active;
-            output_nodes.push(button_node);
-        }
-        if let Some(mut icon_node) = indexed_slot_node(
-            &icon_templates,
-            ACTIVITY_RAIL_BUTTON_ICON_PREFIX,
-            ACTIVITY_RAIL_STENCIL_COUNT,
-            item_index,
-            row_step,
-            None,
-        ) {
-            let icon_name = chrome_tab_icon_name(&tab);
-            icon_node.text = "".into();
-            apply_template_icon(&mut icon_node, &icon_name);
-            icon_node.selected = tab.active;
-            icon_node.focused = tab.active;
-            if tab.active {
-                icon_node.text_tone = "default".into();
-                icon_node.font_weight = 700;
-            } else if shell_preset_id.as_str() == "jetbrains_shell" {
-                icon_node.text_tone = "subtle".into();
-                icon_node.font_weight = 600;
-            } else {
-                icon_node.text_tone = "muted".into();
-                icon_node.font_weight = 600;
-            }
-            output_nodes.push(icon_node);
-        }
-    }
-
-    output_nodes
-}
-
-fn fallback_activity_rail_nodes(
-    tabs: &ModelRc<TabData>,
-    shell_preset_id: &SharedString,
-    width: f32,
-    height: f32,
-) -> ModelRc<ViewTemplateNodeData> {
-    let rail_width = width.max(RAIL_WIDTH_PX);
-    let mut nodes = Vec::with_capacity(tabs.row_count() * 2 + 1);
-    nodes.push(ViewTemplateNodeData {
-        node_id: "FallbackActivityRailPanel".into(),
-        control_id: "ActivityRailPanel".into(),
-        role: "Panel".into(),
-        surface_variant: "shell".into(),
-        frame: ViewTemplateFrameData {
-            x: 0.0,
-            y: 0.0,
-            width: rail_width,
-            height: height.max(1.0),
-        },
-        ..ViewTemplateNodeData::default()
-    });
-
-    let row_step = ACTIVITY_RAIL_ROW_STEP_FALLBACK_PX;
-    for row in 0..tabs.row_count() {
-        let Some(tab) = tabs.row_data(row) else {
-            continue;
-        };
-        let y = 4.0 + row as f32 * row_step;
-        let button_height = (row_step - 3.0).max(24.0);
-        nodes.push(ViewTemplateNodeData {
-            node_id: format!("FallbackActivityRailButton{row}").into(),
-            control_id: format!("{ACTIVITY_RAIL_BUTTON_PREFIX}{row}").into(),
-            role: "Button".into(),
-            surface_variant: if tab.active { "inset" } else { "" }.into(),
-            button_variant: "ghost".into(),
-            selected: tab.active,
-            focused: tab.active,
-            frame: ViewTemplateFrameData {
-                x: 3.0,
-                y,
-                width: (rail_width - 6.0).max(1.0),
-                height: button_height,
-            },
-            ..ViewTemplateNodeData::default()
-        });
-
-        let mut icon_node = ViewTemplateNodeData {
-            node_id: format!("FallbackActivityRailButtonIcon{row}").into(),
-            control_id: format!("{ACTIVITY_RAIL_BUTTON_ICON_PREFIX}{row}").into(),
-            role: "SvgIcon".into(),
-            text_tone: if tab.active {
-                "default".into()
-            } else if shell_preset_id.as_str() == "jetbrains_shell" {
-                "subtle".into()
-            } else {
-                "muted".into()
-            },
-            font_weight: if tab.active { 700 } else { 600 },
-            selected: tab.active,
-            focused: tab.active,
-            frame: ViewTemplateFrameData {
-                x: (rail_width - 18.0) * 0.5,
-                y: y + (button_height - 18.0) * 0.5,
-                width: 18.0,
-                height: 18.0,
-            },
-            ..ViewTemplateNodeData::default()
-        };
-        apply_template_icon(&mut icon_node, &chrome_tab_icon_name(&tab));
-        nodes.push(icon_node);
-    }
-
-    model_rc(nodes)
+    activity_rail::activity_rail_active_control_id(tabs)
 }
 
 fn chrome_tab_icon_name(tab: &TabData) -> String {
@@ -741,30 +582,30 @@ fn normalized_chrome_icon_key(value: &str) -> Option<String> {
 
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
-    _panel_preset_id: &SharedString,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, &"".into(), width, height)
+    dock_header::side_dock_header_nodes(tabs, panel_preset_id, width, height)
 }
 
 pub(super) fn document_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     subtitle: &SharedString,
-    _panel_preset_id: &SharedString,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, subtitle, width, height)
+    dock_header::document_dock_header_nodes(tabs, subtitle, panel_preset_id, width, height)
 }
 
 pub(super) fn bottom_dock_header_nodes(
     tabs: &ModelRc<TabData>,
-    _panel_preset_id: &SharedString,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, &"".into(), width, height)
+    dock_header::bottom_dock_header_nodes(tabs, panel_preset_id, width, height)
 }
 
 pub(super) fn floating_window_header_nodes(
@@ -773,22 +614,22 @@ pub(super) fn floating_window_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, title, width, height)
+    dock_header::floating_window_header_nodes(tabs, title, width, height)
 }
 
 pub(super) fn dock_header_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
-    control_frame(nodes, DOCK_HEADER_BAR_CONTROL_ID)
+    dock_header::dock_header_frame(nodes)
 }
 
 pub(super) fn dock_subtitle_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
-    control_frame(nodes, DOCK_SUBTITLE_CONTROL_ID)
+    dock_header::dock_subtitle_frame(nodes)
 }
 
 pub(super) fn dock_tab_frames(
     nodes: &ModelRc<ViewTemplateNodeData>,
     tabs: &ModelRc<TabData>,
 ) -> ModelRc<HostChromeTabData> {
-    tab_frames(nodes, DOCK_TAB_PREFIX, Some(DOCK_TAB_CLOSE_PREFIX), tabs)
+    dock_header::dock_tab_frames(nodes, tabs)
 }
 
 pub(super) fn status_bar_nodes(
@@ -799,145 +640,14 @@ pub(super) fn status_bar_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_status_bar_nodes(
-            status_primary,
-            status_secondary,
-            viewport_label,
-            skin_id,
-            width,
-            height,
-        );
-    }
-
-    let mut text_overrides = BTreeMap::new();
-    text_overrides.insert(
-        STATUS_PRIMARY_CONTROL_ID.to_string(),
-        status_primary.to_string(),
-    );
-    text_overrides.insert(
-        STATUS_SECONDARY_CONTROL_ID.to_string(),
-        status_secondary.to_string(),
-    );
-    text_overrides.insert(
-        STATUS_VIEWPORT_CONTROL_ID.to_string(),
-        viewport_label.to_string(),
-    );
-
-    let nodes = template_nodes(
-        "host.status.bar",
-        STATUS_BAR_ASSET,
+    status_bar::status_bar_nodes(
+        status_primary,
+        status_secondary,
+        viewport_label,
+        skin_id,
         width,
         height,
-        &text_overrides,
-        &[],
-    );
-    if skin_id.as_str() == "material_dark" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id == STATUS_PRIMARY_CONTROL_ID {
-                        node.text_tone = "default".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
-    }
-    nodes
-}
-
-fn fallback_status_bar_nodes(
-    status_primary: &SharedString,
-    status_secondary: &SharedString,
-    viewport_label: &SharedString,
-    skin_id: &SharedString,
-    width: f32,
-    height: f32,
-) -> ModelRc<ViewTemplateNodeData> {
-    let bar_height = height.max(20.0);
-    let mut nodes = Vec::with_capacity(4);
-    nodes.push(ViewTemplateNodeData {
-        node_id: "FallbackStatusBarPanel".into(),
-        control_id: STATUS_BAR_PANEL_CONTROL_ID.into(),
-        role: "Panel".into(),
-        surface_variant: "panel".into(),
-        frame: ViewTemplateFrameData {
-            x: 0.0,
-            y: 0.0,
-            width: width.max(1.0),
-            height: bar_height,
-        },
-        ..ViewTemplateNodeData::default()
-    });
-
-    let primary_width = (width * 0.48).clamp(120.0, 520.0);
-    let viewport_width = (width * 0.18).clamp(96.0, 220.0);
-    let secondary_width = (width - primary_width - viewport_width - 36.0).max(60.0);
-    let primary_tone: SharedString = if skin_id.as_str() == "material_dark" {
-        "default".into()
-    } else {
-        "subtle".into()
-    };
-    nodes.push(status_text_node(
-        "FallbackStatusPrimaryLabel",
-        STATUS_PRIMARY_CONTROL_ID,
-        status_primary,
-        primary_tone,
-        12.0,
-        2.0,
-        primary_width,
-        bar_height,
-    ));
-    nodes.push(status_text_node(
-        "FallbackStatusSecondaryLabel",
-        STATUS_SECONDARY_CONTROL_ID,
-        status_secondary,
-        "muted".into(),
-        primary_width + 12.0,
-        2.0,
-        secondary_width,
-        bar_height,
-    ));
-    nodes.push(status_text_node(
-        "FallbackStatusViewportLabel",
-        STATUS_VIEWPORT_CONTROL_ID,
-        viewport_label,
-        "muted".into(),
-        (width - viewport_width - 12.0).max(0.0),
-        2.0,
-        viewport_width,
-        bar_height,
-    ));
-    model_rc(nodes)
-}
-
-fn status_text_node(
-    node_id: &'static str,
-    control_id: &'static str,
-    text: &SharedString,
-    text_tone: SharedString,
-    x: f32,
-    y: f32,
-    width: f32,
-    bar_height: f32,
-) -> ViewTemplateNodeData {
-    ViewTemplateNodeData {
-        node_id: node_id.into(),
-        control_id: control_id.into(),
-        role: "Text".into(),
-        text: text.clone(),
-        text_tone,
-        font_size: 11.0,
-        frame: ViewTemplateFrameData {
-            x,
-            y,
-            width: width.max(0.0),
-            height: (bar_height - 4.0).max(12.0),
-        },
-        ..ViewTemplateNodeData::default()
-    }
+    )
 }
 
 fn tab_template_nodes(
@@ -1050,95 +760,7 @@ fn fallback_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let header_height = height.max(DOCK_HEADER_HEIGHT_PX);
-    let mut nodes = Vec::with_capacity(tabs.row_count() * 2 + 2);
-    nodes.push(ViewTemplateNodeData {
-        node_id: "FallbackDockHeaderBar".into(),
-        control_id: DOCK_HEADER_BAR_CONTROL_ID.into(),
-        role: "Panel".into(),
-        surface_variant: "panel".into(),
-        frame: ViewTemplateFrameData {
-            x: 0.0,
-            y: 0.0,
-            width: width.max(1.0),
-            height: header_height,
-        },
-        ..ViewTemplateNodeData::default()
-    });
-
-    let mut x = 4.0;
-    for row in 0..tabs.row_count() {
-        let Some(tab) = tabs.row_data(row) else {
-            continue;
-        };
-        let tab_width = ((tab.title.as_str().len() as f32 * 7.0) + 36.0).clamp(56.0, 150.0);
-        let text_tone = if tab.active { "default" } else { "subtle" };
-        let font_weight = if tab.active { 600 } else { 400 };
-        let icon_name = chrome_tab_icon_name(&tab);
-        let mut tab_node = ViewTemplateNodeData {
-            node_id: format!("FallbackDockTab{row}").into(),
-            control_id: format!("{DOCK_TAB_PREFIX}{row}").into(),
-            role: "Button".into(),
-            text: tab.title.clone(),
-            text_tone: text_tone.into(),
-            font_size: CHROME_TEXT_FONT_SIZE_PX,
-            font_weight,
-            surface_variant: if tab.active { "inset" } else { "" }.into(),
-            button_variant: "ghost".into(),
-            selected: tab.active,
-            focused: tab.active,
-            frame: ViewTemplateFrameData {
-                x,
-                y: CHROME_TAB_HEIGHT_INSET_PX,
-                width: tab_width,
-                height: (header_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
-            },
-            ..ViewTemplateNodeData::default()
-        };
-        apply_template_icon(&mut tab_node, &icon_name);
-        nodes.push(tab_node);
-        if tab.closeable {
-            let mut close_node = ViewTemplateNodeData {
-                node_id: format!("FallbackDockTabClose{row}").into(),
-                control_id: format!("{DOCK_TAB_CLOSE_PREFIX}{row}").into(),
-                role: "IconButton".into(),
-                text_tone: "muted".into(),
-                font_size: 11.0,
-                surface_variant: "inset".into(),
-                button_variant: "ghost".into(),
-                frame: ViewTemplateFrameData {
-                    x: x + tab_width - 19.0,
-                    y: 7.0,
-                    width: 14.0,
-                    height: 16.0,
-                },
-                ..ViewTemplateNodeData::default()
-            };
-            apply_template_icon(&mut close_node, DOCK_TAB_CLOSE_ICON);
-            nodes.push(close_node);
-        }
-        x += tab_width + 3.0;
-    }
-
-    if !subtitle.is_empty() {
-        nodes.push(ViewTemplateNodeData {
-            node_id: "FallbackDockSubtitle".into(),
-            control_id: DOCK_SUBTITLE_CONTROL_ID.into(),
-            role: "Text".into(),
-            text: subtitle.clone(),
-            text_tone: "muted".into(),
-            font_size: 10.0,
-            frame: ViewTemplateFrameData {
-                x: (x + 8.0).min(width.max(1.0)),
-                y: 7.0,
-                width: (width - x - 16.0).max(0.0),
-                height: 16.0,
-            },
-            ..ViewTemplateNodeData::default()
-        });
-    }
-
-    model_rc(nodes)
+    dock_header::fallback_dock_header_nodes(tabs, subtitle, width, height)
 }
 
 fn tab_chrome_needs_fallback(
@@ -1327,415 +949,4 @@ impl SlotFilter {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
-
-    #[test]
-    fn dock_header_nodes_hide_close_controls_for_non_closeable_tabs() {
-        let tabs = model_rc(vec![test_tab("Welcome", true, false)]);
-
-        let nodes =
-            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 800.0, 31.0);
-
-        assert!(
-            maybe_node(&nodes, "DockTab0").is_some(),
-            "the visible document tab should remain projected"
-        );
-        assert!(
-            maybe_node(&nodes, "DockTabClose0").is_none(),
-            "non-closeable tabs should not render an empty close-button surface"
-        );
-        assert!(
-            maybe_node(&nodes, "DockTabClose1").is_none(),
-            "unused close slots should be filtered with their tab slots"
-        );
-    }
-
-    #[test]
-    fn dock_header_nodes_keep_close_controls_for_closeable_tabs() {
-        let tabs = model_rc(vec![test_tab("Scene", true, true)]);
-
-        let nodes =
-            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 800.0, 31.0);
-
-        assert!(
-            maybe_node(&nodes, "DockTabClose0").is_some(),
-            "closeable tabs should retain their close hit target"
-        );
-        assert!(
-            maybe_node(&nodes, "DockTabClose1").is_none(),
-            "close controls beyond the live tab count should still be filtered"
-        );
-    }
-
-    #[test]
-    fn menu_popup_nodes_project_absolute_rows_beyond_authored_slots() {
-        let items = model_rc(
-            (0..18)
-                .map(|index| HostMenuChromeItemData {
-                    label: format!("Preset {index:02}").into(),
-                    shortcut: "".into(),
-                    action_id: format!("workbench.layout.preset.load.preset_{index:02}").into(),
-                    enabled: index != 17,
-                    children: ModelRc::default(),
-                })
-                .collect(),
-        );
-
-        let nodes = menu_popup_nodes(&items, 224.0, 550.0);
-        let label_0 = node(&nodes, "MenuPopupItemLabel0");
-        let label_15 = node(&nodes, "MenuPopupItemLabel15");
-        let label_16 = node(&nodes, "MenuPopupItemLabel16");
-        let label_17 = node(&nodes, "MenuPopupItemLabel17");
-        let shortcut_16 = node(&nodes, "MenuPopupItemShortcut16");
-        let shortcut_17 = node(&nodes, "MenuPopupItemShortcut17");
-        let row_17 = node(&nodes, "MenuPopupItemRow17");
-
-        let row_step = (label_15.frame.y - label_0.frame.y) / 15.0;
-        assert_eq!(label_16.text.as_str(), "Preset 16");
-        assert_eq!(label_17.text.as_str(), "Preset 17");
-        assert_eq!(
-            label_17.text_tone.as_str(),
-            "muted",
-            "disabled overflow rows should not render with enabled text tone"
-        );
-        assert_eq!(
-            shortcut_16.text_tone.as_str(),
-            "muted",
-            "enabled overflow shortcuts should preserve the TOML-authored shortcut tone"
-        );
-        assert_eq!(
-            shortcut_17.text_tone.as_str(),
-            "muted",
-            "disabled overflow shortcuts should also render muted"
-        );
-        assert!(
-            (label_16.frame.y - (label_0.frame.y + row_step * 16.0)).abs() < f32::EPSILON,
-            "row 16 should keep the same TOML-derived row cadence as authored slots"
-        );
-        assert!(
-            row_17.frame.y > label_15.frame.y,
-            "absolute row 17 should be projected into the scrollable popup content instead of being truncated at slot 15"
-        );
-        assert_eq!(label_16.icon_name.as_str(), "folder-open-outline");
-        assert!(
-            label_16.has_preview_image,
-            "overflow rows should keep menu action SVG projection when cloned beyond authored stencil slots"
-        );
-    }
-
-    #[test]
-    fn menu_chrome_nodes_project_extension_slots_beyond_authored_stencil() {
-        let menus = model_rc(
-            (0..9)
-                .map(|index| HostMenuChromeMenuData {
-                    label: format!("Plugin{index}").into(),
-                    popup_width_px: 224.0,
-                    popup_height_px: 72.0,
-                    popup_nodes: ModelRc::default(),
-                    items: ModelRc::default(),
-                })
-                .collect(),
-        );
-
-        let nodes = menu_chrome_nodes(&menus, 360.0, 29.0);
-        let slot_6 = node(&nodes, "MenuSlot6");
-        let slot_8 = node(&nodes, "MenuSlot8");
-
-        assert_eq!(slot_8.text.as_str(), "Plugin8");
-        assert!(
-            slot_8.frame.x > slot_6.frame.x + slot_6.frame.width,
-            "extension top-level menus should be projected after the authored menu stencil instead of being truncated at slot 6"
-        );
-    }
-
-    #[test]
-    fn menu_popup_nodes_project_action_svg_icons() {
-        let items = model_rc(vec![
-            test_menu_item("Open Project", "Ctrl+O", "workbench.project.open", true),
-            test_menu_item("Save Project", "Ctrl+S", "workbench.project.save", true),
-            test_menu_item("Undo", "Ctrl+Z", "workbench.history.undo", false),
-            test_menu_item(
-                "Build Export",
-                "",
-                "workbench.view.open.editor.build_export_desktop",
-                true,
-            ),
-            test_menu_item("Create Cube", "", "workbench.scene.node.create.cube", true),
-            test_menu_item(
-                "Create Rect Light",
-                "",
-                "workbench.scene.node.create.rect_light",
-                true,
-            ),
-        ]);
-
-        let nodes = menu_popup_nodes(&items, 224.0, 180.0);
-        let open = node(&nodes, "MenuPopupItemLabel0");
-        let save = node(&nodes, "MenuPopupItemLabel1");
-        let undo = node(&nodes, "MenuPopupItemLabel2");
-        let export = node(&nodes, "MenuPopupItemLabel3");
-        let cube = node(&nodes, "MenuPopupItemLabel4");
-        let rect_light = node(&nodes, "MenuPopupItemLabel5");
-
-        assert_eq!(open.text.as_str(), "Open Project");
-        assert_eq!(open.icon_name.as_str(), "folder-open-outline");
-        assert!(open.has_preview_image);
-        assert_eq!(save.icon_name.as_str(), "save-outline");
-        assert!(save.has_preview_image);
-        assert_eq!(undo.icon_name.as_str(), "chevron-back-outline");
-        assert!(undo.has_preview_image);
-        assert_eq!(
-            undo.text_tone.as_str(),
-            "muted",
-            "disabled menu items should keep muted label tone while still carrying their action icon"
-        );
-        assert_eq!(export.icon_name.as_str(), "share-outline");
-        assert_eq!(cube.icon_name.as_str(), "cube-outline");
-        assert_eq!(rect_light.icon_name.as_str(), "color-fill-outline");
-    }
-
-    #[test]
-    fn activity_rail_nodes_current_drawer_tabs_svg_icons_and_selected_state() {
-        let tabs = model_rc(vec![
-            test_tab_with_icon("Hierarchy", "hierarchy", true, false),
-            test_tab_with_icon("Assets", "assets", false, false),
-        ]);
-
-        let nodes = activity_rail_nodes(&tabs, &"jetbrains_shell".into(), 34.0, 96.0);
-        let hierarchy_button = node(&nodes, "ActivityRailButton0");
-        let hierarchy_icon = node(&nodes, "ActivityRailButtonIcon0");
-        let assets_icon = node(&nodes, "ActivityRailButtonIcon1");
-
-        assert_eq!(
-            hierarchy_button.surface_variant.as_str(),
-            "inset",
-            "active activity rail button should project selected surface metadata"
-        );
-        assert_eq!(hierarchy_icon.icon_name.as_str(), "layers-outline");
-        assert!(
-            hierarchy_icon.has_preview_image,
-            "activity rail icons should resolve SVG preview pixels during chrome projection"
-        );
-        assert_eq!(hierarchy_icon.text_tone.as_str(), "default");
-        assert_eq!(assets_icon.icon_name.as_str(), "folder-open-outline");
-        assert_eq!(assets_icon.text_tone.as_str(), "subtle");
-    }
-
-    #[test]
-    fn page_and_dock_tabs_project_svg_icons_and_close_button_icon() {
-        let tabs = model_rc(vec![
-            test_tab_with_icon("Scene", "scene", true, true),
-            test_tab_with_icon("Assets", "asset-browser", false, true),
-        ]);
-
-        let page_nodes = page_chrome_nodes(
-            &tabs,
-            &"Demo".into(),
-            &"jetbrains_shell".into(),
-            640.0,
-            64.0,
-        );
-        let page_scene = node(&page_nodes, "PageTab0");
-        let page_assets = node(&page_nodes, "PageTab1");
-
-        assert_eq!(page_scene.icon_name.as_str(), "cube-outline");
-        assert_eq!(
-            page_scene.media_source.as_str(),
-            "icons/ionicons/cube-outline.svg"
-        );
-        assert!(page_scene.has_preview_image);
-        assert!(page_scene.selected);
-        assert_eq!(page_scene.text_tone.as_str(), "default");
-        assert_eq!(page_assets.icon_name.as_str(), "folder-open-outline");
-        assert!(page_assets.has_preview_image);
-        assert!(!page_assets.selected);
-        assert_eq!(page_assets.text_tone.as_str(), "subtle");
-
-        let dock_nodes =
-            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 640.0, 40.0);
-        let dock_scene = node(&dock_nodes, "DockTab0");
-        let dock_close = node(&dock_nodes, "DockTabClose0");
-
-        assert_eq!(dock_scene.icon_name.as_str(), "cube-outline");
-        assert!(dock_scene.has_preview_image);
-        assert_eq!(dock_close.role.as_str(), "IconButton");
-        assert_eq!(dock_close.icon_name.as_str(), "close-outline");
-        assert!(
-            dock_close.has_preview_image,
-            "dock close controls should render as SVG icon buttons instead of empty inset blocks"
-        );
-    }
-
-    #[test]
-    fn status_bar_nodes_project_text_overrides_from_flat_asset() {
-        let nodes = status_bar_nodes(
-            &"Runtime ready".into(),
-            &"2 warnings".into(),
-            &"1920 x 1080".into(),
-            &"material_dark".into(),
-            800.0,
-            22.0,
-        );
-
-        assert_eq!(
-            node(&nodes, STATUS_PRIMARY_CONTROL_ID).text,
-            "Runtime ready"
-        );
-        assert_eq!(node(&nodes, STATUS_SECONDARY_CONTROL_ID).text, "2 warnings");
-        assert_eq!(node(&nodes, STATUS_VIEWPORT_CONTROL_ID).text, "1920 x 1080");
-        assert!(node(&nodes, "StatusBarPanel").frame.width > 0.0);
-    }
-
-    #[test]
-    fn fallback_page_chrome_preserves_clickable_tab_and_project_path_frames() {
-        let tabs = model_rc(vec![
-            test_tab("Welcome", true, false),
-            test_tab("Asset Browser", false, false),
-        ]);
-
-        let nodes = fallback_page_chrome_nodes(&tabs, &"ZirconProject4".into(), 640.0, 0.0);
-        let bar = node(&nodes, PAGE_BAR_CONTROL_ID);
-        let first_tab = node(&nodes, "PageTab0");
-        let second_tab = node(&nodes, "PageTab1");
-        let project_path = node(&nodes, PAGE_PROJECT_PATH_CONTROL_ID);
-
-        assert!(bar.frame.height >= PAGE_BAR_HEIGHT_PX);
-        assert_eq!(bar.frame.y, MENU_TOP_BAR_HEIGHT_PX + 1.0);
-        assert!(
-            first_tab.frame.width > 0.0 && first_tab.frame.height > 0.0,
-            "fallback page tabs must stay hit-testable when the template projection is unavailable"
-        );
-        assert!(
-            first_tab.frame.y >= bar.frame.y
-                && first_tab.frame.y + first_tab.frame.height <= bar.frame.y + bar.frame.height,
-            "fallback page tabs must stay inside the host page bar instead of overlapping the menu bar"
-        );
-        assert!(
-            project_path.frame.y >= bar.frame.y
-                && project_path.frame.y + project_path.frame.height
-                    <= bar.frame.y + bar.frame.height,
-            "fallback project path text must stay inside the host page bar"
-        );
-        assert_eq!(first_tab.surface_variant.as_str(), "inset");
-        assert_eq!(second_tab.text_tone.as_str(), "subtle");
-        assert_eq!(project_path.text.as_str(), "ZirconProject4");
-        assert!(project_path.frame.width > 0.0);
-    }
-
-    #[test]
-    fn fallback_dock_header_preserves_tab_drag_and_close_hit_frames() {
-        let tabs = model_rc(vec![
-            test_tab("Scene", true, true),
-            test_tab("Game", false, false),
-        ]);
-
-        let nodes = fallback_dock_header_nodes(&tabs, &"Preview".into(), 480.0, 0.0);
-        let header = node(&nodes, DOCK_HEADER_BAR_CONTROL_ID);
-        let scene = node(&nodes, "DockTab0");
-        let scene_close = node(&nodes, "DockTabClose0");
-        let game = node(&nodes, "DockTab1");
-        let subtitle = node(&nodes, DOCK_SUBTITLE_CONTROL_ID);
-
-        assert!(header.frame.height >= DOCK_HEADER_HEIGHT_PX);
-        assert!(
-            scene.frame.width > 0.0 && scene.frame.height > 0.0,
-            "fallback dock tabs must provide drag/click hit frames"
-        );
-        assert!(scene_close.frame.width > 0.0 && scene_close.frame.height > 0.0);
-        assert!(maybe_node(&nodes, "DockTabClose1").is_none());
-        assert_eq!(game.text_tone.as_str(), "subtle");
-        assert_eq!(subtitle.text.as_str(), "Preview");
-    }
-
-    #[test]
-    fn tab_chrome_fallback_detects_zero_height_or_zero_width_hits() {
-        let tabs = model_rc(vec![test_tab("Welcome", true, false)]);
-        let zero_height_nodes = model_rc(vec![ViewTemplateNodeData {
-            control_id: PAGE_BAR_CONTROL_ID.into(),
-            frame: ViewTemplateFrameData {
-                width: 640.0,
-                ..ViewTemplateFrameData::default()
-            },
-            ..ViewTemplateNodeData::default()
-        }]);
-        let zero_tab_nodes = model_rc(vec![
-            ViewTemplateNodeData {
-                control_id: PAGE_BAR_CONTROL_ID.into(),
-                frame: ViewTemplateFrameData {
-                    width: 640.0,
-                    height: 31.0,
-                    ..ViewTemplateFrameData::default()
-                },
-                ..ViewTemplateNodeData::default()
-            },
-            ViewTemplateNodeData {
-                control_id: "PageTab0".into(),
-                frame: ViewTemplateFrameData {
-                    height: 24.0,
-                    ..ViewTemplateFrameData::default()
-                },
-                ..ViewTemplateNodeData::default()
-            },
-        ]);
-
-        assert!(tab_chrome_needs_fallback(
-            &zero_height_nodes,
-            PAGE_BAR_CONTROL_ID,
-            PAGE_TAB_PREFIX,
-            &tabs
-        ));
-        assert!(tab_chrome_needs_fallback(
-            &zero_tab_nodes,
-            PAGE_BAR_CONTROL_ID,
-            PAGE_TAB_PREFIX,
-            &tabs
-        ));
-    }
-
-    fn node(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> ViewTemplateNodeData {
-        maybe_node(nodes, control_id)
-            .unwrap_or_else(|| panic!("missing projected popup node {control_id}"))
-    }
-
-    fn maybe_node(
-        nodes: &ModelRc<ViewTemplateNodeData>,
-        control_id: &str,
-    ) -> Option<ViewTemplateNodeData> {
-        (0..nodes.row_count())
-            .filter_map(|row| nodes.row_data(row))
-            .find(|node| node.control_id.as_str() == control_id)
-    }
-
-    fn test_tab(title: &str, active: bool, closeable: bool) -> TabData {
-        test_tab_with_icon(title, "", active, closeable)
-    }
-
-    fn test_tab_with_icon(title: &str, icon_key: &str, active: bool, closeable: bool) -> TabData {
-        TabData {
-            id: title.into(),
-            slot: "document".into(),
-            title: title.into(),
-            icon_key: icon_key.into(),
-            active,
-            closeable,
-        }
-    }
-
-    fn test_menu_item(
-        label: &str,
-        shortcut: &str,
-        action_id: &str,
-        enabled: bool,
-    ) -> HostMenuChromeItemData {
-        HostMenuChromeItemData {
-            label: label.into(),
-            shortcut: shortcut.into(),
-            action_id: action_id.into(),
-            enabled,
-            children: ModelRc::default(),
-        }
-    }
-}
+mod tests;

@@ -5,10 +5,10 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, NodeKind};
 
-use super::World;
+use super::{SceneError, SceneResult, World};
 
 impl World {
-    pub fn spawn<B>(&mut self, bundle: B) -> Result<EntityId, String>
+    pub fn spawn<B>(&mut self, bundle: B) -> SceneResult<EntityId>
     where
         B: Bundle,
     {
@@ -34,7 +34,7 @@ impl World {
         true
     }
 
-    pub(crate) fn spawn_at<B>(&mut self, entity: EntityId, bundle: B) -> Result<EntityId, String>
+    pub(crate) fn spawn_at<B>(&mut self, entity: EntityId, bundle: B) -> SceneResult<EntityId>
     where
         B: Bundle,
     {
@@ -43,7 +43,7 @@ impl World {
         Ok(entity)
     }
 
-    pub(crate) fn insert_bundle<B>(&mut self, entity: EntityId, bundle: B) -> Result<(), String>
+    pub(crate) fn insert_bundle<B>(&mut self, entity: EntityId, bundle: B) -> SceneResult<()>
     where
         B: Bundle,
     {
@@ -120,14 +120,12 @@ impl World {
         ))
     }
 
-    pub fn insert<T>(&mut self, entity: EntityId, component: T) -> Result<Option<T>, String>
+    pub fn insert<T>(&mut self, entity: EntityId, component: T) -> SceneResult<Option<T>>
     where
         T: Component,
     {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot insert component on missing entity {entity}"
-            ));
+            return Err(SceneError::missing_entity("insert component on", entity));
         }
 
         let tick = self.mutation_change_tick();
@@ -145,7 +143,7 @@ impl World {
             tick,
         ) {
             Ok(old) => old,
-            Err(error) => return Err(error.to_string()),
+            Err(error) => return Err(error.into()),
         };
 
         self.mark_component_mutation::<T>();
@@ -191,14 +189,12 @@ impl World {
             .get_mut_at_tick(component_id, internal, tick)
     }
 
-    pub fn remove<T>(&mut self, entity: EntityId) -> Result<Option<T>, String>
+    pub fn remove<T>(&mut self, entity: EntityId) -> SceneResult<Option<T>>
     where
         T: Component,
     {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot remove component from missing entity {entity}"
-            ));
+            return Err(SceneError::missing_entity("remove component from", entity));
         }
         let component_id = self.registered_component_id::<T>();
         let internal = self
@@ -220,7 +216,7 @@ impl World {
                 removed_from_storage = self.component_storage.contains(component_id, internal);
                 match self.component_storage.remove::<T>(component_id, internal) {
                     Ok(_) => {}
-                    Err(error) => return Err(error.to_string()),
+                    Err(error) => return Err(error.into()),
                 }
             }
             if removed.is_some() {
@@ -242,7 +238,7 @@ impl World {
         let removed = match self.component_storage.remove::<T>(component_id, internal) {
             Ok(Some(ComponentRemoveResult { value, .. })) => Some(value),
             Ok(None) => None,
-            Err(error) => return Err(error.to_string()),
+            Err(error) => return Err(error.into()),
         };
         if removed.is_some() {
             self.record_removed_component::<T>(entity);

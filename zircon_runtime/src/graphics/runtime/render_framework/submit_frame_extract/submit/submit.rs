@@ -1,4 +1,4 @@
-use std::sync::MutexGuard;
+use std::sync::{Arc, MutexGuard};
 
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
@@ -13,11 +13,13 @@ use super::super::super::graphics_debugger_capture::{
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
-use super::super::build_frame_submission_context::build_frame_submission_context;
+use super::super::build_frame_submission_context::build_frame_submission_context_from_runtime_frame_extract;
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_submission;
 use super::super::update_stats::{update_stats, SharedViewportProductReports};
-use super::super::viewport_generation_guard::validate_viewport_generation;
+use super::super::viewport_generation_guard::{
+    validate_viewport_generation, viewport_record_mut_after_generation_check,
+};
 use super::build_runtime_frame::build_runtime_frame;
 use super::camera_loop::{submit_camera_loop, CameraLoopOutputPolicy};
 use super::collect_runtime_feedback::collect_runtime_feedback;
@@ -49,7 +51,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
 fn submit_selected_camera_frame(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    extract: RenderFrameExtract,
+    extract: &mut Arc<RenderFrameExtract>,
     ui: Option<UiRenderExtract>,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
@@ -58,7 +60,12 @@ fn submit_selected_camera_frame(
     let owns_shared_viewport_products = output_policy.owns_shared_viewport_products();
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
-        match build_frame_submission_context(server, viewport, &extract, ui.as_ref()) {
+        match build_frame_submission_context_from_runtime_frame_extract(
+            server,
+            viewport,
+            extract,
+            ui.as_ref(),
+        ) {
             Ok(context) => context,
             Err(error) => {
                 fail_pending_capture_after_preflight_error(server, viewport, &error);
@@ -86,7 +93,7 @@ fn submit_selected_camera_frame(
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared, output_policy);
+    let mut runtime_frame = build_runtime_frame(ui, &context, prepared, output_policy);
     if owns_shared_viewport_products {
         state.last_virtual_geometry_debug_snapshot =
             runtime_frame.virtual_geometry_debug_snapshot.clone();
@@ -124,7 +131,11 @@ fn submit_selected_camera_frame(
     );
     let runtime_feedback = {
         crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
-        collect_runtime_feedback(&mut state.renderer, &context, &prepared)
+        collect_runtime_feedback(
+            &mut state.renderer,
+            &context,
+            runtime_frame.prepared_runtime_sidebands_mut(),
+        )
     };
     let camera_light_grid_report = state.renderer.last_light_grid_report();
     if let Err(error) = validate_viewport_generation(&state, viewport, &context) {
@@ -140,17 +151,13 @@ fn submit_selected_camera_frame(
             &context,
             &runtime_frame,
             camera_light_grid_report,
-            prepared,
             runtime_feedback,
             frame_generation,
             resolved_history.allocated_history(),
         )?;
         return Ok(());
     }
-    let record = state
-        .viewports
-        .get_mut(&viewport)
-        .expect("viewport generation checked above");
+    let record = viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
     record.record_camera_product_reports(
         context.camera_history_key(),
         camera_light_grid_report,
@@ -159,7 +166,6 @@ fn submit_selected_camera_frame(
     let record_update = record_submission(
         record,
         &context,
-        prepared,
         resolved_history.allocated_history(),
         frame,
         runtime_feedback,

@@ -7,7 +7,7 @@ pub mod manager;
 pub mod math;
 pub mod resource;
 
-pub use framework::error::{CoreError, ZirconError};
+pub use framework::error::{CoreError, CoreResult, ZirconError};
 pub use framework::events::EngineEvent;
 pub use framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,

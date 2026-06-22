@@ -144,6 +144,11 @@ def platform_bundle_manifest_schema_diagnostics(
                 diagnostics.append(
                     f"PlatformBundle bundle_manifest {field} must be a non-empty string"
                 )
+            if isinstance(value, str) and value.strip() and value.strip() != value:
+                diagnostics.append(
+                    f"PlatformBundle bundle_manifest {field} "
+                    "must be a non-empty trimmed string"
+                )
     for field in PLATFORM_BUNDLE_MANIFEST_OBJECT_FIELDS:
         if field in manifest and manifest.get(field) is not None:
             diagnostics.extend(
@@ -226,6 +231,11 @@ def platform_bundle_report_schema_diagnostics(report: dict[str, Any]) -> list[st
             if isinstance(value, str) and not value.strip():
                 diagnostics.append(
                     f"PlatformBundle report {field} must be a non-empty string"
+                )
+            if isinstance(value, str) and value.strip() and value.strip() != value:
+                diagnostics.append(
+                    f"PlatformBundle report {field} "
+                    "must be a non-empty trimmed string"
                 )
     for field in PLATFORM_BUNDLE_REPORT_OBJECT_FIELDS:
         if field in report and report.get(field) is not None:

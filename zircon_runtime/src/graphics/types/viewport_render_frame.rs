@@ -1,10 +1,11 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, RenderFrameExtract, RenderPreparedRuntimeSidebands,
-    RenderSceneSnapshot, RenderVirtualGeometryDebugSnapshot, ShaderQualityTier,
-    ViewportCameraSnapshot,
+    CameraRenderDescriptor, RenderFrameExtract, RenderOverlayExtract,
+    RenderPreparedRuntimeSidebands, RenderSceneSnapshot, RenderVirtualGeometryDebugSnapshot,
+    ShaderQualityTier, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::FrameVisibility;
+use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::{
@@ -14,7 +15,7 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct ViewportRenderFrame {
     pub scene: RenderSceneSnapshot,
-    pub extract: RenderFrameExtract,
+    pub extract: Arc<RenderFrameExtract>,
     pub viewport_size: UVec2,
     pub(crate) shader_quality: ShaderQualityTier,
     /// Screen-space runtime UI payload selected for this viewport target.
@@ -23,6 +24,7 @@ pub struct ViewportRenderFrame {
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(crate) frame_visibility: Option<FrameVisibility>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
+    pub(crate) runtime_overlay_override: Option<RenderOverlayExtract>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
     pub(crate) camera_stack_attachment_policy: ViewportCameraStackAttachmentPolicy,
     pub(crate) camera_stack_output_policy: ViewportCameraStackOutputPolicy,
@@ -30,8 +32,16 @@ pub struct ViewportRenderFrame {
 }
 
 impl ViewportRenderFrame {
+    pub(crate) fn extract_mut(&mut self) -> &mut RenderFrameExtract {
+        Arc::make_mut(&mut self.extract)
+    }
+
     pub(crate) fn prepared_runtime_sidebands(&self) -> &RenderPreparedRuntimeSidebands {
         &self.prepared_runtime_sidebands
+    }
+
+    pub(crate) fn prepared_runtime_sidebands_mut(&mut self) -> &mut RenderPreparedRuntimeSidebands {
+        &mut self.prepared_runtime_sidebands
     }
 
     pub(crate) fn shader_quality(&self) -> ShaderQualityTier {
@@ -107,7 +117,9 @@ impl ViewportRenderFrame {
     }
 
     pub(crate) fn overlays(&self) -> &crate::core::framework::render::RenderOverlayExtract {
-        &self.extract.debug.overlays
+        self.runtime_overlay_override
+            .as_ref()
+            .unwrap_or(&self.extract.debug.overlays)
     }
 
     pub(crate) fn preview(&self) -> &crate::core::framework::render::PreviewEnvironmentExtract {

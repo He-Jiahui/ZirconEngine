@@ -297,6 +297,55 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
 }
 
 #[test]
+fn runtime_prelude_exports_asset_scene_ui_and_graphics_contracts() {
+    #[derive(Clone, Debug)]
+    struct PreludeComponent;
+    impl Component for PreludeComponent {}
+
+    #[derive(Debug)]
+    struct PreludeResource;
+    impl Resource for PreludeResource {}
+
+    let texture_descriptor = TextureAssetDescriptor::default();
+    let asset_load_state = AssetLoadState::NotLoaded;
+    let _texture_handle_type = std::any::type_name::<Handle<TextureAsset>>();
+    let _assets_type = std::any::type_name::<Assets<TextureAsset>>();
+
+    let mut world = World::new();
+    let entity: EntityId = world.spawn(()).unwrap();
+    let insert_result: SceneResult<Option<PreludeComponent>> =
+        world.insert(entity, PreludeComponent);
+    world.insert_resource(PreludeResource);
+    let schedule = Schedule::default();
+
+    let surface = UiSurface::new(UiTreeId::new("runtime.prelude.surface"));
+    let ui_config = UiConfig::default();
+    let ui_module = UiModule;
+
+    let graphics_module = GraphicsModule::default();
+    let viewport_region = ViewportRenderRegion::default();
+    let _viewport_frame_type = std::any::type_name::<ViewportFrame>();
+    let _render_pipeline_type = std::any::type_name::<RenderPipelineAsset>();
+    let _graphics_error_type = std::any::type_name::<GraphicsError>();
+
+    assert_eq!(texture_descriptor.format, RGBA8_UNORM_SRGB_FORMAT);
+    assert_eq!(asset_load_state, AssetLoadState::NotLoaded);
+    assert!(insert_result.unwrap().is_none());
+    assert!(world.get::<PreludeComponent>(entity).is_some());
+    assert!(world.contains_resource::<PreludeResource>());
+    let _resource_ref: &PreludeResource = world.resource::<PreludeResource>();
+    assert_eq!(schedule.stages().first(), Some(&SystemStage::First));
+    assert_eq!(
+        surface.tree.tree_id,
+        UiTreeId::new("runtime.prelude.surface")
+    );
+    assert!(!ui_config.enabled);
+    assert_eq!(ui_module.module_name(), UI_MODULE_NAME);
+    assert_eq!(graphics_module.module_name(), GRAPHICS_MODULE_NAME);
+    assert!(!viewport_region.is_empty());
+}
+
+#[test]
 fn runtime_prelude_exports_state_contracts() {
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
     enum PreludeState {

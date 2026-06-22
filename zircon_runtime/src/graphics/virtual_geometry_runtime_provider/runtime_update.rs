@@ -1,16 +1,8 @@
 use super::VirtualGeometryRuntimeStats;
+use crate::graphics::runtime_provider::{define_runtime_provider_update, RuntimeProviderUpdate};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct VirtualGeometryRuntimeUpdate {
-    stats: VirtualGeometryRuntimeStats,
-}
-
-impl VirtualGeometryRuntimeUpdate {
-    pub fn new(stats: VirtualGeometryRuntimeStats) -> Self {
-        Self { stats }
-    }
-
-    pub fn stats(&self) -> &VirtualGeometryRuntimeStats {
-        &self.stats
+define_runtime_provider_update! {
+    pub struct VirtualGeometryRuntimeUpdate {
+        stats: VirtualGeometryRuntimeStats => ref;
     }
 }

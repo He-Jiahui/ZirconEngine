@@ -1,7 +1,7 @@
 use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError};
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum DynamicSceneError {
@@ -20,7 +20,7 @@ pub enum DynamicSceneError {
     #[error("no free target entity id remains while remapping source entity {source_entity}")]
     EntityIdSpaceExhausted { source_entity: EntityId },
     #[error("world mutation failed: {0}")]
-    WorldMutation(String),
+    WorldMutation(#[from] SceneError),
     #[error("dynamic scene parse failed: {reason}")]
     Parse { reason: String },
     #[error("dynamic scene scene-asset conversion failed: {reason}")]

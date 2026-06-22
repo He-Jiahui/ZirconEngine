@@ -20,13 +20,27 @@ fn event_bus_root_stays_folder_backed_and_structural() {
     assert_contains(sources.root, "pub struct EventBus");
     assert_contains(
         sources.root,
-        "HashMap<String, Arc<[ChannelSender<EngineEvent>]>>",
+        "type EventSubscriberMap = HashMap<String, Arc<[ChannelSender<EngineEvent>]>>;",
     );
+    assert_contains(sources.root, "subscribers: Arc<Mutex<EventSubscriberMap>>");
     assert_contains(sources.root, "delivery_lock: Arc<Mutex<()>>");
+    assert_contains(sources.root, "fn lock_subscribers");
+    assert_contains(sources.root, "fn lock_delivery");
+    assert_contains(
+        sources.root,
+        "unwrap_or_else(|poisoned| poisoned.into_inner())",
+    );
     assert_contains(sources.subscribe, "use std::collections::hash_map::Entry;");
     assert_contains(sources.publish, "use crossbeam_channel::SendError;");
     assert_contains(
         sources.combined.as_str(),
         "use crossbeam_channel::unbounded;",
     );
+
+    let normalized_sources: String = sources
+        .normalized_combined
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    assert_absent(normalized_sources.as_str(), ".lock().unwrap(");
 }

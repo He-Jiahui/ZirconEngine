@@ -63,14 +63,15 @@ fn typed_event_registration_rejects_event_id_outside_derived_catalog_namespace()
 #[test]
 fn runtime_plugin_registration_report_validates_shadowed_manifest_event_catalogs() {
     let plugin = ShadowedInvalidEventCatalogRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
     };
 
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);

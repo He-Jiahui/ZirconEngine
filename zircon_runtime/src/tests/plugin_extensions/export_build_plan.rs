@@ -17,6 +17,7 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
         1,
     );
+    manifest.asset_manifest = Some("export/assets.json".to_string());
     manifest.plugins = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Sound,
@@ -36,6 +37,7 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
     let main_source = generated_file(&plan, "src/main.rs");
+    let project_manifest = generated_file(&plan, "assets/zircon-project.toml");
 
     assert!(plugin_source.contains(
         "pub fn runtime_plugin_registration_providers() -> Vec<ExportRuntimePluginRegistrationProvider>"
@@ -48,6 +50,7 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
         .contains("pub fn export_runtime_bootstrap_config() -> ExportRuntimeBootstrapConfig"));
     assert!(main_source.contains("zircon_app::bootstrap_export_runtime"));
     assert!(main_source.contains("zircon_plugins::export_runtime_bootstrap_config()"));
+    assert!(project_manifest.contains("asset_manifest = \"export/assets.json\""));
     assert!(!main_source.contains("EntryRunner::"));
     assert!(!main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
     assert!(plan

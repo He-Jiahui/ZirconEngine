@@ -250,14 +250,15 @@ fn runtime_extension_registry_rejects_duplicate_render_feature_and_provider_name
 #[test]
 fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
     let plugin = WeatherRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
     };
     let catalog = RuntimePluginCatalog::from_plugins([&plugin as &dyn RuntimePlugin]);
     let report = catalog.runtime_extensions();
@@ -312,14 +313,15 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
 #[test]
 fn runtime_modules_propagate_reported_executor_registrations_into_render_framework() {
     let plugin = WeatherRuntimePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "weather",
             "Weather",
             RuntimePluginId::Particles,
             "zircon_plugin_weather_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.weather"),
+        .with_capability("runtime.plugin.weather")
+        .build(),
     };
     let registration = crate::plugin::RuntimePluginRegistrationReport::from_plugin(&plugin);
     assert!(registration.is_success(), "{:?}", registration.diagnostics);

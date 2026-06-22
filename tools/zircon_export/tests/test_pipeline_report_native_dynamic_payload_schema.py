@@ -563,6 +563,15 @@ class NativeDynamicPayloadSchemaTests(unittest.TestCase):
         )
         for field, value, expected_type in cases:
             with self.subTest(field=field, value=value):
+                expected_diagnostic = (
+                    "native_plugins_payload materialized_packages[0]."
+                    "loadable_artifacts[0] must be a string"
+                    if field == "loadable_artifacts" and isinstance(value, list)
+                    else (
+                        "native_plugins_payload "
+                        f"materialized_packages[0].{field} {expected_type}"
+                    )
+                )
                 def mutate(payload: dict[str, object], field=field, value=value) -> None:
                     packages = payload["materialized_packages"]
                     self.assertIsInstance(packages, list)
@@ -572,10 +581,31 @@ class NativeDynamicPayloadSchemaTests(unittest.TestCase):
 
                 self._assert_payload_schema_diagnostic(
                     mutate,
-                    "native_plugins_payload "
-                    f"materialized_packages[0].{field} {expected_type}",
+                    expected_diagnostic,
                     "native_plugins_payload materialized_packages are malformed",
                 )
+
+    def test_report_rejects_native_plugins_payload_materialized_package_non_string_loadable_artifact_entry_before_array_shape(
+        self,
+    ) -> None:
+        def mutate(payload: dict[str, object]) -> None:
+            packages = payload["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            package["loadable_artifacts"] = [
+                "plugins/animation/native/zircon_plugin_animation.dll",
+                42,
+            ]
+            package["loadable_artifact_count"] = 2
+
+        self._assert_payload_schema_diagnostic(
+            mutate,
+            "native_plugins_payload materialized_packages[0]."
+            "loadable_artifacts[1] must be a string",
+            "native_plugins_payload materialized_packages[0]."
+            "loadable_artifacts must be a string array",
+        )
 
     def test_report_rejects_native_plugins_payload_materialized_package_missing_required_field(
         self,
@@ -770,6 +800,15 @@ class NativeDynamicPayloadSchemaTests(unittest.TestCase):
         )
         for field, value, expected_type in cases:
             with self.subTest(field=field, value=value):
+                expected_diagnostic = (
+                    "native_plugins_payload native_signing.allowed_platforms[0] "
+                    "must be a string"
+                    if field == "allowed_platforms" and isinstance(value, list)
+                    else (
+                        f"native_plugins_payload native_signing.{field} "
+                        f"{expected_type}"
+                    )
+                )
                 def mutate(payload: dict[str, object], field=field, value=value) -> None:
                     payload["native_signing"] = {
                         "enabled": False,
@@ -784,7 +823,7 @@ class NativeDynamicPayloadSchemaTests(unittest.TestCase):
 
                 self._assert_payload_schema_diagnostic(
                     mutate,
-                    f"native_plugins_payload native_signing.{field} {expected_type}",
+                    expected_diagnostic,
                     "native_plugins_payload native_signing is malformed",
                 )
 

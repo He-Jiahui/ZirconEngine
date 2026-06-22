@@ -1,7 +1,7 @@
 mod content;
 mod runtime;
 
-use super::super::RuntimePluginDescriptor;
+use super::BuiltinCatalogDescriptorBuilder;
 use content::{classify_content_tool_descriptor, is_content_tool_descriptor};
 use runtime::{classify_runtime_foundation_descriptor, is_runtime_foundation_descriptor};
 
@@ -11,8 +11,8 @@ pub(super) fn is_core_descriptor(package_id: &str) -> bool {
 
 pub(super) fn classify_core_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     if is_runtime_foundation_descriptor(package_id) {
         return classify_runtime_foundation_descriptor(package_id, descriptor);
     }

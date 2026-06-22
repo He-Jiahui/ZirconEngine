@@ -194,30 +194,27 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(registration_source.contains("services.insert(service_name, service_entry);"));
     assert!(registration_source.contains("let pending_services = ["));
     assert!(registration_source.contains("if first_service_name == second_service_name"));
-    let two_service_registration_start = registration_source
+    let two_service_registration_start = registration_register_module_source
         .find("fn register_two_service_module(")
         .expect("two-service registration should have a dedicated setup helper");
-    let multi_service_prepare_start = registration_source
-        .find("fn prepare_service_entry(")
-        .expect("six-or-more service registration should retain the generic prepare helper");
     let register_empty_module_start = registration_source
         .find("fn register_empty_module(")
         .expect("empty-module registration should have a dedicated commit helper");
-    let three_service_registration_start = registration_source
+    let three_service_registration_start = registration_register_module_source
         .find("fn register_three_service_module(")
         .expect("three-service registration should have a dedicated setup helper");
-    let two_service_registration_source =
-        &registration_source[two_service_registration_start..three_service_registration_start];
+    let two_service_registration_source = &registration_register_module_source
+        [two_service_registration_start..three_service_registration_start];
     assert!(!two_service_registration_source.contains("HashSet"));
     assert!(!two_service_registration_source.contains("Vec::with_capacity(service_count)"));
-    let four_service_registration_start = registration_source
+    let four_service_registration_start = registration_register_module_source
         .find("fn register_four_service_module(")
         .expect("four-service registration should have a dedicated setup helper");
-    let five_service_registration_start = registration_source
+    let five_service_registration_start = registration_register_module_source
         .find("fn register_five_service_module(")
         .expect("five-service registration should have a dedicated setup helper");
-    let three_service_registration_source =
-        &registration_source[three_service_registration_start..four_service_registration_start];
+    let three_service_registration_source = &registration_register_module_source
+        [three_service_registration_start..four_service_registration_start];
     assert!(!three_service_registration_source.contains("HashSet"));
     assert!(!three_service_registration_source.contains("Vec::with_capacity(service_count)"));
     assert!(!three_service_registration_source
@@ -229,8 +226,8 @@ fn registration_source_preserves_hot_path_structure() {
         .contains("services.insert(second_service_name, second_service_entry);"));
     assert!(three_service_registration_source
         .contains("services.insert(third_service_name, third_service_entry);"));
-    let four_service_registration_source =
-        &registration_source[four_service_registration_start..five_service_registration_start];
+    let four_service_registration_source = &registration_register_module_source
+        [four_service_registration_start..five_service_registration_start];
     assert!(!four_service_registration_source.contains("HashSet"));
     assert!(!four_service_registration_source.contains("Vec::with_capacity(service_count)"));
     assert!(!four_service_registration_source
@@ -240,7 +237,7 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(four_service_registration_source
         .contains("services.insert(fourth_service_name, fourth_service_entry);"));
     let five_service_registration_source =
-        &registration_source[five_service_registration_start..multi_service_prepare_start];
+        &registration_register_module_source[five_service_registration_start..];
     assert!(!five_service_registration_source.contains("HashSet"));
     assert!(!five_service_registration_source.contains("Vec::with_capacity(service_count)"));
     assert!(!five_service_registration_source
@@ -261,7 +258,10 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(registration_source.contains("shutdown_service_names: Arc::default()"));
     assert!(registration_source.contains("HashSet::with_capacity(service_count)"));
     assert!(registration_source.contains("!pending_keys.insert(name.clone())"));
-    assert!(registration_source.contains("let module_service_lists = module_service_lists("));
+    assert!(registration_source.contains("let module_service_lists ="));
+    assert!(registration_source.contains(
+        "module_service_lists(&pending_services, driver_count, manager_count, plugin_count)"
+    ));
     assert!(registration_source.contains("struct ModuleServiceLists"));
     assert!(registration_source.contains("service_names: Arc<[RegistryName]>"));
     assert!(registration_source.contains("startup_service_names: Arc<[RegistryName]>"));
@@ -296,12 +296,14 @@ fn registration_source_preserves_hot_path_structure() {
         "if let [(first_name, first_entry), (second_name, second_entry)] = pending_services"
     ));
     assert!(registration_source.contains(
-        "(first_name, first_entry),\n        (second_name, second_entry),\n        (third_name, third_entry),"
+        "if let [(first_name, first_entry), (second_name, second_entry), (third_name, third_entry)] ="
     ));
     assert!(registration_source.contains(
-        "(first_name, first_entry), (second_name, second_entry), (third_name, third_entry), (fourth_name, fourth_entry)"
+        "if let [(first_name, first_entry), (second_name, second_entry), (third_name, third_entry), (fourth_name, fourth_entry)] ="
     ));
-    assert!(registration_source.contains("(fifth_name, fifth_entry),\n    ] = pending_services"));
+    assert!(registration_source.contains(
+        "if let [(first_name, first_entry), (second_name, second_entry), (third_name, third_entry), (fourth_name, fourth_entry), (fifth_name, fifth_entry)] ="
+    ));
     assert!(registration_source.contains("fn two_service_module_lists("));
     assert!(registration_source.contains("fn three_service_module_lists("));
     assert!(registration_source.contains("fn four_service_module_lists("));
@@ -327,17 +329,21 @@ fn registration_source_preserves_hot_path_structure() {
         .find("if let [(first_name, first_entry), (second_name, second_entry)] = pending_services")
         .expect("two-service modules should bypass the multi-service immediate-count path");
     let four_service_lists_index = registration_source
-        .find("(fourth_name, fourth_entry),")
+        .find(
+            "if let [(first_name, first_entry), (second_name, second_entry), (third_name, third_entry), (fourth_name, fourth_entry)] =",
+        )
         .expect("four-service modules should bypass the six-or-more immediate-count path");
     let five_service_lists_index = registration_source
-        .find("(fifth_name, fifth_entry),\n    ] = pending_services")
+        .find(
+            "if let [(first_name, first_entry), (second_name, second_entry), (third_name, third_entry), (fourth_name, fourth_entry), (fifth_name, fifth_entry)] =",
+        )
         .expect("five-service modules should bypass the six-or-more immediate-count path");
     let two_service_helper_index = registration_source
         .find("fn two_service_module_lists(")
         .expect("two-service modules should use direct cached-list construction");
     assert!(registration_source.contains("struct MultiServiceListScan"));
     assert!(registration_source.contains("fn scan_multi_service_module_lists("));
-    assert!(registration_source.contains("debug_assert!(pending_services.len() >= 6);"));
+    assert!(registration_duplicates_source.contains("debug_assert!(pending_services.len() >= 6);"));
     assert!(registration_source
         .contains("let scan = scan_multi_service_module_lists(pending_services);"));
     assert!(registration_source.contains("service_names: service_names.into()"));
@@ -603,8 +609,9 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(pending_prepare_index < commit_lock_index);
     assert!(registration_register_module_source.contains("use std::collections::HashSet;"));
     assert!(registration_duplicates_source.contains("use std::collections::HashMap;"));
+    assert!(registration_source.contains("if let Some(duplicate_name) ="));
     assert!(registration_source
-        .contains("if let Some(duplicate_name) = duplicate_existing_pending_service_name("));
+        .contains("duplicate_existing_pending_service_name(&services, &pending_services)"));
     assert!(registration_source.contains("fn duplicate_existing_pending_service_name<'a>("));
     assert!(registration_source.contains("services: &HashMap<RegistryName, ServiceEntry>"));
     assert!(registration_source.contains("debug_assert!(pending_services.len() >= 6);"));
@@ -614,10 +621,10 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(registration_duplicates_source.contains("None"));
     assert!(!registration_duplicates_source.contains(".find_map("));
     assert!(!registration_duplicates_source.contains(".then_some("));
-    let six_or_more_duplicate_check_index = registration_source
+    let six_or_more_duplicate_check_index = registration_duplicates_source
         .find("fn duplicate_existing_pending_service_name<'a>(")
         .expect("six-or-more pending services should own the generic duplicate helper");
-    let duplicate_helper_assert_index = registration_source
+    let duplicate_helper_assert_index = registration_duplicates_source
         .find("debug_assert!(pending_services.len() >= 6);")
         .expect("generic duplicate helper should only be called for six-or-more services");
     let multi_duplicate_check_index = registration_duplicates_source
@@ -632,7 +639,7 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(six_or_more_duplicate_check_index < duplicate_helper_assert_index);
     assert!(multi_duplicate_check_index < multi_duplicate_contains_index);
     assert!(multi_duplicate_contains_index < multi_duplicate_return_index);
-    assert!(registration_source
+    assert!(registration_behavior_tests_source
         .contains("fn register_single_service_reports_existing_service_table_key()"));
     assert!(registration_behavior_tests_source.contains(
         "fn register_exact_three_services_reports_existing_third_key_without_partial_commit()"

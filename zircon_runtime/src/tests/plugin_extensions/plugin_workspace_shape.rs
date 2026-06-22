@@ -14,20 +14,21 @@ fn builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_
     let workspace_members = plugin_workspace_members(&plugins_root);
 
     for descriptor in RuntimePluginDescriptor::builtin_catalog() {
-        let manifest = read_plugin_manifest(&plugins_root, &descriptor.package_id);
-        assert_eq!(manifest.id, descriptor.package_id);
+        let package_id = descriptor.package_id();
+        let manifest = read_plugin_manifest(&plugins_root, package_id);
+        assert_eq!(manifest.id, package_id);
         assert!(
-            workspace_members.contains(&format!("{}/runtime", descriptor.package_id)),
+            workspace_members.contains(&format!("{package_id}/runtime")),
             "runtime catalog entry `{}` is missing its zircon_plugins workspace runtime member",
-            descriptor.package_id
+            package_id
         );
         assert!(
             manifest.modules.iter().any(|module| {
-                module.kind == PluginModuleKind::Runtime && module.crate_name == descriptor.crate_name
+                module.kind == PluginModuleKind::Runtime && module.crate_name == descriptor.crate_name()
             }),
             "runtime catalog entry `{}` is missing matching runtime module crate `{}` in plugin.toml",
-            descriptor.package_id,
-            descriptor.crate_name
+            package_id,
+            descriptor.crate_name()
         );
     }
 }
@@ -37,12 +38,15 @@ fn builtin_runtime_catalog_optional_features_match_static_plugin_manifests() {
     let plugins_root = plugins_workspace_root();
 
     for descriptor in RuntimePluginDescriptor::builtin_catalog() {
-        let manifest = read_plugin_manifest(&plugins_root, &descriptor.package_id);
+        let package_id = descriptor.package_id();
+        let manifest = read_plugin_manifest(&plugins_root, package_id);
 
         assert_eq!(
-            manifest.optional_features, descriptor.optional_features,
+            manifest.optional_features.as_slice(),
+            descriptor.optional_features(),
             "runtime catalog entry `{}` optional_features must match zircon_plugins/{}/plugin.toml",
-            descriptor.package_id, descriptor.package_id
+            package_id,
+            package_id
         );
     }
 }
@@ -74,7 +78,7 @@ fn advanced_render_plugin_manifests_declare_profile_capabilities() {
             .expect("advanced render plugin should declare a runtime module");
         let descriptor = catalog
             .iter()
-            .find(|descriptor| descriptor.runtime_id == runtime_id)
+            .find(|descriptor| descriptor.runtime_id() == runtime_id)
             .expect("advanced render plugin should be in the runtime catalog");
         let projected_manifest = descriptor.package_manifest();
         let expected_targets = vec![
@@ -103,11 +107,11 @@ fn advanced_render_plugin_manifests_declare_profile_capabilities() {
         }));
         assert_eq!(runtime_module.target_modes, manifest.supported_targets);
         assert_eq!(runtime_module.capabilities, manifest.capabilities);
-        assert_eq!(descriptor.category, manifest.category);
-        assert_eq!(descriptor.maturity, manifest.maturity);
-        assert_eq!(descriptor.target_modes, manifest.supported_targets);
-        assert_eq!(descriptor.capabilities, manifest.capabilities);
-        assert!(descriptor.capability_statuses.iter().any(|status| {
+        assert_eq!(descriptor.category(), manifest.category);
+        assert_eq!(descriptor.maturity(), manifest.maturity);
+        assert_eq!(descriptor.target_modes(), manifest.supported_targets);
+        assert_eq!(descriptor.capabilities(), manifest.capabilities);
+        assert!(descriptor.capability_statuses().iter().any(|status| {
             status.capability == capability && status.status == CapabilityStatus::Partial
         }));
         assert_eq!(projected_manifest.category, manifest.category);
@@ -131,7 +135,7 @@ fn solari_plugin_manifest_matches_catalog_metadata() {
         .expect("solari plugin should declare a runtime module");
     let descriptor = RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == RuntimePluginId::Solari)
+        .find(|descriptor| descriptor.runtime_id() == RuntimePluginId::Solari)
         .expect("solari plugin should be in the runtime catalog");
     let projected_manifest = descriptor.package_manifest();
     let expected_targets = vec![
@@ -163,14 +167,14 @@ fn solari_plugin_manifest_matches_catalog_metadata() {
                 == Some("Solari realtime raytraced lighting pass executor is not implemented yet")
     }));
 
-    assert_eq!(descriptor.category, manifest.category);
-    assert_eq!(descriptor.maturity, manifest.maturity);
-    assert_eq!(descriptor.target_modes, manifest.supported_targets);
-    assert_eq!(descriptor.capabilities, manifest.capabilities);
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert_eq!(descriptor.category(), manifest.category);
+    assert_eq!(descriptor.maturity(), manifest.maturity);
+    assert_eq!(descriptor.target_modes(), manifest.supported_targets);
+    assert_eq!(descriptor.capabilities(), manifest.capabilities);
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.plugin.solari" && status.status == CapabilityStatus::Partial
     }));
-    assert!(descriptor.capability_statuses.iter().any(|status| {
+    assert!(descriptor.capability_statuses().iter().any(|status| {
         status.capability == "runtime.render.experimental.solari"
             && status.status == CapabilityStatus::Partial
             && status.note.as_deref()
@@ -300,7 +304,7 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
     let runtime_catalog = RuntimePluginDescriptor::builtin_catalog();
     let runtime_catalog_ids = runtime_catalog
         .iter()
-        .map(|descriptor| descriptor.package_id.as_str())
+        .map(RuntimePluginDescriptor::package_id)
         .collect::<BTreeSet<_>>();
 
     for (id, runtime_id, runtime_crate, runtime_capability, editor_crate, editor_capability) in [
@@ -334,7 +338,7 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
             .expect("authoring plugin manifest source");
         let descriptor = runtime_catalog
             .iter()
-            .find(|descriptor| descriptor.package_id == id)
+            .find(|descriptor| descriptor.package_id() == id)
             .expect("runtime-backed authoring plugin should be in runtime catalog");
         let runtime_module = manifest
             .modules
@@ -365,17 +369,17 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
         assert!(manifest.capability_statuses.iter().any(|status| {
             status.capability == runtime_capability && status.status == CapabilityStatus::Partial
         }));
-        assert_eq!(descriptor.category, "authoring");
-        assert_eq!(descriptor.maturity, crate::plugin::PluginMaturity::Beta);
-        assert_eq!(descriptor.target_modes, manifest.supported_targets);
-        assert_eq!(descriptor.capabilities, manifest.capabilities);
-        assert!(descriptor.capability_statuses.iter().any(|status| {
+        assert_eq!(descriptor.category(), "authoring");
+        assert_eq!(descriptor.maturity(), crate::plugin::PluginMaturity::Beta);
+        assert_eq!(descriptor.target_modes(), manifest.supported_targets);
+        assert_eq!(descriptor.capabilities(), manifest.capabilities);
+        assert!(descriptor.capability_statuses().iter().any(|status| {
             status.capability == runtime_capability && status.status == CapabilityStatus::Partial
         }));
-        assert_eq!(descriptor.runtime_id, runtime_id);
-        assert_eq!(descriptor.crate_name, runtime_crate);
+        assert_eq!(descriptor.runtime_id(), runtime_id);
+        assert_eq!(descriptor.crate_name(), runtime_crate);
         assert!(descriptor
-            .capabilities
+            .capabilities()
             .contains(&runtime_capability.to_string()));
         assert!(workspace_members.contains(&format!("{id}/runtime")));
         assert!(workspace_members.contains(&format!("{id}/editor")));

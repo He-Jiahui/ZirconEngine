@@ -2,16 +2,17 @@ use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
     RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
-use crate::graphics::VisibilityHybridGiUpdatePlan;
+use crate::graphics::{
+    runtime_provider::RuntimeProviderPrepareInput, VisibilityHybridGiUpdatePlan,
+};
 
 pub struct HybridGiRuntimePrepareInput<'a> {
-    extract: Option<&'a RenderHybridGiExtract>,
+    input: RuntimeProviderPrepareInput<'a, RenderHybridGiExtract>,
     meshes: &'a [RenderMeshSnapshot],
     directional_lights: &'a [RenderDirectionalLightSnapshot],
     point_lights: &'a [RenderPointLightSnapshot],
     spot_lights: &'a [RenderSpotLightSnapshot],
     update_plan: Option<&'a VisibilityHybridGiUpdatePlan>,
-    generation: u64,
 }
 
 impl<'a> HybridGiRuntimePrepareInput<'a> {
@@ -26,18 +27,17 @@ impl<'a> HybridGiRuntimePrepareInput<'a> {
         generation: u64,
     ) -> Self {
         Self {
-            extract,
+            input: RuntimeProviderPrepareInput::new(extract, generation),
             meshes,
             directional_lights,
             point_lights,
             spot_lights,
             update_plan,
-            generation,
         }
     }
 
     pub fn extract(&self) -> Option<&'a RenderHybridGiExtract> {
-        self.extract
+        self.input.extract()
     }
 
     pub fn meshes(&self) -> &'a [RenderMeshSnapshot] {
@@ -61,6 +61,6 @@ impl<'a> HybridGiRuntimePrepareInput<'a> {
     }
 
     pub fn generation(&self) -> u64 {
-        self.generation
+        self.input.generation()
     }
 }

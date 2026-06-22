@@ -1,6 +1,6 @@
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::plugin::ComponentTypeDescriptor;
-use crate::scene::{components::NodeKind, World};
+use crate::scene::{components::NodeKind, SceneError, World};
 use serde_json::json;
 use zircon_runtime_interface::reflect::ReflectError;
 
@@ -24,10 +24,9 @@ fn world_component_type_registry_gates_dynamic_component_attachment_when_present
         .unwrap_err();
     assert_eq!(
         duplicate,
-        ReflectError::DuplicateTypePath {
+        SceneError::Reflect(ReflectError::DuplicateTypePath {
             type_path: "weather.Component.CloudLayer".to_string(),
-        }
-        .to_string()
+        })
     );
     assert_eq!(
         world
@@ -43,7 +42,9 @@ fn world_component_type_registry_gates_dynamic_component_attachment_when_present
         .unwrap_err();
     assert_eq!(
         unknown,
-        "dynamic component type `lighting.Component.ProbeOverride` is not registered"
+        SceneError::UnregisteredDynamicComponentType {
+            component_id: "lighting.Component.ProbeOverride".to_string(),
+        }
     );
     assert!(world
         .set_dynamic_component(
@@ -240,6 +241,7 @@ fn plugin_unload_is_blocked_while_entities_still_hold_plugin_components() {
     let blocked = world
         .ensure_plugin_components_can_unload("weather")
         .unwrap_err();
+    let blocked = blocked.to_string();
     assert!(blocked.contains("weather.Component.CloudLayer"));
     assert!(blocked.contains(&format!("entity {entity}")));
     assert_eq!(world.dynamic_component_count_for_plugin("weather"), 1);

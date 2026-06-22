@@ -28,5 +28,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use keys::
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use target::MUI_ICON_DEFAULT_EDGE;
 
 #[cfg(test)]
-#[path = "visual_assets_tests.rs"]
+#[path = "visual_assets_tests/mod.rs"]
 mod tests;

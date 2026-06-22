@@ -15,9 +15,13 @@ from tools.zircon_export.cli import run_pipeline
 from tools.zircon_export.tests.export_test_support import (
     _compile_host_plan,
     _compile_host_link_plan,
+    _pack_binary_bytes,
     _write_validate_report_with_strategies,
 )
-from tools.zircon_export.tests.pack_test_support import empty_delta_manifest
+from tools.zircon_export.tests.pack_test_support import (
+    empty_delta_manifest,
+    empty_pack_document_manifest,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -245,7 +249,9 @@ def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
     report_dir = out / "stages" / "pack"
     report_dir.mkdir(parents=True, exist_ok=True)
     previous_pack = delta_pack.with_name("previous.zrpack")
-    previous_pack.write_text("previous pack placeholder", encoding="utf-8")
+    pack.write_bytes(_pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK"))
+    delta_pack.write_bytes(_pack_binary_bytes(empty_delta_manifest(), b"ZRPD"))
+    previous_pack.write_bytes(_pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK"))
     asset_manifest = out / "stages" / "cook_assets" / "assets.json"
     asset_manifest.parent.mkdir(parents=True, exist_ok=True)
     if not asset_manifest.exists():

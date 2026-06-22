@@ -8,13 +8,16 @@ use crate::core::framework::render::{
 use crate::graphics::runtime::FrameHistoryValidationKey;
 use crate::graphics::RenderFeatureCapabilityRequirement;
 use crate::graphics::ViewportRenderOutputTarget;
+use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
-use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
+use super::super::frame_submission_context::{
+    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
+};
 use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::{
     compile_submission_pipeline, compile_submission_pipeline_with_options,
@@ -26,10 +29,70 @@ use super::target_resolution::resolve_camera_target_size;
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    extract: &RenderFrameExtract,
+    sized_extract: RenderFrameExtract,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    let mut viewport_state = resolve_viewport_record_state(server, viewport, extract)?;
+    build_frame_submission_context_from_source(
+        server,
+        viewport,
+        FrameSubmissionExtractSource::Owned(sized_extract),
+        ui_extract,
+    )
+}
+
+pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
+    server: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    extract: &mut Arc<RenderFrameExtract>,
+    ui_extract: Option<&UiRenderExtract>,
+) -> Result<FrameSubmissionContext, RenderFrameworkError> {
+    build_frame_submission_context_from_source(
+        server,
+        viewport,
+        FrameSubmissionExtractSource::RuntimeFrame(extract),
+        ui_extract,
+    )
+}
+
+enum FrameSubmissionExtractSource<'a> {
+    Owned(RenderFrameExtract),
+    RuntimeFrame(&'a mut Arc<RenderFrameExtract>),
+}
+
+impl FrameSubmissionExtractSource<'_> {
+    fn as_extract(&self) -> &RenderFrameExtract {
+        match self {
+            Self::Owned(extract) => extract,
+            Self::RuntimeFrame(extract) => extract.as_ref(),
+        }
+    }
+
+    fn as_extract_mut(&mut self) -> &mut RenderFrameExtract {
+        match self {
+            Self::Owned(extract) => extract,
+            Self::RuntimeFrame(extract) => Arc::make_mut(extract),
+        }
+    }
+
+    fn into_source_extract(self) -> Arc<RenderFrameExtract> {
+        match self {
+            Self::Owned(effective_extract) => {
+                let source_extract = Arc::new(effective_extract);
+                source_extract
+            }
+            Self::RuntimeFrame(extract) => Arc::clone(extract),
+        }
+    }
+}
+
+fn build_frame_submission_context_from_source(
+    server: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    mut extract_source: FrameSubmissionExtractSource<'_>,
+    ui_extract: Option<&UiRenderExtract>,
+) -> Result<FrameSubmissionContext, RenderFrameworkError> {
+    let mut viewport_state =
+        resolve_viewport_record_state(server, viewport, extract_source.as_extract())?;
     let primary_target_size = viewport_state.size();
     let asset_manager = {
         let state = server.lock_state();
@@ -37,28 +100,30 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     };
     let submission_size = resolve_camera_target_size(
         primary_target_size,
-        extract.view.selected_camera_target(),
+        extract_source.as_extract().view.selected_camera_target(),
         asset_manager.as_ref(),
     )?;
-    let mut sized_extract = extract.clone();
-    sized_extract.apply_viewport_size(submission_size);
-    apply_renderer_owned_particle_previous_state(&mut sized_extract, &viewport_state);
-    let extract = &sized_extract;
-    let camera_history_key = camera_history_key_for_extract(extract);
-    let effective_view_size = extract.view.effective_view_size();
-    let render_size = extract.view.effective_render_size();
+    {
+        let sized_extract = extract_source.as_extract_mut();
+        sized_extract.apply_viewport_size(submission_size);
+        apply_renderer_owned_particle_previous_state(sized_extract, &viewport_state);
+    }
+    let sized_extract = extract_source.as_extract();
+    let camera_history_key = camera_history_key_for_extract(sized_extract);
+    let effective_view_size = sized_extract.view.effective_view_size();
+    let render_size = sized_extract.view.effective_render_size();
     let camera_target_resolution = RenderCameraTargetResolutionReport::new(
-        extract.view.selected_camera_target().kind(),
+        sized_extract.view.selected_camera_target().kind(),
         primary_target_size,
         submission_size,
         effective_view_size,
         render_size,
     );
     let output_target = ViewportRenderOutputTarget::from_camera_target(
-        extract.view.selected_camera_target(),
+        sized_extract.view.selected_camera_target(),
         submission_size,
     );
-    let compiled_pipeline = compile_submission_pipeline(server, &viewport_state, extract)?;
+    let compiled_pipeline = compile_submission_pipeline(server, &viewport_state, sized_extract)?;
     let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
@@ -82,11 +147,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         || compiled_pipeline
             .capability_requirements
             .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
-    let resolved_post_process = extract
+    let resolved_post_process = sized_extract
         .post_process
         .resolved_settings_for_camera(
-            extract.view.camera.transform.translation,
-            extract.view.selected_camera_layers(),
+            sized_extract.view.camera.transform.translation,
+            sized_extract.view.selected_camera_layers(),
         )
         .map_err(|error| {
             RenderFrameworkError::Backend(format!("post-process volume evaluation failed: {error}"))
@@ -100,13 +165,13 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .unwrap_or_else(RenderColorGradingSettings::default);
     let effective_effect_stack = resolved_post_process.effect_stack;
     let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
-        extract.geometry.virtual_geometry.clone(),
-        extract.geometry.virtual_geometry_debug,
+        sized_extract.geometry.virtual_geometry.clone(),
+        sized_extract.geometry.virtual_geometry_debug,
     );
     let authored_virtual_geometry_present = authored_virtual_geometry_extract.is_some();
     let automatic_virtual_geometry_output =
         if virtual_geometry_enabled && !authored_virtual_geometry_present {
-            build_automatic_virtual_geometry_extract(server, extract)
+            build_automatic_virtual_geometry_extract(server, sized_extract)
         } else {
             None
         };
@@ -120,19 +185,24 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .as_ref()
             .map(|output| output.extract().clone())
     });
-    let visibility_extract = visibility_extract_with_effective_advanced_features(
-        extract,
+    let authored_hybrid_gi_present = sized_extract.lighting.hybrid_global_illumination.is_some();
+    let source_anti_alias = sized_extract.view.anti_alias;
+    let source_msaa_samples = sized_extract.view.camera.msaa_samples;
+    let effective_extract = extract_source.as_extract_mut();
+    apply_effective_advanced_features(
+        effective_extract,
         hybrid_gi_enabled,
         virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
     );
-    let effective_history_key_extract = post_process_extract_with_effective_settings(
-        &visibility_extract,
+    apply_effective_post_process_settings(
+        effective_extract,
         effective_bloom,
         effective_color_grading,
         effective_effect_stack,
     );
+    let effective_extract = extract_source.as_extract();
     let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
         .as_ref()
         .map(|output| output.cpu_reference_instances().to_vec())
@@ -143,13 +213,13 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .unwrap_or_default();
     let visibility_context =
         VisibilityContext::from_extract_with_history_static_index_and_task_pool(
-            &visibility_extract,
+            effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
             Some(&server.compute_task_pool),
         );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
-        &effective_history_key_extract,
+        effective_extract,
         compiled_feature_names(&compiled_pipeline),
     );
     let history_invalidation_reason = frame_history_invalidation_reason(
@@ -164,10 +234,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     );
     let history_available = temporal_history_enabled && history_invalidation_reason.is_none();
     let requested_anti_alias = if anti_alias_feature_enabled {
-        extract.view.anti_alias.with_taa_quality(
+        source_anti_alias.with_taa_quality(
             viewport_state
                 .quality_profile_taa_quality()
-                .unwrap_or(extract.view.anti_alias.taa_quality),
+                .unwrap_or(source_anti_alias.taa_quality),
         )
     } else {
         AntiAliasSettings::off()
@@ -185,7 +255,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let anti_alias_report = requested_anti_alias.resolve_with_requested_graph_sample_count(
         viewport_state.capabilities(),
         anti_alias_history_available,
-        extract.view.camera.msaa_samples,
+        source_msaa_samples,
     );
     let post_process_history_available = history_available
         || (anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa
@@ -205,7 +275,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let compiled_pipeline = compile_submission_pipeline_with_options(
         server,
         &viewport_state,
-        extract,
+        effective_extract,
         &viewport_state
             .compile_options()
             .clone()
@@ -213,18 +283,48 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .with_post_process_stack(post_process_stack.clone()),
     )?;
     let post_process_graph = post_process_stack.validated_graph();
+    let temporal_jitter =
+        temporal_jitter_for_submission(anti_alias_report, viewport_state.temporal_frame_index());
+    {
+        let effective_extract = extract_source.as_extract_mut();
+        apply_effective_view_and_graph_settings(
+            effective_extract,
+            anti_alias_report,
+            temporal_jitter,
+            post_process_stack.clone(),
+            post_process_graph.clone(),
+        );
+    }
+    let effective_extract = extract_source.as_extract();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_feedback.clone());
-    let hybrid_gi_payload_source = hybrid_gi_payload_source_for_extract(
-        hybrid_gi_enabled,
-        extract.lighting.hybrid_global_illumination.is_some(),
-    );
+    let hybrid_gi_payload_source =
+        hybrid_gi_payload_source_for_extract(hybrid_gi_enabled, authored_hybrid_gi_present);
     let virtual_geometry_page_upload_plan = virtual_geometry_enabled
         .then(|| visibility_context.virtual_geometry_page_upload_plan.clone());
     let virtual_geometry_feedback =
         virtual_geometry_enabled.then(|| visibility_context.virtual_geometry_feedback.clone());
+    let particle_sprite_count = effective_extract.particles.sprites.len();
+    let particle_previous_state_sprite_count =
+        effective_extract.particles.previous_state_sprite_count();
+    let particle_anonymous_stream_ambiguity_sprite_count = effective_extract
+        .particles
+        .anonymous_stream_ambiguity_sprite_count();
+    let scene_camera_order_report = effective_extract.view.scene_camera_order_report.clone();
+    let hybrid_gi_extract_for_context = hybrid_gi_enabled
+        .then(|| {
+            effective_extract
+                .lighting
+                .hybrid_global_illumination
+                .clone()
+        })
+        .flatten();
+    let virtual_geometry_extract_for_context = virtual_geometry_enabled
+        .then(|| effective_virtual_geometry_extract.clone())
+        .flatten();
+    let source_extract = extract_source.into_source_extract();
 
     Ok(FrameSubmissionContext::new(
         submission_size,
@@ -242,41 +342,26 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         history_invalidation_reason,
         output_target,
         camera_target_resolution,
-        extract.view.scene_camera_order_report.clone(),
+        scene_camera_order_report,
         ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
-        effective_bloom,
-        effective_exposure,
-        effective_color_grading,
         effective_effect_stack,
         anti_alias_report,
-        viewport_state.temporal_frame_index(),
         advanced_runtime_plan,
         solari_runtime_report,
-        post_process_stack,
         post_process_graph,
         hybrid_gi_enabled,
         virtual_geometry_enabled,
-        hybrid_gi_enabled
-            .then(|| extract.lighting.hybrid_global_illumination.clone())
-            .flatten(),
+        hybrid_gi_extract_for_context,
         hybrid_gi_payload_source,
         hybrid_gi_update_plan,
         hybrid_gi_feedback,
-        extract.geometry.meshes.clone(),
-        extract.lighting.directional_lights.clone(),
-        extract.lighting.point_lights.clone(),
-        extract.lighting.spot_lights.clone(),
-        extract.lighting.ambient_lights.clone(),
-        extract.lighting.rect_lights.clone(),
-        extract.particles.previous_sprites.clone(),
-        extract.particles.sprites.len(),
-        extract.particles.previous_state_sprite_count(),
-        extract.particles.anonymous_stream_ambiguity_sprite_count(),
-        virtual_geometry_enabled
-            .then(|| effective_virtual_geometry_extract.clone())
-            .flatten(),
+        source_extract,
+        particle_sprite_count,
+        particle_previous_state_sprite_count,
+        particle_anonymous_stream_ambiguity_sprite_count,
+        virtual_geometry_extract_for_context,
         virtual_geometry_payload_source,
         virtual_geometry_cpu_reference_instances,
         virtual_geometry_bvh_visualization_instances,
@@ -296,19 +381,17 @@ fn apply_renderer_owned_particle_previous_state(
     extract.particles.previous_sprites = viewport_state.previous_particle_sprites().to_vec();
 }
 
-fn post_process_extract_with_effective_settings(
-    extract: &RenderFrameExtract,
+fn apply_effective_post_process_settings(
+    extract: &mut RenderFrameExtract,
     bloom: RenderBloomSettings,
     color_grading: RenderColorGradingSettings,
     effect_stack: RenderPostProcessEffectStackSettings,
-) -> RenderFrameExtract {
-    let mut extract = extract.clone();
+) {
     extract.post_process.bloom = bloom;
     extract.post_process.color_grading = color_grading;
     extract.post_process.effect_stack = effect_stack;
     extract.post_process.volumes.clear();
     extract.post_process.rebuild_graph(false, false);
-    extract
 }
 
 fn frame_history_invalidation_reason(
@@ -396,17 +479,29 @@ fn virtual_geometry_payload_source_for_extract(
     RenderVirtualGeometryPayloadSource::None
 }
 
-fn visibility_extract_with_effective_advanced_features(
-    extract: &RenderFrameExtract,
+fn apply_effective_advanced_features(
+    extract: &mut RenderFrameExtract,
     hybrid_gi_enabled: bool,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
-) -> RenderFrameExtract {
-    let mut extract = extract.clone();
+) {
     if !hybrid_gi_enabled {
         extract.lighting.hybrid_global_illumination = None;
     }
     extract.geometry.virtual_geometry = virtual_geometry_extract;
-    extract
+}
+
+fn apply_effective_view_and_graph_settings(
+    extract: &mut RenderFrameExtract,
+    anti_alias_report: crate::core::framework::render::AntiAliasFallbackReport,
+    temporal_jitter: crate::core::framework::render::TemporalJitterSample,
+    post_process_stack: PostProcessStackDescriptor,
+    post_process_graph: crate::core::framework::render::PostProcessPassGraph,
+) {
+    extract.view.anti_alias = anti_alias_report.effective_settings();
+    extract.view.camera.temporal_jitter = temporal_jitter;
+    extract.view.sync_selected_descriptor_camera_payload();
+    extract.post_process.stack = post_process_stack;
+    extract.post_process.graph = post_process_graph;
 }
 
 #[cfg(test)]

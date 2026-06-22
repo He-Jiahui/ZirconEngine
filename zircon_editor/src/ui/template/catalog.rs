@@ -78,7 +78,6 @@ impl EditorComponentCatalog {
         self.descriptors.get(component_id)
     }
 
-    #[allow(dead_code)]
     pub fn descriptors(&self) -> Vec<&EditorComponentDescriptor> {
         self.descriptors.values().collect()
     }

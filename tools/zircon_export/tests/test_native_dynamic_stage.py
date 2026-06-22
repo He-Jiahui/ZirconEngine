@@ -547,6 +547,96 @@ class NativeDynamicStageTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_native_dynamic_stage_rejects_padded_package_export_id_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root)
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                package_export_overrides={"package_id": " animation "},
+                extra_package_exports=[
+                    _native_dynamic_package_export(
+                        {
+                            "package_id": " animation ",
+                            "directory": "animation_copy",
+                            "path": "plugins/animation_copy",
+                            "manifest": "plugins/animation_copy/plugin.toml",
+                            "package_report": (
+                                "plugins/animation_copy/"
+                                "native_dynamic_package.toml"
+                            ),
+                        }
+                    )
+                ],
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertTrue(
+                any(
+                    "native_dynamic_package_exports entry 0 field package_id "
+                    "must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "package_id  animation  duplicates entry 0" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_native_dynamic_stage_rejects_non_string_package_export_id_before_non_empty(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root)
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                package_export_overrides={"package_id": 42},
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native_dynamic_package_exports entry 0 field package_id "
+                "must be a string",
+                diagnostics,
+            )
+            self.assertNotIn(
+                "field package_id must be a non-empty string",
+                diagnostics,
+            )
+
     def test_native_dynamic_stage_rejects_source_manifest_id_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -592,6 +682,166 @@ class NativeDynamicStageTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+
+    def test_native_dynamic_stage_rejects_padded_source_manifest_id_before_package_match(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root, package_id="animation")
+            animation_manifest = repo_root / "zircon_plugins" / "animation" / "plugin.toml"
+            animation_manifest.write_text(
+                "\n".join(
+                    [
+                        'id = " animation "',
+                        'version = "0.1.0"',
+                        'default_packaging = ["native_dynamic"]',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(out)
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"])
+            self.assertTrue(report["payload_cleaned"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native dynamic package animation direct manifest "
+                "id must be a non-empty trimmed string",
+                diagnostics,
+            )
+            self.assertNotIn("does not match selected package", diagnostics)
+            self.assertNotIn("no plugin.toml was found", diagnostics)
+
+    def test_native_dynamic_stage_rejects_non_string_source_manifest_id_before_missing_id(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root, package_id="animation")
+            animation_manifest = repo_root / "zircon_plugins" / "animation" / "plugin.toml"
+            animation_manifest.write_text(
+                "\n".join(
+                    [
+                        "id = 42",
+                        'version = "0.1.0"',
+                        'default_packaging = ["native_dynamic"]',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(out)
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"])
+            self.assertTrue(report["payload_cleaned"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native dynamic package animation direct manifest id must be a string",
+                diagnostics,
+            )
+            self.assertNotIn("direct manifest id must be a non-empty string", diagnostics)
+            self.assertNotIn("no plugin.toml was found", diagnostics)
+
+    def test_native_dynamic_stage_rejects_padded_recursive_source_manifest_id_before_missing_manifest(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            nested_package = repo_root / "zircon_plugins" / "nested" / "animation"
+            nested_package.mkdir(parents=True)
+            nested_package.joinpath("plugin.toml").write_text(
+                "\n".join(
+                    [
+                        'id = " animation "',
+                        'version = "0.1.0"',
+                        'default_packaging = ["native_dynamic"]',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(out)
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"])
+            self.assertTrue(report["payload_cleaned"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native dynamic package animation source manifest",
+                diagnostics,
+            )
+            self.assertIn("id must be a non-empty trimmed string", diagnostics)
+            self.assertNotIn("does not match selected package", diagnostics)
+            self.assertNotIn("no plugin.toml was found", diagnostics)
+
+    def test_native_dynamic_stage_rejects_recursive_source_manifest_parse_error_before_missing_manifest(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            nested_package = repo_root / "zircon_plugins" / "nested" / "animation"
+            nested_package.mkdir(parents=True)
+            nested_package.joinpath("plugin.toml").write_text(
+                'id = "animation"\n[broken\n',
+                encoding="utf-8",
+            )
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(out)
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = "\n".join(report["diagnostics"])
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"])
+            self.assertTrue(report["payload_cleaned"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native dynamic package animation source manifest",
+                diagnostics,
+            )
+            self.assertIn("could not be parsed", diagnostics)
+            self.assertNotIn("no plugin.toml was found", diagnostics)
 
     def test_native_dynamic_stage_rejects_source_manifest_parse_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -779,6 +1029,82 @@ class NativeDynamicStageTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_native_dynamic_stage_rejects_padded_selected_package_id_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root)
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                native_dynamic_packages=[" animation ", " animation "],
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertTrue(
+                any(
+                    "native_dynamic_packages entry 0 "
+                    "must be a non-empty trimmed string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "native_dynamic_packages entry  animation  duplicates entry 0"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_native_dynamic_stage_rejects_non_string_selected_package_id_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root)
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(
+                out,
+                native_dynamic_packages=[42, "animation"],
+            )
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            diagnostics = report["diagnostics"]
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], diagnostics)
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertIn(
+                "native_dynamic_packages entry 0 must be a string",
+                diagnostics,
+            )
+            self.assertNotIn(
+                "validate report native_dynamic_packages must be a string array",
+                diagnostics,
+            )
+
     def test_native_dynamic_stage_rejects_missing_selected_package_export(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -804,6 +1130,41 @@ class NativeDynamicStageTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     "native_dynamic_packages entry physics has no package_export" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_native_dynamic_stage_rejects_padded_target_platform_before_artifact_selection(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            _write_native_dynamic_package_fixture(repo_root)
+            out = root / "out"
+            _write_validate_report_with_native_dynamic_exports(out)
+            validate_report = out / "stages" / "validate" / "report.json"
+            payload = json_loads(validate_report.read_text(encoding="utf-8"))
+            payload["profile_summary"]["target_platform"] = " windows-x86_64 "
+            validate_report.write_text(json_dumps(payload), encoding="utf-8")
+            args = _export_args(out=out, stage="native_dynamic", dry_run=False)
+            args.repo_root = str(repo_root)
+
+            exit_code = _run_stage_quiet(args)
+
+            stage_dir = out / "stages" / "native_dynamic"
+            report = json_loads((stage_dir / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["loader_manifest"], None)
+            self.assertEqual(report["materialized_packages"], [])
+            self.assertFalse((stage_dir / "plugins" / "native_plugins.toml").exists())
+            self.assertTrue(
+                any(
+                    "validate report profile_summary.target_platform "
+                    "must be a non-empty trimmed export target platform"
+                    in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],

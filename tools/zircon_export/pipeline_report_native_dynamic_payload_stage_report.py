@@ -15,6 +15,13 @@ from .pipeline_report_native_dynamic_operation_audit_schema import (
     native_dynamic_operation_audit_stage_schema_diagnostics,
     platform_bundle_native_plugins_operation_audit_schema_diagnostics,
 )
+from .pipeline_report_native_dynamic_payload_schema import (
+    native_dynamic_file_manifest_schema_diagnostics,
+    native_dynamic_materialized_packages_schema_diagnostics,
+)
+from .pipeline_report_native_dynamic_report_hash_schema import (
+    native_dynamic_report_content_hash_schema_diagnostics,
+)
 from .stage_handoff import stage_report_metadata_diagnostic
 
 
@@ -246,4 +253,44 @@ def load_native_dynamic_report(
     if metadata_diagnostic:
         diagnostics.append(metadata_diagnostic)
         return None
+    schema_diagnostics = native_dynamic_report_payload_shape_schema_diagnostics(
+        report
+    )
+    if schema_diagnostics:
+        diagnostics.extend(schema_diagnostics)
+        return None
     return report
+
+
+def native_dynamic_report_payload_shape_schema_diagnostics(
+    report: dict[str, Any],
+) -> list[str]:
+    diagnostics: list[str] = []
+    diagnostics.extend(
+        native_dynamic_report_content_hash_schema_diagnostics(
+            "native_dynamic report",
+            report,
+        )
+    )
+    diagnostics.extend(
+        native_dynamic_file_manifest_schema_diagnostics(
+            "native_dynamic report",
+            report,
+        )
+    )
+    diagnostics.extend(
+        native_dynamic_materialized_packages_schema_diagnostics(
+            "native_dynamic report",
+            report,
+        )
+    )
+    for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS:
+        audit = report.get(field)
+        if isinstance(audit, dict):
+            diagnostics.extend(
+                native_dynamic_operation_audit_stage_schema_diagnostics(
+                    f"native_dynamic report {field}",
+                    audit,
+                )
+            )
+    return diagnostics

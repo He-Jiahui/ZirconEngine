@@ -55,4 +55,31 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "world_resolves_entity_paths_and_mutates_component_properties",
         ],
     ),
+    (
+        "Runtime 05 render product streamer 2026-06-21 no-result diagnostic",
+        [
+            "runtime_05_render_product_streamer_20260621_no_result_residual_stopped",
+            "424s",
+            "6 cargo and 3 rustc",
+            "scene_asset` / `ecs_query",
+        ],
+    ),
+    (
+        "Runtime 05 scene_asset 2026-06-21 no-result diagnostic",
+        [
+            "runtime_05_scene_asset_20260621_no_result_residual_stopped",
+            "scene_asset --locked",
+            "604s",
+            "4 cargo and 2 rustc",
+        ],
+    ),
+    (
+        "Runtime 05 ecs_query 2026-06-21 no-result diagnostic",
+        [
+            "runtime_05_ecs_query_20260621_no_result_residual_stopped",
+            "ecs_query --locked",
+            "604s",
+            "no owner-file repair",
+        ],
+    ),
 ];

@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_impl/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs

@@ -12,6 +12,9 @@ related_code:
   - zircon_runtime/src/asset/tests/facade/hot_reload.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
   - zircon_runtime/src/asset/watch/asset_watch_error.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
@@ -22,6 +25,9 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - user: 2026-06-12 runtime architecture implementation
@@ -65,4 +71,4 @@ The watcher tests cover deterministic debounce folding and explicit notify-error
 
 Cargo verification for Runtime 04 M3 is pending a clean compile window; the first `cargo test -p zircon_runtime --lib watcher --locked ...` attempt on 2026-06-12 timed out during compilation/linking before Rust test results were returned.
 
-The Runtime 04 `asset_pipeline_boundary` mirror currently reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this watcher doc aligned with Runtime 04, the runtime index, facade/worker/artifact/core-resource docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+The Runtime 04 `asset_pipeline_source_inventory.py` and `asset_pipeline_anchor_inventory.py` now split watcher source/count ownership from watcher anchor ownership, while `asset_pipeline_boundary.py` stays the 328-line audit reader/risk layer and `asset_pipeline_markdown.py` owns Markdown rendering at 117 lines. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this watcher doc aligned with Runtime 04, the runtime index, facade/worker/artifact/core-resource docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.

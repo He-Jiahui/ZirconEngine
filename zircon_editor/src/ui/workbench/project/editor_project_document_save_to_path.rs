@@ -8,7 +8,7 @@ use super::editor_project_document::EditorProjectDocument;
 use super::editor_workspace_persistence::save_editor_workspace;
 use super::project_editor_workspace::ProjectEditorWorkspace;
 use super::project_root_path::project_root_path;
-use super::runtime_asset_helpers::invalid_data;
+use super::runtime_asset_resolution::invalid_data;
 
 impl EditorProjectDocument {
     pub fn save_to_path(

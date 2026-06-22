@@ -9,18 +9,23 @@ from .pipeline_report_schema_primitives import (
     validate_integer_schema_diagnostics,
     validate_object_array_schema_diagnostics,
     validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
 from .pipeline_report_schema_table import (
     non_empty_string_array_schema_diagnostics,
+    string_array_duplicate_entry_index_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 from .pipeline_report_validate_compile_host_linkage_schema import (
     validate_linked_runtime_crate_schema_diagnostics,
 )
 from .pipeline_report_validate_identifier_schema import (
     validate_project_plugin_package_id_array_schema_diagnostics,
+    validate_unique_project_plugin_package_id_array_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 COMPILE_HOST_REPORT_FIELDS = (
@@ -120,6 +125,12 @@ def compile_host_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
                 )
                 field_diagnostics.extend(
                     string_array_no_blank_entries_schema_diagnostics(label, value)
+                )
+                field_diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        label,
+                        value,
+                    )
                 )
                 diagnostics.extend(field_diagnostics)
                 if (
@@ -278,6 +289,18 @@ def compile_host_link_plan_schema_diagnostics(value: Any) -> list[str]:
                     value.get(field),
                 )
             )
+            diagnostics.extend(
+                string_array_trimmed_non_empty_entries_schema_diagnostics(
+                    field_label,
+                    value.get(field),
+                )
+            )
+            diagnostics.extend(
+                string_array_duplicate_entry_index_schema_diagnostics(
+                    field_label,
+                    value.get(field),
+                )
+            )
     for field in COMPILE_HOST_LINK_PLAN_REQUIRED_STRING_ARRAY_FIELDS:
         if field not in value:
             diagnostics.extend(
@@ -288,9 +311,16 @@ def compile_host_link_plan_schema_diagnostics(value: Any) -> list[str]:
             )
     for field in COMPILE_HOST_LINK_PLAN_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in value:
+            field_label = f"{label}.{field}"
             diagnostics.extend(
                 validate_project_plugin_package_id_array_schema_diagnostics(
-                    f"{label}.{field}",
+                    field_label,
+                    value.get(field),
+                )
+            )
+            diagnostics.extend(
+                validate_unique_project_plugin_package_id_array_schema_diagnostics(
+                    field_label,
                     value.get(field),
                 )
             )

@@ -174,9 +174,9 @@ fn service_kind_registry_segments_use_direct_byte_match() {
         .find("pub fn from_registry_segment(value: &str) -> Option<Self>")
         .expect("ServiceKind parser should stay visible to the registry-name source guard");
     let parser_end = lifecycle_source[parser_start..]
-        .find("pub const fn as_str(self) -> &'static str")
+        .find("pub(crate) fn from_registry_segment_bytes(value: &[u8]) -> Option<Self>")
         .map(|offset| parser_start + offset)
-        .expect("ServiceKind parser guard should end before as_str");
+        .expect("ServiceKind string parser guard should end before the byte parser");
     let parser_source = &lifecycle_source[parser_start..parser_end];
 
     assert!(!parser_source.contains("match value {"));

@@ -74,7 +74,9 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     }
 
     assert!(
-        manager_resolver_source.contains("input::InputManager"),
+        manager_resolver_source.contains("input::{InputActionManager, InputManager}")
+            || manager_resolver_source.contains("input::{InputManager, InputActionManager}")
+            || manager_resolver_source.contains("input::InputManager"),
         "core manager resolver should source input manager contracts from crate::core::framework"
     );
     assert!(

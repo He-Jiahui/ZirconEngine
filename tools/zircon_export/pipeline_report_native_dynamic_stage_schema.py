@@ -18,8 +18,13 @@ from .pipeline_report_native_dynamic_payload_schema import (
     native_dynamic_file_manifest_schema_diagnostics,
     native_dynamic_materialized_packages_schema_diagnostics,
 )
+from .pipeline_report_native_dynamic_report_hash_schema import (
+    native_dynamic_report_content_hash_schema_diagnostics,
+)
 from .pipeline_report_schema_table import (
+    string_array_duplicate_entry_index_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 
 NATIVE_DYNAMIC_REPORT_FIELDS = (
@@ -101,6 +106,20 @@ NATIVE_DYNAMIC_REPORT_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS = (
 SchemaDiagnostic = Callable[[str, Any], list[str]]
 
 
+def native_dynamic_report_string_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, str):
+            diagnostics.append(f"{label}[{index}] must be a string")
+    return diagnostics
+
+
 def native_dynamic_report_schema_diagnostics(
     report: dict[str, Any],
     *,
@@ -126,13 +145,25 @@ def native_dynamic_report_schema_diagnostics(
     for field in NATIVE_DYNAMIC_REPORT_STRING_ARRAY_FIELDS:
         if field in report and report.get(field) is not None:
             diagnostics.extend(
-                validate_string_array_schema_diagnostics(
+                native_dynamic_report_string_array_schema_diagnostics(
                     f"native_dynamic report {field}",
                     report.get(field),
                 )
             )
             diagnostics.extend(
                 string_array_no_blank_entries_schema_diagnostics(
+                    f"native_dynamic report {field}",
+                    report.get(field),
+                )
+            )
+            diagnostics.extend(
+                string_array_trimmed_non_empty_entries_schema_diagnostics(
+                    f"native_dynamic report {field}",
+                    report.get(field),
+                )
+            )
+            diagnostics.extend(
+                string_array_duplicate_entry_index_schema_diagnostics(
                     f"native_dynamic report {field}",
                     report.get(field),
                 )
@@ -180,6 +211,14 @@ def native_dynamic_report_schema_diagnostics(
                 diagnostics.append(
                     f"native_dynamic report {field} must be a non-empty string"
                 )
+            elif (
+                isinstance(report.get(field), str)
+                and report.get(field).strip() != report.get(field)
+            ):
+                diagnostics.append(
+                    f"native_dynamic report {field} "
+                    "must be a non-empty trimmed string"
+                )
         for field in NATIVE_DYNAMIC_REPORT_REQUIRED_NON_FATAL_STRING_ARRAY_FIELDS:
             if field not in report or report.get(field) is None:
                 diagnostics.extend(
@@ -212,6 +251,12 @@ def native_dynamic_report_schema_diagnostics(
                         report.get(field),
                     )
                 )
+    diagnostics.extend(
+        native_dynamic_report_content_hash_schema_diagnostics(
+            "native_dynamic report",
+            report,
+        )
+    )
     diagnostics.extend(
         native_dynamic_file_manifest_schema_diagnostics(
             "native_dynamic report",

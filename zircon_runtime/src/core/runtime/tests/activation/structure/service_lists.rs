@@ -1,12 +1,18 @@
-use super::fixture::{activation_source, module_entry_source, registration_source};
+use super::fixture::{
+    activation_source, blocked_unload_source, module_entry_source, registration_source,
+    unload_mutation_source,
+};
 
 #[test]
 fn activation_uses_cached_registry_name_service_lists() {
     let activation_source = activation_source();
+    let blocked_unload_source = blocked_unload_source();
     let module_entry_source = module_entry_source();
     let registration_source = registration_source();
+    let unload_mutation_source = unload_mutation_source();
 
-    assert!(activation_source.contains("unload_order: &[RegistryName]"));
+    assert!(blocked_unload_source.contains("unload_order: &[RegistryName]"));
+    assert!(unload_mutation_source.contains("unload_order: &[RegistryName]"));
     assert!(module_entry_source.contains("service_names: Arc<[RegistryName]>"));
     assert!(module_entry_source.contains("startup_service_names: Arc<[RegistryName]>"));
     assert!(module_entry_source.contains("shutdown_service_names: Arc<[RegistryName]>"));

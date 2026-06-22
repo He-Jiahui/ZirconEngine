@@ -1370,6 +1370,7 @@ fn ime_event(kind: UiImeInputEventKind, text: &str) -> UiInputEvent {
         kind,
         text: text.to_string(),
         cursor_range: None,
+        delete_surrounding: None,
     })
 }
 

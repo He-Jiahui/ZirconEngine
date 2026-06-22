@@ -172,6 +172,7 @@ related_code:
   - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/support.rs

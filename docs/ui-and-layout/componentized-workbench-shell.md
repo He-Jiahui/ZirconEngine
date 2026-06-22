@@ -80,7 +80,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/app/presentation_cache.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
@@ -320,7 +320,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/component_model.rs
 test_files:
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs

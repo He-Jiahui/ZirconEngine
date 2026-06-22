@@ -146,7 +146,7 @@ impl RuntimeProfileDescriptor {
     ) -> RuntimePluginAvailabilityReport {
         let descriptors = descriptors
             .into_iter()
-            .map(|descriptor| (descriptor.runtime_id, descriptor))
+            .map(|descriptor| (descriptor.runtime_id(), descriptor))
             .collect::<HashMap<_, _>>();
         let linked_plugin_ids = linked_plugin_ids
             .into_iter()
@@ -211,7 +211,7 @@ impl RuntimeProfileDescriptor {
             );
             return;
         }
-        if descriptor.maturity == PluginMaturity::Externalized {
+        if descriptor.maturity() == PluginMaturity::Externalized {
             let entry = RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime is externalized and no linked registration was supplied"
                     .to_string(),
@@ -228,7 +228,7 @@ impl RuntimeProfileDescriptor {
             }
             return;
         }
-        if descriptor.maturity == PluginMaturity::Stub {
+        if descriptor.maturity() == PluginMaturity::Stub {
             push_blocked(
                 &mut report.stub,
                 &mut report.missing_required,
@@ -239,22 +239,23 @@ impl RuntimeProfileDescriptor {
             );
             return;
         }
-        if !descriptor.maturity.meets_minimum(self.minimum_maturity) {
+        if !descriptor.maturity().meets_minimum(self.minimum_maturity) {
             push_blocked(
                 &mut report.blocked_by_maturity,
                 &mut report.missing_required,
                 RuntimePluginAvailabilityEntry {
                     reason: format!(
                         "plugin maturity {:?} is below profile minimum {:?}",
-                        descriptor.maturity, self.minimum_maturity
+                        descriptor.maturity(),
+                        self.minimum_maturity
                     ),
                     ..entry
                 },
             );
             return;
         }
-        if linked_plugin_ids.contains(&descriptor.package_id)
-            || linked_plugin_ids.contains(descriptor.runtime_id.key())
+        if linked_plugin_ids.contains(descriptor.package_id())
+            || linked_plugin_ids.contains(descriptor.runtime_id().key())
         {
             report.linked.push(RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime was supplied by linked registration".to_string(),
@@ -262,8 +263,8 @@ impl RuntimeProfileDescriptor {
             });
             return;
         }
-        if native_dynamic_plugin_ids.contains(&descriptor.package_id)
-            || native_dynamic_plugin_ids.contains(descriptor.runtime_id.key())
+        if native_dynamic_plugin_ids.contains(descriptor.package_id())
+            || native_dynamic_plugin_ids.contains(descriptor.runtime_id().key())
         {
             report.native_dynamic.push(RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime was supplied by native dynamic registration".to_string(),
@@ -271,7 +272,8 @@ impl RuntimeProfileDescriptor {
             });
             return;
         }
-        if require_external_provider && !builtin_runtime_domain_is_available(descriptor.runtime_id)
+        if require_external_provider
+            && !builtin_runtime_domain_is_available(descriptor.runtime_id())
         {
             let entry = RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime has no linked or native dynamic provider registration"
@@ -328,16 +330,16 @@ fn availability_entry(
     reason: String,
 ) -> RuntimePluginAvailabilityEntry {
     RuntimePluginAvailabilityEntry {
-        id: descriptor.package_id.clone(),
-        runtime_id: descriptor.runtime_id,
+        id: descriptor.package_id().to_string(),
+        runtime_id: descriptor.runtime_id(),
         required,
-        maturity: descriptor.maturity,
+        maturity: descriptor.maturity(),
         reason,
     }
 }
 
 fn supports_target(descriptor: &RuntimePluginDescriptor, target: RuntimeTargetMode) -> bool {
-    descriptor.target_modes.is_empty() || descriptor.target_modes.contains(&target)
+    descriptor.target_modes().is_empty() || descriptor.target_modes().contains(&target)
 }
 
 fn push_blocked(

@@ -5,12 +5,13 @@ use crate::ui::{
     component::UiDragPayload,
     dispatch::{
         UiAccessibilityInputEvent, UiAnalogInputEvent, UiDeviceId, UiDragDropInputEvent,
-        UiDragDropInputEventKind, UiDragSessionId, UiImeInputEvent, UiImeInputEventKind,
-        UiInputEvent, UiInputEventMetadata, UiInputModifiers, UiKeyboardInputEvent,
-        UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent, UiPointerEvent,
-        UiPointerId, UiPointerInputEvent, UiPointerSource, UiPopupInputEvent,
-        UiPopupInputEventKind, UiPreciseScrollDelta, UiSurfaceId, UiTextByteRange,
-        UiTextInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId,
+        UiDragDropInputEventKind, UiDragSessionId, UiImeDeleteSurrounding, UiImeInputEvent,
+        UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputModifiers,
+        UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent,
+        UiNavigationInputEvent, UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerSource,
+        UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiSurfaceId,
+        UiTextByteRange, UiTextInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiUserId,
     },
     event_ui::UiNodeId,
     layout::UiPoint,
@@ -336,6 +337,23 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 text: text.into(),
                 cursor_range,
+                delete_surrounding: None,
+            },
+        )
+    }
+
+    pub fn ime_delete_surrounding(
+        context: UiWindowInputContext,
+        before_bytes: u32,
+        after_bytes: u32,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Ime {
+                kind: UiImeInputEventKind::DeleteSurrounding,
+                text: String::new(),
+                cursor_range: None,
+                delete_surrounding: Some(UiImeDeleteSurrounding::new(before_bytes, after_bytes)),
             },
         )
     }
@@ -670,11 +688,13 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 text,
                 cursor_range,
+                delete_surrounding,
             } => UiInputEvent::Ime(UiImeInputEvent {
                 metadata,
                 kind,
                 text,
                 cursor_range,
+                delete_surrounding,
             }),
             UiWindowPlatformInputEventKind::Navigation { kind } => {
                 UiInputEvent::Navigation(UiNavigationInputEvent { metadata, kind })
@@ -772,6 +792,8 @@ pub enum UiWindowPlatformInputEventKind {
         text: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cursor_range: Option<UiTextByteRange>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        delete_surrounding: Option<UiImeDeleteSurrounding>,
     },
     Navigation {
         kind: UiNavigationEventKind,

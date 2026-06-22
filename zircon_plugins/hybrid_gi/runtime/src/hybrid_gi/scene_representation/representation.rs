@@ -1,8 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::core::framework::render::{
+    render_mesh_stable_instance_key, render_mesh_transform_revision,
     RenderDirectionalLightSnapshot, RenderHybridGiDebugView, RenderHybridGiExtract,
-    RenderHybridGiQuality, RenderMeshSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderHybridGiQuality, RenderMeshSnapshot, RenderMeshStaticState, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec4};
@@ -477,9 +479,13 @@ fn sorted_spot_lights(lights: &[RenderSpotLightSnapshot]) -> Vec<RenderSpotLight
 }
 
 fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
+    let node_id = u64::from(card_id);
+    let transform = Transform::identity();
     RenderMeshSnapshot {
-        node_id: card_id as u64,
-        transform: Transform::identity(),
+        node_id,
+        stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+        transform_revision: render_mesh_transform_revision(&transform),
+        transform,
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/card/{card_id}/model"
         ))),
@@ -487,9 +493,11 @@ fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(&format!(
             "builtin://hybrid-gi/card/{card_id}/material"
         ))),
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
+        static_state: RenderMeshStaticState::from_transform_static(true),
         render_layer_mask: u32::MAX,
     }
 }

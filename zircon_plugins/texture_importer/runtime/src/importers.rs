@@ -79,7 +79,7 @@ fn apply_texture_import_settings(
     texture: TextureAsset,
 ) -> Result<TextureAsset, AssetImportError> {
     texture
-        .with_import_settings(&context.import_settings)
+        .apply_import_settings(&context.import_settings)
         .map_err(|error| {
             AssetImportError::Parse(format!(
                 "apply texture import settings {}: {error}",

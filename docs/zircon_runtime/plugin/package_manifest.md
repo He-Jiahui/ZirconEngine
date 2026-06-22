@@ -16,8 +16,8 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/access.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
@@ -287,8 +287,7 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/access.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
@@ -1020,6 +1019,40 @@ with before/after constraints. These fields are serde-defaulted for existing man
 `with_system_sets(...)` / `with_system_anchors(...)` on both module builders and
 `RuntimePluginDescriptor`. Descriptor-owned values project into the generated `.runtime` module row
 so linked Rust plugins and static package manifests share the same public scheduler contract.
+
+F8 RuntimePluginDescriptor builder scaffold is now the blessed construction path for runtime
+plugin descriptors. `RuntimePluginDescriptorBuilder` is exposed through
+`RuntimePluginDescriptor::builder(...).build()` and the runtime plugin facades. First-party runtime
+plugin production descriptors and runtime/plugin extension test fixtures now both use that builder
+path.
+Status: `runtime_plugin_descriptor_public_field_convergence_coremin_check_passed`. The builder
+scaffold remains locked by `review_f8_runtime_plugin_descriptor_exposes_builder_scaffold`; first-party
+runtime plugin descriptor production files 16/16 are locked by
+`review_f8_first_party_runtime_plugin_descriptors_use_builder`; plugin extension
+RuntimePluginDescriptor test fixtures 14/14 are locked by
+`review_f8_runtime_plugin_descriptor_test_fixtures_use_builder`. RuntimePluginDescriptor
+public-field convergence complete: the descriptor now has RuntimePluginDescriptor private fields
+15/15 plus 15 read-only accessors in `descriptor/access.rs`, locked by
+`review_f8_runtime_plugin_descriptor_fields_are_private_with_accessors`. Focused validation passed
+for runtime core-min `cargo check`; lib-test compilation passed, while the `plugin_workspace_shape`
+filter still exposes two pre-existing static manifest assertion failures outside this field
+privatization slice.
+
+The old `RuntimePluginDescriptor::new(...).with_*` public construction surface is retired. The
+descriptor no longer mounts `descriptor/builder/construction.rs` or `descriptor/builder/fluent.rs`;
+`RuntimePluginDescriptorBuilder` assembles the private descriptor fields directly and remains the
+only public construction path. `zircon_plugins/plugin_sdk` stores a `RuntimePluginDescriptorBuilder`
+inside `RuntimePluginDeclaration`, so SDK declarations project descriptors and package manifests
+without calling the retired constructor. Status:
+`runtime_plugin_descriptor_public_constructor_retired_coremin_check_passed`; guard:
+`review_f8_runtime_plugin_descriptor_public_constructor_is_retired`. RuntimePluginDescriptor::new
+retired; descriptor/builder/construction.rs retired; descriptor/builder/fluent.rs retired.
+Builtin catalog child modules pass `BuiltinCatalogDescriptorBuilder` and the catalog root performs
+the final `RuntimePluginDescriptorBuilder::build()` projection. Verification:
+`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+--target-dir target\codex-runtime06-f8-public-constructor-0622` and `cargo check --manifest-path
+zircon_plugins\Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir
+target\codex-runtime06-f8-public-constructor-0622` both passed with existing runtime warnings.
 
 Package validation treats system sets and system anchors as module-owned namespace declarations.
 Each value must be non-empty, lowercase dot-namespaced, prefixed by the package id, and unique inside

@@ -14,11 +14,11 @@ fn event_bus_prune_dispatches_small_topic_lists_before_lazy_retained_rebuild() {
     let four_body = slice_between(
         sources.prune,
         "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] =>",
-        "[\n                    first_subscriber,",
+        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber] =>",
     );
     let five_body = slice_between(
         sources.prune,
-        "[\n                    first_subscriber,",
+        "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber] =>",
         "current_subscribers =>",
     );
 
@@ -29,15 +29,21 @@ fn event_bus_prune_dispatches_small_topic_lists_before_lazy_retained_rebuild() {
             "[] => true,",
             "[subscriber] => Self::subscriber_failed(subscriber, failed_subscribers),",
             "[first_subscriber, second_subscriber] =>",
-            "let first_failed = Self::subscriber_failed(first_subscriber, failed_subscribers);",
-            "let second_failed = Self::subscriber_failed(second_subscriber, failed_subscribers);",
+            "let first_failed =",
+            "Self::subscriber_failed(first_subscriber, failed_subscribers);",
+            "let second_failed =",
+            "Self::subscriber_failed(second_subscriber, failed_subscribers);",
             "match (first_failed, second_failed)",
             "(true, true) => true,",
             "second_subscriber.clone()",
             "first_subscriber.clone()",
             "[first_subscriber, second_subscriber, third_subscriber] =>",
+            "let first_failed =",
+            "Self::subscriber_failed(first_subscriber, failed_subscribers);",
+            "let second_failed =",
+            "Self::subscriber_failed(second_subscriber, failed_subscribers);",
             "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] =>",
-            "[\n                    first_subscriber,",
+            "[first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber] =>",
             "current_subscribers =>",
             "let mut retained_subscribers: Option<Vec<ChannelSender<EngineEvent>>> = None;",
             "let mut saw_failed_subscriber = false;",

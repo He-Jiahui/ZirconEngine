@@ -2,7 +2,7 @@ use super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::intersect;
 use super::super::paint_theme::PALETTE;
-use super::super::paint_workbench_impl as workbench;
+use super::super::paint_workbench_renderer as workbench;
 
 const SHELL_BACKGROUND: [u8; 4] = PALETTE.shell_background;
 

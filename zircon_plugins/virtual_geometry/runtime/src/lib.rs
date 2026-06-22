@@ -5,6 +5,7 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+mod capability;
 mod provider;
 mod render_pass_executors;
 #[cfg(test)]
@@ -18,6 +19,10 @@ use render_pass_executors::{
 };
 use std::sync::Arc;
 
+pub use capability::{
+    RUNTIME_CAPABILITIES, VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY,
+    VIRTUAL_GEOMETRY_RUNTIME_CAPABILITY,
+};
 pub use provider::PluginVirtualGeometryRuntimeProvider;
 
 pub const PLUGIN_ID: &str = "virtual_geometry";
@@ -172,41 +177,27 @@ fn virtual_geometry_runtime_prepare_collector(
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Virtual Geometry",
         zircon_runtime::builtin::RuntimePluginId::VirtualGeometry,
         "zircon_plugin_virtual_geometry_runtime",
     )
+    .with_category("rendering")
     .with_target_modes([
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.virtual_geometry")
-    .with_capability("runtime.render.advanced.virtual_geometry")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
+    .with_capability(VIRTUAL_GEOMETRY_RUNTIME_CAPABILITY)
+    .with_capability(VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY)
+    .build()
 }
 
-pub fn runtime_plugin() -> VirtualGeometryRuntimePlugin {
-    VirtualGeometryRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(VirtualGeometryRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.virtual_geometry",
-        "runtime.render.advanced.virtual_geometry",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]
@@ -237,6 +228,11 @@ mod tests {
                 zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
                 zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
+        );
+        assert_eq!(report.package_manifest.category, "rendering");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Experimental
         );
         assert!(report
             .package_manifest

@@ -48,6 +48,7 @@ impl World {
                     return property_type_error(property_path, "string");
                 };
                 self.rename_node(entity, name)
+                    .map_err(|error| error.to_string())
             }
             "hierarchy" => {
                 expect_segment_count(&segments, 1, property_path)?;
@@ -56,6 +57,7 @@ impl World {
                     return property_type_error(property_path, "entity reference");
                 };
                 self.set_parent_checked(entity, parent)
+                    .map_err(|error| error.to_string())
             }
             "transform" => self.set_transform_property(entity, &segments, value, property_path),
             "active" => {
@@ -65,12 +67,14 @@ impl World {
                     return property_type_error(property_path, "bool");
                 };
                 self.set_active_self(entity, active)
+                    .map_err(|error| error.to_string())
             }
             "renderlayer" | "renderlayermask" => {
                 expect_segment_count(&segments, 1, property_path)?;
                 expect_segment(&segments[0], &["mask"], property_path)?;
                 let mask = expect_u32(value, property_path)?;
                 self.set_render_layer_mask(entity, mask)
+                    .map_err(|error| error.to_string())
             }
             "mobility" => {
                 expect_segment_count(&segments, 1, property_path)?;
@@ -79,6 +83,7 @@ impl World {
                     return property_type_error(property_path, "enum");
                 };
                 self.set_mobility(entity, parse_mobility(&kind)?)
+                    .map_err(|error| error.to_string())
             }
             "camera" => {
                 let Some(camera) = self.cameras.get_mut(&entity) else {
@@ -542,7 +547,9 @@ impl World {
                 }
                 Ok(changed)
             }
-            _ => self.set_dynamic_component_property(entity, property_path, value),
+            _ => self
+                .set_dynamic_component_property(entity, property_path, value)
+                .map_err(|error| error.to_string()),
         }
     }
 
@@ -581,6 +588,7 @@ impl World {
             _ => return unknown_property_error(property_path),
         }
         self.update_transform(entity, next)
+            .map_err(|error| error.to_string())
     }
 
     fn set_rigid_body_property(
@@ -685,7 +693,11 @@ impl World {
                 }
                 rigid_body.lock_rotation[axis] = next;
             }
-            _ => return self.set_dynamic_component_property(entity, property_path, value),
+            _ => {
+                return self
+                    .set_dynamic_component_property(entity, property_path, value)
+                    .map_err(|error| error.to_string());
+            }
         }
         self.mark_node_cache_dirty();
         Ok(true)

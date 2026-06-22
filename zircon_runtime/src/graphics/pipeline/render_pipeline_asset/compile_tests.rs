@@ -264,6 +264,47 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
 }
 
 #[test]
+fn compile_routes_blur_split_through_uber_and_output_transfer() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &extract.post_process.color_grading,
+        &RenderPostProcessEffectStackSettings {
+            blur: RenderBlurSettings { radius: 3.0 },
+            ..Default::default()
+        },
+        false,
+        false,
+        &AntiAliasSettings::off(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    assert_pass_reads(
+        &compiled,
+        "blur",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+    );
+    assert_pass_writes(&compiled, "blur", PostProcessGraphResourceNames::BLURRED);
+    assert_pass_reads(&compiled, "uber", PostProcessGraphResourceNames::BLURRED);
+    assert_pass_does_not_read(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+    );
+    assert_pass_writes(&compiled, "uber", PostProcessGraphResourceNames::TONEMAPPED);
+    assert_pass_reads(
+        &compiled,
+        "output-transfer",
+        PostProcessGraphResourceNames::TONEMAPPED,
+    );
+}
+
+#[test]
 fn compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure() {
     let extract = test_extract();
     let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
@@ -702,6 +743,26 @@ fn assert_pass_does_not_read(
             resource.name == resource_name && resource.access == RenderGraphResourceAccessKind::Read
         }),
         "`{pass_name}` should not read `{resource_name}`"
+    );
+}
+
+fn assert_pass_writes(
+    compiled: &crate::graphics::pipeline::CompiledRenderPipeline,
+    pass_name: &str,
+    resource_name: &str,
+) {
+    let pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == pass_name)
+        .unwrap_or_else(|| panic!("missing graph pass `{pass_name}`"));
+    assert!(
+        pass.resources.iter().any(|resource| {
+            resource.name == resource_name
+                && resource.access == RenderGraphResourceAccessKind::Write
+        }),
+        "`{pass_name}` should write `{resource_name}`"
     );
 }
 

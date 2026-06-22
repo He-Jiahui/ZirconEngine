@@ -42,7 +42,7 @@ impl<'world> Commands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::Spawn,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });
@@ -81,7 +81,7 @@ impl<'world> Commands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::Insert,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });
@@ -96,7 +96,7 @@ impl<'world> Commands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::InsertBundle,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });
@@ -111,7 +111,7 @@ impl<'world> Commands<'world> {
                 world.record_deferred_command_error(DeferredCommandError::new(
                     DeferredCommandOperation::Remove,
                     entity,
-                    error,
+                    error.to_string(),
                 ));
             }
         });

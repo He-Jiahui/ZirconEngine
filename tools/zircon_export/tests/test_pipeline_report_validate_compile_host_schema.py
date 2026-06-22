@@ -190,6 +190,28 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
                 "must run cargo build",
             )
 
+    def test_report_stage_rejects_validate_compile_host_padded_command_entry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            command = list(_compile_host_plan()["command"])
+            command[0] = " cargo "
+            compile_host_plan = _compile_host_plan()
+            compile_host_plan["command"] = command
+            self._write_reports_with_compile_host_plan(out, compile_host_plan)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("Validate", report["fatal_stages"])
+            self._assert_diagnostic_contains(
+                report,
+                "validate report plan_summary.library_embed_compile_host."
+                "command[0] must be a non-empty trimmed string",
+            )
+
     def test_report_stage_rejects_validate_compile_host_command_target_broadening(
         self,
     ) -> None:
@@ -417,6 +439,125 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
                         f"{field} must not contain blank entries",
                     )
 
+    def test_report_stage_rejects_validate_compile_host_string_array_entry_non_string(
+        self,
+    ) -> None:
+        cases = (
+            ("app_features", ["target-client", 42]),
+            ("command", ["cargo", 42]),
+            ("runtime_features", ["target-client", None]),
+        )
+        for field, value in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    self._write_reports_with_compile_host_plan_field(out, field, value)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("Validate", report["fatal_stages"])
+                    self._assert_diagnostic_contains(
+                        report,
+                        "validate report plan_summary.library_embed_compile_host."
+                        f"{field}[1] must be a string",
+                    )
+                    self.assertFalse(
+                        any(
+                            "validate report plan_summary.library_embed_compile_host."
+                            f"{field} must be a string array"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_validate_compile_host_padded_feature_entry(
+        self,
+    ) -> None:
+        cases = (
+            ("app_features", [" target-client "]),
+            ("runtime_features", [" target-client "]),
+        )
+        for field, value in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    self._write_reports_with_compile_host_plan_field(out, field, value)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("Validate", report["fatal_stages"])
+                    self._assert_diagnostic_contains(
+                        report,
+                        "validate report plan_summary.library_embed_compile_host."
+                        f"{field}[0] must be a non-empty trimmed string",
+                    )
+
+    def test_report_stage_rejects_validate_compile_host_duplicate_feature_entry(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "app_features",
+                {
+                    "app_features": ["target-client", "target-client"],
+                    "command": self._compile_host_command_with(
+                        "--features",
+                        "target-client target-client",
+                    ),
+                },
+            ),
+            (
+                "runtime_features",
+                {"runtime_features": ["target-client", "target-client"]},
+            ),
+        )
+        for field, overrides in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    compile_host_plan = _compile_host_plan()
+                    compile_host_plan.update(overrides)
+                    self._write_reports_with_compile_host_plan(out, compile_host_plan)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("Validate", report["fatal_stages"])
+                    self._assert_diagnostic_contains(
+                        report,
+                        "validate report plan_summary.library_embed_compile_host."
+                        f"{field}[1] duplicates entry 0",
+                    )
+
+    def test_report_stage_rejects_validate_compile_host_duplicate_expected_plugin(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            compile_host_plan = _compile_host_plan()
+            compile_host_plan["expected_runtime_plugins"] = [
+                "rendering",
+                "rendering",
+            ]
+            self._write_reports_with_compile_host_plan(out, compile_host_plan)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("Validate", report["fatal_stages"])
+            self._assert_diagnostic_contains(
+                report,
+                "validate report plan_summary.library_embed_compile_host."
+                "expected_runtime_plugins[1] duplicates entry 0",
+            )
+
     def test_report_stage_rejects_validate_compile_host_profile_release_mismatch(
         self,
     ) -> None:
@@ -462,6 +603,40 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
                     self.assertEqual(report["missing_stages"], [])
                     self.assertIn("Validate", report["fatal_stages"])
                     self._assert_diagnostic_contains(report, expected_diagnostic)
+
+    def test_report_stage_rejects_validate_compile_host_padded_cargo_profile_before_profile_semantics(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            compile_host_plan = _compile_host_plan()
+            compile_host_plan["cargo_profile"] = " release "
+            compile_host_plan["release"] = True
+            compile_host_plan["command"] = [
+                *_compile_host_plan()["command"],
+                "--release",
+            ]
+            self._write_reports_with_compile_host_plan(out, compile_host_plan)
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("Validate", report["fatal_stages"])
+            self._assert_diagnostic_contains(
+                report,
+                "validate report plan_summary.library_embed_compile_host."
+                "cargo_profile must be a non-empty trimmed string",
+            )
+            self.assertFalse(
+                any(
+                    "validate report plan_summary.library_embed_compile_host."
+                    "cargo_profile must be debug or release"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
 
     def test_report_stage_rejects_validate_compile_host_missing_required_field(
         self,
@@ -611,9 +786,11 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
         _write_stage_report(out, "platform_bundle", fatal=False)
         validate_report_path = out / "stages" / "validate" / "report.json"
         validate_report = json.loads(validate_report_path.read_text(encoding="utf-8"))
-        validate_report["plan_summary"] = {
-            "library_embed_compile_host": compile_host_plan
-        }
+        plan_summary = validate_report.get("plan_summary")
+        if not isinstance(plan_summary, dict):
+            plan_summary = {}
+        plan_summary["library_embed_compile_host"] = compile_host_plan
+        validate_report["plan_summary"] = plan_summary
         validate_report_path.write_text(
             json.dumps(validate_report, indent=2),
             encoding="utf-8",
@@ -629,9 +806,11 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
         validate_report = json.loads(validate_report_path.read_text(encoding="utf-8"))
         compile_host_plan = _compile_host_plan()
         compile_host_plan[field] = value
-        validate_report["plan_summary"] = {
-            "library_embed_compile_host": compile_host_plan
-        }
+        plan_summary = validate_report.get("plan_summary")
+        if not isinstance(plan_summary, dict):
+            plan_summary = {}
+        plan_summary["library_embed_compile_host"] = compile_host_plan
+        validate_report["plan_summary"] = plan_summary
         validate_report_path.write_text(
             json.dumps(validate_report, indent=2),
             encoding="utf-8",

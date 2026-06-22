@@ -1,16 +1,8 @@
 use super::HybridGiRuntimeStats;
+use crate::graphics::runtime_provider::{define_runtime_provider_update, RuntimeProviderUpdate};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct HybridGiRuntimeUpdate {
-    stats: HybridGiRuntimeStats,
-}
-
-impl HybridGiRuntimeUpdate {
-    pub fn new(stats: HybridGiRuntimeStats) -> Self {
-        Self { stats }
-    }
-
-    pub fn stats(&self) -> HybridGiRuntimeStats {
-        self.stats
+define_runtime_provider_update! {
+    pub struct HybridGiRuntimeUpdate {
+        stats: HybridGiRuntimeStats => copy;
     }
 }

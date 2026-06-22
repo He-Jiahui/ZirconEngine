@@ -6,7 +6,7 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
@@ -21,7 +21,7 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_new/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_construct/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs

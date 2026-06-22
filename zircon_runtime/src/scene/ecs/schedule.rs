@@ -229,12 +229,12 @@ fn taken_system_id_exists(taken_system_ids: &[String], id: &str) -> bool {
     false
 }
 
-fn remove_taken_system_id(taken_native_system_ids: &mut Vec<String>, id: &str) {
+fn remove_taken_system_id(taken_system_ids: &mut Vec<String>, id: &str) {
     let mut index = 0_usize;
-    while index < taken_native_system_ids.len() {
-        if taken_native_system_ids[index].as_str() == id {
+    while index < taken_system_ids.len() {
+        if taken_system_ids[index].as_str() == id {
             // Taken ids are a membership guard only; restore order is already owned by the registry.
-            taken_native_system_ids.swap_remove(index);
+            taken_system_ids.swap_remove(index);
             return;
         }
         index += 1;

@@ -109,9 +109,7 @@ fn install_component_type_descriptors(
             }
             continue;
         }
-        world
-            .register_component_type(descriptor.clone())
-            .map_err(DynamicSceneError::WorldMutation)?;
+        world.register_component_type(descriptor.clone())?;
     }
     Ok(())
 }
@@ -278,9 +276,7 @@ fn insert_entity_records(
         record.id = target;
         record.parent = remapped_parent(world, remap, entity.source_entity, record.parent)?;
         remap_record_entity_references(&mut record, remap);
-        world
-            .insert_node_record(record)
-            .map_err(DynamicSceneError::WorldMutation)?;
+        world.insert_node_record(record)?;
     }
     Ok(())
 }
@@ -369,9 +365,7 @@ fn apply_component(
 ) -> Result<(), DynamicSceneError> {
     if component.plugin_owned {
         let value = reflected_fields_to_json_object(&component.fields, remap)?;
-        world
-            .set_dynamic_component(entity, component.type_path.clone(), value)
-            .map_err(DynamicSceneError::WorldMutation)?;
+        world.set_dynamic_component(entity, component.type_path.clone(), value)?;
         return Ok(());
     }
 

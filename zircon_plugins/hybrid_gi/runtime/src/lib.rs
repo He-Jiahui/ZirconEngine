@@ -7,12 +7,16 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+mod capability;
 mod hybrid_gi;
 mod provider;
 mod render_pass_executors;
 #[cfg(test)]
 pub(crate) mod test_support;
 
+pub use capability::{
+    HYBRID_GI_ADVANCED_RENDER_CAPABILITY, HYBRID_GI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use provider::PluginHybridGiRuntimeProvider;
 
 pub(crate) use hybrid_gi::{
@@ -157,41 +161,27 @@ pub fn hybrid_gi_runtime_provider_registration(
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Hybrid GI",
         zircon_runtime::builtin::RuntimePluginId::HybridGi,
         "zircon_plugin_hybrid_gi_runtime",
     )
+    .with_category("rendering")
     .with_target_modes([
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.hybrid_gi")
-    .with_capability("runtime.render.advanced.hybrid_gi")
+    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
+    .with_capability(HYBRID_GI_RUNTIME_CAPABILITY)
+    .with_capability(HYBRID_GI_ADVANCED_RENDER_CAPABILITY)
+    .build()
 }
 
-pub fn runtime_plugin() -> HybridGiRuntimePlugin {
-    HybridGiRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(HybridGiRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.hybrid_gi",
-        "runtime.render.advanced.hybrid_gi",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]
@@ -218,6 +208,11 @@ mod tests {
                 zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
                 zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
+        );
+        assert_eq!(report.package_manifest.category, "rendering");
+        assert_eq!(
+            report.package_manifest.maturity,
+            zircon_runtime::plugin::PluginMaturity::Experimental
         );
         assert!(report
             .package_manifest

@@ -39,8 +39,11 @@ related_code:
   - zircon_hub/src/state/hub_message/message.rs
   - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
   - zircon_plugins/net/features/http/runtime/src/backend/client.rs
+  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/document/read.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
 implementation_files:
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
@@ -73,6 +76,7 @@ implementation_files:
   - docs/engine-architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
   - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
@@ -81,7 +85,7 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - docs/engine-architecture/runtime-reference-engine-evidence.md
 tests:
-  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - hard_cutover_migration_smells gate status, explicit count fields, classification count, migration debt, allowed bridge count, and unclassified reference checks
@@ -109,17 +113,17 @@ The structural audit now reports `hard_cutover_migration_smells.hard_cutover_gat
 
 Current evidence:
 
-- `source_file_count = 6145`
-- `legacy_reference_count = 148`
+- `source_file_count = 8520`
+- `legacy_reference_count = 152`
 - `compat_reference_count = 0`
 - `shim_reference_count = 0`
-- `bridge_reference_count = 312`
-- `allowed_business_bridge_reference_count = 312`
+- `bridge_reference_count = 316`
+- `allowed_business_bridge_reference_count = 316`
 - `migration_bridge_smell_count = 0`
-- `smell_decision_count = 148`
-- `smell_decision_group_count = 5`
-- `classification_count = 5`
-- `hard_cutover_migration_debt_count = 5`
+- `smell_decision_count = 152`
+- `smell_decision_group_count = 6`
+- `classification_count = 6`
+- `hard_cutover_migration_debt_count = 6`
 - `unclassified_location_count = 0`
 - `unclassified_locations = []`
 
@@ -129,7 +133,8 @@ Current classification:
 - `legacy-runtime-graphics-debt = 30`
 - `legacy-hub-message-archived-text-debt = 58`
 - `legacy-net-hyper-client-api-debt = 1`
-- `legacy-editor-ui-fixture-debt = 3`
+- `legacy-runtime-scene-document-debt = 2`
+- `legacy-editor-ui-fixture-debt = 5`
 
 The classification means every current hard-cutover smell has an explicit owner group. It does not mean the runtime is converged.
 
@@ -152,6 +157,8 @@ Any future `unclassified-hard-cutover-smell` is a review blocker. Classify it wi
 `legacy-hub-message-archived-text-debt` belongs to the Hub message archived-text compatibility owner. The target language should rename Hub message text constructors, enum variants, fixtures, and build-action helpers to explicit archived/raw text policy terminology during the Hub support slice instead of keeping generic legacy labels.
 
 `legacy-net-hyper-client-api-debt` belongs to the Net plugin HTTP backend dependency owner. The current hit is the third-party `hyper_util::client::legacy::Client` API path in the HTTP backend; wrap or rename that dependency edge as an explicit HTTP backend policy when the Net plugin backend is next touched.
+
+`legacy-runtime-scene-document-debt` belongs to the Runtime 05 dynamic scene document owner. The current hits are the `legacy` module declaration and import for older project documents; the follow-up should rename that surface to explicit archived or v1 project document policy terminology during the scene serialization cutover.
 
 `legacy-editor-ui-fixture-debt` belongs to editor retained-host fixture and projection owners. These are stale labels and view IDs, not runtime compatibility contracts.
 

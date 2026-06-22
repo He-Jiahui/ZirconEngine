@@ -1,7 +1,11 @@
 use zircon_runtime::script::VmPluginManager;
 
+mod capability;
 mod module;
 
+pub use capability::{
+    RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_RUNTIME_CAPABILITY, ZR_VM_PROJECT_BACKEND_CAPABILITY,
+};
 pub use module::{
     module_descriptor, ZrVmLanguageBackendRegistration, ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME,
     ZR_VM_LANGUAGE_MODULE_NAME,
@@ -53,7 +57,7 @@ pub fn register_zr_vm_backend(manager: &VmPluginManager) -> String {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "ZrVM Language",
         zircon_runtime::builtin::RuntimePluginId::ZrVmLanguage,
@@ -67,39 +71,23 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_enabled_by_default(false)
-    .with_capability("runtime.plugin.zr_vm_language")
-    .with_capability("runtime.script.backend.zr_vm_project")
+    .with_capability(ZR_VM_LANGUAGE_RUNTIME_CAPABILITY)
+    .with_capability(ZR_VM_PROJECT_BACKEND_CAPABILITY)
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.plugin.zr_vm_language",
+        ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.script.backend.zr_vm_project",
+        ZR_VM_PROJECT_BACKEND_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .build()
 }
 
-pub fn runtime_plugin() -> ZrVmLanguageRuntimePlugin {
-    ZrVmLanguageRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(ZrVmLanguageRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.zr_vm_language",
-        "runtime.script.backend.zr_vm_project",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

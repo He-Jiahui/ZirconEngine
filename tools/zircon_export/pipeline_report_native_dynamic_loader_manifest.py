@@ -55,6 +55,11 @@ def native_dynamic_loader_manifest_plugins_or_diagnostics(
                 f"{label} plugins[{index}].id must be a non-empty string"
             )
             continue
+        if plugin_id.strip() != plugin_id:
+            diagnostics.append(
+                f"{label} plugins[{index}].id must be a non-empty trimmed string"
+            )
+            continue
         plugin_has_diagnostics = False
         for field in plugin:
             if field not in NATIVE_DYNAMIC_LOADER_MANIFEST_PLUGIN_FIELDS:
@@ -73,6 +78,16 @@ def native_dynamic_loader_manifest_plugins_or_diagnostics(
             ):
                 diagnostics.append(
                     f"{label} plugins[{index}].{field} must be a non-empty string"
+                )
+                plugin_has_diagnostics = True
+            elif (
+                field in plugin
+                and isinstance(plugin.get(field), str)
+                and str(plugin.get(field)).strip() != str(plugin.get(field))
+            ):
+                diagnostics.append(
+                    f"{label} plugins[{index}].{field} "
+                    "must be a non-empty trimmed string"
                 )
                 plugin_has_diagnostics = True
         plugin_abi = plugin.get("abi")
@@ -183,5 +198,10 @@ def native_dynamic_loader_manifest_abi_field_type_diagnostics(
                 diagnostics[field] = (
                     f"{label} plugin {plugin_id} abi.{field} "
                     "must be a non-empty string"
+                )
+            elif plugin_value.strip() != plugin_value:
+                diagnostics[field] = (
+                    f"{label} plugin {plugin_id} abi.{field} "
+                    "must be a non-empty trimmed string"
                 )
     return diagnostics

@@ -31,8 +31,14 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/attributes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entries.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entry.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
@@ -76,8 +82,14 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/attributes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entries.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entry.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
@@ -110,7 +122,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup text-search keyboard baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup Home/End keyboard boundary baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 touched DragOverlay Workbench/native Rust files (2026-06-15: passed after M3.S4 DragOverlay Workbench/native parity baseline)
@@ -225,7 +237,7 @@ Projection accepts both retained names and source-compatible names. `pane_compon
 
 `pane_component_projection::popup_frame.rs` now recognizes `context-menu`, `context-action-menu`, `dropdown-popup`, and `notification-center` as anchor-positioned overlay roles. That means `TemplatePaneNodeData.frame` is already the projected popup frame when these shell nodes carry `popup_anchor_x`/`popup_anchor_y`; native painter, hit-test, keyboard navigation, and outside-dismiss code must consume that frame as popup geometry rather than re-deriving another trigger-relative frame.
 
-`pane_component_projection/notification_center.rs` maps `NotificationCenter.notifications` into the same structured option model for native painting. Entries may be pipe strings or TOML tables; id/title/message/tone/unread/disabled values are preserved, `selected_notification_id` marks the selected row, `focused_index` marks the focused row, and `visible_limit` clamps the projected row count before the native painter receives it.
+`pane_component_projection/notification_center/` maps `NotificationCenter.notifications` into the same structured option model for native painting. `parse.rs` accepts pipe strings, TOML tables, and arrays; `entry.rs` keeps the row identity/title/message/tone/unread/disabled model; `entries.rs` applies `visible_limit`; and `options.rs` maps `selected_notification_id` plus `focused_index` into retained-host structured rows before the native painter receives them.
 
 ## DragOverlay Metadata
 

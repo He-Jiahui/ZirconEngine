@@ -10,6 +10,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from .export_template import is_safe_relative_path, normalize_relative_path
 from .report_io import write_report_targets
 from .stage_handoff import (
     validate_report_asset_filter,
@@ -20,6 +21,8 @@ from .stage_handoff import (
 REPORT_FILE_NAME = "report.json"
 COOKED_ASSET_MANIFEST_NAME = "assets.json"
 RES_ASSET_REFERENCE_RE = re.compile(r"res://[A-Za-z0-9_./\\-]+(?:#[A-Za-z0-9_./\\-]+)?")
+ASSET_MANIFEST_FIELDS = ("asset_filter", "assets", "roots")
+ASSET_MANIFEST_ASSET_FIELDS = ("dependencies", "labels", "path", "source")
 
 
 def run_cook_assets(args: argparse.Namespace) -> int:
@@ -116,10 +119,15 @@ def run_cook_assets(args: argparse.Namespace) -> int:
     manifest: dict[str, Any] | None = None
     generated_from_project = False
     project_default_scene: str | None = None
+    project_source_manifest: Path | None = None
     if diagnostics:
         manifest = None
     elif source_manifest is None and project_manifest is not None:
-        manifest, project_default_scene = project_default_scene_manifest(
+        (
+            manifest,
+            project_default_scene,
+            project_source_manifest,
+        ) = project_default_scene_manifest(
             project_manifest,
             default_asset_filter,
             diagnostics,
@@ -162,7 +170,11 @@ def run_cook_assets(args: argparse.Namespace) -> int:
         "profile": args.profile,
         "fatal": fatal,
         "diagnostics": diagnostics,
-        "source_asset_manifest": str(source_manifest) if source_manifest else None,
+        "source_asset_manifest": (
+            str(source_manifest or project_source_manifest)
+            if source_manifest or project_source_manifest
+            else None
+        ),
         "project_manifest": str(project_manifest) if project_manifest else None,
         "generated_from_project": generated_from_project,
         "project_default_scene": project_default_scene,
@@ -188,7 +200,7 @@ def resolve_cook_assets_optional_path(
 ) -> Path | None:
     if value is None:
         return None
-    if not isinstance(value, (str, Path)) or not str(value):
+    if not isinstance(value, (str, Path)) or not str(value).strip():
         diagnostics.append(f"CookAssets {label} argument must be a non-empty path")
         return None
     try:
@@ -201,7 +213,7 @@ def resolve_cook_assets_optional_path(
 def asset_filter_argument_diagnostic(asset_filter: Any) -> str | None:
     if asset_filter is None:
         return None
-    if not isinstance(asset_filter, str) or not asset_filter:
+    if not isinstance(asset_filter, str) or not asset_filter.strip():
         return "asset_filter argument must be a non-empty string"
     return None
 
@@ -237,21 +249,39 @@ def project_default_scene_manifest(
     project_manifest: Path,
     default_asset_filter: str | None,
     diagnostics: list[str],
-) -> tuple[dict[str, Any] | None, str | None]:
+) -> tuple[dict[str, Any] | None, str | None, Path | None]:
     document = load_project_manifest(project_manifest, diagnostics)
     if document is None:
-        return None, None
+        return None, None, None
 
     default_scene = document.get("default_scene")
     if not isinstance(default_scene, str) or not default_scene:
         diagnostics.append(
             f"project manifest {project_manifest} needs a non-empty default_scene"
         )
-        return None, None
+        return None, None, None
+
+    project_source_manifest = project_asset_manifest_path(
+        project_manifest,
+        document,
+        diagnostics,
+    )
+    if "asset_manifest" in document:
+        if project_source_manifest is None:
+            return None, default_scene, None
+        manifest = load_cooked_asset_manifest(project_source_manifest, diagnostics)
+        if manifest is not None and not diagnostics:
+            manifest = normalized_cooked_asset_manifest(
+                manifest,
+                project_source_manifest.parent,
+                diagnostics,
+            )
+            manifest = manifest_with_default_asset_filter(manifest, default_asset_filter)
+        return manifest, default_scene, project_source_manifest
 
     package_path = project_asset_package_path(default_scene, diagnostics)
     if package_path is None:
-        return None, default_scene
+        return None, default_scene, None
 
     source_path = project_manifest.parent / "assets" / Path(*package_path.split("/"))
     resolved_source_path = resolve_asset_source_path(
@@ -282,7 +312,39 @@ def project_default_scene_manifest(
     if default_asset_filter:
         asset["labels"] = [default_asset_filter]
         manifest["asset_filter"] = default_asset_filter
-    return manifest, default_scene
+    return manifest, default_scene, None
+
+
+def project_asset_manifest_path(
+    project_manifest: Path,
+    document: dict[str, Any],
+    diagnostics: list[str],
+) -> Path | None:
+    value = document.get("asset_manifest")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        diagnostics.append(
+            f"project manifest {project_manifest} asset_manifest must be a non-empty path"
+        )
+        return None
+    if value != value.strip():
+        diagnostics.append(
+            f"project manifest {project_manifest} asset_manifest must be a trimmed path"
+        )
+        return None
+    normalized = normalize_relative_path(value)
+    if not normalized or not is_safe_relative_path(normalized):
+        diagnostics.append(
+            f"project manifest {project_manifest} asset_manifest {value} "
+            "must be a safe relative path"
+        )
+        return None
+    return resolve_asset_source_path(
+        "project asset_manifest",
+        project_manifest.parent / Path(*normalized.split("/")),
+        diagnostics,
+    )
 
 
 def project_direct_reference_assets(
@@ -419,27 +481,52 @@ def project_asset_package_path(
             f"{label} {asset_uri} must use a res:// asset URI for CookAssets fallback"
         )
         return None
-    package_path = asset_uri[len("res://") :].replace("\\", "/").lstrip("/")
-    parts = [part for part in package_path.split("/") if part]
-    if not parts or any(part in (".", "..") for part in parts):
+    package_path = asset_uri[len("res://") :]
+    if not is_safe_asset_package_path(package_path):
         diagnostics.append(
             f"{label} {asset_uri} does not resolve to a safe asset path"
         )
         return None
-    return "/".join(parts)
+    return normalized_asset_package_path(package_path)
 
 
 def validate_asset_manifest_shape(
     manifest: dict[str, Any],
     diagnostics: list[str],
 ) -> None:
+    diagnostics.extend(
+        table_unknown_field_diagnostics(
+            "asset manifest",
+            manifest,
+            ASSET_MANIFEST_FIELDS,
+        )
+    )
     roots = manifest.get("roots", [])
-    if not isinstance(roots, list) or any(not isinstance(root, str) for root in roots):
+    if not isinstance(roots, list):
         diagnostics.append("asset manifest field roots must be a string array")
+    else:
+        for index, root in enumerate(roots):
+            if not isinstance(root, str):
+                diagnostics.append(
+                    f"asset manifest field roots entry {index} must be a string"
+                )
+            elif not root.strip():
+                diagnostics.append(
+                    f"asset manifest field roots entry {index} must be a non-empty string"
+                )
+            elif not is_safe_asset_package_path(root):
+                diagnostics.append(
+                    f"asset manifest field roots entry {index} "
+                    "must be a safe relative asset path"
+                )
 
     asset_filter = manifest.get("asset_filter")
     if asset_filter is not None and not isinstance(asset_filter, str):
         diagnostics.append("asset manifest field asset_filter must be a string when present")
+    elif isinstance(asset_filter, str) and not asset_filter.strip():
+        diagnostics.append(
+            "asset manifest field asset_filter must be a non-empty string when present"
+        )
 
     assets = manifest.get("assets")
     if not isinstance(assets, list):
@@ -451,17 +538,34 @@ def validate_asset_manifest_shape(
         if not isinstance(asset, dict):
             diagnostics.append(f"asset manifest entry {index} must be an object")
             continue
+        diagnostics.extend(
+            table_unknown_field_diagnostics(
+                f"asset manifest entry {index}",
+                asset,
+                ASSET_MANIFEST_ASSET_FIELDS,
+            )
+        )
         path = asset.get("path")
-        if not isinstance(path, str) or not path:
+        if not isinstance(path, str) or not path.strip():
             diagnostics.append(f"asset manifest entry {index} needs a non-empty path")
-        elif path in seen_paths:
-            diagnostics.append(f"asset manifest path {path} is declared more than once")
         else:
-            seen_paths.add(path)
+            normalized_path = normalized_asset_package_path(path)
+            if not is_safe_asset_package_path(path):
+                diagnostics.append(
+                    f"asset manifest entry {index} path must be a safe relative asset path"
+                )
+            elif normalized_path in seen_paths:
+                diagnostics.append(
+                    f"asset manifest path {normalized_path} is declared more than once"
+                )
+            else:
+                seen_paths.add(normalized_path)
 
         validate_optional_string(asset, "source", index, diagnostics)
         validate_optional_string_array(asset, "dependencies", index, diagnostics)
         validate_optional_string_array(asset, "labels", index, diagnostics)
+
+    validate_asset_manifest_reference_closure(manifest, diagnostics)
 
 
 def normalized_cooked_asset_manifest(
@@ -470,27 +574,39 @@ def normalized_cooked_asset_manifest(
     diagnostics: list[str],
 ) -> dict[str, Any]:
     normalized = dict(manifest)
+    asset_filter = normalized.get("asset_filter")
+    if isinstance(asset_filter, str):
+        normalized["asset_filter"] = asset_filter.strip()
     roots = normalized.get("roots")
     if isinstance(roots, list):
-        normalized["roots"] = sorted(set(roots))
+        normalized["roots"] = sorted(
+            set(normalized_asset_package_path(root) for root in roots)
+        )
     normalized_assets: list[dict[str, Any]] = []
     for index, asset in enumerate(manifest.get("assets", [])):
         normalized_asset = dict(asset)
+        asset_path = normalized_asset.get("path")
+        if isinstance(asset_path, str):
+            normalized_asset["path"] = normalized_asset_package_path(asset_path)
         dependencies = normalized_asset.get("dependencies")
         if isinstance(dependencies, list):
-            normalized_asset["dependencies"] = sorted(set(dependencies))
+            normalized_asset["dependencies"] = sorted(
+                set(normalized_asset_package_path(dependency) for dependency in dependencies)
+            )
         labels = normalized_asset.get("labels")
         if isinstance(labels, list):
-            normalized_asset["labels"] = sorted(set(labels))
+            normalized_asset["labels"] = sorted(set(label.strip() for label in labels))
         source = normalized_asset.get("source")
         if isinstance(source, str) and source:
+            source = source.strip()
+            normalized_asset["source"] = source
             source_path = Path(source)
             if not source_path.is_absolute():
-                asset_path = normalized_asset.get("path")
-                if not isinstance(asset_path, str) or not asset_path:
-                    asset_path = f"entry {index}"
+                normalized_asset_path = normalized_asset.get("path")
+                if not isinstance(normalized_asset_path, str) or not normalized_asset_path:
+                    normalized_asset_path = f"entry {index}"
                 resolved_source_path = resolve_asset_source_path(
-                    asset_path,
+                    normalized_asset_path,
                     source_manifest_dir / source_path,
                     diagnostics,
                 )
@@ -522,7 +638,7 @@ def manifest_with_default_asset_filter(
     if not default_asset_filter or manifest.get("asset_filter") is not None:
         return manifest
     with_filter = dict(manifest)
-    with_filter["asset_filter"] = default_asset_filter
+    with_filter["asset_filter"] = default_asset_filter.strip()
     return with_filter
 
 
@@ -559,6 +675,11 @@ def validate_optional_string(
     value = asset.get(field_name)
     if value is not None and not isinstance(value, str):
         diagnostics.append(f"asset manifest entry {index} field {field_name} must be a string")
+    elif isinstance(value, str) and not value.strip():
+        diagnostics.append(
+            f"asset manifest entry {index} field {field_name} "
+            "must be a non-empty string when present"
+        )
 
 
 def validate_optional_string_array(
@@ -568,9 +689,100 @@ def validate_optional_string_array(
     diagnostics: list[str],
 ) -> None:
     value = asset.get(field_name, [])
-    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+    if not isinstance(value, list):
         diagnostics.append(f"asset manifest entry {index} field {field_name} must be a string array")
+        return
+    type_diagnostics = [
+        f"asset manifest entry {index} field {field_name} entry {entry_index} "
+        "must be a string"
+        for entry_index, item in enumerate(value)
+        if not isinstance(item, str)
+    ]
+    if type_diagnostics:
+        diagnostics.extend(type_diagnostics)
+        return
+    for entry_index, item in enumerate(value):
+        if not item.strip():
+            diagnostics.append(
+                f"asset manifest entry {index} field {field_name} entry {entry_index} "
+                "must be a non-empty string"
+            )
+        elif field_name == "dependencies" and not is_safe_asset_package_path(item):
+            diagnostics.append(
+                f"asset manifest entry {index} field {field_name} entry {entry_index} "
+                "must be a safe relative asset path"
+            )
 
 
 def resolve_user_path(path: str | Path) -> Path:
     return Path(path).expanduser().resolve()
+
+
+def is_safe_asset_package_path(value: str) -> bool:
+    normalized = normalize_relative_path(value)
+    return bool(normalized) and is_safe_relative_path(normalized)
+
+
+def normalized_asset_package_path(value: str) -> str:
+    return normalize_relative_path(value)
+
+
+def table_unknown_field_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    known_fields: tuple[str, ...],
+) -> list[str]:
+    known_field_set = set(known_fields)
+    return [
+        f"{label} unknown field {field}"
+        for field in sorted(table)
+        if field not in known_field_set
+    ]
+
+
+def validate_asset_manifest_reference_closure(
+    manifest: dict[str, Any],
+    diagnostics: list[str],
+) -> None:
+    assets = manifest.get("assets")
+    roots = manifest.get("roots", [])
+    if not isinstance(assets, list) or not isinstance(roots, list):
+        return
+    if any(not isinstance(root, str) for root in roots):
+        return
+    asset_paths = {
+        normalized_path
+        for asset in assets
+        if isinstance(asset, dict)
+        for normalized_path in [safe_normalized_manifest_path(asset.get("path"))]
+        if normalized_path is not None
+    }
+    for root in roots:
+        normalized_root = safe_normalized_manifest_path(root)
+        if normalized_root is None or normalized_root in asset_paths:
+            continue
+        diagnostics.append(
+            f"asset manifest root {normalized_root} is not declared in assets"
+        )
+    for index, asset in enumerate(assets):
+        if not isinstance(asset, dict):
+            continue
+        dependencies = asset.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            continue
+        for dependency in dependencies:
+            normalized_dependency = safe_normalized_manifest_path(dependency)
+            if normalized_dependency is None or normalized_dependency in asset_paths:
+                continue
+            diagnostics.append(
+                f"asset manifest entry {index} dependency "
+                f"{normalized_dependency} is not declared in assets"
+            )
+
+
+def safe_normalized_manifest_path(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    if not is_safe_asset_package_path(value):
+        return None
+    return normalized_asset_package_path(value)

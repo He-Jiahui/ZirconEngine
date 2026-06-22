@@ -1,8 +1,8 @@
 mod classification;
 mod rows;
 
-use super::super::RuntimePluginDescriptor;
 use super::rows::BuiltinCatalogRow;
+use super::BuiltinCatalogDescriptorBuilder;
 
 pub(super) fn is_language_descriptor(package_id: &str) -> bool {
     classification::is_language_descriptor(package_id)
@@ -10,8 +10,8 @@ pub(super) fn is_language_descriptor(package_id: &str) -> bool {
 
 pub(super) fn classify_language_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     classification::classify_language_descriptor(package_id, descriptor)
 }
 

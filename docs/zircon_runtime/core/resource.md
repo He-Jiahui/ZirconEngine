@@ -1,17 +1,25 @@
 ---
 related_code:
   - zircon_runtime/src/core/resource/mod.rs
+  - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/state.rs
   - zircon_runtime_interface/src/resource/diagnostic.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
+  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
@@ -20,15 +28,21 @@ implementation_files:
   - zircon_runtime_interface/src/resource/state.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 plan_sources:
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
+  - zircon_runtime/src/core/resource/tests.rs::registry_rename_reports_missing_locator_with_core_error
   - zircon_runtime/src/core/resource/tests.rs::manager_failed_reload_keeps_last_good_payload_and_emits_events
   - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_error_to_ready_without_reloading
   - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
   - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_core_error
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
 doc_type: module-detail
 ---
@@ -61,7 +75,13 @@ Failure reasons are stored in `ResourceRecord.diagnostics`. `ResourceRecord::fai
 
 This keeps `.zmeta`, artifact records, readiness reports, and facade failure displays on one diagnostic source. Runtime 04 deliberately did not add a separate `failure_reason` field to `ResourceRecord`; doing so would create a second persistence contract that could drift from the diagnostic list.
 
-The Runtime 04 `asset_pipeline_boundary` mirror currently reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+## Registry Rename Errors
+
+F6 core resource registry typed errors closes the remaining `Result<_, String>` rename path inside this owner. `ResourceRegistry::rename(...)` and `ResourceManager::rename(...)` return `CoreResult<ResourceRecord>` and report missing records with `CoreError::MissingResourceRecordForLocator` or `CoreError::MissingResourceRecordForId` instead of `Err(format!())`.
+
+The rename path resolves the source locator and record before mutating locator indexes, so the missing-record error path does not remove the original locator mapping as a side effect. `registry_rename_reports_missing_locator_with_core_error` covers the missing locator branch, while `review_f6_core_resource_registry_rename_uses_core_error` locks the source signature and documentation anchors. Status is recorded as `core_resource_registry_typed_errors_coremin_check_passed`; broader Runtime 02 core/root/generated/export_build_plan/app/editor/plugin gates remain pending.
+
+The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
 
 ## Facade Projection
 

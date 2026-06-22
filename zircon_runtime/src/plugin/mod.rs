@@ -57,9 +57,9 @@ pub use runtime_plugin::{
     RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
-    RuntimePluginDescriptor, RuntimePluginFeature, RuntimePluginFeatureBlock,
-    RuntimePluginFeatureDependencyReport, RuntimePluginFeatureRegistrationReport,
-    RuntimePluginRegistrationReport,
+    RuntimePluginDescriptor, RuntimePluginDescriptorBuilder, RuntimePluginFeature,
+    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,

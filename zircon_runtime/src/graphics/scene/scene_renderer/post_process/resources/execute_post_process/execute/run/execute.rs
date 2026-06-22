@@ -7,9 +7,9 @@ use super::super::super::super::super::scene_post_process_resources::ScenePostPr
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 use super::super::build_post_process_params::build_post_process_params;
 use super::super::create_bind_group::create_bind_group;
+use super::super::create_post_process_params_buffer;
 use super::super::write_hybrid_gi_buffers::write_hybrid_gi_buffers;
 use super::super::write_reflection_probes::write_reflection_probes;
-use super::queue_post_process_params::queue_post_process_params;
 use super::record_pass::record_pass;
 
 impl ScenePostProcessResources {
@@ -100,7 +100,12 @@ impl ScenePostProcessResources {
             params.effect_dither_ssr[2] = 0.0;
         }
         params.effect_flags[1] = effect_lut.binding_mode.shader_id();
-        queue_post_process_params(self, queue, &params);
+        let params_buffer = create_post_process_params_buffer(
+            device,
+            queue,
+            "zircon-post-process-pass-params",
+            &params,
+        );
         let resolved_screen_space_reflection_history_view = if skip_scene_composite {
             &self.black_texture_view
         } else {
@@ -110,6 +115,7 @@ impl ScenePostProcessResources {
         let bind_group = create_bind_group(
             self,
             device,
+            &params_buffer,
             scene_color_view,
             scene_depth_view,
             motion_vector_neighbor_max_view,

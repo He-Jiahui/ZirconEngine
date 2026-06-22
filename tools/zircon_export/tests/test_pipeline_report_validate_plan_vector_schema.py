@@ -44,7 +44,7 @@ class PipelineReportValidatePlanVectorSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report plan_summary.enabled_runtime_plugins must be a string array"
+                    "validate report plan_summary.enabled_runtime_plugins[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -80,7 +80,7 @@ class PipelineReportValidatePlanVectorSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report plan_summary.linked_runtime_crates must be a string array"
+                    "validate report plan_summary.linked_runtime_crates[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -116,7 +116,7 @@ class PipelineReportValidatePlanVectorSchemaTests(unittest.TestCase):
             self.assertEqual(report["fatal_stages"], ["Validate"])
             self.assertTrue(
                 any(
-                    "validate report plan_summary.native_dynamic_packages must be a string array"
+                    "validate report plan_summary.native_dynamic_packages[1] must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),

@@ -7,7 +7,7 @@ mod surface;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_icon_button_commands;
 
 #[cfg(test)]
-#[path = "template_icon_buttons_tests.rs"]
+#[path = "template_icon_buttons_tests/mod.rs"]
 mod tests;
 
 #[cfg(test)]

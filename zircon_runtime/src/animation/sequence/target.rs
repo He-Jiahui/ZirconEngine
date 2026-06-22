@@ -16,6 +16,6 @@ pub(super) fn resolve_sequence_target_id(
         .or_else(|| {
             EntityPath::parse(target_id)
                 .ok()
-                .and_then(|path| world.resolve_entity_path(&path))
+                .and_then(|path| world.get_entity_by_path(&path))
         })
 }

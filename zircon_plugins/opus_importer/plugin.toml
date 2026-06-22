@@ -1,0 +1,39 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
+id = "opus_importer"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Opus Audio Importer"
+category = "asset_importer"
+description = "Runtime Opus audio importer package backed by a native-dynamic decoder."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.opus_importer",
+    "runtime.asset.importer.audio.opus",
+]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "opus_importer.opus"
+plugin_id = "opus_importer"
+priority = 130
+source_extensions = ["opus"]
+output_kind = "Sound"
+importer_version = 1
+required_capabilities = [
+    "runtime.asset.importer.audio.opus",
+    "runtime.asset.importer.native",
+]
+
+[[modules]]
+name = "opus_importer.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_opus_importer_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.opus_importer",
+    "runtime.asset.importer.audio.opus",
+]

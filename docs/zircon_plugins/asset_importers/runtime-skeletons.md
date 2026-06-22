@@ -11,26 +11,33 @@ related_code:
   - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/obj_importer/plugin.toml
   - zircon_plugins/obj_importer/runtime/Cargo.toml
   - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/plugin.rs
   - zircon_plugins/opus_importer/runtime/Cargo.toml
   - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/plugin.rs
   - zircon_plugins/shader_wgsl_importer/plugin.toml
   - zircon_plugins/shader_wgsl_importer/runtime/Cargo.toml
   - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/Cargo.toml
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
-  - zircon_plugins/asset_importers/model/runtime/src/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests/mod.rs
@@ -43,8 +50,13 @@ related_code:
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
+  - plugin_structure_audits/registration.py
+  - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
@@ -56,26 +68,33 @@ implementation_files:
   - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/obj_importer/plugin.toml
   - zircon_plugins/obj_importer/runtime/Cargo.toml
   - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/plugin.rs
   - zircon_plugins/opus_importer/runtime/Cargo.toml
   - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/plugin.rs
   - zircon_plugins/shader_wgsl_importer/plugin.toml
   - zircon_plugins/shader_wgsl_importer/runtime/Cargo.toml
   - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/Cargo.toml
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
-  - zircon_plugins/asset_importers/model/runtime/src/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests/mod.rs
@@ -88,8 +107,13 @@ implementation_files:
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
+  - plugin_structure_audits/registration.py
+  - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 plan_sources:
   - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
@@ -162,6 +186,9 @@ tests:
   - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
   - 2026-06-04: Model Asset Importer runtime root/test split static checks: rustfmt check, diff hygiene, trailing-whitespace scan, and conflict-marker scan over `model/runtime/src/{lib.rs,registration.rs,mesh_importer.rs,cad.rs,tests/*}` plus this doc/session note passed; focused Cargo validation is pending while other Cargo/rustc lanes are active.
+  - 2026-06-23: Plugins 12 M3/T1 importer family registration cutover: `asset_importers/{data,model,shader}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; `asset_importers/*` public `pub fn register(...)` scan is empty; `audit_plugin_structure.py --json` reports `registration_conformance.m3_t1_gate_status=family-single-entry-clean`; `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_data_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never` passed with existing runtime warnings.
+  - 2026-06-22: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never registration_contributes_stl_ply_and_dxf_importers -- --test-threads=1 --nocapture was blocked by unrelated zircon_runtime MaterialCaptureSeed / MaterialRuntime::capture_seed lib-test drift after an earlier 904s timeout without a test result.
+  - 2026-06-23: Plugins 12 M3/T1 split importer registration cutover: `zircon_plugins/{gltf_importer,obj_importer,texture_importer,audio_importer,opus_importer,shader_wgsl_importer,ui_document_importer}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; split importer public `pub fn register(...)` scan is empty; `audit_plugin_structure.py --json` reports `registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean` and aggregate `m3_importer_gate_status=importer-single-entry-clean`; split importer focused cargo check passed with existing zircon_runtime warnings.
   - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
   - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the UI binary document backend dependency)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)
@@ -190,9 +217,9 @@ The new root-level packages match the independent plugin plan's finer package id
 
 These packages carry `plugin.toml` manifests, runtime workspace members, runtime module manifest
 entries, capability-gated `AssetImporterDescriptor` rows, `ProjectPluginSelection` helpers, and
-`RuntimePluginRegistrationReport` smoke surfaces. They are the package-selection and capability
-surface that export planning and plugin enablement should target for glTF, OBJ, texture, audio,
-WGSL shader, and UI document import.
+trait-backed `RuntimePlugin` entries in `runtime/src/plugin.rs`. They are the package-selection and
+capability surface that export planning and plugin enablement should target for glTF, OBJ, texture,
+audio, Opus, WGSL shader, and UI document import.
 
 The older family packages still exist as migration packages:
 
@@ -206,7 +233,9 @@ Most family crates remain declaration aggregators during migration so existing w
 callers do not lose their importer declarations while the split package ids are adopted. The model,
 data, and shader family crates are the current exceptions: model owns real STL/PLY mesh interchange
 backends plus a DXF CAD mesh-surface backend, data owns real TOML/JSON/YAML/XML backends, and shader
-owns the real Naga-backed WGSL/GLSL/SPIR-V path.
+owns the real Naga-backed WGSL/GLSL/SPIR-V path. As of Plugins 12 M3/T1, those three family crates
+and the root-level split importers use `src/plugin.rs` as the single RuntimePlugin registration
+owner; the importer public free-function registration audit is clean for both tracks.
 
 ## Public Surface
 
@@ -228,10 +257,16 @@ Each runtime-backed importer crate exposes:
 - `package_manifest()`
 - `runtime_selection()`
 - `plugin_registration()`
-- `register(...)`
 
 The package manifest records the runtime crate, editor/client targets, platform support, package
 capabilities, and the `AssetImporterDescriptor` rows for that importer package.
+
+Importer runtime crates no longer expose public `pub fn register(...)` free functions. For
+`asset_importers/{data,model,shader}` and the root-level split importers, `plugin_registration()`
+delegates to `RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())`,
+`runtime_selection()` is derived from the runtime descriptor, and direct registry mutation is private
+to `RuntimePlugin::register`. `asset_importers/audio` and `asset_importers/texture` still remain
+declaration-only skeleton migration debt, but they are not public registration owners.
 
 ## Boundaries
 
@@ -326,10 +361,10 @@ optional model containers such as FBX, DAE, 3DS, and USD-family extensions. STL 
 imports `3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces into `ModelAsset`
 primitives with generated virtual-geometry metadata; linework, curves, blocks, and solid-kernel BREP
 payloads remain outside this backend and produce no mesh output. The package root is a structural
-facade: `registration.rs` owns plugin descriptors, manifests, runtime selection, and registry wiring;
-`mesh_importer.rs` owns STL/PLY import plus shared model/mesh subasset packaging and virtual-geometry
-cooking; `cad.rs` owns DXF conversion and reuses the shared model mesh helpers; crate tests live under
-`tests/{registration,importers,support}.rs`.
+facade: `plugin.rs` owns the `ModelAssetImporterRuntimePlugin`, descriptors, manifest projection,
+runtime selection, and private registry wiring; `mesh_importer.rs` owns STL/PLY import plus shared
+model/mesh subasset packaging and virtual-geometry cooking; `cad.rs` owns DXF conversion and reuses
+the shared model mesh helpers; crate tests live under `tests/{registration,importers,support}.rs`.
 
 `texture` declares standard image inputs, real container/compressed texture declarations for DDS,
 KTX/KTX2, ASTC, and PSD, plus optional NativeDynamic declarations for cubemap and DXGI-style
@@ -340,12 +375,15 @@ now represented by the split `opus_importer` package.
 
 `shader` declares and registers real WGSL validation plus Naga-backed GLSL/SPIR-V conversion into
 normalized WGSL `ShaderAsset` payloads. Optional NativeDynamic shader toolchains for HLSL/CG/FX
-remain diagnostic until a toolchain backend is installed.
+remain diagnostic until a toolchain backend is installed. The `src/plugin.rs` owner contains the
+trait-backed runtime plugin entry and keeps importer descriptor registration private to the trait.
 
 `data` declares and registers runtime backends for TOML, JSON, YAML, YML, and XML data importers.
 The plugin emits `DataAsset` values with source text plus canonical JSON. YAML is decoded through
 `serde_yaml`; XML is decoded through `roxmltree` into a stable neutral element tree object so XML can
-participate in the same artifact path without pretending to be native JSON syntax.
+participate in the same artifact path without pretending to be native JSON syntax. The
+`src/plugin.rs` owner contains the trait-backed runtime plugin entry and keeps importer descriptor
+registration private to the trait.
 
 The split `ui_document_importer` runtime package also participates in this importer family at the
 package layer. Its `.ui.toml` path now preserves the UI schema migration report returned by

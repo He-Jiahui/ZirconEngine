@@ -74,6 +74,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 05 plan-status markdown direct import hard-cutover",
+        [
+            "runtime_plan_status_markdown.py",
+            "no longer imports or re-exports the Markdown renderer",
+            "plan_status_boundary_line_count = 451",
+            "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
         "Runtime 05 plan-status source helper split",
         [
             "runtime_plan_status_sources.py",

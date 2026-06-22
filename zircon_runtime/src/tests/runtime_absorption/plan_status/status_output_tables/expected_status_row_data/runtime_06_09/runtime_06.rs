@@ -20,6 +20,60 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 06 plugin surface/lifecycle Markdown renderer split",
+        [
+            "plugin_surface_lifecycle_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "plugin_surface_lifecycle_markdown.py",
+            "plugin_surface_lifecycle_boundary.py remains the 450-line audit/risk owner",
+            "Markdown owner is 144 lines",
+        ],
+    ),
+    (
+        "Runtime 06 F8 RuntimePluginDescriptor builder scaffold",
+        [
+            "runtime_plugin_descriptor_builder_scaffold_coremin_check_passed",
+            "RuntimePluginDescriptorBuilder",
+            "RuntimePluginDescriptor::builder(...).build()",
+            "RuntimePluginDescriptor public-field convergence remains pending",
+        ],
+    ),
+    (
+        "Runtime 06 F8 first-party RuntimePluginDescriptor builder migration",
+        [
+            "runtime_plugin_descriptor_first_party_builder_migration_coremin_check_passed",
+            "first-party runtime plugin descriptor production files 16/16",
+            "RuntimePluginDescriptor::builder(",
+            "RuntimePluginDescriptor public-field convergence remains pending",
+        ],
+    ),
+    (
+        "Runtime 06 F8 RuntimePluginDescriptor test fixture builder migration",
+        [
+            "runtime_plugin_descriptor_test_fixture_builder_migration_coremin_check_passed",
+            "plugin extension RuntimePluginDescriptor test fixtures 14/14",
+            "review_f8_runtime_plugin_descriptor_test_fixtures_use_builder",
+            "RuntimePluginDescriptor public-field convergence remains pending",
+        ],
+    ),
+    (
+        "Runtime 06 F8 RuntimePluginDescriptor public-field convergence",
+        [
+            "runtime_plugin_descriptor_public_field_convergence_coremin_check_passed",
+            "RuntimePluginDescriptor private fields 15/15",
+            "review_f8_runtime_plugin_descriptor_fields_are_private_with_accessors",
+            "RuntimePluginDescriptor public-field convergence complete",
+        ],
+    ),
+    (
+        "Runtime 06 F8 RuntimePluginDescriptor public constructor retired",
+        [
+            "runtime_plugin_descriptor_public_constructor_retired_coremin_check_passed",
+            "RuntimePluginDescriptor::new retired",
+            "descriptor/builder/construction.rs retired",
+            "review_f8_runtime_plugin_descriptor_public_constructor_is_retired",
+        ],
+    ),
+    (
         "Runtime 06 plugin::native hard-cutover",
         [
             "plugin::native",

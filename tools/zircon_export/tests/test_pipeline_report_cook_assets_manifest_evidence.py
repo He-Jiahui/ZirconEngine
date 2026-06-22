@@ -263,18 +263,238 @@ class PipelineReportCookAssetsManifestEvidenceTests(unittest.TestCase):
     ) -> None:
         cases = (
             (
+                {"roots": [], "assets": [], "unexpected": True},
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "unknown field unexpected"
+                ),
+            ),
+            (
                 {"roots": [42], "assets": []},
-                "cook_assets report cooked_asset_manifest roots must be a string array",
+                "cook_assets report cooked_asset_manifest roots[0] must be a string",
+            ),
+            (
+                {"roots": ["   "], "assets": []},
+                (
+                    "cook_assets report cooked_asset_manifest roots[0] "
+                    "must be a non-empty string"
+                ),
+            ),
+            (
+                {"roots": ["../escape.zscene"], "assets": []},
+                (
+                    "cook_assets report cooked_asset_manifest roots[0] "
+                    "must be a safe relative asset path"
+                ),
+            ),
+            (
+                {"roots": ["scenes\\main.zscene"], "assets": []},
+                (
+                    "cook_assets report cooked_asset_manifest roots[0] "
+                    "must use a normalized relative asset path"
+                ),
+            ),
+            (
+                {"roots": ["scenes/missing.zscene"], "assets": []},
+                (
+                    "cook_assets report cooked_asset_manifest root "
+                    "scenes/missing.zscene is not declared in assets"
+                ),
             ),
             (
                 {"roots": [], "assets": [42]},
                 "cook_assets report cooked_asset_manifest assets[0] must be an object",
             ),
             (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "unexpected": True,
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest assets[0] "
+                    "unknown field unexpected"
+                ),
+            ),
+            (
+                {"roots": [], "assets": [{"path": "   "}]},
+                (
+                    "cook_assets report cooked_asset_manifest assets[0].path "
+                    "must be a non-empty string"
+                ),
+            ),
+            (
+                {"roots": [], "assets": [{"path": "../escape.zscene"}]},
+                (
+                    "cook_assets report cooked_asset_manifest assets[0].path "
+                    "must be a safe relative asset path"
+                ),
+            ),
+            (
+                {"roots": [], "assets": [{"path": "scenes\\main.zscene"}]},
+                (
+                    "cook_assets report cooked_asset_manifest assets[0].path "
+                    "must use a normalized relative asset path"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {"path": "textures\\hero.png"},
+                        {"path": "textures/hero.png"},
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest asset path "
+                    "textures/hero.png is declared more than once"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "source": "   ",
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest assets[0].source "
+                    "must be a non-empty string when present"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "source": " C:/project/assets/main.scene ",
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest assets[0].source "
+                    "must be a non-empty trimmed string when present"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "dependencies": ["../escape.texture"],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].dependencies[0] must be a safe relative asset path"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "dependencies": ["textures\\hero.png"],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].dependencies[0] "
+                    "must use a normalized relative asset path"
+                ),
+            ),
+            (
+                {
+                    "roots": ["scenes/main.zscene"],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "dependencies": ["textures/missing.png"],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].dependencies[0] textures/missing.png "
+                    "is not declared in assets"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "dependencies": ["   "],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].dependencies[0] must be a non-empty string"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "labels": ["   "],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].labels[0] must be a non-empty string"
+                ),
+            ),
+            (
                 {"roots": [], "assets": [], "asset_filter": []},
                 (
                     "cook_assets report cooked_asset_manifest asset_filter "
                     "must be a string when present"
+                ),
+            ),
+            (
+                {"roots": [], "assets": [], "asset_filter": "   "},
+                (
+                    "cook_assets report cooked_asset_manifest asset_filter "
+                    "must be a non-empty string when present"
+                ),
+            ),
+            (
+                {"roots": [], "assets": [], "asset_filter": " shipping "},
+                (
+                    "cook_assets report cooked_asset_manifest asset_filter "
+                    "must be a non-empty trimmed string when present"
+                ),
+            ),
+            (
+                {
+                    "roots": [],
+                    "assets": [
+                        {
+                            "path": "scenes/main.zscene",
+                            "labels": [" shipping "],
+                        }
+                    ],
+                },
+                (
+                    "cook_assets report cooked_asset_manifest "
+                    "assets[0].labels[0] must be a non-empty trimmed string"
                 ),
             ),
         )

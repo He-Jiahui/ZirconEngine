@@ -6,7 +6,7 @@ use super::feature_manifest::{
 };
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Sound",
         zircon_runtime::builtin::RuntimePluginId::Sound,
@@ -27,4 +27,5 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     )
     .with_optional_feature(sound_timeline_animation_track_feature_manifest())
     .with_optional_feature(sound_ray_traced_convolution_reverb_feature_manifest())
+    .build()
 }

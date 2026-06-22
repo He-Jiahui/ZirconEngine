@@ -4,28 +4,30 @@ use crate::{
     plugin::PluginFeatureBundleManifest, plugin::PluginMaturity,
 };
 
+mod access;
 mod builder;
 mod package_manifest;
 mod project_selection;
 mod validation;
 
+pub use builder::RuntimePluginDescriptorBuilder;
 pub(super) use validation::validate_runtime_plugin_descriptor;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimePluginDescriptor {
-    pub package_id: String,
-    pub display_name: String,
-    pub category: String,
-    pub runtime_id: RuntimePluginId,
-    pub crate_name: String,
-    pub enabled_by_default: bool,
-    pub required_by_default: bool,
-    pub target_modes: Vec<RuntimeTargetMode>,
-    pub capabilities: Vec<String>,
-    pub system_sets: Vec<String>,
-    pub system_anchors: Vec<String>,
-    pub capability_statuses: Vec<CapabilityStatusManifest>,
-    pub maturity: PluginMaturity,
-    pub optional_features: Vec<PluginFeatureBundleManifest>,
-    pub default_packaging: Vec<ExportPackagingStrategy>,
+    package_id: String,
+    display_name: String,
+    category: String,
+    runtime_id: RuntimePluginId,
+    crate_name: String,
+    enabled_by_default: bool,
+    required_by_default: bool,
+    target_modes: Vec<RuntimeTargetMode>,
+    capabilities: Vec<String>,
+    system_sets: Vec<String>,
+    system_anchors: Vec<String>,
+    capability_statuses: Vec<CapabilityStatusManifest>,
+    maturity: PluginMaturity,
+    optional_features: Vec<PluginFeatureBundleManifest>,
+    default_packaging: Vec<ExportPackagingStrategy>,
 }

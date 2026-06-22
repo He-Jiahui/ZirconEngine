@@ -27,8 +27,15 @@ from .pipeline_report_native_dynamic_loader_manifest import (
 from .pipeline_report_native_dynamic_operation_audit_schema import (
     NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
 )
+from .pipeline_report_native_dynamic_payload_schema import (
+    native_dynamic_file_manifest_schema_diagnostics,
+    native_dynamic_materialized_packages_schema_diagnostics,
+)
 from .pipeline_report_native_dynamic_package_export_schema import (
     native_dynamic_package_export_schema_diagnostics,
+)
+from .pipeline_report_native_dynamic_report_hash_schema import (
+    native_dynamic_content_hash_is_schema_clean,
 )
 
 
@@ -53,6 +60,18 @@ def native_dynamic_stage_payload_diagnostics(
         or not isinstance(content_hash, str)
     ):
         return []
+    if native_dynamic_materialized_packages_schema_diagnostics(
+        "native_dynamic report",
+        report,
+    ):
+        return []
+    if native_dynamic_file_manifest_schema_diagnostics(
+        "native_dynamic report",
+        report,
+    ):
+        return []
+    if not native_dynamic_content_hash_is_schema_clean(content_hash):
+        return []
 
     try:
         stage_dir = report_path.expanduser().parent.resolve()
@@ -74,7 +93,11 @@ def native_dynamic_stage_payload_diagnostics(
 
     diagnostics: list[str] = []
     package_count = report.get("package_count")
-    if type(package_count) is int and package_count != len(materialized_packages):
+    if (
+        type(package_count) is int
+        and package_count >= 0
+        and package_count != len(materialized_packages)
+    ):
         diagnostics.append(
             "native_dynamic report package_count "
             f"{package_count} does not match materialized_packages "
@@ -161,9 +184,7 @@ def native_dynamic_stage_payload_diagnostics(
             report.get("native_plugin_root"),
         )
     )
-    if isinstance(selected_packages, list) and all(
-        isinstance(package_id, str) for package_id in selected_packages
-    ):
+    if native_dynamic_string_array_is_schema_clean(selected_packages):
         if selected_packages != materialized_package_ids:
             diagnostics.append(
                 "native_dynamic report native_dynamic_packages "
@@ -276,7 +297,9 @@ def native_dynamic_package_report_diagnostics(
     except OSError as error:
         return [f"native_dynamic report plugins_dir {plugins_dir} could not be resolved: {error}"]
     native_plugin_root_path: Path | None = None
-    if isinstance(native_plugin_root, str) and native_plugin_root:
+    if native_dynamic_trimmed_non_empty_string_is_schema_clean(
+        native_plugin_root
+    ):
         try:
             native_plugin_root_path = Path(native_plugin_root).expanduser().resolve()
         except OSError as error:
@@ -429,11 +452,20 @@ def native_dynamic_source_manifest_id(
             f"{source_label} manifest {source_manifest} could not be read: {error}"
         )
         return None
+    if "id" not in manifest:
+        diagnostics.append(f"{source_label} manifest id must be a non-empty string")
+        return None
     manifest_id = manifest.get("id")
-    if isinstance(manifest_id, str) and manifest_id:
-        return manifest_id
-    diagnostics.append(f"{source_label} manifest id must be a non-empty string")
-    return None
+    if not isinstance(manifest_id, str):
+        diagnostics.append(f"{source_label} manifest id must be a string")
+        return None
+    if not manifest_id:
+        diagnostics.append(f"{source_label} manifest id must be a non-empty string")
+        return None
+    if manifest_id.strip() != manifest_id:
+        diagnostics.append(f"{source_label} manifest id must be a non-empty trimmed string")
+        return None
+    return manifest_id
 
 
 def native_dynamic_loader_manifest_package_diagnostics(
@@ -767,7 +799,9 @@ def native_dynamic_build_execution_plan_diagnostics(
         if not isinstance(execution_package, dict):
             continue
         package_id = execution_package.get("package_id")
-        if not isinstance(package_id, str) or not package_id.strip():
+        if not native_dynamic_trimmed_non_empty_string_is_schema_clean(
+            package_id
+        ):
             continue
         plan_package = plan_packages.get(package_id)
         if plan_package is None:
@@ -824,13 +858,16 @@ def native_dynamic_build_execution_plan_field_diagnostics(
     execution_value = execution_package.get(field)
     if field == "command":
         if not (
-            isinstance(plan_value, list)
-            and all(isinstance(part, str) for part in plan_value)
-            and isinstance(execution_value, list)
-            and all(isinstance(part, str) for part in execution_value)
+            native_dynamic_command_array_is_schema_clean(plan_value)
+            and native_dynamic_command_array_is_schema_clean(execution_value)
         ):
             return []
-    elif not isinstance(plan_value, str) or not isinstance(execution_value, str):
+    elif not (
+        native_dynamic_trimmed_non_empty_string_is_schema_clean(plan_value)
+        and native_dynamic_trimmed_non_empty_string_is_schema_clean(
+            execution_value
+        )
+    ):
         return []
     if execution_value == plan_value:
         return []
@@ -868,10 +905,12 @@ def native_dynamic_build_execution_artifact_diagnostics(
         package_id = package.get("package_id")
         copied_artifact = package.get("copied_loadable_artifact")
         if (
-            not isinstance(package_id, str)
-            or not package_id.strip()
-            or not isinstance(copied_artifact, str)
-            or not copied_artifact.strip()
+            not native_dynamic_trimmed_non_empty_string_is_schema_clean(
+                package_id
+            )
+            or not native_dynamic_trimmed_non_empty_string_is_schema_clean(
+                copied_artifact
+            )
         ):
             continue
         package_expected_artifacts = expected_artifacts.get(package_id)
@@ -895,7 +934,9 @@ def native_dynamic_build_execution_artifact_diagnostics(
             continue
         package_native_dir = expected_native_dirs.get(package_id)
         for sidecar_index, copied_sidecar in enumerate(copied_sidecars):
-            if not isinstance(copied_sidecar, str) or not copied_sidecar.strip():
+            if not native_dynamic_trimmed_non_empty_string_is_schema_clean(
+                copied_sidecar
+            ):
                 continue
             copied_sidecar_path = native_dynamic_copied_artifact_bundle_path(
                 copied_sidecar,
@@ -925,6 +966,17 @@ def native_dynamic_build_execution_artifact_diagnostics(
                     "NativeDynamic plugins file_manifest"
                 )
     return diagnostics
+
+
+def native_dynamic_command_array_is_schema_clean(value: object) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(
+            isinstance(entry, str) and entry.strip() and entry.strip() == entry
+            for entry in value
+        )
+    )
 
 
 def native_dynamic_copied_artifact_bundle_path(
@@ -957,12 +1009,17 @@ def native_dynamic_package_table_diagnostics(
 
     diagnostics: list[str] = []
     package_count = table.get("package_count")
-    if type(package_count) is int and package_count != len(packages):
-        diagnostics.append(
-            f"native_dynamic report {field}.package_count {package_count} "
-            f"does not match {field}.packages {len(packages)}"
-        )
+    if type(package_count) is int:
+        if package_count < 0:
+            return diagnostics
+        if package_count != len(packages):
+            diagnostics.append(
+                f"native_dynamic report {field}.package_count {package_count} "
+                f"does not match {field}.packages {len(packages)}"
+            )
     if table.get("enabled") is False and package_count == 0 and packages == []:
+        return diagnostics
+    if not native_dynamic_package_ids_are_schema_clean(packages):
         return diagnostics
     package_ids = [str(package["package_id"]) for package in packages]
     if package_ids != materialized_package_ids:
@@ -971,6 +1028,51 @@ def native_dynamic_package_table_diagnostics(
             f"match materialized package ids {materialized_package_ids}"
         )
     return diagnostics
+
+
+def native_dynamic_string_array_is_schema_clean(value: object) -> bool:
+    return (
+        isinstance(value, list)
+        and all(
+            isinstance(entry, str) and entry.strip() and entry.strip() == entry
+            for entry in value
+        )
+        and len(set(value)) == len(value)
+    )
+
+
+def native_dynamic_trimmed_non_empty_string_is_schema_clean(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
+
+
+def native_dynamic_package_ids_are_schema_clean(
+    packages: list[object],
+) -> bool:
+    return all(
+        isinstance(package, dict)
+        and isinstance(package.get("package_id"), str)
+        and package["package_id"].strip()
+        and package["package_id"].strip() == package["package_id"]
+        for package in packages
+    )
+
+
+def native_dynamic_audit_artifacts_are_schema_clean(
+    artifacts: list[object],
+) -> bool:
+    return all(
+        isinstance(artifact, dict)
+        and isinstance(artifact.get("artifact"), str)
+        and artifact["artifact"].strip()
+        and artifact["artifact"].strip() == artifact["artifact"]
+        and isinstance(artifact.get("package_relative_artifact"), str)
+        and artifact["package_relative_artifact"].strip()
+        and (
+            artifact["package_relative_artifact"].strip()
+            == artifact["package_relative_artifact"]
+        )
+        for artifact in artifacts
+    )
 
 
 def native_dynamic_operation_audit_artifact_diagnostics(
@@ -993,6 +1095,10 @@ def native_dynamic_operation_audit_artifact_diagnostics(
         artifact_count = package.get("artifact_count")
         if not isinstance(package_id, str) or not isinstance(artifacts, list):
             continue
+        if type(artifact_count) is int and artifact_count < 0:
+            continue
+        if not native_dynamic_audit_artifacts_are_schema_clean(artifacts):
+            continue
         if not all(
             isinstance(artifact, dict)
             and isinstance(artifact.get("package_relative_artifact"), str)
@@ -1006,7 +1112,9 @@ def native_dynamic_operation_audit_artifact_diagnostics(
                 isinstance(artifact_path, str)
                 and isinstance(package_relative_artifact, str)
                 and package_id.strip()
+                and package_id.strip() == package_id
                 and package_relative_artifact.strip()
+                and package_relative_artifact.strip() == package_relative_artifact
             ):
                 continue
             expected_artifact = (
@@ -1022,12 +1130,15 @@ def native_dynamic_operation_audit_artifact_diagnostics(
         package_relative_artifacts = [
             str(artifact["package_relative_artifact"]) for artifact in artifacts
         ]
-        if type(artifact_count) is int and artifact_count != len(artifacts):
-            diagnostics.append(
-                f"native_dynamic report {field} package {package_id} "
-                f"artifact_count {artifact_count} does not match artifacts "
-                f"{len(artifacts)}"
-            )
+        if type(artifact_count) is int:
+            if artifact_count < 0:
+                continue
+            if artifact_count != len(artifacts):
+                diagnostics.append(
+                    f"native_dynamic report {field} package {package_id} "
+                    f"artifact_count {artifact_count} does not match artifacts "
+                    f"{len(artifacts)}"
+                )
         expected_artifacts = materialized_package_artifacts.get(package_id)
         if expected_artifacts is None:
             continue

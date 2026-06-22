@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
-pub(super) fn push_table_gear(
+pub(in super::super) fn push_table_gear(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
     clip: &FrameRect,

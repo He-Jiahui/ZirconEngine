@@ -1,3 +1,4 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
 id = "rendering"
 version = "0.1.0"
 display_name = "Rendering"
@@ -6,6 +7,7 @@ description = "Optional rendering feature owner package for post process, SSAO, 
 sdk_api_version = "0.1.0"
 maturity = "stable"
 supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.rendering"]
 default_packaging = ["source_template", "library_embed"]
 

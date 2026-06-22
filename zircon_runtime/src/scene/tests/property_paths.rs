@@ -55,7 +55,7 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     let morph_weight_path = ComponentPropertyPath::parse("MeshRenderer.morph_weights.1").unwrap();
 
     assert_eq!(world.entity_path(hero), Some(entity_path.clone()));
-    assert_eq!(world.resolve_entity_path(&entity_path), Some(hero));
+    assert_eq!(world.get_entity_by_path(&entity_path), Some(hero));
     assert_eq!(
         world.property(hero, &translation_path).unwrap(),
         ScenePropertyValue::Vec3([1.0, 2.0, 3.0])
@@ -184,10 +184,10 @@ fn world_entity_paths_suffix_duplicate_sibling_names() {
 
     assert_eq!(world.entity_path(first), Some(first_path.clone()));
     assert_eq!(world.entity_path(second), Some(second_path.clone()));
-    assert_eq!(world.resolve_entity_path(&first_path), Some(first));
-    assert_eq!(world.resolve_entity_path(&second_path), Some(second));
+    assert_eq!(world.get_entity_by_path(&first_path), Some(first));
+    assert_eq!(world.get_entity_by_path(&second_path), Some(second));
     assert_eq!(
-        world.resolve_entity_path(&EntityPath::parse("Root/Hero").unwrap()),
+        world.get_entity_by_path(&EntityPath::parse("Root/Hero").unwrap()),
         None
     );
 }
@@ -304,7 +304,11 @@ fn component_property_path_constructor_pre_sizes_raw_path_buffer() {
 #[test]
 fn world_entity_path_resolution_compares_target_segments_directly() {
     let path_resolution_source = include_str!("../world/property_access/path_resolution.rs");
+    let old_entity_path_lookup = ["resolve", "entity", "path"].join("_");
 
+    assert!(path_resolution_source
+        .contains("pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId>"));
+    assert!(!path_resolution_source.contains(&format!("pub fn {old_entity_path_lookup}")));
     assert!(path_resolution_source.contains("let target_segments = path.segments();"));
     assert!(path_resolution_source.contains("let mut entity_index = 0;"));
     assert!(path_resolution_source.contains("while entity_index < self.entities.len()"));

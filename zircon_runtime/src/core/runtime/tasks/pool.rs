@@ -5,6 +5,12 @@ use rayon::ThreadPool;
 
 use super::{TaskPoolDescriptor, TaskPoolKind};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum TaskPoolYield {
+    Executed,
+    Idle,
+}
+
 #[derive(Clone)]
 pub struct TaskPool {
     descriptor: TaskPoolDescriptor,
@@ -60,6 +66,13 @@ impl TaskPool {
     {
         self.pool.install(|| rayon::join(task_a, task_b))
     }
+}
+
+pub(super) fn assist_current_thread_once() -> Option<TaskPoolYield> {
+    rayon::yield_now().map(|result| match result {
+        rayon::Yield::Executed => TaskPoolYield::Executed,
+        rayon::Yield::Idle => TaskPoolYield::Idle,
+    })
 }
 
 impl fmt::Debug for TaskPool {

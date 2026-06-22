@@ -13,6 +13,10 @@ STAGE_OUTPUT_LOCATION_STAGES = {
 }
 
 
+def _is_non_empty_trimmed_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
+
+
 def stage_output_location_diagnostics(
     stage_key: str,
     report: dict[str, Any],
@@ -23,7 +27,7 @@ def stage_output_location_diagnostics(
         return []
     report_label, stage_label = location_labels
     stage_output = report.get("stage_output")
-    if not isinstance(stage_output, str) or not stage_output:
+    if not _is_non_empty_trimmed_string(stage_output):
         return []
 
     try:
@@ -60,7 +64,7 @@ def native_dynamic_plugins_dir_location_diagnostics(
         return []
 
     plugins_dir = report.get("plugins_dir")
-    if not isinstance(plugins_dir, str) or not plugins_dir:
+    if not _is_non_empty_trimmed_string(plugins_dir):
         return []
 
     try:
@@ -95,7 +99,7 @@ def native_dynamic_loader_manifest_location_diagnostics(
         return []
 
     loader_manifest = report.get("loader_manifest")
-    if not isinstance(loader_manifest, str) or not loader_manifest:
+    if not _is_non_empty_trimmed_string(loader_manifest):
         return []
 
     try:

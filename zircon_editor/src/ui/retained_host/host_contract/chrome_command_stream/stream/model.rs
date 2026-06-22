@@ -50,4 +50,12 @@ impl ChromeCommandStream {
     pub(in crate::ui::retained_host::host_contract) fn commands(&self) -> &[ChromeCommand] {
         &self.commands
     }
+
+    #[cfg(test)]
+    pub(in crate::ui::retained_host::host_contract) fn push_command_for_test(
+        &mut self,
+        command: ChromeCommand,
+    ) {
+        self.commands.push(command);
+    }
 }

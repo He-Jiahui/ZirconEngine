@@ -120,7 +120,7 @@ plan_sources:
 
 ### 模块与文件落点
 
-现状基础:契约层已有 `core/framework/render/image/`(`RenderImageColorSpace`/`RenderImageDescriptor`/`RenderImageDimension`/`RenderImageUsage`/sampler 族);资产层已有 `asset/assets/texture/`(`TextureAssetDescriptor::with_import_settings`、`TexturePayload::Container`、`upload_support` 的 KTX/DDS/ASTC 就绪判定、`TextureArrayLayout`);GPU 层已有 `gpu_texture/GpuTextureResource` 与 `resource_streamer_ensure_texture.rs`;导入器插件 `zircon_plugins/texture_importer` 已有 `import_image`/`import_psd`/`import_texture_container` 与 `container/ktx/{ktx1.rs,ktx2.rs,ktx2/dfd.rs}`。本计划的增量是:元数据权威化与校验、mip 离线/运行期生成、array/cube 资产、SVT 最小闭环、KTX2 transcode 接缝。
+现状基础:契约层已有 `core/framework/render/image/`(`RenderImageColorSpace`/`RenderImageDescriptor`/`RenderImageDimension`/`RenderImageUsage`/sampler 族);资产层已有 `asset/assets/texture/`(`TextureAssetDescriptor::apply_import_settings`、`TexturePayload::Container`、`upload_support` 的 KTX/DDS/ASTC 就绪判定、`TextureArrayLayout`);GPU 层已有 `gpu_texture/GpuTextureResource` 与 `resource_streamer_ensure_texture.rs`;导入器插件 `zircon_plugins/texture_importer` 已有 `import_image`/`import_psd`/`import_texture_container` 与 `container/ktx/{ktx1.rs,ktx2.rs,ktx2/dfd.rs}`。本计划的增量是:元数据权威化与校验、mip 离线/运行期生成、array/cube 资产、SVT 最小闭环、KTX2 transcode 接缝。
 
 新增文件(runtime 侧):
 
@@ -155,7 +155,7 @@ plan_sources:
 | `zircon_runtime/src/core/framework/render/image/mod.rs` | 仅 wiring:`metadata`/`metadata_validation`/`svt` 模块声明与导出 |
 | `zircon_runtime/src/core/framework/render/image/color_space.rs` | 删除 `RenderImageColorSpace::Unknown` 变体(硬切换,见帧时序节删除项) |
 | `zircon_runtime/src/core/framework/render/image/descriptor.rs` | `RenderImageDescriptor` 增 `metadata: TextureMetadata` 字段 |
-| `zircon_runtime/src/asset/assets/texture/descriptor.rs` | `TextureAssetDescriptor` 增 `metadata` 字段;`with_import_settings` 解析 `usage_hint`/`mip_policy`/`normal_convention`/`compression`/`svt` 键;`normalized()` 调用规则表校验 |
+| `zircon_runtime/src/asset/assets/texture/descriptor.rs` | `TextureAssetDescriptor` 增 `metadata` 字段;`apply_import_settings` 解析 `usage_hint`/`mip_policy`/`normal_convention`/`compression`/`svt` 键;`normalized()` 调用规则表校验 |
 | `zircon_runtime/src/asset/assets/texture/mod.rs`、`texture_asset.rs` | wiring + `TextureAsset::with_metadata`;array/cube 资产构造入口 |
 | `zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs` | BC4/BC5/BC6H 块尺寸与 family 映射补全(`TextureUploadCompressionFamily` 扩展) |
 | `zircon_runtime/src/asset/importer/ingest/import_texture.rs` | ingest 时执行规则表:错误 → 导入失败诊断,警告 → 导入报告 |

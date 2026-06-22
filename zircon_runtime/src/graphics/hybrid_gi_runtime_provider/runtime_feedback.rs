@@ -1,11 +1,11 @@
+use crate::graphics::runtime_provider::RuntimeProviderFeedback;
 use crate::graphics::VisibilityHybridGiFeedback;
 
 use super::HybridGiGpuCompletion;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HybridGiRuntimeFeedback {
-    gpu_completion: Option<HybridGiGpuCompletion>,
-    visibility_feedback: Option<VisibilityHybridGiFeedback>,
+    feedback: RuntimeProviderFeedback<HybridGiGpuCompletion, VisibilityHybridGiFeedback>,
     evictable_probe_ids: Vec<u32>,
 }
 
@@ -15,8 +15,7 @@ impl HybridGiRuntimeFeedback {
         visibility_feedback: Option<VisibilityHybridGiFeedback>,
     ) -> Self {
         Self {
-            gpu_completion,
-            visibility_feedback,
+            feedback: RuntimeProviderFeedback::new(gpu_completion, visibility_feedback),
             evictable_probe_ids: Vec::new(),
         }
     }
@@ -27,11 +26,11 @@ impl HybridGiRuntimeFeedback {
     }
 
     pub fn gpu_completion(&self) -> Option<&HybridGiGpuCompletion> {
-        self.gpu_completion.as_ref()
+        self.feedback.gpu_completion()
     }
 
     pub fn visibility_feedback(&self) -> Option<&VisibilityHybridGiFeedback> {
-        self.visibility_feedback.as_ref()
+        self.feedback.visibility_feedback()
     }
 
     pub fn evictable_probe_ids(&self) -> &[u32] {

@@ -331,7 +331,8 @@ fn vampire_shadowed_direct_visibility(position: vec3<f32>, normal: vec3<f32>, li
     let canopy_shadow = smoothstep(0.34, 0.86, canopy_noise);
     let slope_visibility = smoothstep(-0.12, 0.55, dot(normal, light_dir));
     let low_contact = smoothstep(0.02, 0.42, position.y + 0.08);
-    let authored_shadow_bias = clamp(model_data.shadow_params.x, 0.0, 1.0);
+    let zr_gpu_scene_shadow_params = model_data.shadow_params;
+    let authored_shadow_bias = clamp(zr_gpu_scene_shadow_params.x, 0.0, 1.0);
     let canopy_visibility = mix(1.0, 0.54, canopy_shadow * 0.58);
     let contact_visibility = mix(0.68, 1.0, low_contact);
     return clamp(mix(0.46, 1.0, slope_visibility) * canopy_visibility * contact_visibility * mix(0.88, 1.0, authored_shadow_bias), 0.28, 1.0);

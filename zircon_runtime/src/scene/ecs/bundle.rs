@@ -1,9 +1,9 @@
-use crate::scene::{EntityId, World};
+use crate::scene::{EntityId, SceneResult, World};
 
 use super::Component;
 
 pub trait Bundle: 'static + Send + Sync {
-    fn insert_into(self, world: &mut World, entity: EntityId) -> Result<(), String>;
+    fn insert_into(self, world: &mut World, entity: EntityId) -> SceneResult<()>;
 }
 
 macro_rules! tuple_bundle {
@@ -13,7 +13,7 @@ macro_rules! tuple_bundle {
             $($name: Component,)*
         {
             #[allow(non_snake_case)]
-            fn insert_into(self, world: &mut World, entity: EntityId) -> Result<(), String> {
+            fn insert_into(self, world: &mut World, entity: EntityId) -> SceneResult<()> {
                 let ($($name,)*) = self;
                 $(world.insert(entity, $name)?;)*
                 Ok(())
@@ -23,7 +23,7 @@ macro_rules! tuple_bundle {
 }
 
 impl Bundle for () {
-    fn insert_into(self, _world: &mut World, _entity: EntityId) -> Result<(), String> {
+    fn insert_into(self, _world: &mut World, _entity: EntityId) -> SceneResult<()> {
         Ok(())
     }
 }

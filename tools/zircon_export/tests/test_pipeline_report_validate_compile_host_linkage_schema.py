@@ -94,8 +94,34 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
     def test_report_stage_rejects_validate_compile_host_linked_crate_path_invalid(
         self,
     ) -> None:
-        cases = ("", "   ", "../rendering/runtime", "/zircon_plugins/rendering")
-        for path in cases:
+        cases = (
+            (
+                "",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].path must be a non-empty trimmed string",
+            ),
+            (
+                "   ",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].path must be a non-empty trimmed string",
+            ),
+            (
+                " zircon_plugins/rendering/runtime ",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].path must be a non-empty trimmed string",
+            ),
+            (
+                "../rendering/runtime",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].path must be a safe relative path",
+            ),
+            (
+                "/zircon_plugins/rendering",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].path must be a safe relative path",
+            ),
+        )
+        for path, expected_diagnostic in cases:
             with self.subTest(path=path):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     out = Path(temp_dir) / "out"
@@ -108,11 +134,7 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
 
                     report = build_pipeline_report(out, "windows-release")
 
-                    self._assert_diagnostic_contains(
-                        report,
-                        "validate report plan_summary.library_embed_compile_host."
-                        "linked_runtime_crates[0].path must be a safe relative path",
-                    )
+                    self._assert_diagnostic_contains(report, expected_diagnostic)
 
     def test_report_stage_rejects_validate_compile_host_linked_crate_missing_field(
         self,
@@ -181,8 +203,34 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
     def test_report_stage_rejects_compile_host_linked_crate_path_invalid(
         self,
     ) -> None:
-        cases = ("", "   ", "../rendering/runtime", "/zircon_plugins/rendering")
-        for path in cases:
+        cases = (
+            (
+                "",
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "path must be a non-empty trimmed string",
+            ),
+            (
+                "   ",
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "path must be a non-empty trimmed string",
+            ),
+            (
+                " zircon_plugins/rendering/runtime ",
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "path must be a non-empty trimmed string",
+            ),
+            (
+                "../rendering/runtime",
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "path must be a safe relative path",
+            ),
+            (
+                "/zircon_plugins/rendering",
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "path must be a safe relative path",
+            ),
+        )
+        for path, expected_diagnostic in cases:
             with self.subTest(path=path):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     out = Path(temp_dir) / "out"
@@ -199,11 +247,7 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
 
                     report = build_pipeline_report(out, "windows-release")
 
-                    self._assert_diagnostic_contains(
-                        report,
-                        "compile_host report link_plan.linked_runtime_crates[0]."
-                        "path must be a safe relative path",
-                    )
+                    self._assert_diagnostic_contains(report, expected_diagnostic)
 
     def test_report_stage_rejects_validate_compile_host_linked_crate_names_invalid(
         self,
@@ -384,13 +428,39 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
     def test_report_stage_rejects_validate_compile_host_linked_crate_registration_kind_invalid(
         self,
     ) -> None:
-        for registration_kind in (
-            "",
-            "runtime_plugin ",
-            " runtime_plugin",
-            "runtime_feature",
-            "native_dynamic",
-        ):
+        cases = (
+            (
+                "",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].registration_kind must be a "
+                "non-empty trimmed string",
+            ),
+            (
+                "runtime_plugin ",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].registration_kind must be a "
+                "non-empty trimmed string",
+            ),
+            (
+                " runtime_plugin",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].registration_kind must be a "
+                "non-empty trimmed string",
+            ),
+            (
+                "runtime_feature",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].registration_kind must be "
+                "runtime_plugin",
+            ),
+            (
+                "native_dynamic",
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[0].registration_kind must be "
+                "runtime_plugin",
+            ),
+        )
+        for registration_kind, expected_diagnostic in cases:
             with self.subTest(registration_kind=registration_kind):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     out = Path(temp_dir) / "out"
@@ -406,10 +476,35 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
                     self._assert_validate_fatal(report)
                     self._assert_diagnostic_contains(
                         report,
-                        "validate report plan_summary.library_embed_compile_host."
-                        "linked_runtime_crates[0].registration_kind must be "
-                        "runtime_plugin",
+                        expected_diagnostic,
                     )
+
+    def test_report_stage_rejects_compile_host_linked_crate_registration_kind_padded(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            self._write_validate_report_with_linked_crates(
+                out,
+                [self._linked_crate()],
+            )
+            linked_crate = self._linked_crate()
+            linked_crate["registration_kind"] = " runtime_plugin "
+            self._write_compile_host_report_with_linked_crates(
+                out,
+                [linked_crate],
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("CompileHost", report["fatal_stages"])
+            self._assert_diagnostic_contains(
+                report,
+                "compile_host report link_plan.linked_runtime_crates[0]."
+                "registration_kind must be a non-empty trimmed string",
+            )
 
     def _write_validate_report_with_linked_crates(
         self,

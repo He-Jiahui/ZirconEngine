@@ -37,4 +37,13 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "broader `cargo test -p zircon_runtime --lib script --locked`",
         ],
     ),
+    (
+        "Runtime 13 script binding Markdown renderer split",
+        [
+            "script_binding_markdown_split_static_passed_cargo_deferred_tests_deferred",
+            "script_binding_markdown.py",
+            "script_binding_boundary.py remains the 351-line audit/risk owner",
+            "Markdown owner is 106 lines",
+        ],
+    ),
 ];

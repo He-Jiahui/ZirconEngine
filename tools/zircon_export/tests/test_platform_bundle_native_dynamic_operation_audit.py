@@ -52,6 +52,43 @@ class PlatformBundleNativeDynamicOperationAuditTests(unittest.TestCase):
             )
             self.assertFalse((out / "bundle" / "windows-release").exists())
 
+    def test_pipeline_platform_bundle_rejects_non_string_native_dynamic_signing_allowed_platform_entry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out, native_plugins = _write_pipeline_handoff_fixture(Path(temp_dir))
+            _write_native_dynamic_report(
+                out,
+                native_plugins,
+                native_signing=_native_dynamic_stage_operation_audit(
+                    allowed_platforms=["windows", 42],
+                ),
+            )
+
+            exit_code, report = _run_platform_bundle_from_native_dynamic(out)
+
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "NativeDynamic report native_signing.allowed_platforms[1] "
+                    "must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "NativeDynamic report native_signing.allowed_platforms "
+                    "must be a string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse((out / "bundle" / "windows-release").exists())
+
     def test_pipeline_platform_bundle_rejects_native_dynamic_signing_package_count_mismatch(
         self,
     ) -> None:

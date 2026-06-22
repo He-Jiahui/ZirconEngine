@@ -61,8 +61,8 @@ related_code:
   - zircon_runtime/src/graphics/material/shading_models/mod.rs
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
@@ -148,8 +148,8 @@ implementation_files:
   - zircon_runtime/src/graphics/material/shading_models/mod.rs
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
@@ -180,6 +180,7 @@ plan_sources:
   - user: 2026-06-08 implement ZirconEngine WGPU render main-chain material texture transform slice
   - user: 2026-06-08 continue WGPU render main-chain standard material UV channel slice
   - user: 2026-06-16 implement WGPU render pipeline plan functionality first, Plan 08 MS-M3 shading model registry and built-in BlinnPhong branch slices
+  - docs/plans/engine-code-review-findings-2026-06.md F11 shading-model registry dead API removal
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/asset/tests/assets/material.rs
@@ -219,6 +220,7 @@ tests:
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs::tests::builtin_shading_model_registry_contains_three_surface_models
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs::tests::builtin_shading_model_registry_resolves_lighting_model_tokens
   - zircon_runtime/src/graphics/material/shading_models/registry.rs::tests::shading_model_registry_rejects_unsupported_required_channels
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f11_shading_model_registry_has_no_dead_plugin_registration_surface
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_unregistered_custom_shading_model
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_samples_standard_pbr_texture_set
@@ -496,7 +498,7 @@ Material queue authoring now has a typed validation lane for Plan 09 CO-M3. `Mat
 
 `RenderMaterialLightingModel` is part of the neutral material contract and is re-exported through `zircon_runtime::core::framework::render` alongside `RenderMaterialAlphaMode`. Asset, resource-streamer, and pipeline-key callers should import the lighting model through that top-level render contract rather than reaching into the material submodule. `MaterialAsset` treats `overrides.lighting_model` as a material-owned control value: it is parsed into the standard descriptor and renderer pipeline key, derives the descriptor `unlit` flag when the token is `unlit`, and is filtered out of shader property override iteration so shader schemas cannot accidentally consume it as a user property.
 
-`ShadingModelId` is the renderer-facing model id derived from that lighting-model contract. Built-in ids are stable for G-buffer encoding: `0` = Unlit, `1` = BlinnPhong, and `2` = StandardPbr. `graphics/material/shading_models` registers the built-in descriptors and rejects duplicate ids/tokens or G-buffer channel requirements that the current fixed layout cannot satisfy. Resource streaming resolves authored lighting-model tokens through that registry before building `MaterialRuntime`; an unregistered `custom:<name>` token is reported as `RenderMaterialValidationError::UnregisteredShadingModel`, while the current runtime pipeline falls back to the StandardPBR id so rendering can continue with an explicit issue row.
+`ShadingModelId` is the renderer-facing model id derived from that lighting-model contract. Built-in ids are stable for G-buffer encoding: `0` = Unlit, `1` = BlinnPhong, and `2` = StandardPbr. `graphics/material/shading_models` registers the built-in descriptors and rejects duplicate ids/tokens or G-buffer channel requirements that the current fixed layout cannot satisfy. The registry's live lookup surface is token based: `resolve_lighting_model(...)` derives the authored token with `RenderMaterialLightingModel::as_token()` and resolves it through the same map used by built-ins. The previous `register_plugin()` production surface was removed by the 2026-06-22 F11 cleanup because no project/plugin shading-model descriptor owner feeds it yet; custom shading-model plugin registration remains a future Plan 08 surface. Resource streaming resolves authored lighting-model tokens through the built-in registry before building `MaterialRuntime`; an unregistered `custom:<name>` token is reported as `RenderMaterialValidationError::UnregisteredShadingModel`, while the current runtime pipeline falls back to the StandardPBR id so rendering can continue with an explicit issue row.
 
 `MaterialAsset` also treats `overrides.cast_shadows`, `overrides.receive_shadows`, `overrides.render_queue`, `overrides.material_queue`, and `overrides.depth_bias` as material-owned controls rather than shader schema properties. `material_control.rs` owns the reserved-name parsing, validation, shader-property filtering, and canonical override synchronization for those fields so `material_asset.rs` can stay focused on descriptor/readiness orchestration. They are parsed into the standard descriptor, filtered out of shader property override iteration, and preserved as authoring/runtime material state. The queue fields default to zero, serialize only when non-default during canonical material output, and invalid authored types stay in the override map while producing `PropertyOverrideTypeMismatch` rows under the `MaterialOverride` source.
 

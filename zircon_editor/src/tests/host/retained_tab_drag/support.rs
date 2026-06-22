@@ -12,8 +12,10 @@ pub(super) use crate::ui::retained_host::tab_drag::{
     document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
     estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
     host_shell_pointer_route_group_key, resolve_host_drag_target_group_with_root_frames,
-    resolve_host_tab_drop_route, resolve_host_tab_drop_route_with_root_frames,
-    resolve_tab_drop_with_root_frames, HostDragTargetGroup, ResolvedHostTabDropRoute,
+    resolve_host_drag_target_group_with_workbench_layout_frames, resolve_host_tab_drop_route,
+    resolve_host_tab_drop_route_with_root_frames,
+    resolve_host_tab_drop_route_with_workbench_layout_frames, resolve_tab_drop_with_root_frames,
+    resolve_tab_drop_with_workbench_layout_frames, HostDragTargetGroup, ResolvedHostTabDropRoute,
     ResolvedHostTabDropTarget, ResolvedTabDrop,
 };
 pub(super) use crate::ui::template_runtime::EditorUiCompatibilityHarness;

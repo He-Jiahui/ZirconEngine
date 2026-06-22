@@ -135,7 +135,9 @@ pub(super) fn camera_follow(
         };
         let eye = target.translation + offset;
         let focus = target.translation + Vec3::Y;
-        world.update_transform(entity, Transform::looking_at(eye, focus, Vec3::Y))
+        world
+            .update_transform(entity, Transform::looking_at(eye, focus, Vec3::Y))
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)
@@ -152,7 +154,9 @@ pub(super) fn set_entity_position(
             .world_transform(entity)
             .unwrap_or_else(Transform::default);
         transform.translation = position;
-        world.update_transform(entity, transform)
+        world
+            .update_transform(entity, transform)
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)
@@ -169,7 +173,9 @@ pub(super) fn translate_entity(
             .world_transform(entity)
             .unwrap_or_else(Transform::default);
         transform.translation += delta;
-        world.update_transform(entity, transform)
+        world
+            .update_transform(entity, transform)
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)
@@ -191,7 +197,9 @@ pub(super) fn face_entity_direction(
             .world_transform(entity)
             .unwrap_or_else(Transform::default);
         transform.rotation = Quat::from_rotation_y(yaw);
-        world.update_transform(entity, transform)
+        world
+            .update_transform(entity, transform)
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)
@@ -208,7 +216,9 @@ pub(super) fn set_entity_scale(
             .world_transform(entity)
             .unwrap_or_else(Transform::default);
         transform.scale = scale;
-        world.update_transform(entity, transform)
+        world
+            .update_transform(entity, transform)
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)
@@ -229,7 +239,9 @@ pub(super) fn follow_entity_position(
             .world_transform(entity)
             .unwrap_or_else(Transform::default);
         transform.translation = target.translation + offset;
-        world.update_transform(entity, transform)
+        world
+            .update_transform(entity, transform)
+            .map_err(|error| error.to_string())
     });
     result
         .map(ScriptHostValue::Bool)

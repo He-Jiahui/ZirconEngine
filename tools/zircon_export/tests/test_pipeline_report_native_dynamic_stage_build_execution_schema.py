@@ -71,7 +71,8 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
             ("fatal", "false", "must be a boolean"),
             ("skipped", "true", "must be a boolean"),
             ("skip_reason", 42, "must be a string"),
-            ("diagnostics", [42], "must be a string array"),
+            ("diagnostics", 42, "must be a string array"),
+            ("diagnostics[0]", [42], "must be a string"),
             ("package_count", "1", "must be an integer"),
             ("packages", "not-an-array", "must be an object array"),
             ("packages[0]", [42], "must be an object"),
@@ -94,6 +95,27 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
             _native_build_execution(skip_reason="   "),
             "native_dynamic report native_build_execution.skip_reason "
             "must be a non-empty string",
+        )
+
+    def test_report_stage_rejects_native_dynamic_build_execution_padded_skip_reason(
+        self,
+    ) -> None:
+        def mutate_report(native_report: dict[str, object]) -> None:
+            native_report["fatal"] = True
+            native_report["diagnostics"] = ["materialization failed"]
+            native_build_execution = native_report["native_build_execution"]
+            self.assertIsInstance(native_build_execution, dict)
+            native_build_execution["enabled"] = True
+            native_build_execution["fatal"] = False
+            native_build_execution["skipped"] = True
+            native_build_execution["skip_reason"] = " materialization diagnostics "
+            native_build_execution["package_count"] = 0
+            native_build_execution["packages"] = []
+
+        self._assert_native_dynamic_report_mutation_diagnostic(
+            mutate_report,
+            "native_dynamic report native_build_execution.skip_reason "
+            "must be a non-empty trimmed string",
         )
 
     def test_report_stage_rejects_native_dynamic_build_execution_skip_reason_non_skipped_mismatch(
@@ -276,6 +298,21 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
             "must be empty when fatal is False",
         )
 
+    def test_report_stage_rejects_native_dynamic_build_execution_non_string_diagnostic_entry_before_array_shape(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_execution",
+            _native_build_execution(
+                diagnostics=[42],
+                packages=[_native_build_execution_package_for_default_report()],
+            ),
+            "native_dynamic report native_build_execution.diagnostics[0] "
+            "must be a string",
+            "native_dynamic report native_build_execution.diagnostics "
+            "must be a string array",
+        )
+
     def test_report_stage_rejects_native_dynamic_build_execution_skipped_success_report_mismatch(
         self,
     ) -> None:
@@ -303,6 +340,23 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
                     "native_dynamic report native_build_execution.diagnostics "
                     "must not contain blank entries",
                 )
+
+    def test_report_stage_rejects_native_dynamic_build_execution_padded_diagnostic_entry(
+        self,
+    ) -> None:
+        def mutate_report(native_report: dict[str, object]) -> None:
+            native_report["fatal"] = True
+            native_report["diagnostics"] = ["native build execution failed"]
+            native_build_execution = native_report["native_build_execution"]
+            self.assertIsInstance(native_build_execution, dict)
+            native_build_execution["fatal"] = True
+            native_build_execution["diagnostics"] = [" cargo build failed "]
+
+        self._assert_native_dynamic_report_mutation_diagnostic(
+            mutate_report,
+            "native_dynamic report native_build_execution.diagnostics[0] "
+            "must be a non-empty trimmed string",
+        )
 
     def test_report_stage_rejects_native_dynamic_build_execution_package_unknown_field(
         self,
@@ -434,6 +488,42 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
                     "must be a non-empty string array",
                 )
 
+    def test_report_stage_rejects_native_dynamic_build_execution_package_command_non_string_entry_before_array_shape(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_execution",
+            _native_build_execution(
+                packages=[
+                    _native_build_execution_package(
+                        command=[
+                            "cargo",
+                            42,
+                            "--manifest-path",
+                            "zircon_plugins/Cargo.toml",
+                            "-p",
+                            "zircon_plugin_animation_native",
+                            "--target-dir",
+                            "target/native_dynamic",
+                        ],
+                        expected_loadable_artifact=(
+                            "target/native_dynamic/debug/"
+                            "zircon_plugin_animation_native.dll"
+                        ),
+                        copied_loadable_artifact=(
+                            "plugins/animation/native/"
+                            "zircon_plugin_animation.dll"
+                        ),
+                        copied_sidecars=[],
+                    )
+                ]
+            ),
+            "native_dynamic report native_build_execution.packages[0].command[1] "
+            "must be a string",
+            "native_dynamic report native_build_execution.packages[0].command "
+            "must be a string array",
+        )
+
     def test_report_stage_rejects_native_dynamic_build_execution_command_plan_mismatch(
         self,
     ) -> None:
@@ -464,6 +554,66 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
             "native_build_execution package animation command",
         )
 
+    def test_report_stage_rejects_native_dynamic_build_execution_plan_field_shape_before_plan_semantics(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "command",
+                _native_build_execution_package(
+                    command=[
+                        " cargo ",
+                        "build",
+                        "--manifest-path",
+                        "zircon_plugins/Cargo.toml",
+                        "-p",
+                        "zircon_plugin_animation_native",
+                        "--target-dir",
+                        "target/native_dynamic",
+                        "--features",
+                        "v3_fixture_diagnostics",
+                        "--release",
+                    ]
+                ),
+                "native_dynamic report native_build_execution."
+                "packages[0].command[0] must be a non-empty trimmed string",
+                "native_dynamic report native_build_execution package "
+                "animation command",
+            ),
+            (
+                "crate_name",
+                _native_build_execution_package(
+                    crate_name=" zircon_plugin_animation_native "
+                ),
+                "native_dynamic report native_build_execution."
+                "packages[0].crate_name must be a non-empty trimmed string",
+                "native_dynamic report native_build_execution package "
+                "animation crate_name",
+            ),
+            (
+                "expected_loadable_artifact",
+                _native_build_execution_package(
+                    expected_loadable_artifact=(
+                        " target/native_dynamic/release/"
+                        "zircon_plugin_animation_native.dll "
+                    )
+                ),
+                "native_dynamic report native_build_execution."
+                "packages[0].expected_loadable_artifact "
+                "must be a non-empty trimmed string",
+                "native_dynamic report native_build_execution package "
+                "animation expected_loadable_artifact",
+            ),
+        )
+        for case_name, package, expected_diagnostic, unexpected_diagnostic in cases:
+            with self.subTest(case=case_name):
+                self._assert_native_dynamic_report_field_diagnostic(
+                    "native_build_execution",
+                    _native_build_execution(packages=[package]),
+                    expected_diagnostic,
+                    unexpected_diagnostic,
+                )
+
     def test_report_stage_rejects_native_dynamic_build_execution_package_blank_copied_sidecar_entry(
         self,
     ) -> None:
@@ -485,6 +635,105 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
                     "native_dynamic report "
                     "native_build_execution.packages[0].copied_sidecars "
                     "must not contain blank entries",
+                )
+
+    def test_report_stage_rejects_native_dynamic_build_execution_package_padded_copied_sidecar_entry(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_execution",
+            _native_build_execution(
+                packages=[
+                    _native_build_execution_package(
+                        copied_sidecars=[
+                            " plugins/animation/native/plugin.pdb ",
+                        ]
+                    )
+                ]
+            ),
+            "native_dynamic report "
+            "native_build_execution.packages[0].copied_sidecars[0] "
+            "must be a non-empty trimmed string",
+        )
+
+    def test_report_stage_rejects_native_dynamic_build_execution_package_non_string_copied_sidecar_entry_before_array_shape(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_execution",
+            _native_build_execution(
+                packages=[
+                    _native_build_execution_package(
+                        command=[
+                            "cargo",
+                            "build",
+                            "--manifest-path",
+                            "zircon_plugins/Cargo.toml",
+                            "-p",
+                            "zircon_plugin_animation_native",
+                            "--target-dir",
+                            "target/native_dynamic",
+                        ],
+                        expected_loadable_artifact=(
+                            "target/native_dynamic/debug/"
+                            "zircon_plugin_animation_native.dll"
+                        ),
+                        copied_loadable_artifact=(
+                            "plugins/animation/native/"
+                            "zircon_plugin_animation.dll"
+                        ),
+                        copied_sidecars=[42],
+                    )
+                ]
+            ),
+            "native_dynamic report "
+            "native_build_execution.packages[0].copied_sidecars[0] "
+            "must be a string",
+            "native_dynamic report "
+            "native_build_execution.packages[0].copied_sidecars "
+            "must be a string array",
+        )
+
+    def test_report_stage_rejects_native_dynamic_build_execution_copied_artifact_shape_before_path_semantics(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "copied_loadable_artifact",
+                _native_build_execution_package(
+                    copied_loadable_artifact=(
+                        " plugins/physics/native/plugin.dll "
+                    )
+                ),
+                (
+                    "native_dynamic report "
+                    "native_build_execution.packages[0]."
+                    "copied_loadable_artifact must be a non-empty trimmed string"
+                ),
+                "must be inside plugins/animation/",
+            ),
+            (
+                "copied_sidecars",
+                _native_build_execution_package(
+                    copied_sidecars=[
+                        " plugins/physics/native/plugin.pdb ",
+                    ]
+                ),
+                (
+                    "native_dynamic report "
+                    "native_build_execution.packages[0].copied_sidecars[0] "
+                    "must be a non-empty trimmed string"
+                ),
+                "must be inside plugins/animation/",
+            ),
+        )
+        for label, package, expected_diagnostic, unexpected_diagnostic in cases:
+            with self.subTest(label=label):
+                self._assert_native_dynamic_report_field_diagnostic(
+                    "native_build_execution",
+                    _native_build_execution(packages=[package]),
+                    expected_diagnostic,
+                    unexpected_diagnostic,
                 )
 
     def test_report_stage_rejects_native_dynamic_build_execution_package_unsafe_copied_loadable_path(
@@ -596,16 +845,19 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
         cases = (
             ("package_id", 42, "must be a string"),
             ("crate_name", 42, "must be a string"),
-            ("command", [42], "must be a string array"),
+            ("command", 42, "must be a string array"),
+            ("command[0]", [42], "must be a string"),
             ("exit_code", "0", "must be an integer"),
             ("stdout", 42, "must be a string"),
             ("stderr", 42, "must be a string"),
             ("expected_loadable_artifact", 42, "must be a string"),
             ("copied_loadable_artifact", 42, "must be a string"),
-            ("copied_sidecars", [42], "must be a string array"),
+            ("copied_sidecars", 42, "must be a string array"),
+            ("copied_sidecars[0]", [42], "must be a string"),
         )
-        for field, value, expected_type in cases:
-            with self.subTest(field=field, value=value):
+        for expected_field, value, expected_type in cases:
+            field = expected_field.split("[", maxsplit=1)[0]
+            with self.subTest(field=expected_field, value=value):
                 self._assert_native_dynamic_report_field_diagnostic(
                     "native_build_execution",
                     _native_build_execution(
@@ -614,7 +866,7 @@ class PipelineReportNativeDynamicStageBuildExecutionSchemaTests(
                         ]
                     ),
                     "native_dynamic report native_build_execution."
-                    f"packages[0].{field} {expected_type}",
+                    f"packages[0].{expected_field} {expected_type}",
                 )
 
     def test_report_stage_rejects_native_dynamic_build_execution_package_negative_exit_code(

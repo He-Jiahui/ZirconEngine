@@ -1,6 +1,6 @@
 use crate::core::math::{Mat4, Transform};
 
-use super::World;
+use super::{SceneResult, World};
 use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
 use crate::scene::ecs::{
     ArchetypeId, Component, ComponentId, ComponentStorageLocation, ComponentTicks, InternalEntity,
@@ -153,11 +153,9 @@ impl World {
         Some(active.0)
     }
 
-    pub fn set_active_self(&mut self, entity: EntityId, active: bool) -> Result<bool, String> {
+    pub fn set_active_self(&mut self, entity: EntityId, active: bool) -> SceneResult<bool> {
         let Some(current) = self.active_self.get(&entity) else {
-            return Err(format!(
-                "cannot update active state for missing node {entity}"
-            ));
+            return Err(format!("cannot update active state for missing node {entity}").into());
         };
         if current.0 == active {
             return Ok(false);
@@ -178,11 +176,11 @@ impl World {
         Some(mask.0)
     }
 
-    pub fn set_render_layer_mask(&mut self, entity: EntityId, mask: u32) -> Result<bool, String> {
+    pub fn set_render_layer_mask(&mut self, entity: EntityId, mask: u32) -> SceneResult<bool> {
         let Some(current) = self.render_layer_masks.get(&entity) else {
-            return Err(format!(
-                "cannot update render layer mask for missing node {entity}"
-            ));
+            return Err(
+                format!("cannot update render layer mask for missing node {entity}").into(),
+            );
         };
         if current.0 == mask {
             return Ok(false);
@@ -195,9 +193,9 @@ impl World {
         self.mobility.get(&entity).copied()
     }
 
-    pub fn set_mobility(&mut self, entity: EntityId, mobility: Mobility) -> Result<bool, String> {
+    pub fn set_mobility(&mut self, entity: EntityId, mobility: Mobility) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update mobility for missing node {entity}"));
+            return Err(format!("cannot update mobility for missing node {entity}").into());
         }
         if self.mobility(entity) == Some(mobility) {
             return Ok(false);

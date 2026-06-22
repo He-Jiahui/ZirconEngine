@@ -366,7 +366,7 @@ impl World {
                             }
                         }),
                 })
-                .map_err(SceneProjectError::SceneAsset)?;
+                .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             if let Some(camera_post_process) = entity
                 .camera
                 .as_ref()
@@ -377,7 +377,7 @@ impl World {
                         entity.entity,
                         post_process_settings_from_asset(camera_post_process),
                     )
-                    .map_err(SceneProjectError::SceneAsset)?;
+                    .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             }
             if let Some(post_process_volume) = entity.post_process_volume {
                 world
@@ -385,7 +385,7 @@ impl World {
                         entity.entity,
                         post_process_volume_from_asset(post_process_volume),
                     )
-                    .map_err(SceneProjectError::SceneAsset)?;
+                    .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             }
             if !entity.script_bindings.is_empty() {
                 world
@@ -399,7 +399,7 @@ impl World {
                             ))
                         })?,
                     )
-                    .map_err(SceneProjectError::SceneAsset)?;
+                    .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             }
         }
 

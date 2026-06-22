@@ -118,7 +118,7 @@ impl RenderGraphExecutionResources {
         self.imported_texture_views.get(name)
     }
 
-    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn buffer(
+    pub(in crate::graphics::scene::scene_renderer) fn buffer(
         &self,
         name: &str,
     ) -> Option<&wgpu::Buffer> {

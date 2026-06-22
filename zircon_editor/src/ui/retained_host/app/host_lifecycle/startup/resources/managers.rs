@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn resolve_startu
     let resolver = ManagerResolver::new(core.clone());
     let asset_manager = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_asset_manager");
-        resolve_asset_manager(resolver.core())?
+        resolve_asset_manager(resolver.core())?.shared()
     };
     let editor_asset_manager = {
         zircon_runtime::profile_scope!(

@@ -277,7 +277,7 @@ pub(in crate::ui::retained_host::host_contract) fn push_recorded_for_test(
     full_rebuild: bool,
 ) {
     if let Some(command) = chrome_command_from_recorded_for_test(command, full_rebuild, true) {
-        stream.commands.push(command);
+        stream.push_command_for_test(command);
     }
 }
 

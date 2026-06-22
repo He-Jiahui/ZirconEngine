@@ -19,7 +19,7 @@ impl World {
         EntityPath::new(segments).ok()
     }
 
-    pub fn resolve_entity_path(&self, path: &EntityPath) -> Option<EntityId> {
+    pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId> {
         let target_segments = path.segments();
         let mut entity_index = 0;
         while entity_index < self.entities.len() {

@@ -2,6 +2,8 @@ mod config;
 mod graphics_debugger_capture;
 mod offscreen_target;
 mod offscreen_target_new;
+#[cfg(test)]
+mod read_buffer_f32x4;
 mod read_texture_rgba;
 #[cfg(test)]
 mod read_texture_rgba16float_3d;
@@ -14,6 +16,8 @@ mod viewport_surface;
 pub(crate) use config::RenderBackendConfig;
 pub(crate) use graphics_debugger_capture::GraphicsDebuggerCaptureStop;
 pub(crate) use offscreen_target::OffscreenTarget;
+#[cfg(test)]
+pub(crate) use read_buffer_f32x4::read_buffer_f32x4;
 pub(crate) use read_texture_rgba::read_texture_rgba;
 #[cfg(test)]
 pub(crate) use read_texture_rgba16float_3d::read_texture_rgba16float_3d;

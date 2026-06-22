@@ -14,6 +14,7 @@ use crate::ui::retained_host::ui_perf::UiPerfScenario;
 mod events;
 mod input;
 mod lifecycle;
+mod platform_input;
 mod redraw;
 
 pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {

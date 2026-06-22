@@ -585,6 +585,13 @@ token such as `"render_world"` or an array of tokens, matching Bevy's single
 `ImageLoaderSettings.asset_usage` role while keeping Zircon's explicit serialized residency list.
 Invalid Bevy-alias settings report the actual key that failed, including `texture_format`,
 `is_srgb`, `sampler`, and `render_asset_usage`.
+
+The import-settings entry is intentionally named `apply_import_settings(...)` because it can fail
+while parsing and normalizing authored settings; it is not a builder-style `with_*` chain point.
+`review_f8_texture_import_settings_use_fallible_apply_not_with` keeps the runtime importer and
+first-party texture importer plugin on that contract. Status: F8 texture import settings apply API /
+`texture_import_settings_apply_api_coremin_check_passed`; RuntimePluginDescriptor test fixture migration
+remains pending in the broader E3/F8 cleanup.
 The runtime fixture tests for this texture source-format, descriptor, and `[array_layout]` behavior
 are split into `zircon_runtime/src/asset/tests/assets/texture_importer.rs`; the generic
 `importer.rs` module stays focused on registry routing plus non-texture fixture contracts.

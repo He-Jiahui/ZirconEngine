@@ -38,5 +38,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
 }
 
 #[cfg(test)]
-#[path = "template_popup_rows_tests.rs"]
+#[path = "template_popup_rows_tests/mod.rs"]
 mod tests;

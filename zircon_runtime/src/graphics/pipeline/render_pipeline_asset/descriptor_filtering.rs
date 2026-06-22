@@ -124,10 +124,28 @@ fn filter_plugin_post_process_descriptor(
     mut descriptor: RenderFeatureDescriptor,
     stack: &PostProcessStackDescriptor,
 ) -> RenderFeatureDescriptor {
-    descriptor
+    descriptor.stage_passes = descriptor
         .stage_passes
-        .retain(|pass| plugin_post_process_pass_enabled(pass, stack));
+        .into_iter()
+        .filter_map(|pass| filter_plugin_post_process_pass(pass, stack))
+        .collect();
     descriptor
+}
+
+fn filter_plugin_post_process_pass(
+    pass: RenderFeaturePassDescriptor,
+    stack: &PostProcessStackDescriptor,
+) -> Option<RenderFeaturePassDescriptor> {
+    if !plugin_post_process_pass_enabled(&pass, stack) {
+        return None;
+    }
+    if post_process_pass_can_be_filtered(
+        BuiltinRenderFeature::PostProcess,
+        pass.executor_id.as_str(),
+    ) {
+        return filter_post_process_pass(pass, BuiltinRenderFeature::PostProcess, stack);
+    }
+    Some(pass)
 }
 
 fn plugin_post_process_pass_enabled(
@@ -338,6 +356,7 @@ fn post_process_resource_is_active(
         resource.name.as_str(),
         PostProcessGraphResourceNames::FINAL_COLOR
             | PostProcessGraphResourceNames::FINAL_COMPOSITED
+            | PostProcessGraphResourceNames::AMBIENT_OCCLUSION
             | PostProcessGraphResourceNames::BLURRED
             | PostProcessGraphResourceNames::SCENE_COMPOSITED
             | PostProcessGraphResourceNames::DEPTH_OF_FIELDED

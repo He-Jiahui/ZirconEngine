@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
@@ -42,6 +43,7 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
@@ -130,6 +132,7 @@ The loader is split by responsibility so the ABI boundary does not accumulate be
 - `native_plugin_abi.rs` owns descriptor probing, entry symbol invocation, and conversion from raw ABI reports into owned `NativePluginDescriptor` and `NativePluginEntryReport` values.
 - `native_strings.rs` owns C string reads, newline-list parsing, native symbol termination, and package-manifest TOML conversion helpers.
 - `host_callbacks.rs` owns ABI v2/v3 host function table callbacks, capability negotiation, v3 host log/diagnostic capture, and callback-diagnostic draining.
+- `ffi_panic_guard.rs` owns `catch_unwind` wrappers for both native host API directions: `ZrHostApiV3` callbacks map panic to `ZrStatusCode::Panic`, and private native host callback table functions map panic to `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`.
 - `host_api_adapter.rs` owns the public `zircon_runtime_interface::ZrHostApiV3` runtime adapter scopes. `NativeHostApiV3RegistrationScope` maps ABI system/component callbacks into `RuntimeExtensionRegistry` registrations and wraps native systems in `NativeDynamicAccess` so the ECS scheduler sees conservative world access. `NativeHostBridgeCallScope` connects the bridge domain to a `FrozenBridgeTable` and a method-slot dispatch table. `NativeHostBridgeCallScope::method_count()` exposes the rebuilt dispatch size for hot-reload reports and focused tests. Unsupported spawn/asset/event callbacks remain explicit until those host domains have real runtime endpoints.
 - `behavior_calls.rs` owns copied behavior callback metadata, byte-command invocation, save/restore/unload calls, status conversion, plugin-owned byte-buffer copying, and free-callback diagnostics.
 - `behavior_validation.rs` owns host-derived behavior health classification and schema/callback consistency checks.
@@ -150,6 +153,8 @@ The existing native loader still probes its private descriptor ABI v3 first, the
 The loader still probes ABI v3 first, then falls back to ABI v2 and ABI v1. ABI v2 entries still receive the v2 host function table and can produce clean compatibility validation reports with no v3 schema strings. ABI v1 entries have no behavior table, so the derived behavior report is invalid for behavior inspection while descriptor/package diagnostics remain available.
 
 Host callback capture is entry-scoped. ABI v3 entries receive `NativePluginHostFunctionTableV3` with `host_log` and `host_diagnostic`; the loader stores those records in host-owned capture state during entry invocation and flattens them into existing entry diagnostics after the plugin returns. No runtime/editor object, `wgpu` object, Rust trait object, or borrowed world/editor state crosses the C ABI.
+
+All host callbacks exposed across native FFI now terminate panic at the boundary. The public `ZrHostApiV3` table wraps registration, component, spawn, asset, event, bridge, and diagnostics callbacks through `catch_native_host_api_panic(...)`; the private native plugin host callback table wraps ABI version, capability, log, and diagnostic callbacks through `catch_native_plugin_host_callback_panic(...)`. This keeps panic from crossing `extern "C"` and preserves the existing ABI status-code contracts.
 
 ## Public Host API Adapter
 
@@ -219,6 +224,7 @@ Runtime 06 M1.2 keeps the VM fallback lifecycle failure path folder-backed in `z
 
 Scoped evidence recorded during the M1-M6 implementation stages:
 
+- 2026-06-22 F1/E7 native host FFI panic guard evidence: added `ffi_panic_guard.rs`, routed 9 `ZrHostApiV3` callbacks in `host_api_adapter.rs` and 4 private native host callbacks in `host_callbacks.rs` through panic guards, and added focused guard tests plus `native_host_bridge_call_catches_plugin_method_panic`. `rustfmt --edition 2021 --config skip_children=true --check` passed for the touched native-loader files; the static guard scan checked 13 `unsafe extern "C" fn native_host_*` callbacks and reported all route through panic guards; `git diff --check` passed with only LF/CRLF warnings. Focused Cargo `native_host_bridge_call_catches_plugin_method_panic` under `--no-default-features --features core-min` timed out after 1200s during compile, and matching residual cargo/rustc processes were stopped, so no Cargo pass is claimed for this slice.
 - `cargo check -p zircon_runtime --lib --locked --jobs 1` passed after the module split and after the restore/schema changes, with only the pre-existing `entity_ids_matching_query_archetypes` dead-code warning.
 - `cargo test -p zircon_runtime --lib native_live_host --locked --jobs 1` passed after M4 with 13 tests passed.
 - `cargo test -p zircon_runtime --lib native_plugin_loader --locked --jobs 1` passed after M4 with 37 tests passed.

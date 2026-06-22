@@ -3,6 +3,7 @@ pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "physics.runtime";
 pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 
 mod backend;
+mod capability;
 mod manager;
 mod module;
 mod query_contact;
@@ -10,6 +11,11 @@ mod runtime_system;
 mod trigger;
 
 pub use backend::JOLT_ENABLED;
+pub use capability::{
+    PHYSICS_CONSTRAINTS_CAPABILITY, PHYSICS_OVERLAP_CAPABILITY, PHYSICS_RAYCAST_CAPABILITY,
+    PHYSICS_RUNTIME_CAPABILITY, PHYSICS_SHAPE_CAST_CAPABILITY, PHYSICS_SKELETAL_JOINTS_CAPABILITY,
+    PHYSICS_TRIGGER_EVENTS_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use manager::{
     build_world_sync_state, integrate_builtin_physics_steps, DefaultPhysicsManager, PhysicsTickPlan,
 };
@@ -51,7 +57,7 @@ impl zircon_runtime::plugin::RuntimePlugin for PhysicsRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Physics",
         zircon_runtime::builtin::RuntimePluginId::Physics,
@@ -64,71 +70,50 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.physics")
-    .with_capability("runtime.capability.physics.raycast")
-    .with_capability("runtime.capability.physics.overlap")
-    .with_capability("runtime.capability.physics.shape_cast")
-    .with_capability("runtime.capability.physics.trigger_events")
-    .with_capability("runtime.capability.physics.constraints")
-    .with_capability("runtime.capability.physics.skeletal_joints")
+    .with_capability(PHYSICS_RUNTIME_CAPABILITY)
+    .with_capability(PHYSICS_RAYCAST_CAPABILITY)
+    .with_capability(PHYSICS_OVERLAP_CAPABILITY)
+    .with_capability(PHYSICS_SHAPE_CAST_CAPABILITY)
+    .with_capability(PHYSICS_TRIGGER_EVENTS_CAPABILITY)
+    .with_capability(PHYSICS_CONSTRAINTS_CAPABILITY)
+    .with_capability(PHYSICS_SKELETAL_JOINTS_CAPABILITY)
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.plugin.physics",
+        PHYSICS_RUNTIME_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.raycast",
+        PHYSICS_RAYCAST_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.overlap",
+        PHYSICS_OVERLAP_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.shape_cast",
+        PHYSICS_SHAPE_CAST_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.trigger_events",
+        PHYSICS_TRIGGER_EVENTS_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.constraints",
+        PHYSICS_CONSTRAINTS_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.capability.physics.skeletal_joints",
+        PHYSICS_SKELETAL_JOINTS_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_system_sets([PHYSICS_SYSTEM_SET])
     .with_system_anchors([PHYSICS_STEP_SYSTEM])
+    .build()
 }
 
-pub fn runtime_plugin() -> PhysicsRuntimePlugin {
-    PhysicsRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(PhysicsRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.physics",
-        "runtime.capability.physics.raycast",
-        "runtime.capability.physics.overlap",
-        "runtime.capability.physics.shape_cast",
-        "runtime.capability.physics.trigger_events",
-        "runtime.capability.physics.constraints",
-        "runtime.capability.physics.skeletal_joints",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

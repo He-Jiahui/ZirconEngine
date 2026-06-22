@@ -5,7 +5,6 @@ use crate::graphics::scene::RenderGraphLightGridReport;
 
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
-use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::record_submission::{
     record_history, update_hybrid_gi_runtime, update_virtual_geometry_runtime,
 };
@@ -20,7 +19,6 @@ pub(super) fn record_non_viewport_camera_state_after_success(
     context: &FrameSubmissionContext,
     frame: &ViewportRenderFrame,
     light_grid_report: Option<RenderGraphLightGridReport>,
-    mut prepared: PreparedRuntimeSubmission,
     runtime_feedback: RuntimeFeedbackBatch,
     generation: u64,
     allocated_history: Option<FrameHistoryHandle>,
@@ -42,10 +40,6 @@ pub(super) fn record_non_viewport_camera_state_after_success(
         );
         let (hybrid_gi_feedback, _particle_feedback, virtual_geometry_feedback) =
             runtime_feedback.into_parts();
-        let hybrid_gi_feedback = hybrid_gi_feedback
-            .with_evictable_probe_ids(prepared.take_hybrid_gi_evictable_probe_ids());
-        let virtual_geometry_feedback = virtual_geometry_feedback
-            .with_evictable_page_ids(prepared.take_virtual_geometry_evictable_page_ids());
 
         update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);
         update_virtual_geometry_runtime(

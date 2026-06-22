@@ -46,6 +46,14 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection_tests.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
@@ -54,7 +62,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
 implementation_files:
   - zircon_plugins/editor_build_export_desktop/plugin.toml
@@ -102,6 +112,14 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection_tests.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
@@ -110,7 +128,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
 plan_sources:
   - user: 2026-05-02 continue independent plugin gap implementation
@@ -120,7 +140,13 @@ plan_sources:
 tests:
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - tools/zircon_export/tests/test_pipeline_resume_flow.py
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
   - export_wizard_descriptor_covers_build_layout_stages_and_reports
   - report view summary_entry_keys covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
   - report view template_control_ids covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
@@ -516,6 +542,22 @@ component drawer document.
 
 ## Validation
 
+2026-06-22 export wizard test owner-tree split:
+the oversized root test owner was deleted and replaced with
+`wizard/tests/{mod,support,pipeline_plan,pipeline_execution,job,panel_session,view_model}.rs`.
+The same slice fixed cancellation classification so in-stage cancellation is
+reported separately from phase-boundary cancellation, and registered the v2 panel
+template with its `editor_base.v2.ui.toml` import source. `cargo fmt -p
+zircon_editor --check`, `audit_editor_structure.py --json`, old-file existence
+checks, line-count sampling, and scoped `git diff --check` passed. Focused
+`cargo test -p zircon_editor --lib export_wizard --locked --target-dir
+E:\cargo-targets\zircon-editor-export-wizard-0622 --message-format short --color
+never -- --test-threads=1` previously stopped before editor tests on active
+runtime dirty state: `GpuMeshResource::indirect_order_signature` is private
+during `zircon_runtime` compilation. The latest rerun timed out after 304 seconds
+without diagnostics; matching cargo/rustc leftovers were stopped, so no focused
+export_wizard pass is claimed.
+
 2026-06-18 CLI/editor shared stage order validation:
 `tools/zircon_export/cli.py` now exposes `STAGES` in the shared pipeline order:
 `validate`, `source_template`, `native_dynamic`, `compile_host`, `cook_assets`,
@@ -577,7 +619,7 @@ GeneratePlan call rejection when options are missing, background controller
 start, polling, cancel request, final worker join, and Poll-driven terminal
 controller cleanup. The split-out `session_control_tests.rs` tests cover
 same-frame Start and Cancel control projection without adding more cases to the
-already oversized `wizard/tests.rs`: Start immediately disables Start and enables
+pre-split oversized root test owner: Start immediately disables Start and enables
 Cancel before the worker event is polled, while Cancel immediately moves the
 snapshot into Cancelling and disables Cancel before the terminal event returns.
 The panel-template-state tests cover the five retained template slots, stable
@@ -833,8 +875,8 @@ test pass is claimed.
 `ExportWizardStageExecution`, and `panel_projection.rs` projects those lines
 into the retained `TerminalOutput` slot before diagnostics. The new focused
 test is `export_wizard_panel_template_state_projects_stage_stdout_and_stderr`
-in `panel_output_tests.rs`, split out because `wizard/tests.rs` is already over
-1000 lines. `rustfmt --edition 2021` was applied, and scoped Cargo validation
+in `panel_output_tests.rs`, split out because the pre-split root test owner was
+already over 1000 lines. `rustfmt --edition 2021` was applied, and scoped Cargo validation
 passed with existing warnings for both
 `cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never`
 and

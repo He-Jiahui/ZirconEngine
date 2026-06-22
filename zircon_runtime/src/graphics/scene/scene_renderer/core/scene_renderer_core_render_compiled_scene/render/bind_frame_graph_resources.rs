@@ -13,6 +13,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
     shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) {
+    debug_assert_eq!(
+        target.retained_frame_texture_count(),
+        OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT,
+        "fixed offscreen frame target must retain every WGPU texture owner backing imported views"
+    );
+
     bind_live_frame_target_texture(
         graph,
         resources,

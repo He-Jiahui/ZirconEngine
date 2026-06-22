@@ -1,12 +1,12 @@
 mod cad;
 mod mesh_importer;
-mod registration;
+mod plugin;
 
 pub use mesh_importer::import_mesh_model;
-pub use registration::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration, register,
-    runtime_capabilities, runtime_module_manifest, runtime_selection, supported_platforms,
-    supported_targets,
+pub use plugin::{
+    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
+    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
+    runtime_selection, supported_platforms, supported_targets, ModelAssetImporterRuntimePlugin,
 };
 
 pub(crate) use mesh_importer::{model_outcome, primitive_from_indexed_mesh};

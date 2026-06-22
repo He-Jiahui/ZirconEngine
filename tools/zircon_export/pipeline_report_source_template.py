@@ -13,6 +13,9 @@ from .pipeline_report_source_template_stage_schema import (
     source_template_report_schema_diagnostics,
     source_template_sha256_is_valid,
 )
+from .pipeline_report_source_template_string_array_schema import (
+    source_template_non_empty_string_array_schema_diagnostics,
+)
 from .pipeline_report_source_template_validate_schema import (
     source_template_validate_build_plan_schema_diagnostics,
     source_template_validate_generated_file_schema_diagnostics,
@@ -85,6 +88,8 @@ def source_template_project_path(
     if not isinstance(project, str) or not project.strip():
         diagnostics.append("SourceTemplate report project must be a non-empty string")
         return None
+    if not source_template_is_non_empty_trimmed_string(project):
+        return None
     project_dir = resolve_source_template_path_or_diagnostic(
         project,
         diagnostics,
@@ -141,6 +146,8 @@ def source_template_validate_report_path_diagnostics(
     validate_report = report.get("validate_report")
     if not isinstance(validate_report, str) or not validate_report.strip():
         return ["SourceTemplate report validate_report must be a non-empty string"]
+    if not source_template_is_non_empty_trimmed_string(validate_report):
+        return []
     if expected_path is None:
         return []
     actual_path = resolve_source_template_path_or_diagnostic(
@@ -179,15 +186,13 @@ def source_template_validate_build_plan_diagnostics(
         source_template_validate_build_plan_schema_diagnostics(source_template_build)
     )
     command = source_template_build.get("command")
-    if (
-        not isinstance(command, list)
-        or not command
-        or any(not isinstance(value, str) or not value.strip() for value in command)
-    ):
-        diagnostics.append(
-            "SourceTemplate Validate source_template_build command must be a non-empty string array"
-        )
-    else:
+    command_diagnostics = source_template_non_empty_string_array_schema_diagnostics(
+        "SourceTemplate Validate source_template_build command",
+        command,
+    )
+    if command_diagnostics:
+        diagnostics.extend(command_diagnostics)
+    elif source_template_command_array_is_non_empty_trimmed(command):
         for option in ("--manifest-path", "--target-dir"):
             option_diagnostic = command_option_value_diagnostic(
                 command,
@@ -201,7 +206,7 @@ def source_template_validate_build_plan_diagnostics(
         diagnostics.append(
             "SourceTemplate Validate source_template_build manifest_path must be a non-empty string"
         )
-    else:
+    elif source_template_is_non_empty_trimmed_string(manifest_path):
         source_template_generated_file_path(
             project_dir,
             manifest_path,
@@ -213,7 +218,7 @@ def source_template_validate_build_plan_diagnostics(
         diagnostics.append(
             "SourceTemplate Validate source_template_build target_dir must be a non-empty string"
         )
-    else:
+    elif source_template_is_non_empty_trimmed_string(target_dir):
         diagnostics.extend(
             source_template_validate_build_plan_target_dir_diagnostics(
                 target_dir,
@@ -277,6 +282,8 @@ def source_template_generated_file_diagnostics(
         path = file.get("path")
         if not isinstance(path, str) or not path.strip():
             diagnostics.append("SourceTemplate generated file path must be a non-empty string")
+            continue
+        if not source_template_is_non_empty_trimmed_string(path):
             continue
         if path in report_paths:
             diagnostics.append(
@@ -384,6 +391,8 @@ def source_template_validate_generated_file_paths(
                 "SourceTemplate Validate generated file path must be a non-empty string"
             )
             continue
+        if not source_template_is_non_empty_trimmed_string(path):
+            continue
         if source_template_generated_file_path(
             project_dir,
             path,
@@ -422,17 +431,18 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
         diagnostics.append("SourceTemplate build_validation requested must be a boolean")
     if not isinstance(executed, bool):
         diagnostics.append("SourceTemplate build_validation executed must be a boolean")
-    if status not in {"skipped", "passed", "failed", "blocked"}:
-        diagnostics.append("SourceTemplate build_validation status must be skipped, passed, failed, or blocked")
     if (
-        not isinstance(command, list)
-        or not command
-        or any(not isinstance(value, str) or not value.strip() for value in command)
+        source_template_is_non_empty_trimmed_string(status)
+        and status not in {"skipped", "passed", "failed", "blocked"}
     ):
-        diagnostics.append(
-            "SourceTemplate build_validation command must be a non-empty string array"
-        )
-    else:
+        diagnostics.append("SourceTemplate build_validation status must be skipped, passed, failed, or blocked")
+    command_diagnostics = source_template_non_empty_string_array_schema_diagnostics(
+        "SourceTemplate build_validation command",
+        command,
+    )
+    if command_diagnostics:
+        diagnostics.extend(command_diagnostics)
+    elif source_template_command_array_is_non_empty_trimmed(command):
         diagnostics.extend(
             source_template_command_manifest_path_diagnostics(
                 report,
@@ -442,7 +452,7 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
         )
     if not isinstance(working_dir, str) or not working_dir.strip():
         diagnostics.append("SourceTemplate build_validation working_dir must be a non-empty string")
-    else:
+    elif source_template_is_non_empty_trimmed_string(working_dir):
         working_path = resolve_source_template_path_or_diagnostic(
             working_dir,
             diagnostics,
@@ -487,15 +497,19 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
                 diagnostics.append(
                     f"SourceTemplate build_validation {field} must be a string array"
                 )
-    if (
-        not isinstance(report_command, list)
-        or not report_command
-        or any(not isinstance(value, str) or not value.strip() for value in report_command)
-    ):
-        diagnostics.append(
-            "SourceTemplate report command must be a non-empty string array"
+    report_command_diagnostics = (
+        source_template_non_empty_string_array_schema_diagnostics(
+            "SourceTemplate report command",
+            report_command,
         )
-    elif isinstance(command, list) and command != report_command:
+    )
+    if report_command_diagnostics:
+        diagnostics.extend(report_command_diagnostics)
+    elif (
+        source_template_command_array_is_non_empty_trimmed(report_command)
+        and source_template_command_array_is_non_empty_trimmed(command)
+        and command != report_command
+    ):
         diagnostics.append(
             "SourceTemplate build_validation command must match SourceTemplate report command"
         )
@@ -508,8 +522,7 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
         )
     if (
         isinstance(report_command, list)
-        and report_command
-        and all(isinstance(value, str) and value.strip() for value in report_command)
+        and source_template_command_array_is_non_empty_trimmed(report_command)
     ):
         diagnostics.extend(
             source_template_command_manifest_path_diagnostics(report, report_command)
@@ -532,6 +545,21 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
     if status == "passed" and executed is not True:
         diagnostics.append("SourceTemplate build_validation passed status requires executed=true")
     return diagnostics
+
+
+def source_template_command_array_is_non_empty_trimmed(value: Any) -> bool:
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and all(
+            isinstance(item, str) and item.strip() and item.strip() == item
+            for item in value
+        )
+    )
+
+
+def source_template_is_non_empty_trimmed_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
 
 
 def source_template_command_manifest_path_diagnostics(

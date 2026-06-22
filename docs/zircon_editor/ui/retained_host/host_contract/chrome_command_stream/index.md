@@ -5,6 +5,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command/kind.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command/layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/image.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/model.rs
@@ -13,13 +15,25 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/images.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/border/rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/quad.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/text_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stats.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/clip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/extend.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/image.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/shape.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests/extraction.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests/replay.rs
@@ -43,6 +57,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command/kind.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/command/layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/image.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/model.rs
@@ -51,13 +67,25 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/images.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/border/rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay/commands/shapes/quad.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/text_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stats.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/clip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/extend.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/image.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/shape.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/push/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests/extraction.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests/replay.rs
@@ -102,8 +130,13 @@ tests:
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; runtime draw-list/GPU presenter test ownership scan; touched-file whitespace scan; scoped git diff --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after boundary test responsibility split: passed with existing warning noise only; cargo check -p zircon_editor --lib --tests remains blocked by pre-existing unrelated lib-test errors under render_framework_boundary, paint_template_nodes test imports, profiling_artifacts tests, and retained_tab_drag tests)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; chrome command-stream test-tree ownership scan; touched-file whitespace scan; scoped git diff --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after command-stream test tree responsibility split: passed with existing warning noise only)
   - chrome_command_stream replay command/image/shape ownership scan (2026-06-21 after replay command/image/shape split: clean; replay.rs keeps region replay and sorting, commands.rs keeps command-kind dispatch, images.rs keeps image fallback/atlas draw, shapes.rs keeps quad/border draw)
+  - chrome_command_stream runtime draw-list command/text-style/geometry ownership scan (2026-06-21 after runtime draw-list projection split: clean; runtime_draw_list.rs keeps stream-to-list orchestration, command.rs keeps command-kind projection, text_style.rs keeps text style mapping, geometry.rs keeps rect/UV conversion)
+  - chrome command-stream replay shape quad/border ownership scan (2026-06-21 after replay shape split: clean; shapes.rs keeps structural exports, shapes/quad.rs owns quad replay, shapes/border.rs owns rounded and rectangular border replay)
   - chrome command-stream stream model/push/geometry ownership scan (2026-06-21 after stream model/push/geometry split: clean; stream.rs keeps structural exports, model.rs owns state/accessors, push.rs owns command construction, geometry.rs owns size/frame validation)
+  - chrome command-stream stream push command-family ownership scan (2026-06-21 after push command-family split: clean; push.rs keeps structural child declarations, push/shape.rs owns quad/border, push/text.rs owns text, push/image.rs owns image, push/clip.rs owns clip, push/extend.rs owns bulk extension, and push/command.rs owns visible-frame gated insertion)
   - chrome command-stream extraction entry/command/image/model/visibility ownership scan (2026-06-21 after extraction split: clean; extraction.rs keeps structural exports, entry.rs owns recording extraction, command.rs owns recorded-kind conversion, image.rs owns image payload conversion, model.rs owns extraction DTO, visibility.rs owns frame filtering)
+  - chrome command-stream extraction command kind/layer ownership scan
+  - chrome command-stream replay border rect ownership scan
 doc_type: module-detail
 ---
 
@@ -127,21 +160,29 @@ consume the stream; they no longer own the stream type, extraction logic, or run
 `build_chrome_command_stream(...)` assembly entry. `command.rs` defines `ChromeCommand`,
 `ChromeCommandKind`, `ChromeCommandLayer`, and the chrome image payload/UV DTOs. `stream.rs`
 is now the structural stream entry: `stream/model.rs` defines `ChromeCommandStream`,
-construction, stored command access, and stream metadata; `stream/push.rs` owns push helpers and
-concrete command construction; `stream/geometry.rs` owns surface-size clamping and visible-frame
-validation. `replay.rs`
+construction, stored command access, and stream metadata; `stream/push.rs` is the structural push
+entry; and `stream/geometry.rs` owns surface-size clamping plus visible-frame validation. The push
+children keep command construction separated by family: `push/shape.rs` owns quad and border
+commands, `push/text.rs` owns text commands and line-height/style defaults, `push/image.rs` owns
+viewport image commands, `push/clip.rs` owns clip commands, `push/extend.rs` owns bulk command
+extension, and `push/command.rs` owns the shared visible-frame gated insertion path. `replay.rs`
 owns software replay entry points, command ordering, and region repaint helpers.
 `replay/commands.rs` owns command-kind dispatch, `replay/commands/images.rs` owns image fallback
-and atlas-backed image draw, and `replay/commands/shapes.rs` owns quad and border draw helpers.
+and atlas-backed image draw, and `replay/commands/shapes.rs` is now a structural shape replay entry:
+`shapes/quad.rs` owns quad replay, while `shapes/border.rs` owns rounded-border versus rectangular-border
+dispatch and `shapes/border/rect.rs` owns rectangular border segment geometry and paint.
 `atlas.rs` owns atlas UV validation and RGBA subimage sampling for software replay. `stats.rs` owns
 `ChromeCommandStreamStats` plus image upload and draw-call aggregation. `extraction.rs` is now the
 structural extraction entry: `extraction/entry.rs` owns the bridge from
 `paint_recording::record_host_frame_commands(...)` to extraction output, `extraction/command.rs`
-owns recorded-paint kind to chrome-command conversion, `extraction/image.rs` owns chrome image
+is now the structural recorded-command conversion entry. `extraction/command/layer.rs` owns recorded-paint to chrome layer selection, `extraction/command/kind.rs` owns recorded-paint kind to chrome-command kind conversion, `extraction/image.rs` owns chrome image
 payload and atlas UV conversion, `extraction/model.rs` owns `ChromeCommandExtraction`, and
 `extraction/visibility.rs` owns recorded-frame filtering.
-`runtime_draw_list.rs` converts the neutral chrome stream into runtime `UiSurfaceDrawList` commands
-for GPU presentation.
+`runtime_draw_list.rs` is now the structural runtime draw-list projection entry. It converts the
+neutral chrome stream into runtime `UiSurfaceDrawList` commands for GPU presentation, while
+`runtime_draw_list/command.rs` owns per-command `UiSurfaceCommandKind` projection,
+`runtime_draw_list/text_style.rs` owns retained text-style mapping, and
+`runtime_draw_list/geometry.rs` owns frame rectangle and image UV conversion.
 
 The old `host_contract/presenter/command_stream.rs`,
 `host_contract/presenter/command_stream/`, and `host_contract/presenter/extraction.rs` paths are
@@ -175,6 +216,15 @@ The 2026-06-18 boundary test split moved runtime draw-list projection regression
 `#[cfg(test)] mod tests;` hook. `runtime_draw_list.rs` is 95 lines, `runtime_draw_list/tests.rs` is
 94 lines, `presenter/gpu.rs` is 166 lines, and `presenter/gpu/tests.rs` is 209 lines.
 
+The 2026-06-21 runtime draw-list command/text-style/geometry split reduced
+`chrome_command_stream/runtime_draw_list.rs` from 95 lines to a 26-line stream-to-list orchestration
+entry. `runtime_draw_list/command.rs` owns command-kind projection, `text_style.rs` owns text style
+mapping, and `geometry.rs` owns frame rectangle plus image UV conversion. Validation used
+`cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a runtime draw-list
+command/text-style/geometry ownership scan, scoped trailing-whitespace scan, and scoped
+`git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's
+feature-first instruction.
+
 The 2026-06-18 command-stream test-tree split converted the previous 648-line
 `chrome_command_stream/tests.rs` into a folder-backed test subtree. The root `tests.rs` now only
 declares child modules, while `tests/support.rs` is 280 lines, `tests/stream_model.rs` is 141 lines,
@@ -192,6 +242,23 @@ whitespace scan, and scoped `git diff --check`; package-level
 `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` was
 attempted and timed out after 300 seconds before producing actionable editor diagnostics.
 
+The 2026-06-21 replay shape quad/border split reduced `replay/commands/shapes.rs` from 110 lines
+to a 4-line structural entry. `shapes/quad.rs` owns quad and rounded-quad replay, while
+`shapes/border.rs` owns rounded-border versus rectangular-border dispatch, and
+`shapes/border/rect.rs` owns rectangular border segment geometry and paint.
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a chrome
+command-stream replay shape quad/border ownership scan, scoped trailing-whitespace scan, and scoped
+`git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's
+feature-first instruction.
+
+The 2026-06-21 replay border rect split reduced `replay/commands/shapes/border.rs` from 97 lines
+to a 25-line focused rounded/rect dispatch entry. `shapes/border/rect.rs` owns rectangular border
+width normalization, segment iteration, segment frame geometry, and clipped rect paint. Validation
+used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a chrome command-stream
+replay border rect ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`;
+package-level Cargo check and full Cargo tests remain deferred per the user's feature-first
+instruction.
+
 The 2026-06-21 stream model/push/geometry split reduced `chrome_command_stream/stream.rs` from
 172 lines to a 5-line structural entry. `stream/model.rs` is 45 lines and owns stream state,
 constructors, accessors, and stored command exposure; `stream/push.rs` is 128 lines and owns quad,
@@ -202,6 +269,16 @@ model/push/geometry ownership scan, scoped whitespace scan, and scoped `git diff
 Package-level Cargo check remains covered by the earlier 2026-06-21 timeout before actionable
 editor diagnostics, and full Cargo test matrix remains deferred to the milestone validation stage
 per the user's instruction.
+
+The 2026-06-21 stream push command-family split reduced `chrome_command_stream/stream/push.rs`
+from 137 lines to a 6-line structural entry. The new child owners are `push/shape.rs` at 50 lines,
+`push/text.rs` at 32 lines, `push/image.rs` at 22 lines, `push/clip.rs` at 21 lines,
+`push/extend.rs` at 11 lines, and `push/command.rs` at 27 lines. The existing
+`ChromeCommandStream::push_*` method names stay attached to `ChromeCommandStream`; only their
+implementation ownership moved. Validation used `cargo fmt -p zircon_editor`,
+`cargo fmt -p zircon_editor --check`, a stream push command-family ownership scan, scoped
+trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo
+tests remain deferred to the milestone validation stage per the user's instruction.
 
 The 2026-06-21 extraction entry/command/image/model/visibility split reduced
 `chrome_command_stream/extraction.rs` from 146 lines to a 9-line structural entry.
@@ -216,6 +293,15 @@ formatting the touched files; package-level Cargo check remains covered by the e
 timeout before actionable editor diagnostics, and full Cargo test matrix remains deferred to the
 milestone validation stage per the user's instruction.
 
+The 2026-06-21 extraction command kind/layer split reduced `extraction/command.rs` from 98 lines
+to a 36-line structural recorded-command conversion entry. `extraction/command/kind.rs` owns
+recorded paint kind to `ChromeCommandKind` conversion and image payload delegation, while
+`extraction/command/layer.rs` owns recorded paint kind to `ChromeCommandLayer` selection.
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a chrome
+command-stream extraction command kind/layer ownership scan, scoped trailing-whitespace scan, and
+scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the
+user's feature-first instruction.
+
 ## Flow
 
 `paint_recording` records Workbench chrome into `HostRecordedPaintCommand` values owned by
@@ -224,10 +310,11 @@ layers, converts text/image/quad/border payloads, and returns clipped damage. `m
 resulting command list. `replay.rs` can replay the full
 stream into `HostRgbaFrame` or repaint a damaged region from those stored commands, while its child
 command owners emit the concrete software replay primitives. `stats.rs` derives command accounting
-from the same stored commands. `runtime_draw_list.rs` maps the same
-stream to runtime `UiSurfaceCommandKind` values, preserving corner radius, text style, image upload
-metadata, atlas UVs, clip commands, damage, and surface size. `atlas.rs` is deliberately kept below
-replay because it is a software fallback sampler, not the runtime GPU atlas contract.
+from the same stored commands. `runtime_draw_list.rs` maps the same stream to runtime
+`UiSurfaceDrawList` values, preserving corner radius, text style, image upload metadata, atlas UVs,
+clip commands, damage, and surface size through its command/text-style/geometry children.
+`atlas.rs` is deliberately kept below replay because it is a software fallback sampler, not the
+runtime GPU atlas contract.
 
 The GPU presenter now asks this module for a runtime draw list and then only handles surface
 submission, cache bootstrap, damage diagnostics, and profiling counters.

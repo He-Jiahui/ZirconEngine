@@ -340,8 +340,14 @@ fn editor_ui_host_owns_asset_and_animation_editor_sessions() {
         );
     }
 
-    let asset_wrapper = std::fs::read_to_string(host_root.join("editor_manager_asset_editor.rs"))
-        .expect("asset editor wrapper");
+    let mut asset_wrapper =
+        std::fs::read_to_string(host_root.join("editor_manager_asset_editor.rs"))
+            .expect("asset editor wrapper");
+    for file in collect_rs_files(&host_root.join("editor_manager_asset_editor")) {
+        asset_wrapper.push('\n');
+        asset_wrapper
+            .push_str(&std::fs::read_to_string(&file).unwrap_or_else(|_| panic!("{file:?}")));
+    }
     for required in [
         "self.host.open_ui_asset_editor(path, mode)",
         "self.host.open_ui_asset_editor_by_id(asset_id, mode)",

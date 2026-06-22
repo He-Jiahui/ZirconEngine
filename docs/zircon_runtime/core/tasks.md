@@ -10,6 +10,8 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/framework/tasks/mod.rs
@@ -24,6 +26,8 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
 plan_sources:
   - user: 2026-05-16 continue Bevy-style app/prelude/state/time/tasks/log/diagnostic completion
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
@@ -101,8 +105,8 @@ During the 2026-06-13 editor UI grouped-keyboard validation, the Material catalo
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/tasks.rs` verifies default Bevy-style thread distribution, small-host minimum pool availability, execution on all three pools, formatted task-pool diagnostics, runtime/handle report access, and the `JobScheduler` facade relationship to the compute pool. Runtime 11 adds tests for handle waiting, dependency scheduling, combined handles, scheduler `wait_all`, dependency scheduling on a single-worker pool, exact data-parallel visitation, chunk-size granularity, scheduler diagnostics, deep dependency chains, and wide fanout `JobHandle::combine`.
+`zircon_runtime/src/tests/tasks.rs` verifies default Bevy-style thread distribution, small-host minimum pool availability, execution on all three pools, formatted task-pool diagnostics, runtime/handle report access, and the `JobScheduler` facade relationship to the compute pool. Runtime 11 adds tests for handle waiting, dependency scheduling, worker-side wait assist, combined handles, scheduler `wait_all`, dependency scheduling on a single-worker pool, exact data-parallel visitation, chunk-size granularity, scheduler diagnostics, deep dependency chains, and wide fanout `JobHandle::combine`.
 
 `zircon_runtime/src/tests/prelude.rs` verifies that the stable runtime prelude exports the task-pool types and diagnostic report needed by app and module authors.
 
-`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The behavior anchors now include panic-safe handle completion for scheduled jobs and dependent jobs.
+`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The 2026-06-21 inventory split moves module/Rayon source ownership into `job_system_source_inventory.py` and API/test/doc anchor ownership into `job_system_anchor_inventory.py`, leaving the boundary file as the audit reader and renderer. The behavior anchors now include panic-safe handle completion for scheduled jobs, dependent jobs, and worker-side wait assist through the task-pool-owned `assist_current_thread_once(...)` helper.

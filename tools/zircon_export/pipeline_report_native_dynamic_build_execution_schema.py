@@ -16,6 +16,7 @@ from .pipeline_report_native_dynamic_build_audit_common import (
 from .pipeline_report_schema_table import (
     non_empty_string_array_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 
 NATIVE_DYNAMIC_BUILD_EXECUTION_FIELDS = (
@@ -173,6 +174,15 @@ def native_dynamic_build_execution_schema_diagnostics(
                 and not execution.get(field).strip()
             ):
                 diagnostics.append(f"{label}.{field} must be a non-empty string")
+            elif (
+                field in NATIVE_DYNAMIC_BUILD_EXECUTION_NON_EMPTY_STRING_FIELDS
+                and isinstance(execution.get(field), str)
+                and execution.get(field).strip()
+                and execution.get(field).strip() != execution.get(field)
+            ):
+                diagnostics.append(
+                    f"{label}.{field} must be a non-empty trimmed string"
+                )
             diagnostics.extend(
                 validate_string_schema_diagnostics(
                     f"{label}.{field}",
@@ -208,16 +218,31 @@ def native_dynamic_build_execution_schema_diagnostics(
     )
     for field in NATIVE_DYNAMIC_BUILD_EXECUTION_STRING_ARRAY_FIELDS:
         if field in execution and execution.get(field) is not None:
-            diagnostics.extend(
-                validate_string_array_schema_diagnostics(
-                    f"{label}.{field}",
-                    execution.get(field),
+            field_label = f"{label}.{field}"
+            if field == "diagnostics":
+                diagnostics.extend(
+                    native_dynamic_build_execution_diagnostics_array_schema_diagnostics(
+                        field_label,
+                        execution.get(field),
+                    )
                 )
-            )
+            else:
+                diagnostics.extend(
+                    validate_string_array_schema_diagnostics(
+                        field_label,
+                        execution.get(field),
+                    )
+                )
             if field == "diagnostics":
                 diagnostics.extend(
                     string_array_no_blank_entries_schema_diagnostics(
-                        f"{label}.{field}",
+                        field_label,
+                        execution.get(field),
+                    )
+                )
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        field_label,
                         execution.get(field),
                     )
                 )
@@ -345,6 +370,15 @@ def native_dynamic_build_execution_packages_schema_diagnostics(
                 diagnostics.append(
                     f"{package_label}.{field} must be a non-empty string"
                 )
+            elif (
+                field in NATIVE_DYNAMIC_BUILD_EXECUTION_PACKAGE_NON_EMPTY_STRING_FIELDS
+                and isinstance(package.get(field), str)
+                and package.get(field).strip()
+                and package.get(field).strip() != package.get(field)
+            ):
+                diagnostics.append(
+                    f"{package_label}.{field} must be a non-empty trimmed string"
+                )
             if field in package and package.get(field) is not None:
                 diagnostics.extend(
                     validate_string_schema_diagnostics(
@@ -408,41 +442,69 @@ def native_dynamic_build_execution_packages_schema_diagnostics(
                     )
                 )
             if field in package and package.get(field) is not None:
-                diagnostics.extend(
-                    validate_string_array_schema_diagnostics(
-                        f"{package_label}.{field}",
-                        package.get(field),
+                field_label = f"{package_label}.{field}"
+                if field == "command":
+                    diagnostics.extend(
+                        native_dynamic_build_execution_command_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
                     )
-                )
+                elif field == "copied_sidecars":
+                    diagnostics.extend(
+                        native_dynamic_build_execution_copied_sidecars_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                else:
+                    diagnostics.extend(
+                        validate_string_array_schema_diagnostics(
+                            field_label,
+                            package.get(field),
+                        )
+                    )
                 if field == "command":
                     diagnostics.extend(
                         non_empty_string_array_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                    diagnostics.extend(
+                        string_array_trimmed_non_empty_entries_schema_diagnostics(
+                            field_label,
                             package.get(field),
                         )
                     )
                 if field == "copied_sidecars":
                     diagnostics.extend(
                         string_array_no_blank_entries_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
+                            package.get(field),
+                        )
+                    )
+                    diagnostics.extend(
+                        string_array_trimmed_non_empty_entries_schema_diagnostics(
+                            field_label,
                             package.get(field),
                         )
                     )
                     diagnostics.extend(
                         string_array_unique_entries_schema_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
                             package.get(field),
                         )
                     )
                     diagnostics.extend(
                         native_dynamic_build_execution_safe_relative_path_array_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
                             package.get(field),
                         )
                     )
                     diagnostics.extend(
                         native_dynamic_build_execution_package_path_scope_array_diagnostics(
-                            f"{package_label}.{field}",
+                            field_label,
                             package,
                             package.get(field),
                         )
@@ -469,6 +531,45 @@ def native_dynamic_build_execution_package_path_scope_array_diagnostics(
     return diagnostics
 
 
+def native_dynamic_build_execution_command_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
+def native_dynamic_build_execution_copied_sidecars_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
+def native_dynamic_build_execution_diagnostics_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, entry in enumerate(value)
+        if not isinstance(entry, str)
+    ]
+
+
 def native_dynamic_build_execution_package_path_scope_diagnostics(
     label: str,
     package: dict[str, Any],
@@ -487,9 +588,11 @@ def native_dynamic_build_execution_package_path_prefix(
     package: dict[str, Any],
 ) -> str | None:
     package_id = package.get("package_id")
-    if not isinstance(package_id, str) or not package_id.strip():
+    if not native_dynamic_build_execution_trimmed_non_empty_string_is_schema_clean(
+        package_id
+    ):
         return None
-    return f"plugins/{package_id.strip()}/"
+    return f"plugins/{package_id}/"
 
 
 def native_dynamic_build_execution_safe_relative_path_array_diagnostics(
@@ -515,6 +618,10 @@ def native_dynamic_build_execution_safe_relative_path_diagnostics(
 ) -> list[str]:
     if not isinstance(value, str) or not value.strip():
         return []
+    if not native_dynamic_build_execution_trimmed_non_empty_string_is_schema_clean(
+        value
+    ):
+        return []
     if native_dynamic_build_execution_normalized_safe_relative_path(value) is None:
         return [f"{label} must be a safe relative path"]
     return []
@@ -523,7 +630,9 @@ def native_dynamic_build_execution_safe_relative_path_diagnostics(
 def native_dynamic_build_execution_normalized_safe_relative_path(
     value: Any,
 ) -> str | None:
-    if not isinstance(value, str) or not value.strip():
+    if not native_dynamic_build_execution_trimmed_non_empty_string_is_schema_clean(
+        value
+    ):
         return None
     normalized = normalize_relative_path(value)
     if (
@@ -532,6 +641,12 @@ def native_dynamic_build_execution_normalized_safe_relative_path(
     ):
         return None
     return normalized
+
+
+def native_dynamic_build_execution_trimmed_non_empty_string_is_schema_clean(
+    value: object,
+) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
 
 
 def native_dynamic_build_execution_has_drive_prefix(value: str) -> bool:

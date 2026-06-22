@@ -7,7 +7,7 @@ mod surface;
 mod text;
 
 #[cfg(test)]
-#[path = "template_axis_value_fields_tests.rs"]
+#[path = "template_axis_value_fields_tests/mod.rs"]
 mod tests;
 
 use geometry::axis_field_rect;

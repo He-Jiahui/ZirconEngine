@@ -13,7 +13,7 @@ mod layout_preset_asset_path;
 mod layout_preset_assets;
 mod project_editor_workspace;
 mod project_root_path;
-mod runtime_asset_helpers;
+mod runtime_asset_resolution;
 mod workspace_document_path;
 
 pub(crate) use asset_workspace_state::AssetWorkspaceState;

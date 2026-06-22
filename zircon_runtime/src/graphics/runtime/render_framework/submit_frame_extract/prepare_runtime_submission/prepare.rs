@@ -1,7 +1,9 @@
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
-use super::super::viewport_generation_guard::validate_viewport_generation;
+use super::super::viewport_generation_guard::{
+    validate_viewport_generation, viewport_record_mut_after_generation_check,
+};
 use crate::core::framework::render::{RenderFrameworkError, RenderPluginRendererOutputs};
 use crate::graphics::{HybridGiRuntimePrepareInput, VirtualGeometryRuntimePrepareInput};
 
@@ -12,11 +14,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
 ) -> Result<PreparedRuntimeSubmission, RenderFrameworkError> {
     validate_viewport_generation(state, viewport, context)?;
     let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs) =
-        prepare_hybrid_gi_runtime(state, viewport, context)
+        prepare_hybrid_gi_runtime(state, viewport, context)?
             .map(crate::graphics::HybridGiRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
     let (virtual_geometry_evictable_page_ids, virtual_geometry_renderer_outputs) =
-        prepare_virtual_geometry_runtime(state, viewport, context)
+        prepare_virtual_geometry_runtime(state, viewport, context)?
             .map(crate::graphics::VirtualGeometryRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
     let plugin_renderer_outputs = merge_prepare_plugin_renderer_outputs(
@@ -46,24 +48,21 @@ fn prepare_hybrid_gi_runtime(
     state: &mut RenderFrameworkState,
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
-) -> Option<crate::graphics::HybridGiRuntimePrepareOutput> {
+) -> Result<Option<crate::graphics::HybridGiRuntimePrepareOutput>, RenderFrameworkError> {
     if !context.hybrid_gi_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_hybrid_gi_runtimes();
         }
-        return None;
+        return Ok(None);
     }
 
     let Some(registration) = state.hybrid_gi_runtime_provider.clone() else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_hybrid_gi_runtimes();
         }
-        return None;
+        return Err(missing_runtime_provider("hybrid global illumination"));
     };
-    let record = state
-        .viewports
-        .get_mut(&viewport)
-        .expect("viewport generation checked before runtime prepare");
+    let record = viewport_record_mut_after_generation_check(state, viewport, context)?;
     let input = HybridGiRuntimePrepareInput::new(
         context.hybrid_gi_extract(),
         context.scene_meshes(),
@@ -73,35 +72,32 @@ fn prepare_hybrid_gi_runtime(
         context.hybrid_gi_update_plan(),
         context.predicted_generation(),
     );
-    Some(
+    Ok(Some(
         record
             .ensure_hybrid_gi_runtime(context.camera_history_key(), registration.provider())
             .prepare_frame(input),
-    )
+    ))
 }
 
 fn prepare_virtual_geometry_runtime(
     state: &mut RenderFrameworkState,
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
-) -> Option<crate::graphics::VirtualGeometryRuntimePrepareOutput> {
+) -> Result<Option<crate::graphics::VirtualGeometryRuntimePrepareOutput>, RenderFrameworkError> {
     if !context.virtual_geometry_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_virtual_geometry_runtimes();
         }
-        return None;
+        return Ok(None);
     }
 
     let Some(registration) = state.virtual_geometry_runtime_provider.clone() else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_virtual_geometry_runtimes();
         }
-        return None;
+        return Err(missing_runtime_provider("virtual geometry"));
     };
-    let record = state
-        .viewports
-        .get_mut(&viewport)
-        .expect("viewport generation checked before runtime prepare");
+    let record = viewport_record_mut_after_generation_check(state, viewport, context)?;
     let visibility_context = context.visibility_context();
     let input = VirtualGeometryRuntimePrepareInput::new(
         context.virtual_geometry_extract(),
@@ -110,11 +106,17 @@ fn prepare_virtual_geometry_runtime(
         &visibility_context.virtual_geometry_draw_segments,
         context.predicted_generation(),
     );
-    Some(
+    Ok(Some(
         record
             .ensure_virtual_geometry_runtime(context.camera_history_key(), registration.provider())
             .prepare_frame(input),
-    )
+    ))
+}
+
+fn missing_runtime_provider(feature: &str) -> RenderFrameworkError {
+    RenderFrameworkError::UnsupportedCapability {
+        capability: format!("{feature} runtime provider"),
+    }
 }
 
 #[cfg(test)]

@@ -221,6 +221,29 @@ fn schedule_after_does_not_consume_worker_while_waiting_on_dependencies() {
 }
 
 #[test]
+fn worker_thread_wait_does_not_deadlock_scheduler() {
+    let scheduler = single_worker_scheduler();
+    let scheduler_for_outer = scheduler.clone();
+    let child_ran = Arc::new(AtomicUsize::new(0));
+    let child_ran_for_outer = Arc::clone(&child_ran);
+
+    let outer = scheduler.schedule(move || {
+        let child_ran_for_child = Arc::clone(&child_ran_for_outer);
+        let child = scheduler_for_outer.schedule(move || {
+            child_ran_for_child.store(1, Ordering::SeqCst);
+        });
+        child.wait();
+    });
+
+    outer.wait();
+
+    assert!(outer.is_complete());
+    assert_eq!(child_ran.load(Ordering::SeqCst), 1);
+    assert_eq!(scheduler.diagnostic_report().scheduled, 2);
+    assert_eq!(scheduler.diagnostic_report().completed, 2);
+}
+
+#[test]
 fn job_diagnostics_track_schedule_complete_and_wait_times() {
     let scheduler = single_worker_scheduler();
     let (release_tx, release_rx) = bounded::<()>(0);

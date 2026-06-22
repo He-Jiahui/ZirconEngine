@@ -44,16 +44,24 @@ pub(super) fn spawn_model(
             let entity = world.spawn_node(NodeKind::Mesh);
             let mut transform = Transform::default();
             transform.translation = position;
-            world.update_transform(entity, transform)?;
-            world.insert(entity, Name(name))?;
-            world.insert(
-                entity,
-                MeshRenderer::from_handles(
-                    resource_handle_from_script_ref::<ModelMarker>(&model_ref),
-                    resource_handle_from_script_ref::<MaterialMarker>(&material_ref),
-                ),
-            )?;
-            world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, script_bindings)?;
+            world
+                .update_transform(entity, transform)
+                .map_err(|error| error.to_string())?;
+            world
+                .insert(entity, Name(name))
+                .map_err(|error| error.to_string())?;
+            world
+                .insert(
+                    entity,
+                    MeshRenderer::from_handles(
+                        resource_handle_from_script_ref::<ModelMarker>(&model_ref),
+                        resource_handle_from_script_ref::<MaterialMarker>(&material_ref),
+                    ),
+                )
+                .map_err(|error| error.to_string())?;
+            world
+                .set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, script_bindings)
+                .map_err(|error| error.to_string())?;
             Ok(entity)
         });
     entity
@@ -72,7 +80,7 @@ pub(super) fn set_hud_text(
     });
     result
         .map(|_| ScriptHostValue::Bool(true))
-        .map_err(ScriptHostError::new)
+        .map_err(|error| ScriptHostError::new(error.to_string()))
 }
 
 pub(super) fn set_particle_sprites(
@@ -87,7 +95,7 @@ pub(super) fn set_particle_sprites(
     });
     result
         .map(|_| ScriptHostValue::Bool(true))
-        .map_err(ScriptHostError::new)
+        .map_err(|error| ScriptHostError::new(error.to_string()))
 }
 
 pub(super) fn set_world_hud_bar(
@@ -136,7 +144,7 @@ pub(super) fn set_world_hud_bar(
     });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(|error| ScriptHostError::new(error.to_string()))
 }
 
 pub(super) fn despawn(context: &ScriptHostCallContext) -> Result<ScriptHostValue, ScriptHostError> {

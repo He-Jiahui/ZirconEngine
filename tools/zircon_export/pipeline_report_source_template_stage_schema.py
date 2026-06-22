@@ -8,8 +8,13 @@ from .pipeline_report_schema_primitives import (
     validate_bool_schema_diagnostics,
     validate_integer_schema_diagnostics,
     validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
+)
+from .pipeline_report_schema_table import (
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
+)
+from .pipeline_report_source_template_string_array_schema import (
+    source_template_non_empty_string_array_schema_diagnostics,
 )
 
 
@@ -105,6 +110,11 @@ def source_template_report_schema_diagnostics(report: dict[str, Any]) -> list[st
                 diagnostics.append(
                     f"SourceTemplate report {field} must be a non-empty string"
                 )
+            elif value != value.strip():
+                diagnostics.append(
+                    f"SourceTemplate report {field} "
+                    "must be a non-empty trimmed string"
+                )
     for field in SOURCE_TEMPLATE_REPORT_NULLABLE_STRING_FIELDS:
         if field in report:
             diagnostics.extend(
@@ -114,12 +124,23 @@ def source_template_report_schema_diagnostics(report: dict[str, Any]) -> list[st
                 )
             )
     for field in SOURCE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS:
-        if field in report and not source_template_is_non_empty_string_array(
-            report.get(field)
-        ):
-            diagnostics.append(
-                f"SourceTemplate report {field} must be a non-empty string array"
+        if field in report:
+            value = report.get(field)
+            string_array_diagnostics = (
+                source_template_non_empty_string_array_schema_diagnostics(
+                    f"SourceTemplate report {field}",
+                    value,
+                )
             )
+            if string_array_diagnostics:
+                diagnostics.extend(string_array_diagnostics)
+            else:
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        f"SourceTemplate report {field}",
+                        value,
+                    )
+                )
     for field in SOURCE_TEMPLATE_REPORT_BOOL_FIELDS:
         if field in report:
             diagnostics.extend(
@@ -208,6 +229,11 @@ def source_template_generated_file_schema_diagnostics(
             diagnostics.append(
                 "SourceTemplate generated file path must be a non-empty string"
             )
+        elif field == "path" and value != value.strip():
+            diagnostics.append(
+                "SourceTemplate generated file path "
+                "must be a non-empty trimmed string"
+            )
         elif not isinstance(value, str):
             diagnostics.extend(
                 validate_string_schema_diagnostics(
@@ -219,6 +245,11 @@ def source_template_generated_file_schema_diagnostics(
             diagnostics.append(
                 source_template_generated_file_field_label(path, field)
                 + " must be a non-empty string"
+            )
+        elif field == "purpose" and value != value.strip():
+            diagnostics.append(
+                source_template_generated_file_field_label(path, field)
+                + " must be a non-empty trimmed string"
             )
         elif field == "sha256" and not source_template_sha256_is_valid(value):
             diagnostics.append(
@@ -252,6 +283,11 @@ def source_template_build_validation_schema_diagnostics(
                     f"SourceTemplate build_validation {field} "
                     "must be a non-empty string"
                 )
+            elif value != value.strip():
+                diagnostics.append(
+                    f"SourceTemplate build_validation {field} "
+                    "must be a non-empty trimmed string"
+                )
     for field in SOURCE_TEMPLATE_BUILD_VALIDATION_BOOL_FIELDS:
         if field in validation:
             diagnostics.extend(
@@ -260,17 +296,27 @@ def source_template_build_validation_schema_diagnostics(
                 )
             )
     for field in SOURCE_TEMPLATE_BUILD_VALIDATION_STRING_ARRAY_FIELDS:
-        if field in validation and not source_template_is_non_empty_string_array(
-            validation.get(field)
-        ):
-            diagnostics.append(
-                f"SourceTemplate build_validation {field} "
-                "must be a non-empty string array"
+        if field in validation:
+            value = validation.get(field)
+            string_array_diagnostics = (
+                source_template_non_empty_string_array_schema_diagnostics(
+                    f"SourceTemplate build_validation {field}",
+                    value,
+                )
             )
+            if string_array_diagnostics:
+                diagnostics.extend(string_array_diagnostics)
+            else:
+                diagnostics.extend(
+                    string_array_trimmed_non_empty_entries_schema_diagnostics(
+                        f"SourceTemplate build_validation {field}",
+                        value,
+                    )
+                )
     for field in SOURCE_TEMPLATE_BUILD_VALIDATION_OUTPUT_LINE_FIELDS:
         if field in validation:
             diagnostics.extend(
-                validate_string_array_schema_diagnostics(
+                source_template_output_lines_array_schema_diagnostics(
                     f"SourceTemplate build_validation {field}", validation.get(field)
                 )
             )
@@ -300,6 +346,19 @@ def source_template_is_non_empty_string_array(value: Any) -> bool:
     )
 
 
+def source_template_output_lines_array_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    return [
+        f"{label}[{index}] must be a string"
+        for index, item in enumerate(value)
+        if not isinstance(item, str)
+    ]
+
+
 def source_template_nullable_string_schema_diagnostics(
     label: str,
     value: Any,
@@ -308,6 +367,8 @@ def source_template_nullable_string_schema_diagnostics(
         return []
     if not isinstance(value, str) or not value.strip():
         return [f"{label} must be a non-empty string or null"]
+    if value != value.strip():
+        return [f"{label} must be a non-empty trimmed string or null"]
     return []
 
 

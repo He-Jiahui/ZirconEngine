@@ -62,6 +62,7 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership_markdown.py
 implementation_files:
   - docs/engine-architecture/large-file-ownership-m1.md
   - docs/engine-architecture/runtime-architecture-review-m0.md
@@ -69,6 +70,7 @@ implementation_files:
   - docs/engine-architecture/index.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership_markdown.py
   - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
@@ -76,7 +78,7 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - large_file_ownership_gate M1 gate status, explicit count fields, classification count, migration debt, and unclassified hotspot checks
@@ -100,7 +102,7 @@ The structural audit now reports `large_file_ownership_gate.m1_gate_status`. Cur
 Current evidence:
 
 - `threshold = 1000`
-- `hotspot_count = 30`
+- `hotspot_count = 25`
 - `classification_count = 5`
 - `decision_group_count = 5`
 - `large_file_migration_debt_count = 5`
@@ -111,15 +113,17 @@ Each `large_file_ownership_gate.hotspots` entry now carries both the raw line co
 
 Current classification:
 
-- `editor-retained-host = 3`
-- `editor-ui = 8`
+- `editor-retained-host = 1`
+- `editor-ui = 5`
 - `runtime-framework-render = 3`
 - `runtime-other = 13`
 - `support-hub = 3`
 
 The classification means every current hotspot has an owner bucket. It does not mean the file is converged.
 
-The 2026-06-20 Runtime 07 owner-budget sync records 30 hotspots while active render, UI, plugin, and Hub work continues. The former single-file animation asset module was cut into the folder-backed `zircon_runtime/src/asset/assets/animation/{mod,binary,channel,clip,graph,reference,sequence,skeleton,state_machine}.rs` owner set, the former single-file scene asset module was cut into `zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs`, scene project I/O was split into `zircon_runtime/src/scene/world/project_io/{camera,physics,post_process,references,script,transform}.rs`, dynamic-session event routing was split into `zircon_runtime/src/dynamic_api/session/events.rs`, the script gameplay host was split into `zircon_runtime/src/script/vm/gameplay_host/{combat,components,input,lifecycle,navigation,script_bindings,transform,values}.rs` with the registration owner at 371 lines, artifact cache payload JSON/Mesh/TOML wire owners were split into `zircon_runtime/src/asset/artifact/cache_payload/{json_value,mesh,toml_value}.rs`, render product diagnostics were split into `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs`, virtual geometry debug snapshot DTOs were split into `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/{bvh_visualization,cpu_reference,cull_input,execution,node_and_cluster_cull,snapshot,sources}.rs`, and the navigation fallback runtime was split into `zircon_runtime/src/navigation/runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs`. Those payload, conversion, event-routing, gameplay-host, artifact-cache wire, render product diagnostic, virtual-geometry debug snapshot, and navigation fallback runtime surfaces no longer contribute large-file hotspots. The current total drift still comes from classified render/post-process/runtime owner files, with `runtime-framework-render` at 3, `runtime-other` at 13, `editor-retained-host` at 3, `editor-ui` at 8, and `support-hub` at 3 without changing the owner-budget gate shape. Current runtime hotspots still include `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs`, `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs`, `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs`, and `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs`, so the important gate fact is that `unclassified_hotspot_count = 0` and all current hotspots still resolve to an owner bucket before Runtime 07 M2 optimization work can use them.
+The 2026-06-21 renderer split keeps the ownership gate as data first: `large_file_ownership.py` owns owner classification, hotspot summary, migration-debt, and risk data at 223 lines, while `large_file_ownership_markdown.py` owns hotspot, ownership-class, and ownership-gate Markdown rendering at 73 lines. The current direct probe renders those sections as 11/6/39 lines without changing the `migration-debt-present` gate.
+
+The 2026-06-22 owner-budget sync records 25 hotspots while active render, UI, plugin, and Hub work continues. The former single-file animation asset module was cut into the folder-backed `zircon_runtime/src/asset/assets/animation/{mod,binary,channel,clip,graph,reference,sequence,skeleton,state_machine}.rs` owner set, the former single-file scene asset module was cut into `zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs`, scene project I/O was split into `zircon_runtime/src/scene/world/project_io/{camera,physics,post_process,references,script,transform}.rs`, dynamic-session event routing was split into `zircon_runtime/src/dynamic_api/session/events.rs`, the script gameplay host was split into `zircon_runtime/src/script/vm/gameplay_host/{combat,components,input,lifecycle,navigation,script_bindings,transform,values}.rs` with the registration owner at 371 lines, artifact cache payload JSON/Mesh/TOML wire owners were split into `zircon_runtime/src/asset/artifact/cache_payload/{json_value,mesh,toml_value}.rs`, render product diagnostics were split into `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs`, virtual geometry debug snapshot DTOs were split into `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/{bvh_visualization,cpu_reference,cull_input,execution,node_and_cluster_cull,snapshot,sources}.rs`, and the navigation fallback runtime was split into `zircon_runtime/src/navigation/runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs`. Editor UI 10 then removed `template_runtime/showcase_demo_state.rs`, `host/editor_manager_asset_editor.rs`, and `animation_editor/session.rs` from the editor-ui hotspot list. Those payload, conversion, event-routing, gameplay-host, artifact-cache wire, render product diagnostic, virtual-geometry debug snapshot, navigation fallback runtime, and editor session/façade surfaces no longer contribute large-file hotspots. The current total drift still comes from classified render/post-process/runtime owner files, with `runtime-framework-render` at 3, `runtime-other` at 13, `editor-retained-host` at 1, `editor-ui` at 5, and `support-hub` at 3 without changing the owner-budget gate shape. Current runtime hotspots still include `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs`, `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs`, `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs`, and `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs`, so the important gate fact is that `unclassified_hotspot_count = 0` and all current hotspots still resolve to an owner bucket before Runtime 07 M2 optimization work can use them.
 
 ## M1 Decision Rules
 
@@ -137,9 +141,9 @@ Any future `unclassified_hotspots` entry is a review blocker. Classify it with a
 
 `runtime-other` currently includes render graph execution record, runtime UI surface/style/catalog/accessibility extract, RHI/WGPU UI surface, graphics UI render, mesh draw list/build helpers, render-stats graph, and frame-extract virtual-geometry snapshot/update-stats helpers. The animation asset, scene asset, scene project I/O conversion, dynamic-session event-routing, script gameplay-host, artifact-cache wire, render product diagnostic, and navigation fallback runtime surfaces have already been split below the hotspot threshold; remaining runtime-other hotspots should be split by runtime module owner before any M5/M7 performance work claims improvements in allocation, clone behavior, or dispatch cost.
 
-`editor-retained-host` currently includes retained-host pane data conversion, apply presentation, and pane component projection hotspots. These belong to M7 editor/UI and should wait for the active host-editor UI session to quiet down.
+`editor-retained-host` currently includes the retained-host `apply_presentation.rs` hotspot. Earlier pane-data-conversion and pane-component-projection hotspots have been split below the global large-file threshold; remaining retained-host owner work belongs to M7 editor/UI and should coordinate with the active host-editor UI session.
 
-`editor-ui` currently includes workbench host window projection, asset editor theme/binding/session/preview, animation editor session, editor manager asset editor, and template showcase state. Split by authoring workflow and template-runtime owner.
+`editor-ui` currently includes workbench host window projection plus asset editor theme/binding/session/preview hotspots. The animation editor session, editor manager asset editor façade, and template showcase state are now folder-backed and below the global large-file threshold. Split the remaining editor-ui hotspots by window projection and asset-editor workflow owner.
 
 `support-hub` currently includes Hub `tauri_app` runtime-state project actions, view-model, and runtime-state root files. Coordinate with active Hub sessions before touching those files.
 

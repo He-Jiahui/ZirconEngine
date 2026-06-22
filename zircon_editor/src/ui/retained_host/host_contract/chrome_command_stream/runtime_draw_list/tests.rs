@@ -1,7 +1,9 @@
 use super::*;
 use crate::ui::retained_host::host_contract::chrome_command_stream::{
-    ChromeCommandLayer, ChromeImagePayload,
+    ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
 };
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use zircon_runtime::rhi::{UiSurfaceCommandKind, UiSurfaceImageUvRect};
 
 #[test]
 fn runtime_draw_list_preserves_chrome_corner_radius() {

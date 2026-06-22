@@ -9,17 +9,21 @@ use crate::graphics::types::GraphicsError;
 const OUTPUT_TARGET_TEXTURE_LABEL: &str = "zircon-output-target-texture";
 
 pub(in crate::graphics::scene) struct OutputTargetTextureResource {
-    #[allow(dead_code)]
-    pub(in crate::graphics::scene) descriptor: RenderImageDescriptor,
-    #[allow(dead_code)]
-    pub(in crate::graphics::scene) texture: wgpu::Texture,
-    #[allow(dead_code)]
-    pub(in crate::graphics::scene) view: wgpu::TextureView,
-    #[allow(dead_code)]
-    pub(in crate::graphics::scene) sampler: wgpu::Sampler,
+    descriptor: RenderImageDescriptor,
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    sampler: wgpu::Sampler,
 }
 
 impl OutputTargetTextureResource {
+    pub(in crate::graphics::scene) const RETAINED_OUTPUT_TARGET_TEXTURE_OWNER_COUNT: usize = 4;
+
+    pub(in crate::graphics::scene) fn retained_output_target_texture_owner_count(&self) -> usize {
+        let _retained_output_target_texture_owners =
+            (&self.descriptor, &self.texture, &self.view, &self.sampler);
+        Self::RETAINED_OUTPUT_TARGET_TEXTURE_OWNER_COUNT
+    }
+
     pub(in crate::graphics::scene::resources) fn from_asset(
         device: &wgpu::Device,
         id: ResourceId,
@@ -59,23 +63,36 @@ impl OutputTargetTextureResource {
     }
 
     pub(in crate::graphics::scene) fn descriptor(&self) -> &RenderImageDescriptor {
+        self.assert_retained_output_target_texture_owner_count();
         &self.descriptor
     }
 
     pub(in crate::graphics::scene) fn size(&self) -> crate::core::math::UVec2 {
-        crate::core::math::UVec2::new(self.descriptor.width, self.descriptor.height)
+        let descriptor = self.descriptor();
+        crate::core::math::UVec2::new(descriptor.width, descriptor.height)
     }
 
     pub(in crate::graphics::scene) fn texture(&self) -> &wgpu::Texture {
+        self.assert_retained_output_target_texture_owner_count();
         &self.texture
     }
 
     pub(in crate::graphics::scene) fn view(&self) -> &wgpu::TextureView {
+        self.assert_retained_output_target_texture_owner_count();
         &self.view
     }
 
     pub(in crate::graphics::scene) fn sampler(&self) -> &wgpu::Sampler {
+        self.assert_retained_output_target_texture_owner_count();
         &self.sampler
+    }
+
+    fn assert_retained_output_target_texture_owner_count(&self) {
+        debug_assert_eq!(
+            self.retained_output_target_texture_owner_count(),
+            Self::RETAINED_OUTPUT_TARGET_TEXTURE_OWNER_COUNT,
+            "OutputTargetTextureResource must retain descriptor, texture, view, and sampler while exposing output target writeback and graph-import bindings",
+        );
     }
 }
 

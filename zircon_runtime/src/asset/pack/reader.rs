@@ -1,5 +1,7 @@
 use crate::core::framework::net::ZrChunkEntry;
 
+use super::dedup::zrpack_content_hash;
+use super::manifest::validate_zrpack_document_manifest;
 use super::{
     writer::header_size, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
     ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
@@ -15,6 +17,8 @@ impl ZrPackReader {
     pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Result<Self, ZrPackError> {
         let bytes = bytes.into();
         let manifest = read_manifest(&bytes)?;
+        validate_zrpack_document_manifest(&manifest)?;
+        validate_chunk_payload_extent(&bytes, &manifest.pack.chunks)?;
         validate_manifest_chunks(&bytes, &manifest)?;
         Ok(Self { bytes, manifest })
     }
@@ -75,8 +79,52 @@ fn read_manifest(bytes: &[u8]) -> Result<ZrPackDocumentManifest, ZrPackError> {
     if manifest_offset < header_size() || manifest_end > bytes.len() {
         return Err(ZrPackError::ManifestOutOfBounds);
     }
+    if manifest_end != bytes.len() {
+        return Err(ZrPackError::ManifestTrailingBytes);
+    }
     serde_json::from_slice(&bytes[manifest_offset..manifest_end])
         .map_err(|error| ZrPackError::ManifestDecode(error.to_string()))
+}
+
+pub(crate) fn validate_chunk_payload_extent(
+    bytes: &[u8],
+    chunks: &[ZrChunkEntry],
+) -> Result<(), ZrPackError> {
+    let manifest_offset = manifest_offset(bytes)?;
+    let payload_end = chunk_payload_end(chunks)?;
+    if manifest_offset != payload_end {
+        return Err(ZrPackError::PayloadExtentMismatch);
+    }
+    Ok(())
+}
+
+fn manifest_offset(bytes: &[u8]) -> Result<usize, ZrPackError> {
+    if bytes.len() < header_size() {
+        return Err(ZrPackError::HeaderTooSmall);
+    }
+    usize::try_from(u64::from_le_bytes(
+        bytes[8..16].try_into().expect("header offset bytes"),
+    ))
+    .map_err(|_| ZrPackError::ManifestOutOfBounds)
+}
+
+fn chunk_payload_end(chunks: &[ZrChunkEntry]) -> Result<usize, ZrPackError> {
+    let mut chunks = chunks.iter().collect::<Vec<_>>();
+    chunks.sort_by(|left, right| left.offset.cmp(&right.offset));
+
+    let mut payload_end = header_size();
+    for chunk in chunks {
+        let offset =
+            usize::try_from(chunk.offset).map_err(|_| ZrPackError::PayloadExtentMismatch)?;
+        let size = usize::try_from(chunk.size).map_err(|_| ZrPackError::PayloadExtentMismatch)?;
+        if offset != payload_end {
+            return Err(ZrPackError::PayloadExtentMismatch);
+        }
+        payload_end = payload_end
+            .checked_add(size)
+            .ok_or(ZrPackError::SizeOverflow)?;
+    }
+    Ok(payload_end)
 }
 
 fn validate_manifest_chunks(
@@ -122,5 +170,9 @@ fn read_chunk_range_bytes(
     if start < header_size() || end > bytes.len() {
         return Err(ZrPackError::ChunkOutOfBounds(path.to_string()));
     }
-    Ok(bytes[start..end].to_vec())
+    let chunk_bytes = bytes[start..end].to_vec();
+    if zrpack_content_hash(&chunk_bytes) != chunk.hash {
+        return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
+    }
+    Ok(chunk_bytes)
 }

@@ -49,9 +49,9 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source
         .contains("first_existing == service_key || second_existing == service_key"));
     assert!(resolution_source.contains("[first_existing, second_existing, third_existing] => {"));
-    assert!(resolution_source.contains(
-        "first_existing == service_key || second_existing == service_key || third_existing == service_key",
-    ));
+    assert!(resolution_source.contains("first_existing == service_key"));
+    assert!(resolution_source.contains("|| second_existing == service_key"));
+    assert!(resolution_source.contains("|| third_existing == service_key"));
     assert!(resolution_source.contains("_ => {"));
     assert!(resolution_source.contains("for existing in stack"));
     assert!(resolution_source.contains("if existing == service_key"));
@@ -130,10 +130,11 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source
         .contains("if let [first_dependency_name, second_dependency_name] = dependency_names"));
     assert!(resolution_source.contains(
-        "if let [first_dependency_name, second_dependency_name, third_dependency_name] = dependency_names",
+        "if let [first_dependency_name, second_dependency_name, third_dependency_name] =",
     ));
+    assert!(resolution_source.contains("            dependency_names"));
     assert!(resolution_source.contains(
-        "first_dependency_name,\n            second_dependency_name,\n            third_dependency_name,\n            fourth_dependency_name,",
+        "if let [first_dependency_name, second_dependency_name, third_dependency_name, fourth_dependency_name] =",
     ));
     assert!(resolution_source.contains("fifth_dependency_name"));
     assert!(
@@ -283,9 +284,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         .map(|offset| dependency_helper_index + offset)
         .expect("two dependency slices should bypass the multi-dependency loop");
     let three_dependency_index = resolution_source[dependency_helper_index..]
-        .find(
-            "if let [first_dependency_name, second_dependency_name, third_dependency_name] = dependency_names",
-        )
+        .find("if let [first_dependency_name, second_dependency_name, third_dependency_name] =")
         .map(|offset| dependency_helper_index + offset)
         .expect("three dependency slices should bypass the multi-dependency loop");
     let four_dependency_index = resolution_source[dependency_helper_index..]
@@ -354,11 +353,9 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         .find("[first_existing, second_existing, third_existing] => {")
         .map(|offset| stack_helper_index + offset)
         .expect("three-frame resolution should compare all frames directly");
-    let three_stack_compare_index = resolution_source[stack_helper_index..]
-        .find(
-            "first_existing == service_key || second_existing == service_key || third_existing == service_key",
-        )
-        .map(|offset| stack_helper_index + offset)
+    let three_stack_compare_index = resolution_source[three_stack_index..]
+        .find("|| third_existing == service_key")
+        .map(|offset| three_stack_index + offset)
         .expect("three-frame resolution should avoid iterator cycle detection");
     let four_stack_index = resolution_source[stack_helper_index..]
         .find("[first_existing, second_existing, third_existing, fourth_existing] => {")

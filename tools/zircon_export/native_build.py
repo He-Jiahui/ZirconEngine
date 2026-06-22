@@ -9,6 +9,10 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from .pipeline_report_validate_profile_summary_schema import (
+    VALIDATE_PROFILE_SUMMARY_BUILD_MODES,
+)
+
 
 NATIVE_BUILD_DEFAULT_MODE = "debug"
 NATIVE_BUILD_CDYLIB_CRATE_TYPE = "cdylib"
@@ -37,9 +41,22 @@ def native_dynamic_build_plan(
     """
 
     plugins_workspace = repo_root / "zircon_plugins" / "Cargo.toml"
-    crate_index = native_dynamic_cdylib_crate_index(plugins_workspace, diagnostics)
-    cargo_profile = native_dynamic_cargo_profile(validate_payload)
-    features = normalized_native_dynamic_build_features(build_features)
+    crate_index_diagnostics: list[str] = []
+    crate_index = native_dynamic_cdylib_crate_index(
+        plugins_workspace, crate_index_diagnostics
+    )
+    diagnostics.extend(crate_index_diagnostics)
+    cargo_profile_diagnostics: list[str] = []
+    cargo_profile = native_dynamic_cargo_profile(
+        validate_payload, cargo_profile_diagnostics
+    )
+    diagnostics.extend(cargo_profile_diagnostics)
+    feature_diagnostics: list[str] = []
+    features = normalized_native_dynamic_build_features(
+        build_features,
+        feature_diagnostics,
+    )
+    diagnostics.extend(feature_diagnostics)
     target_dir = resolve_native_build_path(
         "native dynamic build target directory",
         target_dir.expanduser() if target_dir else stage_dir / "target",
@@ -52,7 +69,13 @@ def native_dynamic_build_plan(
     )
     packages: list[dict[str, object]] = []
 
-    if target_dir is not None and resolved_plugins_workspace is not None:
+    if (
+        target_dir is not None
+        and resolved_plugins_workspace is not None
+        and not cargo_profile_diagnostics
+        and not crate_index_diagnostics
+        and not feature_diagnostics
+    ):
         for package_export in package_exports:
             package_id = str(package_export["package_id"])
             source_package = source_packages.get(package_id)
@@ -383,13 +406,24 @@ def native_dynamic_cdylib_crate_index(
 
     crates: dict[str, dict[str, object]] = {}
     plugins_root = workspace_manifest.parent
-    for member in members:
-        if not isinstance(member, str) or not member:
-            diagnostics.append("native dynamic plugin workspace member must be a non-empty string")
+    for index, member in enumerate(members):
+        member_label = f"native dynamic plugin workspace members[{index}]"
+        if not isinstance(member, str):
+            diagnostics.append(f"{member_label} must be a string")
+            continue
+        if not member.strip():
+            diagnostics.append(f"{member_label} must be a non-empty string")
+            continue
+        if member.strip() != member:
+            diagnostics.append(f"{member_label} must be a non-empty trimmed string")
+            continue
+        member_path = Path(member)
+        if member_path.is_absolute() or ".." in member_path.parts:
+            diagnostics.append(f"{member_label} must be a safe relative path")
             continue
         member_manifest = resolve_native_build_path(
             f"native dynamic workspace member {member} manifest",
-            plugins_root / Path(member) / "Cargo.toml",
+            plugins_root / member_path / "Cargo.toml",
             diagnostics,
         )
         if member_manifest is None:
@@ -399,11 +433,38 @@ def native_dynamic_cdylib_crate_index(
             continue
         package = crate_manifest.get("package", {})
         crate_name = package.get("name") if isinstance(package, dict) else None
-        if not isinstance(crate_name, str) or not crate_name:
-            diagnostics.append(f"native dynamic crate manifest {member_manifest} package.name is missing")
+        if not isinstance(crate_name, str):
+            diagnostics.append(
+                f"native dynamic crate manifest {member_manifest} package.name must be a string"
+            )
             continue
-        crate_types = crate_manifest.get("lib", {}).get("crate-type", [])
+        if not crate_name.strip():
+            diagnostics.append(
+                f"native dynamic crate manifest {member_manifest} package.name must be a non-empty string"
+            )
+            continue
+        if crate_name.strip() != crate_name:
+            diagnostics.append(
+                f"native dynamic crate manifest {member_manifest} package.name must be a non-empty trimmed string"
+            )
+            continue
+        lib = crate_manifest.get("lib", {})
+        if not isinstance(lib, dict):
+            diagnostics.append(
+                f"native dynamic crate manifest {member_manifest} lib must be an object"
+            )
+            continue
+        crate_types = lib.get("crate-type", [])
         if not isinstance(crate_types, list):
+            diagnostics.append(
+                f"native dynamic crate manifest {member_manifest} lib.crate-type must be an array"
+            )
+            continue
+        if native_dynamic_crate_type_schema_invalid(
+            member_manifest,
+            crate_types,
+            diagnostics,
+        ):
             continue
         if NATIVE_BUILD_CDYLIB_CRATE_TYPE not in crate_types:
             continue
@@ -412,6 +473,28 @@ def native_dynamic_cdylib_crate_index(
             "manifest_path": member_manifest,
         }
     return crates
+
+
+def native_dynamic_crate_type_schema_invalid(
+    member_manifest: Path,
+    crate_types: list[object],
+    diagnostics: list[str],
+) -> bool:
+    has_invalid_entry = False
+    for index, crate_type in enumerate(crate_types):
+        label = f"native dynamic crate manifest {member_manifest} lib.crate-type[{index}]"
+        if not isinstance(crate_type, str):
+            diagnostics.append(f"{label} must be a string")
+            has_invalid_entry = True
+            continue
+        if not crate_type.strip():
+            diagnostics.append(f"{label} must be a non-empty string")
+            has_invalid_entry = True
+            continue
+        if crate_type.strip() != crate_type:
+            diagnostics.append(f"{label} must be a non-empty trimmed string")
+            has_invalid_entry = True
+    return has_invalid_entry
 
 
 def native_dynamic_source_cdylib_crate_name(
@@ -431,13 +514,44 @@ def native_dynamic_source_cdylib_crate_name(
             f"native dynamic package {package_id} plugin.toml modules must be an array"
         )
         return None
-    crate_names = [
-        crate_name
-        for module in modules
-        if isinstance(module, dict)
-        if isinstance(crate_name := module.get("crate_name"), str)
-        if crate_name in crate_index
-    ]
+    crate_names: list[str] = []
+    module_schema_invalid = False
+    for index, module in enumerate(modules):
+        if not isinstance(module, dict):
+            diagnostics.append(
+                f"native dynamic package {package_id} plugin.toml "
+                f"modules[{index}] must be an object"
+            )
+            module_schema_invalid = True
+            continue
+        crate_name = module.get("crate_name")
+        if crate_name is None:
+            continue
+        if not isinstance(crate_name, str):
+            diagnostics.append(
+                f"native dynamic package {package_id} plugin.toml "
+                f"modules[{index}].crate_name must be a string"
+            )
+            module_schema_invalid = True
+            continue
+        if not crate_name.strip():
+            diagnostics.append(
+                f"native dynamic package {package_id} plugin.toml "
+                f"modules[{index}].crate_name must be a non-empty string"
+            )
+            module_schema_invalid = True
+            continue
+        if crate_name.strip() != crate_name:
+            diagnostics.append(
+                f"native dynamic package {package_id} plugin.toml "
+                f"modules[{index}].crate_name must be a non-empty trimmed string"
+            )
+            module_schema_invalid = True
+            continue
+        if crate_name in crate_index:
+            crate_names.append(crate_name)
+    if module_schema_invalid:
+        return None
     crate_names = dedupe(crate_names)
     if len(crate_names) == 1:
         return crate_names[0]
@@ -453,12 +567,35 @@ def native_dynamic_source_cdylib_crate_name(
     return None
 
 
-def native_dynamic_cargo_profile(validate_payload: dict[str, Any] | None) -> str:
+def native_dynamic_cargo_profile(
+    validate_payload: dict[str, Any] | None,
+    diagnostics: list[str],
+) -> str:
     if isinstance(validate_payload, dict):
         profile_summary = validate_payload.get("profile_summary")
         if isinstance(profile_summary, dict):
             build_mode = profile_summary.get("build_mode")
-            if isinstance(build_mode, str) and build_mode.lower() == "release":
+            if "build_mode" not in profile_summary:
+                return NATIVE_BUILD_DEFAULT_MODE
+            if not isinstance(build_mode, str):
+                diagnostics.append(
+                    "validate report profile_summary.build_mode must be a string"
+                )
+                return NATIVE_BUILD_DEFAULT_MODE
+            if not build_mode.strip() or build_mode.strip() != build_mode:
+                diagnostics.append(
+                    "validate report profile_summary.build_mode "
+                    "must be a non-empty trimmed export build mode"
+                )
+                return NATIVE_BUILD_DEFAULT_MODE
+            normalized_mode = build_mode.lower()
+            if normalized_mode not in VALIDATE_PROFILE_SUMMARY_BUILD_MODES:
+                diagnostics.append(
+                    "validate report profile_summary.build_mode "
+                    "must be a known export build mode"
+                )
+                return NATIVE_BUILD_DEFAULT_MODE
+            if normalized_mode == "release":
                 return "release"
     return NATIVE_BUILD_DEFAULT_MODE
 
@@ -523,14 +660,21 @@ def platform_dynamic_library_name(crate_name: str, target_platform: str | None) 
     return f"lib{crate_name}.so"
 
 
-def normalized_native_dynamic_build_features(features: list[str]) -> list[str]:
+def normalized_native_dynamic_build_features(
+    features: list[str],
+    diagnostics: list[str],
+) -> list[str]:
     result: list[str] = []
-    for feature in features:
+    for index, feature in enumerate(features):
+        feature_label = f"NativeDynamic native build features[{index}]"
         if not isinstance(feature, str):
+            diagnostics.append(f"{feature_label} must be a string")
             continue
-        normalized = feature.strip()
-        if normalized and normalized not in result:
-            result.append(normalized)
+        if not feature or feature.strip() != feature:
+            diagnostics.append(f"{feature_label} must be a non-empty trimmed string")
+            continue
+        if feature not in result:
+            result.append(feature)
     return result
 
 

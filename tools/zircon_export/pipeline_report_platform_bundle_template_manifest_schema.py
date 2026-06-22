@@ -8,6 +8,7 @@ from typing import Any
 
 from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
+    EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
     EXPORT_TEMPLATE_ALLOWED_HOST_KINDS,
     EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
@@ -42,6 +43,7 @@ TEMPLATE_MANIFEST_REQUIRED_STRING_FIELDS = (
     "engine_version",
     "target_platform",
     "host_kind",
+    "host_artifact",
     "resource_strategy",
     "plugin_strategy",
     "bundle_format",
@@ -50,6 +52,7 @@ TEMPLATE_MANIFEST_REQUIRED_STRING_FIELDS = (
 
 TEMPLATE_MANIFEST_ALLOWED_STRING_FIELDS = {
     "bundle_format": EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
+    "host_artifact": EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
     "host_kind": EXPORT_TEMPLATE_ALLOWED_HOST_KINDS,
     "plugin_strategy": EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     "resource_strategy": EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
@@ -147,6 +150,7 @@ def template_report_manifest_path_diagnostics(
         "template_id",
         "engine_version",
         "host_kind",
+        "host_artifact",
         "resource_strategy",
         "plugin_strategy",
         "bundle_format",
@@ -280,13 +284,18 @@ def template_manifest_scalar_field_diagnostic(
         value = manifest.get(field)
         if not isinstance(value, str) or not value.strip():
             return f"{label}.manifest field {field} must be a non-empty string"
+        if value.strip() != value:
+            return (
+                f"{label}.manifest field {field} "
+                "must be a non-empty trimmed string"
+            )
 
-    content_hash = manifest["content_hash"].strip()
+    content_hash = manifest["content_hash"]
     if not is_sha256_hex(content_hash):
         return f"{label}.manifest field content_hash must be a SHA-256 hex digest"
 
     for field, allowed_values in TEMPLATE_MANIFEST_ALLOWED_STRING_FIELDS.items():
-        value = manifest[field].strip()
+        value = manifest[field]
         if value not in allowed_values:
             return (
                 f"{label}.manifest field {field}={value!r} is not one of "
@@ -303,16 +312,26 @@ def template_manifest_compatible_profiles_schema_diagnostic(
     value = manifest.get("compatible_profiles", [])
     if value is None:
         return None
-    if not isinstance(value, list) or any(
-        not isinstance(item, str) for item in value
-    ):
+    if not isinstance(value, list):
         return f"{label}.manifest field compatible_profiles must be a string array"
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            return (
+                f"{label}.manifest field compatible_profiles[{index}] "
+                "must be a string"
+            )
     diagnostics = string_array_no_blank_entries_schema_diagnostics(
         f"{label}.manifest field compatible_profiles",
         value,
     )
     if diagnostics:
         return diagnostics[0]
+    for index, item in enumerate(value):
+        if item.strip() and item.strip() != item:
+            return (
+                f"{label}.manifest field compatible_profiles[{index}] "
+                "must be a non-empty trimmed string"
+            )
     diagnostics = string_array_unique_entries_schema_diagnostics(
         f"{label}.manifest field compatible_profiles",
         value,
@@ -334,6 +353,11 @@ def template_manifest_paths_schema_diagnostic(
         return (
             f"{label}.manifest field paths.host_executable "
             "must be a non-empty string"
+        )
+    if host_executable.strip() != host_executable:
+        return (
+            f"{label}.manifest field paths.host_executable "
+            "must be a non-empty trimmed string"
         )
     normalized_host = normalize_relative_path(host_executable)
     if not is_safe_relative_path(normalized_host):
@@ -364,6 +388,11 @@ def template_manifest_bundle_schema_diagnostic(
                 f"{label}.manifest field bundle.{field} "
                 "must be a non-empty string"
             )
+        if value.strip() != value:
+            return (
+                f"{label}.manifest field bundle.{field} "
+                "must be a non-empty trimmed string"
+            )
         normalized = normalize_relative_path(value)
         if normalized in {"", "."}:
             continue
@@ -388,6 +417,11 @@ def template_manifest_files_schema_diagnostic(
         relative_path = entry.get("path")
         if not isinstance(relative_path, str) or not relative_path.strip():
             return f"{label}.manifest [[files]] entry {index} needs a non-empty path"
+        if relative_path.strip() != relative_path:
+            return (
+                f"{label}.manifest [[files]] entry {index} path "
+                "must be a non-empty trimmed string"
+            )
         normalized_path = normalize_relative_path(relative_path)
         if not is_safe_relative_path(normalized_path):
             return (
@@ -396,9 +430,17 @@ def template_manifest_files_schema_diagnostic(
             )
 
         declared_sha256 = entry.get("sha256")
-        if not isinstance(declared_sha256, str) or not is_sha256_hex(
-            declared_sha256
-        ):
+        if not isinstance(declared_sha256, str) or not declared_sha256.strip():
+            return (
+                f"{label}.manifest file {normalized_path} "
+                "must declare a SHA-256 hex digest"
+            )
+        if declared_sha256.strip() != declared_sha256:
+            return (
+                f"{label}.manifest file {normalized_path} sha256 "
+                "must be a non-empty trimmed string"
+            )
+        if not is_sha256_hex(declared_sha256):
             return (
                 f"{label}.manifest file {normalized_path} "
                 "must declare a SHA-256 hex digest"
@@ -411,6 +453,11 @@ def template_manifest_files_schema_diagnostic(
             return (
                 f"{label}.manifest file {normalized_path} "
                 "has an invalid bundle_path"
+            )
+        if bundle_path.strip() != bundle_path:
+            return (
+                f"{label}.manifest file {normalized_path} bundle_path "
+                "must be a non-empty trimmed string"
             )
         normalized_bundle_path = normalize_relative_path(bundle_path)
         if not is_safe_relative_path(normalized_bundle_path):
@@ -426,6 +473,11 @@ def template_manifest_files_schema_diagnostic(
             return (
                 f"{label}.manifest file {normalized_path} "
                 "purpose must be non-empty when present"
+            )
+        if "purpose" in entry and purpose.strip() != purpose:
+            return (
+                f"{label}.manifest file {normalized_path} purpose "
+                "must be a non-empty trimmed string"
             )
     return None
 

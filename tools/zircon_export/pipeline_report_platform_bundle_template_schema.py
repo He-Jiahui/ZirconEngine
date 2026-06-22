@@ -8,6 +8,7 @@ from typing import Any
 
 from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
+    EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
     EXPORT_TEMPLATE_ALLOWED_HOST_KINDS,
     EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
@@ -25,6 +26,7 @@ from .pipeline_report_platform_bundle_template_schema_helpers import (
     sequence_required_non_empty_string_diagnostics,
     sequence_unique_relative_path_field_diagnostics,
     sequence_present_non_blank_string_diagnostics,
+    sequence_present_trimmed_non_empty_string_diagnostics,
     sequence_safe_relative_path_string_diagnostics,
     sequence_sha256_hex_string_diagnostics,
     sequence_string_schema_diagnostics,
@@ -37,9 +39,11 @@ from .pipeline_report_platform_bundle_template_schema_helpers import (
     table_integer_schema_diagnostics,
     table_object_array_schema_diagnostics,
     table_object_schema_diagnostics,
+    table_present_trimmed_non_empty_string_diagnostics,
     table_required_non_empty_string_diagnostics,
     table_sha256_hex_string_diagnostics,
     table_string_array_schema_diagnostics,
+    table_string_array_entries_trimmed_non_empty_diagnostics,
     table_string_schema_diagnostics,
     table_unknown_field_diagnostics,
     table_unique_string_array_entries_schema_diagnostics,
@@ -60,6 +64,7 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_FIELDS = (
     "fatal",
     "files",
     "format_version",
+    "host_artifact",
     "host_executable",
     "host_kind",
     "manifest",
@@ -78,6 +83,7 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_FIELDS = (
     "engine_version",
     "expected_engine_version",
     "expected_target_platform",
+    "host_artifact",
     "host_executable",
     "host_kind",
     "manifest",
@@ -97,7 +103,6 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_INTEGER_FIELDS = (
 PLATFORM_BUNDLE_TEMPLATE_REPORT_BOOL_FIELDS = ("fatal",)
 
 PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS = (
-    "compatible_profiles",
     "diagnostics",
 )
 
@@ -108,6 +113,7 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_SHA256_FIELDS = (
 
 PLATFORM_BUNDLE_TEMPLATE_REPORT_ENUM_FIELDS = {
     "bundle_format": EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
+    "host_artifact": EXPORT_TEMPLATE_ALLOWED_HOST_ARTIFACTS,
     "host_kind": EXPORT_TEMPLATE_ALLOWED_HOST_KINDS,
     "plugin_strategy": EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     "resource_strategy": EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
@@ -124,7 +130,8 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_INTEGER_FIELDS = (
     PLATFORM_BUNDLE_TEMPLATE_REPORT_INTEGER_FIELDS
 )
 PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_STRING_ARRAY_FIELDS = (
-    PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS
+    "compatible_profiles",
+    *PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS,
 )
 PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_FIELDS = (
     PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_FIELDS
@@ -189,6 +196,13 @@ def platform_bundle_template_copied_files_schema_diagnostics(
                 PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
             )
         )
+        diagnostics.extend(
+            table_present_trimmed_non_empty_string_diagnostics(
+                f"{label}[{index}]",
+                entry,
+                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
+            )
+        )
         source = entry.get("source")
         destination = entry.get("destination")
         if (
@@ -226,6 +240,13 @@ def platform_bundle_template_report_schema_diagnostics(
     )
     diagnostics.extend(
         table_required_non_empty_string_diagnostics(
+            label,
+            template,
+            PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_present_trimmed_non_empty_string_diagnostics(
             label,
             template,
             PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_FIELDS,
@@ -278,6 +299,14 @@ def platform_bundle_template_report_schema_diagnostics(
             PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS,
         )
     )
+    diagnostics.extend(template_report_compatible_profiles_schema_diagnostics(label, template))
+    diagnostics.extend(
+        table_string_array_entries_trimmed_non_empty_diagnostics(
+            label,
+            template,
+            ("compatible_profiles", "diagnostics"),
+        )
+    )
     diagnostics.extend(
         table_unique_string_array_entries_schema_diagnostics(
             label,
@@ -326,6 +355,13 @@ def platform_bundle_template_report_schema_diagnostics(
             )
         )
         diagnostics.extend(
+            table_present_trimmed_non_empty_string_diagnostics(
+                f"{label}.bundle",
+                bundle,
+                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
+            )
+        )
+        diagnostics.extend(
             table_bundle_path_string_diagnostics(
                 f"{label}.bundle",
                 bundle,
@@ -360,6 +396,13 @@ def platform_bundle_template_report_schema_diagnostics(
                 f"{label}.files",
                 files,
                 ("purpose",),
+            )
+        )
+        diagnostics.extend(
+            sequence_present_trimmed_non_empty_string_diagnostics(
+                f"{label}.files",
+                files,
+                ("bundle_path", "path", "purpose", "sha256"),
             )
         )
         diagnostics.extend(
@@ -468,6 +511,42 @@ def required_field_type_diagnostics(
     ]
 
 
+def template_report_compatible_profiles_schema_diagnostics(
+    label: str,
+    template: dict[str, Any],
+) -> list[str]:
+    value = template.get("compatible_profiles")
+    if value is None:
+        return []
+    field_label = f"{label}.compatible_profiles"
+    if not isinstance(value, list):
+        return [f"{field_label} must be a string array"]
+    diagnostics: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            diagnostics.append(f"{field_label}[{index}] must be a string")
+    return diagnostics
+
+
+def template_report_file_entry_is_schema_clean(entry: dict[str, Any]) -> bool:
+    for field in ("bundle_path", "path"):
+        value = entry.get(field)
+        if not (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() == value
+            and is_safe_relative_path(normalize_relative_path(value))
+        ):
+            return False
+    sha256 = entry.get("sha256")
+    return (
+        isinstance(sha256, str)
+        and sha256.strip()
+        and sha256.strip() == sha256
+        and is_sha256_hex(sha256)
+    )
+
+
 def template_report_file_source_hash_diagnostics(
     label: str,
     template: dict[str, Any],
@@ -483,6 +562,8 @@ def template_report_file_source_hash_diagnostics(
     diagnostics: list[str] = []
     for index, entry in enumerate(files):
         if not isinstance(entry, dict):
+            continue
+        if not template_report_file_entry_is_schema_clean(entry):
             continue
         relative_path = entry.get("path")
         sha256 = entry.get("sha256")
@@ -537,6 +618,8 @@ def template_report_content_hash_diagnostics(
     normalized_files: list[dict[str, str]] = []
     for entry in files:
         if not isinstance(entry, dict):
+            return []
+        if not template_report_file_entry_is_schema_clean(entry):
             return []
         path = entry.get("path")
         sha256 = entry.get("sha256")
@@ -612,10 +695,13 @@ def template_report_profile_membership_diagnostics(
     if (
         not isinstance(profile, str)
         or not profile.strip()
+        or profile.strip() != profile
         or not isinstance(compatible_profiles, list)
         or not compatible_profiles
         or any(
-            not isinstance(value, str) or not value.strip()
+            not isinstance(value, str)
+            or not value.strip()
+            or value.strip() != value
             for value in compatible_profiles
         )
     ):
@@ -675,8 +761,7 @@ def template_report_host_executable_membership_diagnostics(
         entry["path"].replace("\\", "/")
         for entry in files
         if isinstance(entry, dict)
-        and isinstance(entry.get("path"), str)
-        and entry["path"].strip()
+        and template_report_file_entry_is_schema_clean(entry)
     }
     if not declared_paths:
         return []

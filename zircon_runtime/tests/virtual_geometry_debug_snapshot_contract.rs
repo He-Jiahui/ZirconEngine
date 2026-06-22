@@ -567,13 +567,17 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
     let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
     snapshot.scene.meshes = vec![RenderMeshSnapshot {
         node_id: 901,
+        stable_instance_key: 901 << 16,
+        transform_revision: 0,
         transform: Transform::default(),
         model: ResourceHandle::<ModelMarker>::new(model_id),
         mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(material_id),
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
+        static_state: Default::default(),
         render_layer_mask: default_render_layer_mask(),
     }];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
@@ -945,13 +949,17 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
     snapshot.scene.meshes = vec![
         zircon_runtime::core::framework::render::RenderMeshSnapshot {
             node_id: 101,
+            stable_instance_key: 101 << 16,
+            transform_revision: 0,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(model_id),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         },
     ];
@@ -1338,13 +1346,17 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
     snapshot.scene.meshes = vec![
         zircon_runtime::core::framework::render::RenderMeshSnapshot {
             node_id: 101,
+            stable_instance_key: 101 << 16,
+            transform_revision: 0,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(model_id),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         },
     ];
@@ -1747,13 +1759,17 @@ fn automatic_virtual_geometry_frame_extract(
     snapshot.scene.spot_lights.clear();
     snapshot.scene.meshes = vec![RenderMeshSnapshot {
         node_id: 101,
+        stable_instance_key: 101 << 16,
+        transform_revision: 0,
         transform: Transform::default(),
         model,
         mesh: None,
         material,
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::new(0.08, 0.08, 0.08, 1.0),
         mobility: Mobility::Dynamic,
+        static_state: Default::default(),
         render_layer_mask: default_render_layer_mask(),
     }];
     snapshot.overlays = Default::default();

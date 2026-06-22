@@ -47,6 +47,8 @@ def delta_verification_diagnostics(
     for stage_report in stage_reports:
         if stage_report.get("stage_key") != "pack":
             continue
+        if stage_report.get("fatal") is True:
+            continue
         report = stage_report.get("report")
         if not isinstance(report, dict):
             continue
@@ -55,6 +57,8 @@ def delta_verification_diagnostics(
             continue
         if not isinstance(delta_pack, str) or not delta_pack.strip():
             diagnostics.append("pack report delta_pack must be a non-empty string")
+            continue
+        if delta_pack.strip() != delta_pack:
             continue
         if report.get("delta_apply_verified") is not True:
             diagnostics.append(
@@ -68,6 +72,7 @@ def platform_bundle_host_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     host_path = None
+    compile_host_failed = compile_host_stage_report_failed(stage_reports)
     for stage_report in stage_reports:
         host_path = compile_host_report_host_path(stage_report, diagnostics)
         if host_path is not None:
@@ -116,6 +121,8 @@ def platform_bundle_host_diagnostics(
             )
             continue
         if host_origin == "compile_host_report" and host_path is None:
+            if compile_host_failed:
+                continue
             diagnostics.append(
                 "PlatformBundle report host_executable is present but CompileHost report does not contain host_executable evidence"
             )
@@ -134,6 +141,16 @@ def platform_bundle_host_diagnostics(
                 "PlatformBundle report host_source does not match CompileHost report host_executable"
             )
     return diagnostics
+
+
+def compile_host_stage_report_failed(
+    stage_reports: list[dict[str, Any]],
+) -> bool:
+    return any(
+        stage_report.get("stage_key") == "compile_host"
+        and stage_report.get("fatal") is True
+        for stage_report in stage_reports
+    )
 
 
 def compile_host_report_host_path(
@@ -162,6 +179,7 @@ def platform_bundle_pack_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     pack_path = None
+    pack_failed = pack_stage_report_failed(stage_reports)
     for stage_report in stage_reports:
         pack_path = pack_report_pack_path(stage_report, diagnostics)
         if pack_path is not None:
@@ -208,6 +226,8 @@ def platform_bundle_pack_diagnostics(
             )
             continue
         if pack_origin == "pack_report" and pack_path is None:
+            if pack_failed:
+                continue
             diagnostics.append(
                 "PlatformBundle report pack is present but Pack report does not contain pack evidence"
             )
@@ -226,6 +246,16 @@ def platform_bundle_pack_diagnostics(
                 "PlatformBundle report pack_source does not match Pack report pack"
             )
     return diagnostics
+
+
+def pack_stage_report_failed(
+    stage_reports: list[dict[str, Any]],
+) -> bool:
+    return any(
+        stage_report.get("stage_key") == "pack"
+        and stage_report.get("fatal") is True
+        for stage_report in stage_reports
+    )
 
 
 def pack_report_pack_path(
@@ -254,6 +284,7 @@ def platform_bundle_delta_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     verified_pack_delta = None
+    pack_failed = pack_stage_report_failed(stage_reports)
     for stage_report in stage_reports:
         if not pack_report_has_verified_delta(stage_report):
             continue
@@ -277,6 +308,8 @@ def platform_bundle_delta_diagnostics(
             )
             continue
         if verified_pack_delta is None:
+            if pack_failed:
+                continue
             diagnostics.append(
                 "PlatformBundle report delta_pack is present but Pack report does not contain verified delta_pack evidence"
             )
@@ -393,9 +426,22 @@ def platform_bundle_manifest_diagnostics(
             platform_bundle_native_plugins_payload_diagnostics(
                 report,
                 native_dynamic_stage_report_path(stage_reports, diagnostics),
+                native_dynamic_stage_report_failed=(
+                    native_dynamic_stage_report_failed(stage_reports)
+                ),
             )
         )
     return diagnostics
+
+
+def native_dynamic_stage_report_failed(
+    stage_reports: list[dict[str, Any]],
+) -> bool:
+    return any(
+        stage_report.get("stage_key") == "native_dynamic"
+        and stage_report.get("fatal") is True
+        for stage_report in stage_reports
+    )
 
 
 def platform_bundle_required_output_diagnostics(report: dict[str, Any]) -> list[str]:

@@ -4,6 +4,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/recording.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
@@ -15,6 +21,12 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/recording.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
@@ -24,6 +36,10 @@ plan_sources:
 tests:
   - cargo fmt -p zircon_editor --check
   - host_contract paint-text draw/clip/font/raster/blend/test ownership scan
+  - host_contract paint-text draw recording/metrics ownership scan
+  - host_contract paint-text draw clip-rect ownership scan
+  - host_contract paint-text glyph row pixel ownership scan
+  - host_contract paint-text draw entry ownership scan
   - scoped whitespace scan
   - scoped git diff --check
 doc_type: module-detail
@@ -35,9 +51,21 @@ doc_type: module-detail
 
 ## Draw Ownership
 
-`paint_text/draw.rs` owns the software text draw entry points, font-size and line-height clamping, retained recording handoff, fontdue layout setup, glyph traversal, style-based emphasis offset, strong-text overdraw, and the final per-pixel dispatch into the blend owner.
+`paint_text/draw.rs` owns the text draw pipeline after entry normalization and the draw-order handoff to the focused clip, layout, recording, and glyph children.
 
-The public boundary remains intentionally narrow: callers keep using `draw_text(...)`, `draw_text_with_size(...)`, or `draw_text_with_size_and_style(...)` through the root module, while the root file no longer owns layout or pixel loops.
+`paint_text/draw/entry.rs` owns the public text draw entry chain, default font metrics, and default text-style selection before forwarding into the pipeline owner.
+
+`paint_text/draw/clip_rect.rs` owns effective text-clip resolution plus frame-to-pixel clip conversion for draw calls.
+
+`paint_text/draw/layout.rs` owns fontdue layout construction for a retained text run, including the positive-Y-down coordinate system, vertical centering within the target frame, maximum width/height bounds, fallback font selection, and text-style append.
+
+`paint_text/draw/recording.rs` owns font-size and line-height clamping plus retained recording handoff. It converts the clipped pixel bounds back into a frame-space recording rectangle before forwarding the existing text/style payload to `HostRgbaFrame::record_text(...)`.
+
+`paint_text/draw/glyphs.rs` owns glyph traversal, cached-raster lookup, per-row clip gating, and row dispatch.
+
+`paint_text/draw/glyphs/row.rs` owns row/column clipping, style-based emphasis offset, strong-text overdraw, coverage-scaled alpha, and the final per-pixel dispatch into the blend owner.
+
+The public boundary remains intentionally narrow: callers keep using `draw_text(...)`, `draw_text_with_size(...)`, or `draw_text_with_size_and_style(...)` through the root module, while the root file no longer owns layout or pixel loops and `draw.rs` no longer owns fontdue setup, retained recording rectangle construction, or glyph pixel loops directly.
 
 ## Clip Ownership
 
@@ -63,4 +91,12 @@ The root `paint_text.rs` declares child modules, re-exports the existing text dr
 
 ## Validation Notes
 
-This slice used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming `paint_text.rs` no longer owns draw, clip, font, raster, blend, or inline test bodies, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo check/test validation remains deferred because current package checks are blocked before editor diagnostics by unrelated `zircon_runtime` render-history errors, and the active instruction is to implement functionality first.
+This slice used `cargo fmt -p zircon_editor --check`, root/draw ownership scans confirming `paint_text.rs` no longer owns draw, clip, font, raster, blend, or inline test bodies and `paint_text/draw.rs` no longer owns fontdue layout setup or glyph pixel loops directly, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo check/test validation remains deferred because current package checks are blocked before editor diagnostics by unrelated runtime compile lanes, and the active instruction is to implement functionality first.
+
+The 2026-06-21 draw recording/metrics split reduced `paint_text/draw.rs` from 105 lines to a 101-line draw entry. `draw/recording.rs` owns text metric clamping and retained recording handoff, while `draw.rs` keeps the public entry chain, clip resolution, layout invocation, record-only early return, and glyph draw dispatch. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text draw recording/metrics ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 draw clip-rect split reduced `paint_text/draw.rs` from 101 lines to a 93-line draw entry. `draw/clip_rect.rs` owns active/explicit text clip resolution and `PixelRect` conversion, while `draw.rs` keeps the public entry chain, metric clamping, recording, layout, and glyph dispatch order. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text draw clip-rect ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 glyph row pixel split reduced `paint_text/draw/glyphs.rs` from 88 lines to a 52-line glyph traversal entry. `draw/glyphs/row.rs` owns row/column clipping, emphasis offset, strong overdraw, coverage alpha, and blend dispatch, while `glyphs.rs` keeps cached raster lookup and per-row dispatch. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text glyph row pixel ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 draw entry split reduced `paint_text/draw.rs` from 85 lines to a 50-line text pipeline owner. `draw/entry.rs` owns the public draw entry chain, default font metrics, and default style selection, while `draw.rs` keeps clip resolution, metric clamping, recording handoff, layout, and glyph dispatch. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text draw entry ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.

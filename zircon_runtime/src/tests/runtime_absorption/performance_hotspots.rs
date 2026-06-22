@@ -2,11 +2,440 @@
 mod owner_budget;
 
 #[test]
+fn runtime_07_submit_context_shares_large_extract_payloads() {
+    let context = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs"
+    );
+    let build_context = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs"
+    );
+    let camera_loop = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs"
+    );
+    let frame_extract = include_str!("../../core/framework/render/frame_extract.rs");
+    let collect_feedback = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs"
+    );
+    let build_runtime_frame = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs"
+    );
+    let submit_extract = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs"
+    );
+    let present_frame_extract = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
+    );
+    let submit_runtime_frame = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs"
+    );
+    let record_submission = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs"
+    );
+    let record_present_submission = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs"
+    );
+    let record_camera_history = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs"
+    );
+    let prepared_submission = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs"
+    );
+    let prepared_runtime_sidebands =
+        include_str!("../../core/framework/render/prepared_runtime_sidebands.rs");
+    let viewport_render_frame = include_str!("../../graphics/types/viewport_render_frame.rs");
+    let viewport_render_frame_from_extract =
+        include_str!("../../graphics/types/viewport_render_frame_from_extract.rs");
+    let runtime_07_plan = include_str!(
+        "../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+    );
+    let runtime_index = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings =
+        include_str!("../../../../docs/plans/engine-code-review-findings-2026-06.md");
+
+    assert!(
+        context.contains("source_extract: Arc<RenderFrameExtract>"),
+        "FrameSubmissionContext should own one shared viewport-sized RenderFrameExtract payload"
+    );
+    assert!(
+        viewport_render_frame.contains("pub extract: Arc<RenderFrameExtract>"),
+        "ViewportRenderFrame should store RenderFrameExtract as an Arc for shared submit sources"
+    );
+
+    for forbidden_owned_payload in [
+        "scene_meshes: Vec<RenderMeshSnapshot>",
+        "scene_directional_lights: Vec<RenderDirectionalLightSnapshot>",
+        "scene_point_lights: Vec<RenderPointLightSnapshot>",
+        "scene_spot_lights: Vec<RenderSpotLightSnapshot>",
+        "scene_ambient_lights: Vec<RenderAmbientLightSnapshot>",
+        "scene_rect_lights: Vec<RenderRectLightSnapshot>",
+        "particle_previous_sprites: Vec<RenderParticlePreviousSpriteSnapshot>",
+    ] {
+        assert!(
+            !context.contains(forbidden_owned_payload),
+            "FrameSubmissionContext should not reclaim cloned payload field `{forbidden_owned_payload}`"
+        );
+    }
+
+    for forbidden_build_clone in [
+        "extract.geometry.meshes.clone(),",
+        "extract.lighting.directional_lights.clone(),",
+        "extract.lighting.point_lights.clone(),",
+        "extract.lighting.spot_lights.clone(),",
+        "extract.lighting.ambient_lights.clone(),",
+        "extract.lighting.rect_lights.clone(),",
+        "extract.particles.previous_sprites.clone(),",
+    ] {
+        assert!(
+            !build_context.contains(forbidden_build_clone),
+            "build_frame_submission_context should not clone large extract payload `{forbidden_build_clone}` into FrameSubmissionContext::new"
+        );
+    }
+
+    for forbidden_effective_clone_helper in [
+        "let mut sized_extract = extract.clone();",
+        "fn post_process_extract_with_effective_settings",
+        "fn visibility_extract_with_effective_advanced_features",
+        "Arc::try_unwrap(extract).unwrap_or_else(|extract| (*extract).clone())",
+    ] {
+        assert!(
+            !build_context.contains(forbidden_effective_clone_helper),
+            "build_frame_submission_context should not restore full-extract clone helper `{forbidden_effective_clone_helper}`"
+        );
+    }
+    assert!(
+        !build_runtime_frame
+            .contains("Arc::try_unwrap(extract).unwrap_or_else(|extract| (*extract).clone())"),
+        "build_runtime_frame should not clone the shared extract to append virtual-geometry debug overlays"
+    );
+
+    for required_anchor in [
+        "let source_extract = Arc::new(effective_extract);",
+        "FrameSubmissionExtractSource::Owned(sized_extract)",
+        "FrameSubmissionExtractSource::RuntimeFrame(extract)",
+        "Arc::make_mut(extract)",
+        "extract_source.into_source_extract()",
+        "runtime_virtual_geometry_debug_overlays(",
+        "source_overlays: &RenderOverlayExtract",
+        "with_runtime_overlays(runtime_overlays)",
+        "runtime_overlay_override: Option<RenderOverlayExtract>",
+        ".unwrap_or(&self.extract.debug.overlays)",
+        "pub(super) fn source_extract(&self) -> Arc<RenderFrameExtract>",
+        "&self.source_extract.geometry.meshes",
+        "&self.source_extract.lighting.directional_lights",
+        "apply_effective_advanced_features(",
+        "apply_effective_post_process_settings(",
+    ] {
+        assert!(
+            context.contains(required_anchor)
+                || build_context.contains(required_anchor)
+                || build_runtime_frame.contains(required_anchor)
+                || viewport_render_frame.contains(required_anchor),
+            "Runtime 07 F3 source-extract sharing should retain anchor `{required_anchor}`"
+        );
+    }
+    for required_shared_frame_anchor in [
+        "pub(crate) fn from_shared_extract(",
+        "ViewportRenderFrame::from_shared_extract(extract, context.size())",
+        "let extract = context.source_extract();",
+        "build_frame_submission_context_from_runtime_frame_extract(",
+        "extract: &mut Arc<RenderFrameExtract>",
+        "build_runtime_frame(ui, &context, prepared, output_policy)",
+        "frame.extract = context.source_extract();",
+    ] {
+        assert!(
+            viewport_render_frame_from_extract.contains(required_shared_frame_anchor)
+                || build_runtime_frame.contains(required_shared_frame_anchor)
+                || submit_extract.contains(required_shared_frame_anchor)
+                || present_frame_extract.contains(required_shared_frame_anchor)
+                || submit_runtime_frame.contains(required_shared_frame_anchor),
+            "Runtime 07 F3 shared effective frame source should retain anchor `{required_shared_frame_anchor}`"
+        );
+    }
+
+    let camera_loop_submission_body = camera_loop
+        .split("fn camera_loop_submissions(")
+        .nth(1)
+        .and_then(|tail| {
+            tail.split("pub(super) fn camera_loop_frame_submissions")
+                .next()
+        })
+        .expect("camera_loop_submissions body should remain visible to the guard");
+    assert!(
+        !camera_loop_submission_body.contains("with_selected_camera_descriptor"),
+        "camera_loop_submissions should enumerate descriptors instead of cloning RenderFrameExtract"
+    );
+    let submit_camera_loop_body = camera_loop
+        .split("pub(super) fn submit_camera_loop(")
+        .nth(1)
+        .and_then(|tail| {
+            tail.split("pub(super) fn viewport_terminal_camera_target")
+                .next()
+        })
+        .expect("submit_camera_loop body should remain visible to the guard");
+    assert!(
+        !submit_camera_loop_body.contains(".clone()\n                .with_selected_camera_descriptor"),
+        "submit_camera_loop should stream a shared source extract instead of cloning it for child cameras"
+    );
+    assert!(
+        !submit_camera_loop_body.contains("let mut source_extract = Some(extract);")
+            && !submit_camera_loop_body.contains("source_extract.take()"),
+        "submit_camera_loop should not restore the old owned-extract terminal move model"
+    );
+    for required_camera_loop_anchor in [
+        "struct CameraLoopSubmission {",
+        "camera: CameraRenderDescriptor,",
+        ".map(CameraLoopSubmission::from)",
+        "stream_camera_loop_extract_submissions(",
+        "let mut source_extract = Arc::new(extract);",
+        "CameraLoopExtractSourceState::capture(&extract)",
+        "Arc::make_mut(&mut source_extract)",
+        "source_state.restore_for_submission(extract)",
+        "extract.select_camera_descriptor(submission.camera)",
+        "submit_selected_camera(&mut source_extract, selected_ui, submission.output_policy)",
+        ".map(|submission| submission.camera.target.clone())",
+    ] {
+        assert!(
+            camera_loop.contains(required_camera_loop_anchor),
+            "Runtime 07 F3 camera-loop descriptor sharing should retain anchor `{required_camera_loop_anchor}`"
+        );
+    }
+
+    for required_frame_loop_anchor in [
+        "pub(super) fn submit_camera_loop_frame(",
+        "stream_camera_loop_frame_submissions(frame, submissions",
+        "CameraLoopFrameSourceState::capture(&frame)",
+        "source_state.restore_for_submission(&mut frame);",
+        "select_frame_camera_for_submission(&mut frame, submission.camera);",
+        "terminal_ui.take()",
+        "submit_selected_frame(&mut frame, submission.output_policy)?",
+        "fn select_frame_camera_for_submission(",
+        "fn restore_for_submission(&self, frame: &mut ViewportRenderFrame)",
+    ] {
+        assert!(
+            camera_loop.contains(required_frame_loop_anchor),
+            "Runtime 07 F3 direct runtime-frame streaming loop should retain anchor `{required_frame_loop_anchor}`"
+        );
+    }
+    for required_runtime_stream_anchor in [
+        "submit_camera_loop_frame(",
+        "submit_selected_runtime_frame",
+        "frame: &mut ViewportRenderFrame,",
+        "build_frame_submission_context_from_runtime_frame_extract(",
+        "&mut frame.extract",
+        "attach_prepared_sidebands_to_runtime_frame(frame, prepared);",
+        "render_frame_with_pipeline(",
+        "&*frame,",
+    ] {
+        assert!(
+            submit_runtime_frame.contains(required_runtime_stream_anchor),
+            "submit_runtime_frame should retain direct streaming anchor `{required_runtime_stream_anchor}`"
+        );
+    }
+    for required_runtime_profile_anchor in [
+        "profile_scope!(\"runtime\", \"render_framework\", \"build_submission_context\")",
+        "profile_scope!(\"runtime\", \"render_framework\", \"prepare_runtime_submission\")",
+        "profile_scope!(\"runtime\", \"render_framework\", \"render_frame_with_pipeline\")",
+        "profile_scope!(\"runtime\", \"render_framework\", \"collect_runtime_feedback\")",
+    ] {
+        assert!(
+            submit_runtime_frame.contains(required_runtime_profile_anchor),
+            "submit_runtime_frame should retain Runtime 07 direct runtime-frame profiling anchor `{required_runtime_profile_anchor}`"
+        );
+    }
+    assert!(
+        frame_extract.contains(
+            "pub fn select_camera_descriptor(&mut self, descriptor: CameraRenderDescriptor)"
+        ),
+        "RenderFrameExtract should expose in-place selected-camera projection for streaming submit"
+    );
+    assert!(
+        !camera_loop.contains("project_frame_to_selected_camera("),
+        "camera_loop should not restore the old borrowed full-frame projection helper"
+    );
+    assert!(
+        !camera_loop.contains("camera_loop_frame_submissions(&frame)"),
+        "production camera-loop frame submission should pass owned frames, not borrowed frames"
+    );
+    for forbidden_streaming_regression in [
+        "camera_loop_frame_submissions(frame)",
+        "CameraLoopFrameSubmission",
+        "project_borrowed_frame_to_selected_camera(frame, submission.camera)",
+        "frame.extract.as_ref().clone()",
+    ] {
+        assert!(
+            !submit_runtime_frame.contains(forbidden_streaming_regression),
+            "submit_runtime_frame should stream camera submissions instead of restoring `{forbidden_streaming_regression}`"
+        );
+    }
+
+    for required_feedback_anchor in [
+        "sidebands: &mut RenderPreparedRuntimeSidebands",
+        "sidebands.take_hybrid_gi_readback_outputs()",
+        "sidebands.take_particle_readback_outputs()",
+        "sidebands.take_virtual_geometry_readback_outputs()",
+        "sideband_outputs: RenderHybridGiReadbackOutputs",
+        "sideband_outputs: RenderParticleGpuReadbackOutputs",
+        "sideband_outputs: RenderVirtualGeometryReadbackOutputs",
+        "renderer_outputs.cache_entries.extend(cache_entries);",
+        "renderer_outputs.page_replacements.extend(page_replacements);",
+    ] {
+        assert!(
+            collect_feedback.contains(required_feedback_anchor),
+            "Runtime 07 F3 feedback sideband merge should retain owned-merge anchor `{required_feedback_anchor}`"
+        );
+    }
+    for required_prepared_sideband_anchor in [
+        "fn take_hybrid_gi_readback_outputs(",
+        "fn take_particle_readback_outputs(",
+        "fn take_virtual_geometry_readback_outputs(",
+    ] {
+        assert!(
+            prepared_runtime_sidebands.contains(required_prepared_sideband_anchor),
+            "RenderPreparedRuntimeSidebands should retain sideband take anchor `{required_prepared_sideband_anchor}`"
+        );
+    }
+    for forbidden_feedback_clone in [
+        "return sideband_outputs.clone();",
+        "sideband_outputs: &RenderHybridGiReadbackOutputs",
+        "sideband_outputs: &RenderParticleGpuReadbackOutputs",
+        "sideband_outputs: &RenderVirtualGeometryReadbackOutputs",
+        "sideband_outputs.cache_entries.iter().cloned()",
+        "sideband_outputs.completed_page_assignments.iter().cloned()",
+        "sideband_outputs.scene_prepare.clone()",
+    ] {
+        assert!(
+            !collect_feedback.contains(forbidden_feedback_clone),
+            "Runtime 07 F3 feedback sideband merge should not restore borrowed clone `{forbidden_feedback_clone}`"
+        );
+    }
+    for required_prepared_sideband_move_anchor in [
+        "fn into_prepared_runtime_sidebands(self) -> RenderPreparedRuntimeSidebands",
+        "prepared.into_prepared_runtime_sidebands()",
+        "sidebands: &mut RenderPreparedRuntimeSidebands",
+        "sidebands.take_hybrid_gi_readback_outputs()",
+        "sidebands.take_particle_readback_outputs()",
+        "sidebands.take_virtual_geometry_readback_outputs()",
+        "with_evictable_probe_ids(sidebands.take_hybrid_gi_evictable_probe_ids())",
+        "with_evictable_page_ids(sidebands.take_virtual_geometry_evictable_page_ids())",
+        "pub(crate) fn prepared_runtime_sidebands_mut(&mut self) -> &mut RenderPreparedRuntimeSidebands",
+    ] {
+        assert!(
+            prepared_submission.contains(required_prepared_sideband_move_anchor)
+                || prepared_runtime_sidebands.contains(required_prepared_sideband_move_anchor)
+                || collect_feedback.contains(required_prepared_sideband_move_anchor)
+                || build_runtime_frame.contains(required_prepared_sideband_move_anchor)
+                || submit_runtime_frame.contains(required_prepared_sideband_move_anchor)
+                || viewport_render_frame.contains(required_prepared_sideband_move_anchor),
+            "Runtime 07 F3 prepared sideband frame-owner move should retain anchor `{required_prepared_sideband_move_anchor}`"
+        );
+    }
+    for forbidden_prepared_sideband_clone in [
+        "plugin_renderer_outputs.clone()",
+        "hybrid_gi_evictable_probe_ids.clone()",
+        "virtual_geometry_evictable_page_ids.clone()",
+        "prepared.prepared_runtime_sidebands()",
+        "mut prepared: PreparedRuntimeSubmission",
+        "prepared.take_hybrid_gi_evictable_probe_ids()",
+        "prepared.take_virtual_geometry_evictable_page_ids()",
+        "with_prepared_runtime_sidebands(frame.prepared_runtime_sidebands.clone())",
+        "frame.prepared_runtime_sidebands.clone()",
+    ] {
+        assert!(
+            !prepared_submission.contains(forbidden_prepared_sideband_clone)
+                && !camera_loop.contains(forbidden_prepared_sideband_clone)
+                && !build_runtime_frame.contains(forbidden_prepared_sideband_clone)
+                && !submit_runtime_frame.contains(forbidden_prepared_sideband_clone)
+                && !record_submission.contains(forbidden_prepared_sideband_clone)
+                && !record_present_submission.contains(forbidden_prepared_sideband_clone)
+                && !record_camera_history.contains(forbidden_prepared_sideband_clone),
+            "Runtime 07 F3 prepared sideband frame-owner move should not restore `{forbidden_prepared_sideband_clone}`"
+        );
+    }
+
+    for status_anchor in [
+        "Runtime 07 render submit source-extract sharing",
+        "Runtime 07 render camera-loop descriptor submissions",
+        "Runtime 07 render camera-loop frame terminal move",
+        "Runtime 07 render submit feedback sideband owned merge",
+        "Runtime 07 render prepared sideband frame owner move",
+        "Runtime 07 render direct runtime-frame streaming camera loop",
+        "Runtime 07 render shared effective extract frame source",
+        "Runtime 07 render direct runtime-frame shared context extract",
+        "Runtime 07 render VG debug overlay frame override",
+        "render_submit_source_extract_shared_coremin_check_passed_partial",
+        "render_camera_loop_descriptor_submissions_coremin_check_passed_partial",
+        "render_camera_loop_frame_terminal_move_coremin_check_passed_partial",
+        "render_submit_feedback_sidebands_owned_merge_coremin_check_passed_partial",
+        "render_prepared_sideband_frame_owner_move_coremin_check_passed_partial",
+        "render_direct_runtime_frame_streaming_camera_loop_coremin_check_passed_partial",
+        "render_shared_effective_extract_frame_source_coremin_check_passed_partial",
+        "render_direct_runtime_frame_shared_context_extract_coremin_check_passed_partial",
+        "render_vg_debug_overlay_frame_override_coremin_check_passed_partial",
+        "source_extract: Arc<RenderFrameExtract>",
+        "ViewportRenderFrame::from_shared_extract",
+        "build_frame_submission_context_from_runtime_frame_extract",
+        "runtime_overlay_override",
+        "runtime_07_submit_context_shares_large_extract_payloads",
+    ] {
+        assert!(
+            runtime_07_plan.contains(status_anchor)
+                || runtime_index.contains(status_anchor)
+                || review_findings.contains(status_anchor),
+            "Runtime 07/F3 docs should record source-extract sharing anchor `{status_anchor}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_07_submit_paths_return_errors_for_checked_viewport_records() {
+    let submit_extract = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs"
+    );
+    let submit_runtime_frame = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs"
+    );
+    let present_frame_extract = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
+    );
+    let prepare_runtime_submission = include_str!(
+        "../../graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs"
+    );
+
+    for (label, source) in [
+        ("submit_frame_extract", submit_extract),
+        ("submit_runtime_frame", submit_runtime_frame),
+        ("present_frame_extract", present_frame_extract),
+    ] {
+        assert!(
+            !source.contains(".expect(\"viewport generation checked above\")"),
+            "{label} should return RenderFrameworkError instead of panicking after viewport generation validation"
+        );
+        assert!(
+            source.contains(
+                "viewport_record_mut_after_generation_check(&mut state, viewport, &context)?"
+            ),
+            "{label} should use the shared checked-record helper"
+        );
+    }
+
+    assert!(
+        !prepare_runtime_submission
+            .contains(".expect(\"viewport generation checked before runtime prepare\")"),
+        "prepare_runtime_submission should return RenderFrameworkError instead of panicking when the checked viewport record disappears"
+    );
+    assert!(
+        prepare_runtime_submission.contains("missing_runtime_provider("),
+        "runtime prepare should report enabled-but-missing advanced providers as RenderFrameworkError"
+    );
+}
+
+#[test]
 fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2() {
     let runtime_07_plan = include_str!(
         "../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
     let runtime_index = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let render_index = include_str!("../../../../docs/plans/zircon_runtime/render/index.md");
     let hotspot_doc =
         include_str!("../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
     let dynamic_session_doc =
@@ -61,6 +490,7 @@ fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2() {
         include_str!("../../core/runtime/diagnostics/profiling/counter_hotspot.rs");
     let profiling_export = include_str!("../../core/runtime/diagnostics/profiling/export.rs");
     let profiling_mod = include_str!("../../core/runtime/diagnostics/profiling/mod.rs");
+    let render_profiling = include_str!("../../graphics/tests/render_profiling.rs");
     for required_plan_anchor in [
         "M1 | 1.3 热点清单",
         "hotspot_inventory.md",
@@ -380,6 +810,24 @@ fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2() {
                 || build_tool_doc.contains(required_dev_fast_build_anchor)
                 || profiling_doc.contains(required_dev_fast_build_anchor),
             "tools/dev-fast-build.ps1 profiling path should retain `{required_dev_fast_build_anchor}`"
+        );
+    }
+
+    for required_trace_export_anchor in [
+        "render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending",
+        "direct_runtime_frame_submit_exports_perfetto_trace_artifacts",
+        "PROFILE_TIMELINE_PERFETTO_FILE",
+        "timeline.perfetto.json",
+        "runtime-frame-f3-trace-export",
+    ] {
+        assert!(
+            runtime_07_plan.contains(required_trace_export_anchor)
+                || runtime_index.contains(required_trace_export_anchor)
+                || render_index.contains(required_trace_export_anchor)
+                || hotspot_doc.contains(required_trace_export_anchor)
+                || profiling_doc.contains(required_trace_export_anchor)
+                || render_profiling.contains(required_trace_export_anchor),
+            "Runtime 07 F3 direct runtime-frame trace export should retain `{required_trace_export_anchor}`"
         );
     }
 

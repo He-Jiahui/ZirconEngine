@@ -9,4 +9,5 @@ description = "Navigation runtime plugin package for Zircon."
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 zircon_plugin_navigation_recast = { path = "../native" }
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

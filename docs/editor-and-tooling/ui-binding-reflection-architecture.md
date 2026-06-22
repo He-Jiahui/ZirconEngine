@@ -27,8 +27,10 @@ related_code:
   - zircon_editor/src/ui/binding/viewport/command.rs
   - zircon_editor/src/ui/binding/viewport/codec.rs
   - zircon_editor/src/ui/binding/welcome/mod.rs
-  - zircon_editor/src/ui/control.rs
-  - zircon_editor/src/ui/reflection.rs
+  - zircon_editor/src/ui/control/mod.rs
+  - zircon_editor/src/ui/control/service.rs
+  - zircon_editor/src/ui/reflection/mod.rs
+  - zircon_editor/src/ui/reflection/adapter.rs
   - zircon_editor/src/tests/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/ui/binding/asset_selection.rs
@@ -53,13 +55,13 @@ related_code:
   - zircon_editor/src/core/editor_event/workbench/mod.rs
   - zircon_editor/src/core/editor_event/workbench/layout_command.rs
   - zircon_editor/src/core/editor_event/workbench/menu_action.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs
+  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/root_shell_projection.rs
   - zircon_editor/src/ui/retained_host/viewport/poll_image.rs
@@ -97,6 +99,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/source/source_sync.rs
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
+  - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs
   - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
@@ -159,8 +162,10 @@ implementation_files:
   - zircon_editor/src/ui/binding/draft/codec.rs
   - zircon_editor/src/ui/binding/viewport/command.rs
   - zircon_editor/src/ui/binding/viewport/codec.rs
-  - zircon_editor/src/ui/control.rs
-  - zircon_editor/src/ui/reflection.rs
+  - zircon_editor/src/ui/control/mod.rs
+  - zircon_editor/src/ui/control/service.rs
+  - zircon_editor/src/ui/reflection/mod.rs
+  - zircon_editor/src/ui/reflection/adapter.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
@@ -175,7 +180,7 @@ implementation_files:
   - zircon_editor/src/core/editor_event/workbench/mod.rs
   - zircon_editor/src/core/editor_event/workbench/layout_command.rs
   - zircon_editor/src/core/editor_event/workbench/menu_action.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs
+  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
@@ -208,6 +213,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/source/source_sync.rs
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
+  - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs
   - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
@@ -666,7 +672,7 @@ No-preview asset icons are centralized in retained host visual asset loading and
 - `runtime.rs`
   - `EditorEventRuntime` / `EditorEventDispatcher`
   - 统一拦截 `InvokeBinding`、`InvokeRoute`、`CallAction`
-- `runtime/editor_event_runtime_inner.rs`
+- `runtime/editor_event_runtime_state.rs`
   - `EditorEventRuntime` 的私有 state container owner
   - 持有 `EditorState`、`EditorManager`、transient projection、journal 和 control service
 - `journal.rs`
@@ -676,7 +682,7 @@ No-preview asset icons are centralized in retained host visual asset loading and
 
 transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient_ui_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs)，而 retained workbench 菜单/动态 preset 的字符串归一化则由 [`callback_dispatch/workbench/menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs) 持有，再通过 [`core_event_conversion.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/core_event_conversion.rs) 把 UI 内部 layout model 显式转换成 canonical `core::editor_event::workbench::*` DTO。
 
-`EditorEventRuntimeInner` 的声明 owner 这一轮也从 `ui/host` 收回到了 [`core/editor_event/runtime/editor_event_runtime_inner.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_inner.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime inner，而不是继续拥有 runtime state declaration 本身。`EditorEventRuntime::lock_inner()` 是这些 host 行为模块的统一锁入口；如果先前 editor callback 已经 panic 并 poison 了 mutex，后续 snapshot、reflection 和 descriptor 查询会显式取回 inner 状态，而不是在每个访问点继续 `unwrap()` 并把 editor shell 永久卡死在连锁 panic 上。
+`EditorEventRuntimeState` 的声明 owner 已从 `ui/host` 收回到 [`core/editor_event/runtime/editor_event_runtime_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime state，而不是继续拥有 runtime state declaration 本身。`EditorEventRuntime::lock_inner()` 是这些 host 行为模块的统一锁入口；如果先前 editor callback 已经 panic 并 poison 了 mutex，后续 snapshot、reflection 和 descriptor 查询会显式取回 state，而不是在每个访问点继续 `unwrap()` 并把 editor shell 永久卡死在连锁 panic 上。
 
 当前 canonical log record 固定保存：
 
@@ -844,7 +850,7 @@ Workbench 菜单模型现在也带 operation metadata：
 
 - [`MenuItemModel`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/model/menu_item_model.rs) 保留旧 `MenuAction` 和 typed binding，同时通过 `operation_path_for_menu_action(...)` 给已注册 builtin operation 填入 `operation_path`
 - [`build_workbench_reflection_model(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/model_build.rs) 会把该路径和可选 shortcut 投影进 `EditorMenuItemReflectionModel`
-- [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection.rs) 会在 menu item node 上暴露 `operation_path` 和可选 `shortcut` 属性
+- [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection/adapter.rs) 会在 menu item node 上暴露 `operation_path` 和可选 `shortcut` 属性
 
 这样菜单点击仍可沿用旧 `MenuAction` 热路径，外部程序和未来命令行则可以从同一反射节点读到 `file.project.save` / `window.layout.reset` 等 operation 路径，再通过 operation control request 触发同一行为。
 
@@ -1115,7 +1121,7 @@ runtime 每次事件执行后只允许从三类输入重建 reflection：
 
 `UI Asset Editor` 这一轮也被钉在同样的 typed session/host seam 上，而不是回退到字符串 callback：
 
-- [`UiDesignerSelectionModel`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection.rs) 现在是 Source、Hierarchy、Canvas 共享的 selection payload；[`reconcile_selection(...)`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/session.rs) 会在 parse/tree edit 后按稳定 `node_id` 重建 parent、mount 和 sibling multi-select
+- [`UiDesignerSelectionModel`](/E:/Git/ZirconEngine/zircon_editor/src/ui/asset_editor/contract.rs) 现在是 Source、Hierarchy、Canvas 共享的 selection payload；[`reconcile_selection(...)`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/session.rs) 会在 parse/tree edit 后按稳定 `node_id` 重建 parent、mount 和 sibling multi-select
 - [`UiAssetEditorCommand::TreeEdit`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/command.rs) 已支持附带 `next_selection`；[`UiAssetEditorUndoStack`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/undo_stack.rs) 记录的是 `source + selection` snapshot，因此 undo/redo 恢复的是结构化 authoring state，而不只是 source text
 - [`binding_inspector.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/binding_inspector.rs) 现在把 `UiBindingRef` 投影成 `event kind + action kind + payload entries` 三段式 inspector；事件来自 `UiEventKind`，动作和 payload 来自 `UiActionRef`
 - manager 和 retained host 只转发 palette index、binding index、payload key 以及 `canvas.reparent.*` / `palette.insert.*` 这类稳定 action id；真正的 AST 变更始终由 [`UiAssetEditorSession`](/E:/Git/ZirconEngine/zircon_editor/src/core/editing/ui_asset/session.rs) 执行

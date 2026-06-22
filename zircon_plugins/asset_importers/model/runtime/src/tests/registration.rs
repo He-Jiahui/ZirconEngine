@@ -21,6 +21,8 @@ fn package_declares_model_importer_capabilities() {
     assert!(manifest
         .capabilities
         .contains(&CAD_IMPORTER_CAPABILITY.to_string()));
+    assert_eq!(manifest.modules.len(), 1);
+    assert_eq!(manifest.modules[0].crate_name, crate::RUNTIME_CRATE_NAME);
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use crate::{plugin::CapabilityStatus, plugin::PluginMaturity};
 
-use super::super::super::super::RuntimePluginDescriptor;
 use super::super::super::capability_status::capability_status;
+use super::super::super::BuiltinCatalogDescriptorBuilder;
 
 pub(super) fn is_runtime_system_descriptor(package_id: &str) -> bool {
     matches!(package_id, "ai" | "navigation" | "particles" | "animation")
@@ -9,8 +9,8 @@ pub(super) fn is_runtime_system_descriptor(package_id: &str) -> bool {
 
 pub(super) fn classify_runtime_system_descriptor(
     package_id: &str,
-    descriptor: RuntimePluginDescriptor,
-) -> RuntimePluginDescriptor {
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
     match package_id {
         "ai" => descriptor
             .with_maturity(PluginMaturity::Experimental)

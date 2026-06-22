@@ -5,8 +5,8 @@ related_code:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/layouts/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/scene_bind_group_bundle/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_construct/layouts/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/bind_group_layout/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/params_buffer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/pipeline/mod.rs
@@ -20,8 +20,8 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
   - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/layouts/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_new/scene_bind_group_bundle/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_construct/layouts/mod.rs
+  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/bind_group_layout/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/params_buffer/mod.rs
   - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/new/pipeline/mod.rs
@@ -89,7 +89,7 @@ doc_type: milestone-detail
 ## Support Fix
 
 - 这轮还顺手修了一个 dirty worktree 下的编译闭包问题：
-  - `scene_renderer_core_new`
+  - `scene_renderer_core_construct`
   - `hybrid_gi::gpu_resources::new`
   - `virtual_geometry::gpu_resources`
     这些 folder-backed helper 子树里，有一批 nested module / helper item 的可见性只够父模块自己用，导致 sibling helper 在模块化拆分后无法再访问。

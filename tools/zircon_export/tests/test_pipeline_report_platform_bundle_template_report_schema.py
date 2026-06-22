@@ -32,6 +32,7 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
             ("fatal", "must be a boolean"),
             ("files", "must be an object array"),
             ("format_version", "must be an integer"),
+            ("host_artifact", "must be a string"),
             ("host_executable", "must be a string"),
             ("host_kind", "must be a string"),
             ("manifest", "must be a string"),
@@ -72,6 +73,142 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
                         ),
                         report["diagnostics"],
                     )
+
+    def test_report_rejects_template_report_padded_required_string_field(
+        self,
+    ) -> None:
+        fields = (
+            "bundle_format",
+            "computed_content_hash",
+            "content_hash",
+            "engine_version",
+            "expected_engine_version",
+            "expected_target_platform",
+            "host_artifact",
+            "host_executable",
+            "host_kind",
+            "manifest",
+            "plugin_strategy",
+            "profile",
+            "resource_strategy",
+            "target_platform",
+            "template_dir",
+            "template_id",
+        )
+        for field in fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_template_file=True,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    template = platform_report["template"]
+                    self.assertIsInstance(template, dict)
+                    value = template[field]
+                    self.assertIsInstance(value, str)
+                    template[field] = f" {value} "
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"PlatformBundle report template.{field} "
+                            "must be a non-empty trimmed string" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_template_report_padded_compatible_profile_entry(
+        self,
+    ) -> None:
+        cases = (
+            (
+                [" windows-release "],
+                "PlatformBundle report template.compatible_profiles[0] "
+                "must be a non-empty trimmed string",
+            ),
+            (
+                ["windows-release", " linux-release "],
+                "PlatformBundle report template.compatible_profiles[1] "
+                "must be a non-empty trimmed string",
+            ),
+        )
+        for compatible_profiles, expected_diagnostic in cases:
+            with self.subTest(compatible_profiles=compatible_profiles):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_template_file=True,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    template = platform_report["template"]
+                    self.assertIsInstance(template, dict)
+                    template["compatible_profiles"] = compatible_profiles
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_template_report_non_string_compatible_profile_entry_before_array_shape(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            template["compatible_profiles"] = [1, "windows-release"]
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn(
+                "PlatformBundle report template.compatible_profiles[0] "
+                "must be a string",
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report template.compatible_profiles "
+                    "must be a string array" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
 
     def test_report_rejects_template_report_fatal_without_diagnostics(self) -> None:
         for diagnostics in ([], None):
@@ -384,6 +521,46 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
                     "PlatformBundle report template.manifest template_id "
                     "other-template does not match template.template_id "
                     "embedded-template" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_template_report_manifest_host_artifact_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            template_dir = Path(str(template["template_dir"]))
+            manifest = template_dir / "template.toml"
+            manifest.write_text(
+                self._template_manifest_text(host_artifact="placeholder"),
+                encoding="utf-8",
+            )
+            template["manifest"] = str(manifest)
+            template["host_artifact"] = "precompiled"
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report template.manifest host_artifact "
+                    "placeholder does not match template.host_artifact "
+                    "precompiled" in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
@@ -731,6 +908,7 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
             "engine_version": "0.1.0",
             "target_platform": "windows-x86_64",
             "host_kind": "desktop",
+            "host_artifact": "precompiled",
             "resource_strategy": "filesystem_bundle",
             "plugin_strategy": "native_dynamic_allowed",
             "bundle_format": "directory",
@@ -825,6 +1003,57 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_report_rejects_template_report_padded_duplicate_compatible_profile_before_uniqueness(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(
+                out,
+                with_template_file=True,
+            )
+            platform_report = _read_stage_report(out, "platform_bundle")
+            template = platform_report["template"]
+            self.assertIsInstance(template, dict)
+            template["compatible_profiles"] = [
+                " windows-release ",
+                " windows-release ",
+            ]
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report template.compatible_profiles[0] "
+                    "must be a non-empty trimmed string" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report template.compatible_profiles "
+                    "duplicate entry" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle report template.compatible_profiles "
+                    "does not include profile windows-release" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_rejects_template_report_enum_field_unknown_value(self) -> None:
         cases = (
             (
@@ -836,6 +1065,11 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
                 "host_kind",
                 "unknown_host",
                 "browser, desktop, headless, mobile_app",
+            ),
+            (
+                "host_artifact",
+                "generated",
+                "placeholder, precompiled",
             ),
             (
                 "plugin_strategy",
@@ -1046,6 +1280,7 @@ class PlatformBundleTemplateReportSchemaTests(unittest.TestCase):
             "engine_version",
             "expected_engine_version",
             "expected_target_platform",
+            "host_artifact",
             "host_executable",
             "host_kind",
             "manifest",

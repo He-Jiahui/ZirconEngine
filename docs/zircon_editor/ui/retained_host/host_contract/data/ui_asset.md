@@ -4,20 +4,58 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/canvas.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/common.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/binding.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/panel.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/semantic.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/slot.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/widget.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/actions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/collections.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/editor.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/header.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/runtime_report.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/tools.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/preview.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/source.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/declaration.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/matched_rule.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/panel.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/rule.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/theme_source.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/token.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/canvas.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/common.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/binding.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/panel.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/semantic.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/slot.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/inspector/widget.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/actions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/collections.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/editor.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/header.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/runtime_report.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/pane/tools.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/preview.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/source.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/declaration.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/matched_rule.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/panel.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/rule.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/theme_source.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset/style/token.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
@@ -25,6 +63,9 @@ tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - UI Asset DTO subtree ownership scan
+  - UI Asset inspector DTO subowner ownership scan
+  - UI Asset pane DTO subowner ownership scan
+  - UI Asset style DTO subowner ownership scan
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -49,11 +90,11 @@ The UI Asset editor pane combines several authoring surfaces: a source panel, pr
 
 `ui_asset/preview.rs` owns preview mock and preview panel data, including mock subject/property/nested/suggestion state plus schema and state-graph item lists.
 
-`ui_asset/style.rs` owns theme-source, style-rule, matched-rule, declaration, token, state, and style-panel data.
+`ui_asset/style.rs` is now the structural style DTO entry. `style/theme_source.rs` owns theme-source selection and merge/refactor/promote lists, `rule.rs` owns selected rule rows, `matched_rule.rs` owns matched cascade rule metadata, `declaration.rs` owns declaration rows, `token.rs` owns token rows, `state.rs` owns pseudo-state flags, and `panel.rs` owns the aggregate style panel record.
 
-`ui_asset/inspector.rs` owns inspector semantic, slot, layout, binding, widget property state, widget, and inspector-panel data.
+`ui_asset/inspector.rs` is now the structural inspector DTO entry. `inspector/semantic.rs` owns semantic selector/path/value records, `slot.rs` owns slot layout strings, `layout.rs` owns layout panel settings, `binding.rs` owns route/action/payload binding records, `widget.rs` owns widget identity and prop-state rows, and `panel.rs` owns the aggregate inspector panel record.
 
-`ui_asset/pane.rs` owns pane-level UI Asset records: header, action state, designer tool state, collection panels, runtime report, and the aggregate `UiAssetEditorPaneData` that ties template nodes and all UI Asset child panels together.
+`ui_asset/pane.rs` is now the structural pane DTO entry. `pane/header.rs` owns pane header status strings, `actions.rs` owns command availability flags, `tools.rs` owns designer tool mode/capabilities, `collections.rs` owns palette/hierarchy/preview collection selectors, `runtime_report.rs` owns policy/locale/resource diagnostic lists, and `editor.rs` owns the aggregate `UiAssetEditorPaneData` that ties template nodes and all UI Asset child panels together.
 
 ## Behavior Model
 
@@ -78,6 +119,12 @@ The root keeps re-export compatibility because many host-contract callers import
 ## Test Coverage
 
 This slice was validated with `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a UI Asset DTO subtree ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`. Full unit and integration test matrices remain deferred to the milestone testing stage per the active 08 plan and the user request to implement functionality first.
+
+The 2026-06-21 inspector DTO subowner split reduced `ui_asset/inspector.rs` from 111 lines to a 13-line structural re-export entry. `inspector/{semantic,slot,layout,binding,widget,panel}.rs` now own the focused inspector records while preserving all exported DTO type names. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a UI Asset inspector DTO subowner ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 pane DTO subowner split reduced `ui_asset/pane.rs` from 98 lines to a 13-line structural re-export entry. `pane/{header,actions,tools,collections,runtime_report,editor}.rs` now own the focused pane records while preserving all exported DTO type names. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a UI Asset pane DTO subowner ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-21 style DTO subowner split reduced `ui_asset/style.rs` from 90 lines to a 15-line structural re-export entry. `style/{theme_source,rule,matched_rule,declaration,token,state,panel}.rs` now own the focused style records while preserving all exported DTO type names. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a UI Asset style DTO subowner ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
 ## Plan Sources
 

@@ -17,6 +17,7 @@ from .pipeline_report_native_dynamic_operation_audit_schema import (
 from .pipeline_report_schema_table import (
     object_array_schema_diagnostics,
     optional_fields,
+    string_array_trimmed_non_empty_entries_schema_diagnostics,
     table_integer_schema_diagnostics,
     table_string_schema_diagnostics,
     table_unknown_field_diagnostics,
@@ -152,6 +153,13 @@ def platform_bundle_native_plugins_payload_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        table_trimmed_non_empty_string_schema_diagnostics(
+            label,
+            payload,
+            NATIVE_DYNAMIC_PAYLOAD_NON_EMPTY_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
         table_sha256_hex_string_schema_diagnostics(
             label,
             payload,
@@ -246,6 +254,14 @@ def native_dynamic_file_manifest_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        object_array_required_trimmed_non_empty_string_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            NATIVE_DYNAMIC_FILE_MANIFEST_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
         object_array_sha256_hex_string_schema_diagnostics(
             label,
             payload,
@@ -292,20 +308,31 @@ def native_dynamic_materialized_packages_schema_diagnostics(
         NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_FIELDS,
         string_fields=NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_FIELDS,
         integer_fields=NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_INTEGER_FIELDS,
-        string_array_fields=NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
         required_string_fields=(
             NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_REQUIRED_STRING_FIELDS
         ),
         required_integer_fields=(
             NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_REQUIRED_INTEGER_FIELDS
         ),
-        required_string_array_fields=(
-            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_REQUIRED_STRING_ARRAY_FIELDS
-        ),
         require_present=True,
     )
     diagnostics.extend(
+        object_array_loadable_artifacts_schema_diagnostics(
+            label,
+            payload,
+            "materialized_packages",
+        )
+    )
+    diagnostics.extend(
         object_array_required_non_empty_string_schema_diagnostics(
+            label,
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        object_array_required_trimmed_non_empty_string_schema_diagnostics(
             label,
             payload,
             "materialized_packages",
@@ -330,6 +357,14 @@ def native_dynamic_materialized_packages_schema_diagnostics(
     )
     diagnostics.extend(
         object_array_string_array_no_blank_entries_schema_diagnostics(
+            label,
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        object_array_string_array_trimmed_non_empty_entries_schema_diagnostics(
             label,
             payload,
             "materialized_packages",
@@ -364,6 +399,35 @@ def native_dynamic_materialized_packages_schema_diagnostics(
     return diagnostics
 
 
+def object_array_loadable_artifacts_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    item_field = "loadable_artifacts"
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        item_value = entry.get(item_field)
+        if not isinstance(item_value, list):
+            diagnostics.append(
+                f"{label} {field}[{index}].{item_field} "
+                "must be a string array"
+            )
+            continue
+        for item_index, item in enumerate(item_value):
+            if not isinstance(item, str):
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field}[{item_index}] "
+                    "must be a string"
+                )
+    return diagnostics
+
+
 def object_array_required_non_empty_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -387,6 +451,33 @@ def object_array_required_non_empty_string_schema_diagnostics(
     return diagnostics
 
 
+def object_array_required_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if (
+                isinstance(item_value, str)
+                and item_value.strip()
+                and item_value.strip() != item_value
+            ):
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must be a non-empty trimmed string"
+                )
+    return diagnostics
+
+
 def object_array_sha256_hex_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -405,6 +496,7 @@ def object_array_sha256_hex_string_schema_diagnostics(
             if (
                 isinstance(item_value, str)
                 and item_value.strip()
+                and item_value.strip() == item_value
                 and not is_sha256_hex(item_value)
             ):
                 diagnostics.append(
@@ -490,6 +582,25 @@ def table_non_empty_string_schema_diagnostics(
     return diagnostics
 
 
+def table_trimmed_non_empty_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() != value
+        ):
+            diagnostics.append(
+                f"{label}.{field} must be a non-empty trimmed string"
+            )
+    return diagnostics
+
+
 def table_sha256_hex_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
@@ -498,7 +609,12 @@ def table_sha256_hex_string_schema_diagnostics(
     diagnostics: list[str] = []
     for field in fields:
         value = table.get(field)
-        if isinstance(value, str) and value.strip() and not is_sha256_hex(value):
+        if (
+            isinstance(value, str)
+            and value.strip()
+            and value.strip() == value
+            and not is_sha256_hex(value)
+        ):
             diagnostics.append(f"{label}.{field} must be a SHA-256 hex digest")
     return diagnostics
 
@@ -527,6 +643,35 @@ def object_array_string_array_no_blank_entries_schema_diagnostics(
                     f"{label} {field}[{index}].{item_field} "
                     "must not contain blank entries"
                 )
+    return diagnostics
+
+
+def object_array_string_array_trimmed_non_empty_entries_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if not (
+                isinstance(item_value, list)
+                and all(isinstance(item, str) for item in item_value)
+            ):
+                continue
+            diagnostics.extend(
+                string_array_trimmed_non_empty_entries_schema_diagnostics(
+                    f"{label} {field}[{index}].{item_field}",
+                    item_value,
+                )
+            )
     return diagnostics
 
 
@@ -579,9 +724,13 @@ def object_array_unique_string_field_schema_diagnostics(
         if not isinstance(entry, dict):
             continue
         item_value = entry.get(item_field)
-        if not isinstance(item_value, str) or not item_value.strip():
+        if (
+            not isinstance(item_value, str)
+            or not item_value.strip()
+            or item_value.strip() != item_value
+        ):
             continue
-        normalized = normalize_relative_path(item_value) if normalize_path else item_value.strip()
+        normalized = normalize_relative_path(item_value) if normalize_path else item_value
         if normalize_path and not is_safe_relative_path(normalized):
             continue
         if normalized in seen:
@@ -616,7 +765,7 @@ def object_array_string_array_unique_entries_schema_diagnostics(
             seen: set[str] = set()
             has_duplicate = False
             for item in item_value:
-                if not item.strip():
+                if not item.strip() or item.strip() != item:
                     continue
                 normalized = normalize_relative_path(item)
                 if not is_safe_relative_path(normalized):

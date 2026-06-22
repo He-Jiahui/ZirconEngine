@@ -93,6 +93,7 @@ tests:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_light_grid_stats
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights_forward_deferred_capture_parity
+  - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_hundred_point_lights_report_local_density_stats
 ---
 
 # Scene Renderer Lighting
@@ -187,6 +188,14 @@ baseline/64-point-light paths, asserts `lighting.light-grid` execution and 64
 light-grid stats, then compares center-region luma so both pipelines prove a
 visible many-light contribution in the final captured image.
 
+`render_product_hundred_point_lights_report_local_density_stats` covers the
+Plan 05 local-density stats requirement. It builds dense and spread 128
+point-light layouts with the same total light count, checks the CPU light-grid
+peak and average cluster load first, then submits both layouts through the real
+WGPU Forward+ product path and compares the reported `RenderStats` peak and
+average cluster load. This guards against treating total light count alone as
+the shading-cost signal.
+
 Latest validation:
 - `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` passed with the repository warning set.
 - A temporary Naga validator parsed and validated the concatenated fallback
@@ -196,5 +205,6 @@ Latest validation:
   is claimed for this slice.
 - `cargo fmt --all`, `cargo fmt --all -- --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin --message-format short --color never` passed after adding the 64 point-light product source contract; the check reported the repository's existing warning set. The matching lib-test target compiled with `cargo test -p zircon_runtime --lib render_product_many_point_lights --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin --message-format short --color never --no-run`, and direct execution of `zircon_runtime-5d2828c2001649f6.exe render_product_many_point_lights --nocapture` passed 1 filtered test.
 - The 2026-06-21 many-point real capture parity slice passed `rustfmt --edition 2021 zircon_runtime\src\graphics\tests\render_product_shadows.rs` and `cargo test -p zircon_runtime --lib render_product_many_point_lights_forward_deferred_capture_parity --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --message-format short --color never -- --test-threads=1 --nocapture` with 1 filtered test. A cold target-dir Cargo wrapper timed out during shared lib-test compilation before producing a binary; the warmed target-dir run is the counted result. Direct exact runs from the same binary also passed `render_product_many_point_lights`, `render_product_csm_directional`, and `render_product_multi_spot_shadows`.
+- The 2026-06-21 hundred-light local-density stats slice passed `cargo test -p zircon_runtime --lib render_product_hundred_point_lights_report_local_density_stats --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --message-format short --color never -- --test-threads=1 --nocapture` with 1 filtered test and the repository warning set. Direct exact runs from the same binary also passed `render_product_hundred_point_lights_report_local_density_stats` and `render_product_many_point_lights_forward_deferred_capture_parity`; `rustfmt --edition 2021 --check zircon_runtime\src\graphics\tests\render_product_shadows.rs` passed.
 - The LS-M4 PCF quality authoring-field update passed `cargo fmt --all -- --check`, scoped `git diff --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never` with existing warnings. The matching `pcf_quality` lib-test no-run command timed out after 904 seconds during shared test-target compilation, so no filtered test result is claimed for this lighting-adjacent field update.
 - The 2026-06-20 Plan 09 shared light-grid product-report boundary passed scoped `rustfmt --edition 2021 --check` and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-light-grid-shared-products-0620 --message-format short --color never` with the repository warning set. The follow-up direct lib-test binary filter `light_grid_stats --test-threads=1 --nocapture` passed 3 tests, covering stats update, reset, and product diagnostics rows.

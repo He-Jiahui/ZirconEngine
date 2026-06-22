@@ -126,6 +126,7 @@ plan_sources:
 | 07 UI 动画与 theatre 式时间轴 | `07-ui-animation-theatre.md` | M1–M4 |
 | 08 Workbench Shell 切到 Runtime UI | `08-workbench-shell-on-runtime-ui.md` | M1–M6 |
 | 09 编辑器模块与设计图对齐 | `09-editor-modules-and-design-parity.md` | M1–M5 |
+| 10 代码结构与模块规范 | `10-code-structure-and-module-conventions.md` | M1–M4 |
 
 阶段划分（与「先等 runtime 大模块完成」的 gating 对应）：
 
@@ -148,6 +149,7 @@ plan_sources:
 8. 根部 wiring 文件（`lib.rs`/`mod.rs`）保持薄；深行为进 owner 模块。
 9. 视觉验收以「结构正确、组件统一、主要控件可交互」为准；逐像素差异修正只是后期 polish，不是设计回路。
 10. 设计图权威：壳与配色以 `ai-workbench-web-framework.png` 为准（近黑表面 `#111416`–`#252b31`、teal `#3cc7d6` 仅用于激活/选中/焦点）；布局结构以 `editor-workbench-designs` 的 layout-spec / state-spec / content-spec PNG 为准；交互结构以 `component-prototype` 的组件族与路由契约为准。
+11. 遵守 [`engine-code-structure-convention`](../../engine-code-structure-convention.md)（计划 10 落地）：`ui/` owner 边界、超大投影/转换文件 owner 化、重复测试树消除、命名去 `_inner`、façade/prelude 友好度，由 editor `module_convention_gate` 机器化验收；触及超大文件的能力切片须先过计划 10 的 owner 拆分。
 
 ## 6. 全局验收与测试基线
 

@@ -1202,6 +1202,7 @@ fn dispatch_ime(
                 kind,
                 text: text.to_string(),
                 cursor_range,
+                delete_surrounding: None,
             }),
         )
         .unwrap()

@@ -9,7 +9,7 @@ pub(crate) fn import_texture(
     let image = decode_texture_source_image(context)?;
     let texture =
         TextureAsset::new_rgba8(context.uri.clone(), image.width, image.height, image.rgba)
-            .with_import_settings(&context.import_settings)
+            .apply_import_settings(&context.import_settings)
             .map_err(|error| {
                 AssetImportError::Parse(format!(
                     "apply texture import settings {}: {error}",

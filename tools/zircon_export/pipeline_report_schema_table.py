@@ -10,8 +10,10 @@ from .pipeline_report_schema_primitives import (
     validate_integer_schema_diagnostics,
     validate_object_array_schema_diagnostics,
     validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
+)
+from .pipeline_report_validate_string_array_schema import (
+    validate_string_array_schema_diagnostics,
 )
 
 
@@ -38,6 +40,24 @@ def string_array_no_blank_entries_schema_diagnostics(
     return []
 
 
+def string_array_trimmed_non_empty_entries_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not (
+        isinstance(value, list)
+        and all(isinstance(item, str) for item in value)
+    ):
+        return []
+    diagnostics: list[str] = []
+    for index, item in enumerate(value):
+        if item.strip() and item.strip() != item:
+            diagnostics.append(
+                f"{label}[{index}] must be a non-empty trimmed string"
+            )
+    return diagnostics
+
+
 def string_array_unique_entries_schema_diagnostics(
     label: str,
     value: Any,
@@ -50,12 +70,34 @@ def string_array_unique_entries_schema_diagnostics(
     diagnostics: list[str] = []
     seen: set[str] = set()
     for item in value:
-        if not item.strip():
+        if not item.strip() or item.strip() != item:
             continue
         if item in seen:
             diagnostics.append(f"{label} duplicate entry {item}")
             continue
         seen.add(item)
+    return diagnostics
+
+
+def string_array_duplicate_entry_index_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not (
+        isinstance(value, list)
+        and all(isinstance(item, str) for item in value)
+    ):
+        return []
+    diagnostics: list[str] = []
+    seen: dict[str, int] = {}
+    for index, item in enumerate(value):
+        if not item.strip() or item.strip() != item:
+            continue
+        previous_index = seen.get(item)
+        if previous_index is None:
+            seen[item] = index
+            continue
+        diagnostics.append(f"{label}[{index}] duplicates entry {previous_index}")
     return diagnostics
 
 

@@ -19,10 +19,11 @@ pub(super) fn validate_runtime_plugin_registration_package_identity(
         diagnostics,
     );
     if let Some(descriptor) = descriptor {
-        if package_manifest.id != descriptor.package_id {
+        if package_manifest.id != descriptor.package_id() {
             diagnostics.push(format!(
                 "runtime plugin package manifest id `{}` must match descriptor package_id `{}`",
-                package_manifest.id, descriptor.package_id
+                package_manifest.id,
+                descriptor.package_id()
             ));
         }
     }

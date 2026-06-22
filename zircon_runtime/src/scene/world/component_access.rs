@@ -1,4 +1,4 @@
-use super::World;
+use super::{SceneResult, World};
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -69,11 +69,9 @@ impl World {
         &mut self,
         entity: EntityId,
         rigid_body: Option<RigidBodyComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update rigid body for missing node {entity}"
-            ));
+            return Err(format!("cannot update rigid body for missing node {entity}").into());
         }
         let changed = match rigid_body {
             Some(rigid_body) => {
@@ -93,9 +91,9 @@ impl World {
         &mut self,
         entity: EntityId,
         collider: Option<ColliderComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update collider for missing node {entity}"));
+            return Err(format!("cannot update collider for missing node {entity}").into());
         }
         let changed = match collider {
             Some(collider) => {
@@ -115,16 +113,16 @@ impl World {
         &mut self,
         entity: EntityId,
         joint: Option<JointComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update joint for missing node {entity}"));
+            return Err(format!("cannot update joint for missing node {entity}").into());
         }
         let joint_connects_to_self = match &joint {
             Some(joint) => joint.connected_entity == Some(entity),
             None => false,
         };
         if joint_connects_to_self {
-            return Err(format!("joint on node {entity} cannot connect to itself"));
+            return Err(format!("joint on node {entity} cannot connect to itself").into());
         }
         let changed = match joint {
             Some(joint) => {
@@ -144,11 +142,9 @@ impl World {
         &mut self,
         entity: EntityId,
         point_light: Option<PointLight>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update point light for missing node {entity}"
-            ));
+            return Err(format!("cannot update point light for missing node {entity}").into());
         }
         let changed = match point_light {
             Some(point_light) => {
@@ -168,11 +164,9 @@ impl World {
         &mut self,
         entity: EntityId,
         ambient_light: Option<AmbientLight>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update ambient light for missing node {entity}"
-            ));
+            return Err(format!("cannot update ambient light for missing node {entity}").into());
         }
         let changed = match ambient_light {
             Some(ambient_light) => {
@@ -192,11 +186,9 @@ impl World {
         &mut self,
         entity: EntityId,
         rect_light: Option<RectLight>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update rect light for missing node {entity}"
-            ));
+            return Err(format!("cannot update rect light for missing node {entity}").into());
         }
         let changed = match rect_light {
             Some(rect_light) => {
@@ -216,11 +208,9 @@ impl World {
         &mut self,
         entity: EntityId,
         spot_light: Option<SpotLight>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update spot light for missing node {entity}"
-            ));
+            return Err(format!("cannot update spot light for missing node {entity}").into());
         }
         let changed = match spot_light {
             Some(spot_light) => {
@@ -240,11 +230,11 @@ impl World {
         &mut self,
         entity: EntityId,
         animation_skeleton: Option<AnimationSkeletonComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update animation skeleton for missing node {entity}"
-            ));
+            return Err(
+                format!("cannot update animation skeleton for missing node {entity}").into(),
+            );
         }
         let changed = match animation_skeleton {
             Some(animation_skeleton) => {
@@ -264,11 +254,9 @@ impl World {
         &mut self,
         entity: EntityId,
         animation_player: Option<AnimationPlayerComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update animation player for missing node {entity}"
-            ));
+            return Err(format!("cannot update animation player for missing node {entity}").into());
         }
         let changed = match animation_player {
             Some(animation_player) => {
@@ -288,11 +276,12 @@ impl World {
         &mut self,
         entity: EntityId,
         animation_sequence_player: Option<AnimationSequencePlayerComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
             return Err(format!(
                 "cannot update animation sequence player for missing node {entity}"
-            ));
+            )
+            .into());
         }
         let changed = match animation_sequence_player {
             Some(animation_sequence_player) => {
@@ -315,11 +304,11 @@ impl World {
         &mut self,
         entity: EntityId,
         animation_graph_player: Option<AnimationGraphPlayerComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update animation graph player for missing node {entity}"
-            ));
+            return Err(
+                format!("cannot update animation graph player for missing node {entity}").into(),
+            );
         }
         let changed = match animation_graph_player {
             Some(animation_graph_player) => {
@@ -341,11 +330,12 @@ impl World {
         &mut self,
         entity: EntityId,
         animation_state_machine_player: Option<AnimationStateMachinePlayerComponent>,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
             return Err(format!(
                 "cannot update animation state machine player for missing node {entity}"
-            ));
+            )
+            .into());
         }
         let changed = match animation_state_machine_player {
             Some(animation_state_machine_player) => {

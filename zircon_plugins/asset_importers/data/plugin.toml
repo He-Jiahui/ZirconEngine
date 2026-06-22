@@ -1,0 +1,69 @@
+# @generated from Rust descriptor package_manifest(); do not edit by hand.
+id = "asset_importer.data"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "Data Asset Importers"
+category = "asset_importer"
+description = "Runtime structured data asset importer family package."
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = [
+    "runtime.plugin.asset_importer.data",
+    "runtime.asset.importer.data.toml",
+    "runtime.asset.importer.data.json",
+    "runtime.asset.importer.data.yaml",
+    "runtime.asset.importer.data.xml",
+]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[asset_importers]]
+id = "asset_importer.data.toml"
+plugin_id = "asset_importer.data"
+priority = 100
+source_extensions = ["toml"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.data.toml"]
+
+[[asset_importers]]
+id = "asset_importer.data.json"
+plugin_id = "asset_importer.data"
+priority = 100
+source_extensions = ["json"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.data.json"]
+
+[[asset_importers]]
+id = "asset_importer.data.yaml"
+plugin_id = "asset_importer.data"
+priority = 100
+source_extensions = ["yaml", "yml"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.data.yaml"]
+
+[[asset_importers]]
+id = "asset_importer.data.xml"
+plugin_id = "asset_importer.data"
+priority = 100
+source_extensions = ["xml"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.data.xml"]
+
+[[modules]]
+name = "asset_importer.data.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_asset_importer_data_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.asset_importer.data",
+    "runtime.asset.importer.data.toml",
+    "runtime.asset.importer.data.json",
+    "runtime.asset.importer.data.yaml",
+    "runtime.asset.importer.data.xml",
+]

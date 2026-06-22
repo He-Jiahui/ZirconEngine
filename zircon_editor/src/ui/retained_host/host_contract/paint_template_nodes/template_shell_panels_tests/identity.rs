@@ -1,0 +1,40 @@
+use super::super::identity::{shell_panel_kind, ShellPanelKind};
+use super::support::panel_node;
+
+#[test]
+fn workbench_shell_panels_match_only_container_ids() {
+    assert_eq!(
+        shell_panel_kind(&panel_node(
+            "WorkbenchWindowTopToolbar",
+            0.0,
+            0.0,
+            120.0,
+            40.0
+        )),
+        Some(ShellPanelKind::TopToolbar)
+    );
+    assert_eq!(
+        shell_panel_kind(&panel_node(
+            "WorkbenchInspectorPanel",
+            0.0,
+            0.0,
+            120.0,
+            40.0
+        )),
+        Some(ShellPanelKind::InspectorPanel)
+    );
+    assert_eq!(
+        shell_panel_kind(&panel_node(
+            "WorkbenchComponentInputs",
+            0.0,
+            0.0,
+            120.0,
+            40.0
+        )),
+        Some(ShellPanelKind::DrawerColumn)
+    );
+    assert_eq!(
+        shell_panel_kind(&panel_node("WorkbenchViewportMode", 0.0, 0.0, 120.0, 40.0)),
+        None
+    );
+}

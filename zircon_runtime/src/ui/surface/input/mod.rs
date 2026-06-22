@@ -35,4 +35,4 @@ pub(crate) use effect::{apply_dispatch_reply, apply_dispatch_reply_steps};
 pub use state::UiSurfaceInputState;
 pub(crate) use text_constraints::text_input_constraints_for_node;
 pub(crate) use validation::{is_valid_input_owner, require_valid_input_owner};
-pub(crate) use window_pump::{dispatch_window_input_pump_batch, dispatch_window_input_pump_event};
+pub(crate) use window_pump::dispatch_window_event;

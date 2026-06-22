@@ -9,6 +9,9 @@ related_code:
   - zircon_runtime/src/asset/pipeline/types.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
@@ -18,6 +21,9 @@ implementation_files:
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
@@ -99,4 +105,4 @@ The Runtime 04/11 plan-status mirror is protected by `asset_worker_pool_matches_
 
 The test-only `AssetWorkerPool::new_without_workers_for_test(...)` constructor must derive diagnostics from normalized options before moving those options into the returned struct. This keeps the workerless test path aligned with production diagnostics initialization and avoids a move-after-borrow compile error when unrelated lib-test filters compile the asset worker pool.
 
-The Runtime 04 structural mirror is `asset_pipeline_boundary`. Its current focused evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this worker-pool doc, Runtime 04, the runtime index, facade/watcher/artifact/core-resource docs, M0 review, and runtime-interface convergence aligned with those counts. This is static structure evidence only; broader `asset::` / `worker_pool` Cargo filters remain pending.
+The Runtime 04 structural mirror is split between `asset_pipeline_source_inventory.py`, `asset_pipeline_anchor_inventory.py`, `asset_pipeline_boundary.py`, and `asset_pipeline_markdown.py`. Source/guard file inventory and expected counts live in the source inventory; worker-pool, diagnostic, behavior, doc, and Cargo gate anchors live in the anchor inventory; the boundary remains the audit reader/risk layer at 328 lines, and the Markdown renderer lives in `asset_pipeline_markdown.py` at 117 lines. Current focused evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this worker-pool doc, Runtime 04, the runtime index, facade/watcher/artifact/core-resource docs, M0 review, and runtime-interface convergence aligned with those counts. This is static structure evidence only; broader `asset::` / `worker_pool` Cargo filters remain pending.

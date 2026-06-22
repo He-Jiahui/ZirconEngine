@@ -8,11 +8,6 @@ mod image;
 mod keys;
 mod uv;
 
-#[cfg(test)]
-use std::fs;
-#[cfg(test)]
-use zircon_runtime::asset::SpriteAtlasAsset;
-
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use discovery::ATLAS_LIBRARY_DIR;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve_editor_sprite_atlas_image(
@@ -39,5 +34,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
 }
 
 #[cfg(test)]
-#[path = "sprite_atlas_tests.rs"]
+#[path = "sprite_atlas_tests/mod.rs"]
 mod tests;

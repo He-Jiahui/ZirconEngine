@@ -10,5 +10,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use comman
 use identity::{is_workbench_slider, slider_style};
 
 #[cfg(test)]
-#[path = "template_sliders_tests.rs"]
+#[path = "template_sliders_tests/mod.rs"]
 mod tests;

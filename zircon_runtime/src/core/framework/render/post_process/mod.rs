@@ -3,6 +3,7 @@ mod color_lut_readback;
 mod color_space;
 mod effect;
 mod effect_stack_settings;
+mod exposure_readback;
 mod exposure_settings;
 mod pass_graph;
 mod pass_node;
@@ -34,6 +35,7 @@ pub use effect_stack_settings::{
     RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
     MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
 };
+pub use exposure_readback::{RenderExposureReadbackReport, EXPOSURE_READBACK_EXPECTED_BYTE_LEN};
 pub use exposure_settings::{
     RenderExposureMode, RenderExposureSettings, EXPOSURE_BUFFER_WORD_COUNT,
     EXPOSURE_HISTOGRAM_BIN_COUNT,

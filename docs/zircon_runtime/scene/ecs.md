@@ -42,6 +42,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/events/store.rs
   - zircon_runtime/src/scene/ecs/events/subscription.rs
   - zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs
+  - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/scene/ecs/internal_scene_system.rs
   - zircon_runtime/src/scene/ecs/lifecycle.rs
   - zircon_runtime/src/scene/ecs/messages/mod.rs
@@ -136,6 +137,7 @@ related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/world/error.rs
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
@@ -144,8 +146,13 @@ related_code:
   - zircon_runtime/src/scene/world/performance_diagnostics.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_runtime/src/scene/world/property_access/read.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/scene/world/project_io/physics.rs
@@ -164,6 +171,12 @@ related_code:
   - zircon_runtime/src/scene/reflect/type_registry.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
+  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/spawn.rs
+  - zircon_runtime/src/script/vm/gameplay_host/combat.rs
+  - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/scene/tests/ecs_archetype_index_structure.rs
   - zircon_runtime/src/scene/tests/ecs_cached_query_iter_structure.rs
   - zircon_runtime/src/scene/tests/ecs_component_storage_structure.rs
@@ -176,6 +189,7 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_source_inventory.py
   - zircon_runtime/src/scene/tests/render_extract.rs
@@ -183,6 +197,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/scene_runtime_hooks.rs
+  - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/scene/ecs/archetype/mod.rs
   - zircon_runtime/src/scene/ecs/archetype/id.rs
   - zircon_runtime/src/scene/ecs/archetype/index.rs
@@ -315,6 +330,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/world/error.rs
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
@@ -323,8 +339,13 @@ implementation_files:
   - zircon_runtime/src/scene/world/performance_diagnostics.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_plugins/animation/runtime/src/sequence/apply.rs
+  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_runtime/src/scene/world/property_access/read.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/world/records.rs
@@ -333,6 +354,12 @@ implementation_files:
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
+  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/spawn.rs
+  - zircon_runtime/src/script/vm/gameplay_host/combat.rs
+  - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
@@ -438,6 +465,7 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/structure.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_filters_lights_by_camera_layers
@@ -946,7 +974,11 @@ The 2026-06-15 structural mirror for this verdict is `ecs_kernel_data_boundary`.
 
 Fresh 2026-06-21 Runtime 08 source/test inventory split evidence: `ecs_kernel_data_source_inventory.py` now owns `RUNTIME_08_SOURCE_FILES`, `RUNTIME_08_TEST_FILES`, `EXPECTED_SOURCE_FILE_COUNT = 69`, `EXPECTED_TEST_FILE_COUNT = 8`, and the mirror-doc guard name. `ecs_kernel_data_boundary.py` stays as the audit orchestration and domain-anchor owner, now 727 lines, while direct audit output still reports source files 69/69, guard/test files 8/8, `mirror_docs_guard_present = true`, and `risks = []`. This split is a structure-audit owner cleanup only; entity/observer/command/messages/change_tick/ecs Cargo filters remain pending.
 
-Fresh 2026-06-21 Runtime 08 anchor inventory split evidence: `ecs_kernel_data_anchor_inventory.py` now owns the Runtime 08 archetype/storage/component/entity/observer/command/event-message/resource/change-tick/test/doc/Cargo gate anchor tuples. `ecs_kernel_data_boundary.py` remains the audit reader, missing-anchor calculator, risk aggregator, and Markdown renderer at 473 lines. Direct audit still reports source files 69/69, guard/test files 8/8, `archetype_anchor_count = 15`, storage anchors 9/9, component identity 18/18, entity lifecycle 10/10, observer 8/8, command 11/11, event/message 12/12, resource identity 12/12, change tick 6/6, `behavior_test_anchor_count = 16`, doc anchors 13/13, Cargo gate anchors 6/6, `mirror_docs_guard_present = true`, and `risks = []`; rustfmt plus standalone `ecs_kernel_data.rs` 1/1 and `plan_status.rs` 33/33 also passed. Package-level Cargo remains deferred to the Runtime 08 validation gate.
+Fresh 2026-06-21 Runtime 08 anchor inventory split evidence: `ecs_kernel_data_anchor_inventory.py` now owns the Runtime 08 archetype/storage/component/entity/observer/command/event-message/resource/change-tick/test/doc/Cargo gate anchor tuples. `ecs_kernel_data_boundary.py` remains the audit reader, missing-anchor calculator, risk aggregator, and Markdown renderer at 497 lines. Direct audit still reports source files 69/69, guard/test files 8/8, `archetype_anchor_count = 15`, storage anchors 9/9, component identity 18/18, entity lifecycle 10/10, observer 8/8, command 11/11, event/message 12/12, resource identity 12/12, change tick 6/6, `behavior_test_anchor_count = 16`, doc anchors 13/13, Cargo gate anchors 6/6, `mirror_docs_guard_present = true`, and `risks = []`; rustfmt plus standalone `ecs_kernel_data.rs` 1/1 and `plan_status.rs` 33/33 also passed. Package-level Cargo remains deferred to the Runtime 08 validation gate.
+
+Fresh 2026-06-21 Runtime 08 Markdown renderer split evidence: `ecs_kernel_data_markdown.py` now owns `render_ecs_kernel_data_boundary_markdown`. `ecs_kernel_data_boundary.py` now owns audit read, missing-anchor calculation, and risk aggregation at 344 lines, while the Markdown owner is 154 lines. Direct audit still reports source files 69/69, guard/test files 8/8, `archetype_anchor_count = 15`, storage anchors 9/9, component-storage private re-export anchors 9/9, unexpected component-storage private re-exports 0, component identity 18/18, entity lifecycle 10/10, observer 8/8, command 11/11, event/message 12/12, resource identity 12/12, change tick 6/6, `behavior_test_anchor_count = 16`, doc anchors 13/13, Cargo gate anchors 6/6, `mirror_docs_guard_present = true`, and `risks = []`; standalone `ecs_kernel_data.rs` 1/1 and `plan_status.rs` 33/33 passed. Package-level Cargo remains deferred to the Runtime 08 validation gate.
+
+Fresh 2026-06-21 Runtime 08 QueryState Markdown renderer split evidence: `ecs_query_state_markdown.py` now owns `render_ecs_query_state_boundary_markdown`. `ecs_query_state_boundary.py` now owns QueryState owner-module audit, root budget checks, forbidden-root behavior scanning, and risk aggregation at 141 lines, while the Markdown owner is 33 lines. Direct audit still reports legacy `query_state.rs` absent, owner modules 9/9, `root_non_empty_lines = 84/180`, missing/unexpected/oversized owner modules all empty, and `risks = []`; standalone `ecs_query_structure.rs` 11/11 and `plan_status.rs` 33/33 passed. Package-level Cargo remains deferred to the Runtime 08 validation gate.
 
 Fresh 2026-06-20 Runtime 08 data owner-tree guard evidence: `runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover` lives in `scene/tests/component_structure/runtime_08_owner_tree.rs` and keeps `scene/ecs/{archetype,component,entity,events,messages,observer,resource,resource_store}`, `scene/ecs/storage/component_storage/`, and `scene/ecs/commands/commands/{mod,entity_commands,facade,param}.rs` as folder-backed data/facade owners. It requires each owner `mod.rs` to stay a structural module/export owner and prevents retired flat Runtime 08 ECS owner files from returning. This guard protects the hard cutover shape for archetype index/signature data, component identity, entity identity, events, messages, observer storage, resource identity, resource storage, component storage, and commands facade ownership; behavior validation still belongs to the entity/observer/command/messages/change_tick/ecs Cargo gates.
 
@@ -1194,7 +1226,7 @@ Runtime 07 M0.3 also makes `SceneScheduleRunner::run_stage(...)` the owner of th
 
 Runtime 07 M1.1 adds `EcsFramePerformanceDiagnostics` as the ECS-side frame aggregation object. It stays beside the ECS query/change-detection owners and merges multiple `QueryStateCacheStats` plus `ChangeDetectionScanStats` samples into one frame-indexed `DiagnosticStore` write. Query cached revision uses the newest revision seen across samples, while count fields use saturating addition. Extract rebuild/output-byte diagnostics are not part of this object; they remain dynamic-session owned because `RuntimeDynamicSession::current_extract()` is the production extract construction point.
 
-`World` stores the current frame aggregate as skipped serialized state, exposes `reset_ecs_frame_performance_diagnostics()` and `ecs_frame_performance_diagnostics()`, and accepts QueryState samples through `record_ecs_query_cache_stats(...)` plus `record_ecs_change_detection_stats(...)`. `WorldDriver::tick_level(...)` resets that aggregate before the frame's stage loop, so repeated `SystemState::run(...)` calls accumulate inside one tick while the next tick starts with an empty frame snapshot.
+`World` stores the current frame aggregate as skipped serialized state, exposes `reset_ecs_frame_performance_diagnostics()` and `ecs_frame_performance_diagnostics()`, and accepts QueryState samples through `record_ecs_query_cache_stats(...)` plus `record_ecs_change_detection_stats(...)`. Runtime 15 F14 removed the old `WorldEcsFramePerformanceDiagnostics` pure wrapper: the field now directly holds `EcsFramePerformanceDiagnostics`, and `scene/world/performance_diagnostics.rs` calls the ECS diagnostics object without `.0` forwarding. `EcsFramePerformanceDiagnostics` also implements `FrameDiagnostics` with the `scene.ecs` domain so ECS frame counters use the same domain/availability contract as core runtime diagnostics. `WorldDriver::tick_level(...)` resets that aggregate before the frame's stage loop, so repeated `SystemState::run(...)` calls accumulate inside one tick while the next tick starts with an empty frame snapshot.
 
 `ecs_frame_performance_diagnostics_record_query_and_change_counts` is the source-level acceptance anchor for the aggregation contract: it records two query samples and two change-detection samples, then verifies that `ecs.query.*` and `ecs.change_detection.*` diagnostic paths expose the combined frame values. `system_state_records_query_cache_stats_into_world_frame_diagnostics` is the automatic collection anchor: two `SystemState<QueryState<...>>` runs in one frame produce two query cache hits in the world frame aggregate, then a frame reset causes the next single run to report only one additional hit.
 
@@ -1408,9 +1440,11 @@ Fresh 2026-06-11 M5 morph-weight property-entry evidence: `visit_property_entrie
 
 Fresh 2026-06-11 M5 dynamic JSON number projection evidence: `dynamic_scene_value_from_json(...)` now projects JSON numbers through direct signed, unsigned, and scalar branches in that order. This preserves the existing `ScenePropertyValue::Integer` / `Unsigned` / `Scalar` priority for dynamic component property entries while removing the old `map(...).or_else(...)` closure chain from numeric projection. `property_paths.rs` pins the direct `as_i64` / `as_u64` / `as_f64` branches and rejects the old map/or_else shape. Static validation covers rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit; Cargo remains deferred to the milestone testing stage unless a later quiet window can complete a focused guard.
 
-Fresh 2026-06-11 M5 entity-path indexed scan evidence: `World::resolve_entity_path(...)` now scans the stable entity list with an explicit index and returns on the first `entity_matches_path_segments(...)` hit, preserving entity order while removing the iterator/copy/find closure chain from path resolution. `entity_has_duplicate_path_name(...)` now uses the same indexed loop style for duplicate sibling detection, incrementing before skip gates so every branch progresses while keeping the early-exit same-parent/name behavior. `property_paths.rs` pins both indexed loops and rejects the old `.find(...)`, `.iter().copied()`, and `for candidate in self.entities.iter().copied()` shapes. Static validation covers rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit; Cargo remains deferred to the milestone testing stage unless a later quiet window can complete a focused guard.
+Fresh 2026-06-22 Runtime 08 F17 entity path Option lookup evidence: `World::get_entity_by_path(...)` is now the public entity-path lookup for `EntityPath -> Option<EntityId>`, keeping the lookup return shape aligned with the engine convention that `get_*` returns `Option` and `resolve_*` returns `Result`. Runtime animation sequence code and the first-party animation runtime plugin both call `get_entity_by_path(...)`, and no shim or alias keeps the old resolve-verb entity path method alive in production source. `property_paths.rs` pins the new signature and old signature absence; `review_f17_entity_path_option_lookup_uses_get_verb` keeps the code, docs, and status row synchronized. Status anchor: `runtime_08_entity_path_lookup_getter_rename_coremin_check_passed`; validation covered scoped rustfmt, F17/status-output guards, runtime core-min `cargo check`, and `zircon_plugin_animation_runtime` package `cargo check`, while broader Runtime 08 ECS behavior gates remain pending.
 
-Fresh 2026-06-08 M5 entity-path resolution allocation evidence: `World::resolve_entity_path(...)` now borrows the target `EntityPath::segments()` once and tests candidate entities through `entity_matches_path_segments(...)`. The helper walks candidate ancestry from leaf to root while comparing against the requested segments from the end, so missing names, extra ancestors, too-short ancestry, and duplicate sibling labels still use the same `path_segment_for_entity(...)` semantics without allocating a candidate `EntityPath`, reversing a segment vector, or joining raw path text for every scanned entity. The 2026-06-08 entity-path segment-vector follow-up now pre-sizes `entity_path(...)` through `entity_path_segment_capacity(...)`, so public path construction reserves exactly one segment slot per ancestor before the existing reverse-and-`EntityPath::new(...)` contract. `property_paths.rs` pins the borrowed target-segment path, exact segment-capacity helper, and old per-candidate `self.entity_path(*entity).as_ref().is_some_and(...)` plus unsized `Vec::new()` path-vector shapes rejection. Static validation covered rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit. Cargo remains deferred because active shared Cargo/rustc lanes are running; no Cargo pass/fail is claimed for this slice.
+Fresh 2026-06-11 M5 entity-path indexed scan evidence: `World::get_entity_by_path(...)` scans the stable entity list with an explicit index and returns on the first `entity_matches_path_segments(...)` hit, preserving entity order while removing the iterator/copy/find closure chain from path lookup. `entity_has_duplicate_path_name(...)` uses the same indexed loop style for duplicate sibling detection, incrementing before skip gates so every branch progresses while keeping the early-exit same-parent/name behavior. `property_paths.rs` pins both indexed loops and rejects the old `.find(...)`, `.iter().copied()`, and `for candidate in self.entities.iter().copied()` shapes. Static validation covers rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit; Cargo remains deferred to the milestone testing stage unless a later quiet window can complete a focused guard.
+
+Fresh 2026-06-08 M5 entity-path lookup allocation evidence: `World::get_entity_by_path(...)` borrows the target `EntityPath::segments()` once and tests candidate entities through `entity_matches_path_segments(...)`. The helper walks candidate ancestry from leaf to root while comparing against the requested segments from the end, so missing names, extra ancestors, too-short ancestry, and duplicate sibling labels still use the same `path_segment_for_entity(...)` semantics without allocating a candidate `EntityPath`, reversing a segment vector, or joining raw path text for every scanned entity. The 2026-06-08 entity-path segment-vector follow-up pre-sizes `entity_path(...)` through `entity_path_segment_capacity(...)`, so public path construction reserves exactly one segment slot per ancestor before the existing reverse-and-`EntityPath::new(...)` contract. `property_paths.rs` pins the borrowed target-segment path, exact segment-capacity helper, and old per-candidate `self.entity_path(*entity).as_ref().is_some_and(...)` plus unsized `Vec::new()` path-vector shapes rejection. Static validation covered rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit. Cargo remains deferred because active shared Cargo/rustc lanes are running; no Cargo pass/fail is claimed for this slice.
 
 Fresh 2026-06-08 M5 entity-path duplicate-label early-exit evidence: `path_segment_for_entity(...)` now delegates duplicate sibling detection to `entity_has_duplicate_path_name(...)`, which skips the current entity, filters to the same parent, and returns immediately when another trimmed same-name sibling is found. The 2026-06-08 direct-loop follow-up keeps that early exit in a single candidate loop with explicit skip gates, so the duplicate-label scan avoids both the old full sibling-set `.count()` pass and the intermediate iterator filter/closure chain. This preserves the public `Name#EntityId` label for duplicate siblings and the unsuffixed label for unique names while only testing duplicate existence. `property_paths.rs` adds a duplicate-name path behavior guard and extends the structure guard to require the direct-loop helper while rejecting `duplicate_count`/`.count()` suffix logic and the old filter/`.any(...)` chain. Static validation covered rustfmt, source/doc/session guard coverage, conflict-marker and trailing-whitespace scans, diff hygiene, and the runtime structure audit. Cargo remains deferred because active shared Cargo/rustc lanes are running; no Cargo pass/fail is claimed for this slice.
 
@@ -1683,5 +1717,9 @@ Fresh 2026-06-20 Runtime 05 event update-all source guard evidence: `ecs_events_
 Fresh 2026-06-20 Runtime 05 event subscription boundary source guard evidence: `ecs_events_messages.rs` now adds `event_subscription_source_keeps_dormant_reader_boundaries`, which reads the folder-backed `ecs/events/` owner set and pins dormant subscriptions to registration-only setup, explicit connect/disconnect reader-count transitions, and empty reads while disconnected. This keeps weak plugin event dependencies from accidentally becoming active readers at construction time or replaying history while dormant. Static validation covered rustfmt over `ecs_events_messages.rs` and direct source checks for the subscription section. The first focused Cargo attempt for this exact guard exposed dynamic-scene session split import drift in `slot_copy` / `slot_import` selected owners (`super::super::named` unresolved); those eight selected helper files now import the sibling `named` owner through `super::super::super::named`. The exact focused Cargo retry timed out after 15 minutes with no test result, and residual Runtime 05 cargo/rustc processes from that retry were stopped. No Cargo pass/fail is claimed and Runtime 05 still waits on the full `scene::` gate.
 
 Fresh 2026-06-20 Runtime 08 component-storage private re-export cleanup evidence: `storage/component_storage/mod.rs` now only re-exports `ComponentStorage` and `ComponentStorageLocation`. Internal owner types and helpers stay owned by their leaf modules: `sparse.rs` and `table.rs` import `entry::{RawRemoveResult, StoredComponent}` directly, `utils.rs` imports `entry::StoredComponent`, and `store.rs` imports `location`, `sparse`, `table`, and `utils` siblings directly. This preserves the public ECS storage API while removing the parent private re-export hub that could break folder-backed visibility during package checks. Static validation covered rustfmt over the component-storage owner files and a scan rejecting the old private re-export/import shapes; focused `cargo check -p zircon_runtime --lib --locked --no-default-features --features core-min --jobs 1 --target-dir D:\cargo-targets\zircon-runtime08-component-storage-private-0620 --message-format short --color never` passed with existing warnings only. Runtime 08 entity/observer/command/messages/change_tick/ecs behavior gates remain pending.
+
+Fresh 2026-06-22 Runtime 08 F5 typed-error evidence: F5 world typed mutation errors now owns `SceneError` and `SceneResult` in `scene/world/error.rs`. The ECS typed mutation surface (`World::spawn`, `spawn_at`, `insert_bundle`, `insert`, `remove`, and `Bundle::insert_into(...)`) returns `SceneResult` instead of naked `Result<_, String>`; missing entity mutations report `SceneError::MissingEntity`, storage errors keep their `StorageError` source, and deferred command reporting stringifies only at the `DeferredCommandError` boundary. The fixed world mutation façade has also moved `component_access`, `hierarchy`, `query`, and `records` to `SceneResult`, while `property_access/write.rs`, dynamic-scene spawn, fixed reflection adapters, and script gameplay host explicitly convert `SceneError` to strings at their existing external string contracts. `world_typed_mutation_errors_report_missing_entities_as_scene_errors` covers the behavior, while `review_f5_world_spawn_bundle_surface_uses_scene_error` keeps the public surface, `SceneError::MissingEntity`, `SceneResult`, and plan/docs anchors synchronized. Status anchor: `world_typed_mutation_errors_coremin_check_passed_partial`. Validation now includes F5 structure guard 1/1, F5 behavior 1/1, and core-min `cargo check`; the dynamic component String-error family and the `DynamicSceneError::WorldMutation(String)` bridge are closed by the follow-up dynamic component typed-error slice, while the wider Runtime 08 entity/observer/command/messages/change_tick/ecs gates remain open.
+
+Fresh 2026-06-22 Runtime 08 F5 dynamic component typed-error evidence: `SceneError` now carries reflection source errors plus dynamic component registry, plugin unload, property path/write/object, descriptor, and editability variants. `ComponentTypeRegistry::register(...)` and the `World` dynamic component mutation family (`register_component_type`, `set_dynamic_component`, `remove_dynamic_component`, `ensure_plugin_components_can_unload`, and `set_dynamic_component_property`) return `SceneResult` and no longer stringify errors inside the world owner. `DynamicSceneError::WorldMutation` now wraps `SceneError`, so descriptor installation, node insertion, and plugin-owned component writes in `DynamicScene::spawn_into` preserve their typed source through `?`. Existing string contracts remain explicit at the property write, reflection, plugin registry, and script-host boundaries. Behavior anchors `dynamic_component_mutation_errors_report_scene_error_variants` and `dynamic_scene_world_mutation_preserves_scene_error_source` cover the new source-preserving paths; `review_f5_dynamic_component_errors_preserve_scene_error_sources` keeps source, docs, and status anchors synchronized. Status anchor: `dynamic_component_typed_errors_coremin_check_passed`; broader Runtime 08 ECS behavior gates remain pending.
 
 Fresh 2026-06-20 Runtime 08 entity Cargo probe evidence: `cargo test -p zircon_runtime --lib entity --locked --no-default-features --features core-min --jobs 1 --target-dir D:\cargo-targets\zircon-runtime08-component-storage-private-0620 --message-format short --color never -- --test-threads=1 --nocapture` exceeded the 1200s tool window with no test result. Residual cargo/rustc processes in that target dir were stopped. This is recorded only as a no-result validation probe and does not promote Runtime 08 entity/observer/command/messages/change_tick/ecs behavior gates.

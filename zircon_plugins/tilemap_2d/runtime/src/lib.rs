@@ -2,6 +2,10 @@ pub const PLUGIN_ID: &str = "tilemap_2d";
 pub const TILEMAP_COMPONENT_TYPE: &str = "tilemap_2d.Component.TileMap";
 pub const TILED_IMPORTER_ID: &str = "tilemap_2d.tiled";
 
+mod capability;
+
+pub use capability::{RUNTIME_CAPABILITIES, TILEMAP_2D_RUNTIME_CAPABILITY};
+
 #[derive(Clone, Debug)]
 pub struct Tilemap2dRuntimePlugin {
     descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
@@ -46,7 +50,7 @@ impl zircon_runtime::plugin::RuntimePlugin for Tilemap2dRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Tilemap 2D",
         zircon_runtime::builtin::RuntimePluginId::Tilemap2d,
@@ -58,11 +62,12 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.tilemap_2d")
+    .with_capability(TILEMAP_2D_RUNTIME_CAPABILITY)
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.plugin.tilemap_2d",
+        TILEMAP_2D_RUNTIME_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .build()
 }
 
 pub fn tilemap_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
@@ -83,11 +88,13 @@ pub fn tilemap_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporte
         1,
     )
     .with_source_extensions(["tmx", "tsx", "json"])
-    .with_required_capabilities(["runtime.plugin.tilemap_2d"])]
+    .with_required_capabilities([TILEMAP_2D_RUNTIME_CAPABILITY])]
 }
 
-pub fn runtime_plugin() -> Tilemap2dRuntimePlugin {
-    Tilemap2dRuntimePlugin::new()
+zircon_plugin_sdk::runtime_plugin_exports!(Tilemap2dRuntimePlugin);
+
+pub fn runtime_capabilities() -> &'static [&'static str] {
+    RUNTIME_CAPABILITIES
 }
 
 pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
@@ -98,14 +105,6 @@ pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManife
         manifest = manifest.with_asset_importer(importer);
     }
     manifest
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    runtime_package_manifest()
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
 }
 
 #[cfg(test)]

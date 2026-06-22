@@ -14,6 +14,10 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
 implementation_files:
   - Cargo.toml
@@ -28,6 +32,10 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
 plan_sources:
   - user: 2026-06-12 implement runtime architecture from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/index.md
@@ -54,7 +62,7 @@ This document is the runtime-side dependency authority for `zirconEngine`. It se
 
 Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_allows_zip_only_for_archive_materializer`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
 
-`tech_stack_boundary` mirrors these Runtime 01 dependency-governance facts through the Python structural audit. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 5`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-20 static validation for the ZIP materializer slice passed rustfmt check and direct `tech_stack_boundary_audit`; full Cargo validation remains pending by the current "先实现功能" direction. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, plugin physics, and export_build_plan Cargo filters remain pending.
+`tech_stack_source_inventory.py` mirrors the Runtime 01 manifest/dependency/version/count inventory, `tech_stack_anchor_inventory.py` mirrors the doc, guard, behavior, decision, and pending Cargo-gate anchors, `tech_stack_boundary.py` remains the 341-line audit reader/dependency scanner/risk owner, and `tech_stack_markdown.py` owns the 103-line Markdown renderer. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 5`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-21 static validation for the inventory and Markdown renderer splits passed Python py_compile, direct `tech_stack_boundary_audit`, standalone `tech_stack.rs` 1/1, standalone `tech_stack_dependency_guard.rs` 11/11, and standalone `plan_status.rs` 33/33; full Cargo validation remains pending by the current "先实现功能" direction and active compile lanes. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, plugin physics, and export_build_plan Cargo filters remain pending.
 
 ## Dependency Matrix
 

@@ -1,7 +1,11 @@
 pub const PLUGIN_ID: &str = "animation";
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "animation.runtime";
+mod capability;
 mod runtime_system;
 
+pub use capability::{
+    ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, RUNTIME_CAPABILITIES,
+};
 pub use runtime_system::{
     register_runtime_system, AnimationRuntimeSystem, ANIMATION_EVALUATE_SYSTEM,
     ANIMATION_SYSTEM_SET,
@@ -36,14 +40,14 @@ impl zircon_runtime::plugin::RuntimePlugin for AnimationRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
-        registry.register_module(module_descriptor())?;
-        register_runtime_system(registry, owner)
+        let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
+            .module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())?;
+        register_runtime_system(&mut module)
     }
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::new(
+    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Animation",
         zircon_runtime::builtin::RuntimePluginId::Animation,
@@ -55,45 +59,29 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
-    .with_capability("runtime.plugin.animation")
-    .with_capability("runtime.feature.animation.timeline_event_track")
+    .with_capability(ANIMATION_RUNTIME_CAPABILITY)
+    .with_capability(ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY)
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_capability_status(
         zircon_runtime::plugin::CapabilityStatusManifest::new(
-            "runtime.plugin.animation",
+            ANIMATION_RUNTIME_CAPABILITY,
             zircon_runtime::plugin::CapabilityStatus::Partial,
         )
         .with_bevy_reference("dev/bevy/crates/bevy_animation/src/lib.rs"),
     )
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        "runtime.feature.animation.timeline_event_track",
+        ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY,
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
     .with_system_sets([ANIMATION_SYSTEM_SET])
     .with_system_anchors([ANIMATION_EVALUATE_SYSTEM])
+    .build()
 }
 
-pub fn runtime_plugin() -> AnimationRuntimePlugin {
-    AnimationRuntimePlugin::new()
-}
-
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
-    zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
-}
+zircon_plugin_sdk::runtime_plugin_exports!(AnimationRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.animation",
-        "runtime.feature.animation.timeline_event_track",
-    ]
+    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

@@ -1,10 +1,12 @@
 use std::fmt;
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
+use super::pool::{assist_current_thread_once, TaskPoolYield};
 use super::JobSchedulerDiagnosticsState;
 
 type JobContinuation = Box<dyn FnOnce() + Send + 'static>;
+const WORKER_WAIT_IDLE_PARK: Duration = Duration::from_millis(1);
 
 #[derive(Clone)]
 pub struct JobHandle {
@@ -118,22 +120,41 @@ impl JobHandle {
 
     pub fn wait(&self) {
         let started_at = Instant::now();
-        let mut inner = self.state.inner.lock().expect("job state lock poisoned");
-        while !inner.is_complete {
-            inner = self
-                .state
-                .complete
-                .wait(inner)
-                .expect("job state lock poisoned while waiting");
-        }
-        let panic_message = inner.panic_message.clone();
-        drop(inner);
+        let panic_message = self.wait_for_terminal();
         if let Some(diagnostics) = &self.wait_diagnostics {
             diagnostics.record_main_thread_wait(started_at.elapsed());
         }
         if let Some(panic_message) = panic_message {
             panic!("job task panicked: {}", panic_message.as_ref());
         }
+    }
+
+    fn wait_for_terminal(&self) -> Option<Arc<str>> {
+        let mut inner = self.state.inner.lock().expect("job state lock poisoned");
+        while !inner.is_complete {
+            drop(inner);
+            if let Some(result) = assist_current_thread_once() {
+                inner = self.state.inner.lock().expect("job state lock poisoned");
+                if !inner.is_complete && result == TaskPoolYield::Idle {
+                    inner = self
+                        .state
+                        .complete
+                        .wait_timeout(inner, WORKER_WAIT_IDLE_PARK)
+                        .expect("job state lock poisoned while worker wait-assisting")
+                        .0;
+                }
+            } else {
+                inner = self.state.inner.lock().expect("job state lock poisoned");
+                if !inner.is_complete {
+                    inner = self
+                        .state
+                        .complete
+                        .wait(inner)
+                        .expect("job state lock poisoned while waiting");
+                }
+            }
+        }
+        inner.panic_message.clone()
     }
 
     pub(super) fn mark_complete(&self) {

@@ -1,22 +1,16 @@
 use naga::front::wgsl;
 use naga::valid::{Capabilities, ValidationFlags, Validator};
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    FunctionAssetImporter, ImportedAsset, ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage,
+    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, ShaderAsset,
+    ShaderEntryPointAsset, ShaderSourceLanguage,
 };
-use zircon_runtime::core::ModuleDescriptor;
-use zircon_runtime::{
-    plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform,
-    plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
-    plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry,
-    plugin::RuntimeExtensionRegistryError,
-    plugin::RuntimePluginRegistrationReport,
-};
-use zircon_runtime::builtin::{
-    RuntimeTargetMode,
+
+mod plugin;
+
+pub use plugin::{
+    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
+    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
+    runtime_selection, supported_platforms, supported_targets, ShaderWgslImporterRuntimePlugin,
 };
 
 pub const PLUGIN_ID: &str = "shader_wgsl_importer";
@@ -24,94 +18,6 @@ pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_shader_wgsl_importer_runtime
 pub const MODULE_NAME: &str = "ShaderWgslImporterModule";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.shader_wgsl_importer";
 pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.shader.wgsl";
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[RUNTIME_CAPABILITY, IMPORTER_CAPABILITY]
-}
-
-pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    [
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ]
-}
-
-pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    [
-        ExportTargetPlatform::Windows,
-        ExportTargetPlatform::Linux,
-        ExportTargetPlatform::Macos,
-    ]
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(MODULE_NAME, "WGSL shader importer plugin")
-}
-
-pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
-    vec![
-        AssetImporterDescriptor::new("shader_wgsl_importer.wgsl", PLUGIN_ID, AssetKind::Shader, 1)
-            .with_priority(120)
-            .with_source_extensions(["wgsl"])
-            .with_required_capabilities([IMPORTER_CAPABILITY]),
-    ]
-}
-
-pub fn package_manifest() -> PluginPackageManifest {
-    let mut manifest = PluginPackageManifest::new(PLUGIN_ID, "WGSL Shader Importer")
-        .with_category("asset_importer")
-        .with_supported_targets(supported_targets())
-        .with_supported_platforms(supported_platforms())
-        .with_capabilities(runtime_capabilities().iter().copied())
-        .with_runtime_module(runtime_module_manifest());
-    for importer in asset_importer_descriptors() {
-        manifest = manifest.with_asset_importer(importer);
-    }
-    manifest
-}
-
-pub fn runtime_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::runtime("shader_wgsl_importer.runtime", RUNTIME_CRATE_NAME)
-        .with_target_modes(supported_targets())
-        .with_capabilities(runtime_capabilities().iter().copied())
-}
-
-pub fn runtime_selection() -> ProjectPluginSelection {
-    ProjectPluginSelection {
-        id: PLUGIN_ID.to_string(),
-        enabled: true,
-        required: false,
-        target_modes: supported_targets().to_vec(),
-        packaging: ExportPackagingStrategy::LibraryEmbed,
-        runtime_crate: Some(RUNTIME_CRATE_NAME.to_string()),
-        editor_crate: None,
-        features: Vec::new(),
-    }
-}
-
-pub fn plugin_registration() -> RuntimePluginRegistrationReport {
-    let mut extensions = RuntimeExtensionRegistry::default();
-    let mut diagnostics = Vec::new();
-    if let Err(error) = register(&mut extensions) {
-        diagnostics.push(error.to_string());
-    }
-    RuntimePluginRegistrationReport {
-        package_manifest: package_manifest(),
-        project_selection: runtime_selection(),
-        extensions,
-        diagnostics,
-    }
-}
-
-pub fn register(
-    registry: &mut RuntimeExtensionRegistry,
-) -> Result<(), RuntimeExtensionRegistryError> {
-    registry.register_module(module_descriptor())?;
-    for importer in asset_importer_descriptors() {
-        registry.register_asset_importer(FunctionAssetImporter::new(importer, import_wgsl))?;
-    }
-    Ok(())
-}
 
 pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     let source = context.source_text()?;

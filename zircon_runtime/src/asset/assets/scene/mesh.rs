@@ -1,5 +1,7 @@
 use crate::asset::AssetReference;
 use crate::core::math::Real;
+use serde::ser::SerializeStruct;
+use serde::Serializer;
 use serde::{Deserialize, Serialize};
 
 use super::defaults::{is_zero_i32, is_zero_real};
@@ -10,7 +12,7 @@ pub struct SceneMeshPrimitiveBindingAsset {
     pub material: AssetReference,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct SceneMeshLodLevelAsset {
     #[serde(default)]
     pub min_distance: Real,
@@ -20,6 +22,43 @@ pub struct SceneMeshLodLevelAsset {
     pub material: AssetReference,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primitives: Vec<SceneMeshPrimitiveBindingAsset>,
+}
+
+impl Serialize for SceneMeshLodLevelAsset {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            let mut len = 3;
+            if self.mesh.is_some() {
+                len += 1;
+            }
+            if !self.primitives.is_empty() {
+                len += 1;
+            }
+
+            let mut state = serializer.serialize_struct("SceneMeshLodLevelAsset", len)?;
+            state.serialize_field("min_distance", &self.min_distance)?;
+            state.serialize_field("model", &self.model)?;
+            if let Some(mesh) = &self.mesh {
+                state.serialize_field("mesh", mesh)?;
+            }
+            state.serialize_field("material", &self.material)?;
+            if !self.primitives.is_empty() {
+                state.serialize_field("primitives", &self.primitives)?;
+            }
+            state.end()
+        } else {
+            let mut state = serializer.serialize_struct("SceneMeshLodLevelAsset", 5)?;
+            state.serialize_field("min_distance", &self.min_distance)?;
+            state.serialize_field("model", &self.model)?;
+            state.serialize_field("mesh", &self.mesh)?;
+            state.serialize_field("material", &self.material)?;
+            state.serialize_field("primitives", &self.primitives)?;
+            state.end()
+        }
+    }
 }
 
 impl SceneMeshLodLevelAsset {
@@ -44,7 +83,7 @@ impl SceneMeshLodLevelAsset {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct SceneMeshInstanceAsset {
     pub model: AssetReference,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -64,6 +103,83 @@ pub struct SceneMeshInstanceAsset {
     pub primitives: Vec<SceneMeshPrimitiveBindingAsset>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lods: Vec<SceneMeshLodLevelAsset>,
+}
+
+impl Serialize for SceneMeshInstanceAsset {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            let mut len = 2;
+            if self.mesh.is_some() {
+                len += 1;
+            }
+            if !is_zero_i32(&self.render_queue) {
+                len += 1;
+            }
+            if !is_zero_i32(&self.material_queue) {
+                len += 1;
+            }
+            if !is_zero_i32(&self.order_in_layer) {
+                len += 1;
+            }
+            if !is_zero_real(&self.depth_bias) {
+                len += 1;
+            }
+            if !self.morph_weights.is_empty() {
+                len += 1;
+            }
+            if !self.primitives.is_empty() {
+                len += 1;
+            }
+            if !self.lods.is_empty() {
+                len += 1;
+            }
+
+            let mut state = serializer.serialize_struct("SceneMeshInstanceAsset", len)?;
+            state.serialize_field("model", &self.model)?;
+            if let Some(mesh) = &self.mesh {
+                state.serialize_field("mesh", mesh)?;
+            }
+            state.serialize_field("material", &self.material)?;
+            if !is_zero_i32(&self.render_queue) {
+                state.serialize_field("render_queue", &self.render_queue)?;
+            }
+            if !is_zero_i32(&self.material_queue) {
+                state.serialize_field("material_queue", &self.material_queue)?;
+            }
+            if !is_zero_i32(&self.order_in_layer) {
+                state.serialize_field("order_in_layer", &self.order_in_layer)?;
+            }
+            if !is_zero_real(&self.depth_bias) {
+                state.serialize_field("depth_bias", &self.depth_bias)?;
+            }
+            if !self.morph_weights.is_empty() {
+                state.serialize_field("morph_weights", &self.morph_weights)?;
+            }
+            if !self.primitives.is_empty() {
+                state.serialize_field("primitives", &self.primitives)?;
+            }
+            if !self.lods.is_empty() {
+                state.serialize_field("lods", &self.lods)?;
+            }
+            state.end()
+        } else {
+            let mut state = serializer.serialize_struct("SceneMeshInstanceAsset", 10)?;
+            state.serialize_field("model", &self.model)?;
+            state.serialize_field("mesh", &self.mesh)?;
+            state.serialize_field("material", &self.material)?;
+            state.serialize_field("render_queue", &self.render_queue)?;
+            state.serialize_field("material_queue", &self.material_queue)?;
+            state.serialize_field("order_in_layer", &self.order_in_layer)?;
+            state.serialize_field("depth_bias", &self.depth_bias)?;
+            state.serialize_field("morph_weights", &self.morph_weights)?;
+            state.serialize_field("primitives", &self.primitives)?;
+            state.serialize_field("lods", &self.lods)?;
+            state.end()
+        }
+    }
 }
 
 impl SceneMeshInstanceAsset {

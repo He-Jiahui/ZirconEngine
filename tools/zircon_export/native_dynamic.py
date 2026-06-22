@@ -106,7 +106,7 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
             package_exports,
             diagnostics,
         )
-    target_platform = native_dynamic_target_platform(validate_payload)
+    target_platform = native_dynamic_target_platform(validate_payload, diagnostics)
     artifact_extensions = native_dynamic_artifact_extensions(target_platform)
     fatal = (
         repo_root is None
@@ -126,12 +126,31 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
         "package_count": 0,
         "packages": [],
     }
-    native_signing_enabled = bool(getattr(args, "native_dynamic_sign_command", None))
+    native_dynamic_build_features = native_dynamic_cli_string_array(
+        getattr(args, "native_dynamic_build_feature", []),
+        "NativeDynamic native build features",
+        diagnostics,
+    )
+    native_signing_command = native_dynamic_cli_optional_trimmed_string(
+        getattr(args, "native_dynamic_sign_command", None),
+        "NativeDynamic signing command",
+        diagnostics,
+    )
+    native_signing_enabled = getattr(args, "native_dynamic_sign_command", None) is not None
+    native_signing_args = native_dynamic_cli_string_array(
+        getattr(args, "native_dynamic_sign_arg", []),
+        "NativeDynamic signing args",
+        diagnostics,
+    )
     native_signing_profile = native_dynamic_signing_profile(
         getattr(args, "native_dynamic_sign_profile", None),
+        "NativeDynamic signing profile",
+        diagnostics,
     )
     native_signing_platforms = native_dynamic_signing_platforms(
         getattr(args, "native_dynamic_sign_platform", []),
+        "NativeDynamic signing allowed platforms",
+        diagnostics,
     )
     native_signing: dict[str, object] = {
         "enabled": native_signing_enabled,
@@ -144,14 +163,28 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
         "package_count": 0,
         "packages": [],
     }
-    native_notarization_enabled = bool(
-        getattr(args, "native_dynamic_notarize_command", None)
+    native_notarization_command = native_dynamic_cli_optional_trimmed_string(
+        getattr(args, "native_dynamic_notarize_command", None),
+        "NativeDynamic notarization command",
+        diagnostics,
+    )
+    native_notarization_enabled = (
+        getattr(args, "native_dynamic_notarize_command", None) is not None
+    )
+    native_notarization_args = native_dynamic_cli_string_array(
+        getattr(args, "native_dynamic_notarize_arg", []),
+        "NativeDynamic notarization args",
+        diagnostics,
     )
     native_notarization_profile = native_dynamic_signing_profile(
         getattr(args, "native_dynamic_notarize_profile", None),
+        "NativeDynamic notarization profile",
+        diagnostics,
     )
     native_notarization_platforms = native_dynamic_signing_platforms(
         getattr(args, "native_dynamic_notarize_platform", []),
+        "NativeDynamic notarization allowed platforms",
+        diagnostics,
     )
     native_notarization: dict[str, object] = {
         "enabled": native_notarization_enabled,
@@ -164,6 +197,7 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
         "package_count": 0,
         "packages": [],
     }
+    fatal = fatal or bool(diagnostics)
 
     if args.dry_run:
         return 2 if fatal else 0
@@ -241,7 +275,7 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
                 cargo=getattr(args, "cargo", "cargo"),
                 locked=not getattr(args, "no_locked", False),
                 offline=bool(getattr(args, "offline", False)),
-                build_features=getattr(args, "native_dynamic_build_feature", []),
+                build_features=native_dynamic_build_features,
                 diagnostics=build_plan_diagnostics,
             )
             if native_dynamic_build_enabled:
@@ -249,12 +283,12 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
                     native_build_execution["skipped"] = True
                     native_build_execution["skip_reason"] = "materialization_diagnostics"
                 elif native_build_plan.get("fatal"):
-                    diagnostics.extend(native_build_plan_diagnostics)
+                    diagnostics.extend(build_plan_diagnostics)
                     native_build_execution = {
                         "enabled": True,
                         "fatal": True,
                         "skipped": False,
-                        "diagnostics": list(native_build_plan_diagnostics),
+                        "diagnostics": list(build_plan_diagnostics),
                         "package_count": 0,
                         "packages": [],
                     }
@@ -270,8 +304,8 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
             fatal = bool(diagnostics)
             if not fatal:
                 signing_command_template = native_dynamic_signing_command_template(
-                    command=getattr(args, "native_dynamic_sign_command", None),
-                    extra_args=getattr(args, "native_dynamic_sign_arg", []),
+                    command=native_signing_command,
+                    extra_args=native_signing_args,
                 )
                 if native_signing_enabled and not signing_command_template:
                     diagnostics.append(
@@ -292,8 +326,8 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
             fatal = bool(diagnostics)
             if not fatal:
                 notarization_command_template = native_dynamic_signing_command_template(
-                    command=getattr(args, "native_dynamic_notarize_command", None),
-                    extra_args=getattr(args, "native_dynamic_notarize_arg", []),
+                    command=native_notarization_command,
+                    extra_args=native_notarization_args,
                 )
                 if native_notarization_enabled and not notarization_command_template:
                     diagnostics.append(
@@ -379,27 +413,64 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
     return 2 if fatal or not report_written else 0
 
 
-def native_dynamic_signing_profile(value: object) -> str | None:
+def native_dynamic_cli_optional_trimmed_string(
+    value: object,
+    field: str,
+    diagnostics: list[str],
+) -> str | None:
     if value is None:
         return None
-    profile = str(value).strip()
-    return profile or None
+    if not isinstance(value, str):
+        diagnostics.append(f"{field} must be a string")
+        return None
+    if not value or value.strip() != value:
+        diagnostics.append(f"{field} must be a non-empty trimmed string")
+        return None
+    return value
 
 
-def native_dynamic_signing_platforms(value: object) -> list[str]:
+def native_dynamic_cli_string_array(
+    value: object,
+    field: str,
+    diagnostics: list[str],
+    *,
+    lowercase: bool = False,
+) -> list[str]:
     if value is None:
         return []
     if not isinstance(value, list):
         value = [value]
-    platforms: list[str] = []
+    values: list[str] = []
     seen: set[str] = set()
-    for item in value:
-        platform = str(item).strip().lower()
-        if not platform or platform in seen:
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            diagnostics.append(f"{field}[{index}] must be a string")
             continue
-        platforms.append(platform)
-        seen.add(platform)
-    return platforms
+        if not item or item.strip() != item:
+            diagnostics.append(f"{field}[{index}] must be a non-empty trimmed string")
+            continue
+        normalized = item.lower() if lowercase else item
+        if normalized in seen:
+            continue
+        values.append(normalized)
+        seen.add(normalized)
+    return values
+
+
+def native_dynamic_signing_profile(
+    value: object,
+    field: str,
+    diagnostics: list[str],
+) -> str | None:
+    return native_dynamic_cli_optional_trimmed_string(value, field, diagnostics)
+
+
+def native_dynamic_signing_platforms(
+    value: object,
+    field: str,
+    diagnostics: list[str],
+) -> list[str]:
+    return native_dynamic_cli_string_array(value, field, diagnostics, lowercase=True)
 
 def reset_native_dynamic_plugins_dir(
     stage_dir: Path,
@@ -604,6 +675,7 @@ def find_native_package_dir(
         return None
 
     matches: list[Path] = []
+    manifest_diagnostics: list[str] = []
     stack = [plugin_root]
     while stack:
         current = stack.pop()
@@ -617,8 +689,19 @@ def find_native_package_dir(
         for child in children:
             if not child.is_dir():
                 continue
-            if package_manifest_matches(child / "plugin.toml", package_id):
-                matches.append(child)
+            manifest_path = child / "plugin.toml"
+            if manifest_path.exists():
+                manifest_read = read_package_manifest_id(manifest_path)
+                if manifest_read.error is not None:
+                    manifest_diagnostics.append(
+                        f"native dynamic package {package_id} source manifest {manifest_path} {manifest_read.error}"
+                    )
+                elif manifest_read.manifest_id == package_id:
+                    matches.append(child)
+                elif manifest_read.manifest_id is None:
+                    manifest_diagnostics.append(
+                        f"native dynamic package {package_id} source manifest {manifest_path} id must be a non-empty string"
+                    )
             stack.append(child)
     if len(matches) == 1:
         return matches[0]
@@ -627,18 +710,9 @@ def find_native_package_dir(
             f"native dynamic package {package_id} has multiple source package manifests: "
             + ", ".join(str(match) for match in sorted(matches))
         )
+    if manifest_diagnostics:
+        diagnostics.extend(manifest_diagnostics)
     return None
-
-
-def package_manifest_matches(path: Path, package_id: str) -> bool:
-    return package_manifest_id(path) == package_id
-
-
-def package_manifest_id(path: Path) -> str | None:
-    manifest_read = read_package_manifest_id(path)
-    if manifest_read.error is not None:
-        return None
-    return manifest_read.manifest_id
 
 
 def read_package_manifest_id(path: Path) -> PackageManifestRead:
@@ -653,10 +727,16 @@ def read_package_manifest_id(path: Path) -> PackageManifestRead:
         return PackageManifestRead(error=f"could not be parsed: {error}")
     except OSError as error:
         return PackageManifestRead(error=f"could not be read: {error}")
+    if "id" not in manifest:
+        return PackageManifestRead()
     manifest_id = manifest.get("id")
-    if isinstance(manifest_id, str) and manifest_id:
+    if isinstance(manifest_id, str):
+        if not manifest_id:
+            return PackageManifestRead()
+        if manifest_id.strip() != manifest_id:
+            return PackageManifestRead(error="id must be a non-empty trimmed string")
         return PackageManifestRead(manifest_id=manifest_id)
-    return PackageManifestRead()
+    return PackageManifestRead(error="id must be a string")
 
 
 def copy_native_dynamic_package(

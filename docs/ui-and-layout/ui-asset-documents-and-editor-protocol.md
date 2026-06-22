@@ -112,11 +112,13 @@ related_code:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
   - zircon_editor/src/ui/asset_editor/session/journal.rs
   - zircon_editor/src/ui/asset_editor/session/replay_artifact.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
@@ -242,11 +244,13 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
   - zircon_editor/src/ui/asset_editor/session/journal.rs
   - zircon_editor/src/ui/asset_editor/session/replay_artifact.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
@@ -267,6 +271,8 @@ implementation_files:
   - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
+  - zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs
 plan_sources:
   - user: 2026-04-20 目前zircon_editor有两套ui相关代码 一套在core里面需要迁移回ui
   - user: 2026-04-20 要求加载入口不允许放入src

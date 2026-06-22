@@ -285,6 +285,66 @@ class PipelineReportNativeDynamicStageBuildPlanCommandSchemaTests(
             "must be cargo",
         )
 
+    def test_report_stage_rejects_native_dynamic_build_plan_command_non_string_entry_before_array_shape(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_plan",
+            _native_build_plan(
+                packages=[
+                    _native_build_plan_package(
+                        command=[
+                            "cargo",
+                            42,
+                            "--manifest-path",
+                            "zircon_plugins/Cargo.toml",
+                            "-p",
+                            "zircon_plugin_animation_native",
+                            "--target-dir",
+                            "target/native_dynamic",
+                            "--features",
+                            "v3_fixture_diagnostics",
+                            "--release",
+                        ]
+                    )
+                ]
+            ),
+            "native_dynamic report native_build_plan.packages[0].command[1] "
+            "must be a string",
+            "native_dynamic report native_build_plan.packages[0].command "
+            "must be a string array",
+        )
+
+    def test_report_stage_rejects_native_dynamic_build_plan_command_shape_before_semantics(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "native_build_plan",
+            _native_build_plan(
+                packages=[
+                    _native_build_plan_package(
+                        command=[
+                            " cargo ",
+                            "build",
+                            "--manifest-path",
+                            "zircon_plugins/Cargo.toml",
+                            "-p",
+                            "zircon_plugin_animation_native",
+                            "--target-dir",
+                            "target/native_dynamic",
+                            "--features",
+                            "v3_fixture_diagnostics",
+                            "--release",
+                        ]
+                    )
+                ]
+            ),
+            "native_dynamic report native_build_plan.packages[0].command[0] "
+            "must be a non-empty trimmed string",
+            "native_dynamic report native_build_plan.packages[0].command[0] "
+            "must be cargo",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,13 +1,14 @@
+mod present;
+
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
-use zircon_runtime::diagnostic_log::write_error;
 
 use super::UiHostWindowEventLoop;
-use crate::ui::retained_host::host_contract::profiling_artifacts::export_present_artifacts;
 use crate::ui::retained_host::host_contract::redraw::{
     HostRedrawRequest, NativePointerDispatchResult,
 };
 use crate::ui::retained_host::ui_perf::enter_ui_perf_scenario;
+use present::present_redraw;
 
 impl UiHostWindowEventLoop {
     pub(in crate::ui::retained_host::host_contract) fn dispatch_pointer_result(
@@ -58,30 +59,12 @@ impl UiHostWindowEventLoop {
             .take_completed_frame_update_scenario()
             .unwrap_or(redraw_scenario);
         drop(redraw_scenario_guard);
-        let _present_scenario_guard = enter_ui_perf_scenario(present_scenario);
-        if let Some(presenter) = self.presenter.as_mut() {
-            let presentation = self.host.get_host_presentation();
-            let invalidation = self.host.refresh_invalidation_diagnostics();
-            match presenter.present(&presentation, redraw.damage_region().cloned(), invalidation) {
-                Ok(diagnostics) => {
-                    if let Some(backend) = self.presenter_backend {
-                        export_present_artifacts(
-                            &presentation,
-                            &self.host.window().size(),
-                            backend,
-                        );
-                    }
-                    self.host.set_host_refresh_diagnostics_overlay(diagnostics)
-                }
-                Err(error) => {
-                    write_error(
-                        "editor_host_window",
-                        format!("presenter present failed: {error}"),
-                    );
-                    event_loop.exit();
-                }
-            }
-        }
+        present_redraw(
+            self,
+            event_loop,
+            redraw.damage_region().cloned(),
+            present_scenario,
+        );
     }
 
     fn take_pending_redraw(&mut self) -> HostRedrawRequest {

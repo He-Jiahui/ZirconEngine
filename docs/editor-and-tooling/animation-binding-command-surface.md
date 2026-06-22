@@ -15,6 +15,12 @@ related_code:
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/sync.rs
@@ -52,6 +58,12 @@ implementation_files:
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/sync.rs
@@ -214,6 +226,7 @@ track path 无效时，dispatch 统一返回 `EditorBindingDispatchError::Invali
 当前执行层已经不只是“命令进主链”，而是有了真实的 animation editor session owner：
 
 - `ui::animation_editor::AnimationEditorSession` 现在直接从 `.sequence.zranim` / `.graph.zranim` / `.state_machine.zranim` 读资产，并维护 sequence timeline、graph parameter/node 摘要、state-machine state/transition 摘要
+- `AnimationEditorSession` 的实现已经是 folder-backed owner：`session/sequence.rs` 处理 timeline/track/key/playback，`session/graph.rs` 处理 node/connection/parameter，`session/state_machine.rs` 处理 state/transition/condition，`session/parameters.rs` 统一 literal parsing
 - `ui::host::animation_editor_sessions` 负责 workspace 恢复、按 `serializable_payload["path"]` 惰性回补会话、host dirty/title/payload 同步，以及 command 到 session 的真实变更调用
 - `execution::animation_event` 不再只是写状态栏；当存在兼容的 animation editor target 时，它会真正修改当前 session，并继续标记 `PresentationChanged` / `ReflectionChanged`
 - 这让 sequence editor 与 graph editor 不只是拿到稳定命令 ABI，也拿到了可以驱动 pane 内容变化的真实 runtime session

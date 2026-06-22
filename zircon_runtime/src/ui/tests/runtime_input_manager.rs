@@ -30,7 +30,7 @@ fn input_manager_window_batch_aggregates_results_and_redraw_requests() {
     ));
 
     let outcome = surface
-        .dispatch_window_input_pump_batch_with_manager(&mut manager, batch)
+        .dispatch_window_input_pump_batch(&mut manager, batch)
         .unwrap();
 
     assert_eq!(outcome.results.len(), 2);

@@ -18,7 +18,6 @@ mod surface_io;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) struct SoftbufferHostPresenter {
-    #[allow(dead_code)]
     context: Context<Arc<dyn Window>>,
     surface: Surface<Arc<dyn Window>, Arc<dyn Window>>,
     size: (u32, u32),

@@ -708,7 +708,7 @@ fn no_op_mutators_do_not_mark_derived_state_dirty() {
 
     assert!(!world.has_pending_scene_systems());
     let static_reparent_error = world.set_parent_checked(static_child, None).unwrap_err();
-    assert!(static_reparent_error.contains("Static"));
+    assert!(static_reparent_error.to_string().contains("Static"));
     assert!(!world.has_pending_scene_systems());
 
     assert!(!world.has_pending_scene_systems());
@@ -754,7 +754,7 @@ fn hierarchy_cycle_rejection_preserves_existing_parent_state() {
 
     let error = world.set_parent_checked(parent, Some(child)).unwrap_err();
 
-    assert!(error.contains("cycle"));
+    assert!(error.to_string().contains("cycle"));
     assert_eq!(world.find_node(parent).unwrap().parent, None);
     assert_eq!(world.find_node(child).unwrap().parent, Some(parent));
     assert!(!world.has_pending_scene_systems());

@@ -547,6 +547,7 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("post.uber")
+            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
@@ -555,9 +556,23 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
-            .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-            .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::TONEMAPPED,
+                RenderGraphAttachmentOps::clear_store(),
+            )
             .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "output-transfer",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.output-transfer")
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_external_texture_with_ops(
+                PostProcessGraphResourceNames::FINAL_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
         ],
     )
 }

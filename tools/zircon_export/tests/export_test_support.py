@@ -16,7 +16,10 @@ from tools.zircon_export.cli import (
     run_source_template,
     run_stage,
 )
-from tools.zircon_export.tests.pack_test_support import empty_delta_manifest
+from tools.zircon_export.tests.pack_test_support import (
+    empty_delta_manifest,
+    empty_pack_document_manifest,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -1060,17 +1063,16 @@ def _write_pack_report(
         )
     if pack_value is None:
         pack.parent.mkdir(parents=True, exist_ok=True)
-        if not pack.exists():
-            pack.write_text("pack placeholder", encoding="utf-8")
+        pack.write_bytes(_pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK"))
     if delta_pack is not None and delta_pack_value is None:
         delta_pack.parent.mkdir(parents=True, exist_ok=True)
-        if not delta_pack.exists():
-            delta_pack.write_text("delta pack placeholder", encoding="utf-8")
+        delta_pack.write_bytes(_pack_binary_bytes(empty_delta_manifest(), b"ZRPD"))
     previous_pack = None
     if delta_pack is not None:
         previous_pack = delta_pack.with_name("previous.zrpack")
-        if not previous_pack.exists():
-            previous_pack.write_text("previous pack placeholder", encoding="utf-8")
+        previous_pack.write_bytes(
+            _pack_binary_bytes(empty_pack_document_manifest(), b"ZRPK")
+        )
     delta_manifest = empty_delta_manifest() if delta_pack is not None else None
     report: dict[str, object] = {
         "stage": "Pack",
@@ -1115,6 +1117,23 @@ def _write_pack_report(
     if delta_apply_verified is not None:
         report["delta_apply_verified"] = delta_apply_verified
     report_dir.joinpath("report.json").write_text(json_dumps(report), encoding="utf-8")
+
+
+def _pack_binary_bytes(
+    manifest: object,
+    magic: bytes,
+    *,
+    payload: bytes = b"",
+) -> bytes:
+    manifest_bytes = json_dumps(manifest).encode("utf-8")
+    header = bytearray(24)
+    header[0:4] = magic
+    header[4:8] = (1).to_bytes(4, "little")
+    header[8:16] = (24 + len(payload)).to_bytes(8, "little")
+    header[16:24] = len(manifest_bytes).to_bytes(8, "little")
+    return bytes(header) + payload + manifest_bytes
+
+
 def _write_platform_bundle_report_with_native_plugins_payload(
     out: Path,
     native_plugins_payload: dict[str, object],

@@ -16,6 +16,10 @@ from .native_dynamic_contract import (
     native_dynamic_package_directory,
 )
 from .path_resolve import resolve_stage_optional_path
+from .pipeline_report_validate_profile_summary_schema import (
+    VALIDATE_PROFILE_SUMMARY_TARGET_PLATFORMS,
+    validate_known_trimmed_string_schema_diagnostics,
+)
 from .stage_handoff import (
     export_strategies_from_validate_report,
     export_strategy_diagnostics,
@@ -104,11 +108,23 @@ def native_dynamic_package_ids(
     packages = plan_summary.get("native_dynamic_packages", [])
     if packages is None:
         return []
-    if not isinstance(packages, list) or any(not isinstance(value, str) for value in packages):
+    if not isinstance(packages, list):
         diagnostics.append("validate report native_dynamic_packages must be a string array")
         return []
+    normalized_packages: list[str] = []
     package_id_indexes: dict[str, int] = {}
     for index, package_id in enumerate(packages):
+        if not isinstance(package_id, str):
+            diagnostics.append(
+                f"native_dynamic_packages entry {index} must be a string"
+            )
+            continue
+        if not native_dynamic_plan_non_empty_trimmed_string(package_id):
+            diagnostics.append(
+                f"native_dynamic_packages entry {index} "
+                "must be a non-empty trimmed string"
+            )
+            continue
         previous_index = package_id_indexes.get(package_id)
         if previous_index is not None:
             diagnostics.append(
@@ -116,7 +132,8 @@ def native_dynamic_package_ids(
             )
         else:
             package_id_indexes[package_id] = index
-    return list(packages)
+            normalized_packages.append(package_id)
+    return normalized_packages
 
 
 def native_dynamic_package_exports(
@@ -144,7 +161,7 @@ def native_dynamic_package_exports(
             return None
         validate_package_export_shape(index, package_export, diagnostics)
         package_id = package_export.get("package_id")
-        if isinstance(package_id, str) and package_id:
+        if native_dynamic_plan_non_empty_trimmed_string(package_id):
             previous_index = package_id_indexes.get(package_id)
             if previous_index is not None:
                 diagnostics.append(
@@ -178,16 +195,36 @@ def validate_package_selection_matches_exports(
         )
 
 
-def native_dynamic_target_platform(validate_payload: dict[str, Any] | None) -> str | None:
+def native_dynamic_target_platform(
+    validate_payload: dict[str, Any] | None,
+    diagnostics: list[str],
+) -> str | None:
     if validate_payload is None:
         return None
     profile_summary = validate_payload.get("profile_summary")
     if not isinstance(profile_summary, dict):
         return None
-    target_platform = profile_summary.get("target_platform") or profile_summary.get("platform")
-    if isinstance(target_platform, str) and target_platform:
-        return target_platform
-    return None
+    if "target_platform" in profile_summary:
+        label = "validate report profile_summary.target_platform"
+        target_platform = profile_summary.get("target_platform")
+    elif "platform" in profile_summary:
+        label = "validate report profile_summary.platform"
+        target_platform = profile_summary.get("platform")
+    else:
+        return None
+    if not isinstance(target_platform, str):
+        diagnostics.append(f"{label} must be a string")
+        return None
+    platform_diagnostics = validate_known_trimmed_string_schema_diagnostics(
+        label,
+        target_platform,
+        VALIDATE_PROFILE_SUMMARY_TARGET_PLATFORMS,
+        "export target platform",
+    )
+    diagnostics.extend(platform_diagnostics)
+    if platform_diagnostics:
+        return None
+    return target_platform
 
 
 def native_dynamic_artifact_extensions(target_platform: str | None) -> set[str]:
@@ -213,43 +250,63 @@ def validate_package_export_shape(
 ) -> None:
     for field in ("package_id", "directory", "path", "manifest"):
         value = package_export.get(field)
-        if not isinstance(value, str) or not value:
+        if not isinstance(value, str):
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} field {field} must be a string"
+            )
+        elif not value.strip():
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} field {field} must be a non-empty string"
+            )
+        elif value.strip() != value:
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} field {field} "
+                "must be a non-empty trimmed string"
             )
     package_id = package_export.get("package_id")
     directory = package_export.get("directory")
     path = package_export.get("path")
     manifest = package_export.get("manifest")
     package_report = package_export.get("package_report")
+    package_id_clean = native_dynamic_plan_non_empty_trimmed_string(package_id)
+    directory_clean = native_dynamic_plan_non_empty_trimmed_string(directory)
+    path_clean = native_dynamic_plan_non_empty_trimmed_string(path)
+    manifest_clean = native_dynamic_plan_non_empty_trimmed_string(manifest)
     if (
-        isinstance(package_id, str)
-        and package_id
-        and isinstance(directory, str)
-        and directory
+        package_id_clean
+        and directory_clean
     ):
         expected_directory = native_dynamic_package_directory(package_id)
         if directory != expected_directory:
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} directory must be {expected_directory} for package_id {package_id}"
             )
-    if isinstance(directory, str) and directory:
+    if directory_clean:
         expected_path = f"plugins/{directory}"
         expected_manifest = f"{expected_path}/plugin.toml"
         expected_package_report = f"{expected_path}/{NATIVE_DYNAMIC_PACKAGE_REPORT_FILE}"
-        if isinstance(path, str) and path and path != expected_path:
+        if path_clean and path != expected_path:
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} path must be {expected_path} for directory {directory}"
             )
-        if isinstance(manifest, str) and manifest and manifest != expected_manifest:
+        if manifest_clean and manifest != expected_manifest:
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} manifest must be {expected_manifest} for directory {directory}"
             )
         if package_report is None:
             package_export["package_report"] = expected_package_report
-        elif not isinstance(package_report, str) or not package_report:
+        elif not isinstance(package_report, str):
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} field package_report must be a string"
+            )
+        elif not package_report.strip():
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} field package_report must be a non-empty string"
+            )
+        elif package_report.strip() != package_report:
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} field package_report "
+                "must be a non-empty trimmed string"
             )
         elif package_report != expected_package_report:
             diagnostics.append(
@@ -270,9 +327,20 @@ def validate_package_export_shape(
         )
     for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS:
         value = abi.get(field)
-        if not isinstance(value, str) or not value:
+        if not isinstance(value, str):
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} abi.{field} must be a string"
+            )
+            continue
+        if not value.strip():
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} abi.{field} must be a non-empty string"
+            )
+            continue
+        if value.strip() != value:
+            diagnostics.append(
+                f"native_dynamic_package_exports entry {index} abi.{field} "
+                "must be a non-empty trimmed string"
             )
             continue
         expected_value = NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS[field]
@@ -280,3 +348,7 @@ def validate_package_export_shape(
             diagnostics.append(
                 f"native_dynamic_package_exports entry {index} abi.{field} must be {expected_value}"
             )
+
+
+def native_dynamic_plan_non_empty_trimmed_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
