@@ -203,10 +203,11 @@ fn export_wizard_engine_repo_root_contains_python_module_entrypoint() {
 
     assert!(
         repo_root
+            .join("tools")
             .join("zircon_export")
             .join("__main__.py")
             .is_file(),
-        "expected repo root {:?} to contain zircon_export/__main__.py",
+        "expected repo root {:?} to contain tools/zircon_export/__main__.py",
         repo_root
     );
 }

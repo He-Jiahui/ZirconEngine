@@ -78,13 +78,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/input_router.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
-  - zircon_runtime/src/ui/runtime_ui/window_event.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/mod.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs
   - zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/mod.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
@@ -171,13 +171,13 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/input_router.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager_error.rs
-  - zircon_runtime/src/ui/runtime_ui/window_event.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/mod.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager_error.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/window_event.rs
   - zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/mod.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
@@ -365,7 +365,7 @@ editor 侧曾经保留的 `zircon_editor/assets/ui/runtime/*.ui.toml` 旧 runtim
 
 ## Runtime Fixture Contract
 
-[`RuntimeUiFixture`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs) 现在只保留和资源定位直接相关的三个接口：
+[`RuntimeUiFixture`](../../zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs) 现在只保留和资源定位直接相关的三个接口：
 
 - `asset_id()`
 - `relative_asset_path()`
@@ -398,7 +398,7 @@ M4.3 的同源验收已经收束为 runtime v2 资产自身的语义 golden，�
 
 ## Shared Load Path
 
-[`RuntimeUiManager`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs) 现在的正式加载路径是：
+[`RuntimeUiManager`](../../zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs) 现在的测试支撑加载路径是：
 
 1. `UiV2PrototypeStoreFileCache::load_store(std::iter::once(fixture.asset_path()))`
 2. `UiV2SurfaceBuilder::build_surface_from_compiled_document(...)`
@@ -429,10 +429,10 @@ Asset importer matching now has the same boundary: `.v2.ui.toml` is registered a
 当前 runtime 侧仍然是：
 
 - `RuntimeUiManager` 持有当前 `UiSurface`
-- `RuntimeUiManager` 与 `RuntimeUiFixture` 是 `zircon_runtime::ui` 下的 crate-private production re-export，供 runtime 内部模块接入，不作为 public API 暴露到 crate 外
-- `RuntimeUiManager` 持有 `runtime_ui/input_router.rs` 中的 manager-owned pointer/navigation dispatcher set；宿主或后续 dynamic session 通过 `register_pointer_handler(...)`、`register_pointer_phase_handler(...)` / `register_navigation_handler(...)` 注册 node-bound handlers，包括 Slate-style pointer PreviewTunnel/Target/Bubble 阶段 handler，然后把 pointer/navigation/platform input/normalized input/window/runtime events 交给 manager，不再在每次 dispatch 调用上传入临时 dispatcher
-- `dispatch_pointer_event(...)`、`dispatch_navigation_event(...)`、`dispatch_platform_input_event(...)`、`dispatch_platform_input_batch(...)`、`dispatch_input_event(...)` 与 `dispatch_input_batch(...)` 使用 manager-owned router 转交给 `UiSurface` 的 shared dispatcher 路径；platform input facade 只负责把 `UiWindowPlatformInputEvent` 归一化为 `UiInputEvent`，不在 manager 内重建第二套 routing/focus 规则；normalized/platform batch 中后续 `UiTreeError` 会携带失败事件索引，已接受前缀不会回滚；加载新 builtin fixture 时重置 ordinary pointer、phase-qualified pointer、navigation handlers，避免旧 surface 节点 id 捕获、预览拦截或导航新 surface 输入
-- `dispatch_window_input_pump_event(...)` 与 `dispatch_window_input_pump_batch(...)` 也只转交 `UiWindowInputPumpEvent`/batch 给同一个 `UiSurface` window-pump 路径；manager 在窗口 Created/Resized metrics 被 surface 接受后更新当前 root viewport size，并在 dirty domains 出现时触发 retained surface rebuild；batch 逐事件经过同一 facade，因此 resize 后紧跟的 pointer input 使用新 geometry/hit grid；后续 `UiTreeError` 会携带 window-pump batch 失败索引；manager 不消费平台窗口动作、不关闭窗口、不另建 lifecycle policy
+- `RuntimeUiManager` 与 `RuntimeUiFixture` 现在挂在 `zircon_runtime::ui` 的 `#[cfg(test)]` runtime UI support 下；production 保留 `PublicRuntimeFrame` 作为 crate-private frame surface，不恢复旧 `ui/runtime_ui` 生产模块
+- `RuntimeUiManager` 持有 `UiInputManager`，由其拥有 pointer/navigation dispatcher set；测试宿主通过 `register_pointer_handler(...)`、`register_pointer_phase_handler(...)` / `register_navigation_handler(...)` 注册 node-bound handlers，包括 Slate-style pointer PreviewTunnel/Target/Bubble 阶段 handler，然后把 pointer/navigation/platform input/normalized input/window/runtime events 交给 manager，不再在每次 dispatch 调用上传入临时 dispatcher
+- `dispatch_pointer_event(...)`、`dispatch_navigation_event(...)`、`dispatch_platform_input_event(...)`、`dispatch_platform_input_batch(...)`、`dispatch_input_event(...)` 与 `dispatch_input_batch(...)` 使用 manager-owned dispatcher set 转交给 `UiSurface` 的 shared dispatcher 路径；platform input facade 只负责把 `UiWindowPlatformInputEvent` 归一化为 `UiInputEvent`，不在 manager 内重建第二套 routing/focus 规则；normalized/platform batch 中后续 `UiTreeError` 会携带失败事件索引，已接受前缀不会回滚；加载新 builtin fixture 时重置 ordinary pointer、phase-qualified pointer、navigation handlers，避免旧 surface 节点 id 捕获、预览拦截或导航新 surface 输入
+- `dispatch_window_input_pump_event(...)` 与 `dispatch_window_input_pump_batch(...)` 也只通过 `UiInputManager` 转交 `UiWindowInputPumpEvent`/batch 给同一个 `UiSurface` window-pump 路径；manager 在窗口 Created/Resized metrics 被 surface 接受后更新当前 root viewport size，并在 dirty domains 出现时触发 retained surface rebuild；batch 逐事件经过同一 facade，因此 resize 后紧跟的 pointer input 使用新 geometry/hit grid；后续 `UiTreeError` 会携带 window-pump batch 失败索引；manager 不消费平台窗口动作、不关闭窗口、不另建 lifecycle policy
 - `dispatch_runtime_event(...)` 与 `dispatch_runtime_event_batch(...)` 逐个通过 interface-owned `ZrRuntimeEventV1 -> UiWindowInputPumpEvent` adapter 归一化 ABI 事件，再进入同一个 window-pump facade 和 manager-owned router；adapter/tree 错误被保留为 `RuntimeUiManagerError`，batch 错误会携带失败 ABI 事件索引，不在 manager 中另写 ABI 解码或 session policy，且 batch 中已接受的前缀事件不会被后续 adapter 错误回滚
 - `build_frame()` 把 `surface.render_extract` 塞进 `PublicRuntimeFrame.ui`
 - render framework / scene renderer 继续消费这份 shared draw extract

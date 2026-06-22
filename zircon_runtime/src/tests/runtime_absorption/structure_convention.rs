@@ -8,6 +8,8 @@ mod graphics_dead_code;
 mod provider_boilerplate;
 #[path = "structure_convention/runtime_dead_code.rs"]
 mod runtime_dead_code;
+#[path = "structure_convention/test_file_budget.rs"]
+mod test_file_budget;
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
     let missing: Vec<_> = required

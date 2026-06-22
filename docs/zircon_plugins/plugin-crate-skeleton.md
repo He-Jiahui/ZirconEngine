@@ -8,8 +8,8 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extension_ids.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
-  - plugin_structure_audits/skeleton.py
-  - audit_plugin_structure.py
+  - tools/plugin_structure_audits/skeleton.py
+  - tools/audit_plugin_structure.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/test.rs
@@ -36,7 +36,7 @@ related_code:
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
-  - plugin_structure_audits/registration.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 implementation_files:
@@ -46,8 +46,8 @@ implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extension_ids.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
-  - plugin_structure_audits/skeleton.py
-  - audit_plugin_structure.py
+  - tools/plugin_structure_audits/skeleton.py
+  - tools/audit_plugin_structure.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/test.rs
@@ -74,7 +74,7 @@ implementation_files:
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
-  - plugin_structure_audits/registration.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 plan_sources:
@@ -82,8 +82,8 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python audit_plugin_structure.py --json: sample_conformance_status=sample-clean, sample_expected_count=1, migration_debt_count=35 on 2026-06-22
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py plugin_structure_audits/skeleton.py: passed 2026-06-22
+  - python tools/audit_plugin_structure.py --json: sample_conformance_status=sample-clean, sample_expected_count=1, migration_debt_count=35 on 2026-06-22
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py: passed 2026-06-22
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk_examples/editor/src/*.rs zircon_plugins/first_party_runtime_catalog/src/lib.rs: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never: passed 2026-06-22 with existing warning noise
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never -- --test-threads=1: timed out after 1200s on 2026-06-22, not counted as passing
@@ -93,12 +93,12 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-registration-m3-0622 --message-format short --color never: passed 2026-06-22
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-registration-m3-0622 --message-format short --color never runtime_registration_builder -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-22
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-registration-m3-0622 --message-format short --color never animation_registration_contributes_runtime_module -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-22
-  - python audit_plugin_structure.py --json: registration_conformance.m3_t1_gate_status=family-single-entry-clean, asset_importer_family_free_function_registration_sites=0 on 2026-06-23
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py plugin_structure_audits/skeleton.py plugin_structure_audits/registration.py: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: registration_conformance.m3_t1_gate_status=family-single-entry-clean, asset_importer_family_free_function_registration_sites=0 on 2026-06-23
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py tools/plugin_structure_audits/registration.py: passed 2026-06-23
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_data_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never registration_contributes_stl_ply_and_dxf_importers -- --test-threads=1 --nocapture: blocked 2026-06-22 by unrelated zircon_runtime MaterialCaptureSeed / MaterialRuntime::capture_seed lib-test drift
   - rustfmt --edition 2021 --check split importer lib/plugin files plus zircon_runtime builtin plugin id/loader: passed 2026-06-23
-  - python audit_plugin_structure.py --json: registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean, split_importer_free_function_registration_sites=0, split_importer_registration_owner_files=0, m3_importer_gate_status=importer-single-entry-clean on 2026-06-23
+  - python tools/audit_plugin_structure.py --json: registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean, split_importer_free_function_registration_sites=0, split_importer_registration_owner_files=0, m3_importer_gate_status=importer-single-entry-clean on 2026-06-23
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime -p zircon_plugin_obj_importer_runtime -p zircon_plugin_texture_importer_runtime -p zircon_plugin_audio_importer_runtime -p zircon_plugin_opus_importer_runtime -p zircon_plugin_shader_wgsl_importer_runtime -p zircon_plugin_ui_document_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-split-importer-m3-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warnings
 doc_type: module-detail
 status: in_progress
@@ -159,7 +159,7 @@ M2/T3 native ABI helper 已提供 `plugin_sdk::native` feature、ABI v3 类型�
 
 M3/T2 runtime registration builder 已提供 `plugin_sdk::registration::RuntimePluginRegistrationBuilder` 与 `RuntimePluginModuleRegistration`。runtime 插件在 `impl RuntimePlugin::register(...)` 内先声明 module，再通过 module handle 声明 runtime scene system、set、order 和 before/after constraint，SDK 内部负责 owner token 顺序。`zircon_plugins/animation/runtime` 已作为代表插件迁到该路径。
 
-M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::registration`，`audit_plugin_structure.py --json` 当前报告 `registration_conformance.m3_t1_gate_status = family-single-entry-clean`、`registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean`、`m3_importer_gate_status = importer-single-entry-clean`，且 importer free-function registration sites 为 0。`asset_importers/{data,model,shader}/runtime/src/plugin.rs` 和 root-level split importer `runtime/src/plugin.rs` 现在拥有 trait-backed plugin entry；因为 `RuntimePluginId` 仍是 core 封闭 enum，本轮仅补 data/model/shader 和 opus importer 临时枚举接线，D6 string-newtype 仍是 M5 工作。
+M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::registration`，`tools/audit_plugin_structure.py --json` 当前报告 `registration_conformance.m3_t1_gate_status = family-single-entry-clean`、`registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean`、`m3_importer_gate_status = importer-single-entry-clean`，且 importer free-function registration sites 为 0。`asset_importers/{data,model,shader}/runtime/src/plugin.rs` 和 root-level split importer `runtime/src/plugin.rs` 现在拥有 trait-backed plugin entry；因为 `RuntimePluginId` 仍是 core 封闭 enum，本轮仅补 data/model/shader 和 opus importer 临时枚举接线，D6 string-newtype 仍是 M5 工作。
 
 ## 5. 首个骨架样例
 
@@ -174,7 +174,7 @@ M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::
 
 ## 6. 符合度 guard（Plugins 12 M2）
 
-- `audit_plugin_structure.py --json` 输出 `skeleton_conformance` 与 `plugin_skeleton_gate`。
+- `tools/audit_plugin_structure.py --json` 输出 `skeleton_conformance` 与 `plugin_skeleton_gate`。
 - M2/T2 样例门禁字段：`sample_conformance_status = sample-clean`、`sample_expected_count = 1`、`sample_violation_count = 0`。
 - M2/T4 样例 workspace dependency 门禁字段：`sample_workspace_dependency_status = sample-workspace-deps-clean`、`sample_workspace_dependency_violation_count = 0`。
 - `plugins_12_crate_skeleton_conformance` 消费同一 JSON，锁定首个样例不回退。
@@ -182,3 +182,26 @@ M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::
 - `registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean` 和 `m3_importer_gate_status = importer-single-entry-clean` 锁定 split importers 与 aggregate importer 口径不再出现公开注册自由函数或 `runtime/src/registration.rs` owner。
 - 存量插件仍按 `migration_debt_roots` 记录为迁移债；当前目标不是一次性硬切所有插件，而是在 M5 touch-it-conform-it 中递减到 0。
 - `native_dynamic_fixture` 作为 native-only ABI fixture 继续豁免 runtime/editor 骨架规则；M2/T3 已收编其 ABI 样板到 `plugin_sdk::native`，但它仍不是 runtime/editor 双 crate 骨架样例。
+
+## 7. 双形态（embed / dist）发行维扩展
+
+由 [Plugins 13](../plans/zircon_plugins/13-standalone-plugin-build.md) 落地，规范权威 [`plugin-standalone-build.md`](plugin-standalone-build.md)。骨架在发行维新增 `dist` 产物形态，使每个插件既能静态链接（embed）又能独立编译为可分发 cdylib（dist）：
+
+```
+<plugin>/runtime/
+  Cargo.toml
+    # crate-type = ["rlib", "cdylib"]
+    # zircon_runtime = { path = "...", optional = true }
+    # [features] default=["embed"]  embed=["dep:zircon_runtime","zircon_plugin_sdk/runtime"]  dist=["zircon_plugin_sdk/native"]
+  src/
+    lib.rs           # 薄 façade
+    plugin.rs        # #[cfg(feature="embed")] impl RuntimePlugin::register
+    dist.rs          # #[cfg(feature="dist")]  ABI v3 导出 owner（SDK 宏）
+    capability.rs    # 单源（禁 use zircon_runtime）
+    backend/         # 纯逻辑：仅 zircon_plugin_sdk + zircon_runtime_interface
+    systems/ tests/
+```
+
+- **依赖边界铁律**：`backend/`、`capability.rs` 禁 `use zircon_runtime::*`；触碰 `zircon_runtime` 的代码必须 `#[cfg(feature = "embed")]`。`dist` 形态依赖闭包禁含 `zircon_runtime`，由 `tools/plugin_structure_audits/dependency_boundary.py` 守卫（`dist_dependency_boundary_violations = 0`）。
+- **单源双投影**：一份 manifest + 一份 `backend/` 逻辑同时喂 embed 注册（`plugin_sdk::registration`）与 dist 导出（`plugin_sdk::native`/`dist`）；不复制逻辑。
+- 逻辑无法干净 feature-gate 时退化为独立 `<plugin>/dist/` cdylib crate 包裹 `backend/`（fallback，非首选）。

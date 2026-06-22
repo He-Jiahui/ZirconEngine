@@ -25,7 +25,13 @@ from tools.zircon_export.tests.pack_test_support import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-VALID_TEMPLATE = REPO_ROOT / "export-templates" / "windows-x86_64-library_embed-debug"
+VALID_TEMPLATE = (
+    REPO_ROOT
+    / "tools"
+    / "zircon_export"
+    / "export-templates"
+    / "windows-x86_64-library_embed-debug"
+)
 
 
 class PlatformBundleDeltaTests(unittest.TestCase):

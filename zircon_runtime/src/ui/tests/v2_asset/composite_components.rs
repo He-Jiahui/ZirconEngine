@@ -1,0 +1,372 @@
+use super::*;
+
+#[test]
+fn ui_v2_composite_component_patches_root_props_and_fills_slots() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/composite.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.Card]
+root = "card_root"
+default_classes = ["material-card"]
+slots = { content = {} }
+
+[nodes.root]
+component = "Card"
+control_id = "AssetCard"
+classes = ["dense"]
+props = { surface_variant = "outlined" }
+
+[[nodes.root.children]]
+node = "card_body"
+slot = { name = "content" }
+
+[nodes.card_root]
+component = "VerticalGroup"
+control_id = "CardPrototypeRoot"
+props = { surface_variant = "filled" }
+
+[[nodes.card_root.children]]
+node = "card_title"
+
+[[nodes.card_root.children]]
+node = "card_content_slot"
+
+[nodes.card_title]
+component = "Text"
+control_id = "CardTitle"
+props = { text = "Prototype" }
+
+[nodes.card_content_slot]
+component = "Slot"
+props = { name = "content" }
+
+[nodes.card_body]
+component = "Text"
+control_id = "CardBody"
+props = { text = "Instanced body" }
+"#,
+    )
+    .unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("expanded root"))
+        .unwrap();
+
+    assert_eq!(compiled.arena.node_count(), 3);
+    assert_eq!(root.component, "VerticalGroup");
+    assert_eq!(root.control_id.as_deref(), Some("AssetCard"));
+    assert!(root.classes.iter().any(|class| class == "material-card"));
+    assert!(root.classes.iter().any(|class| class == "dense"));
+    assert_eq!(
+        root.props.get("surface_variant").and_then(Value::as_str),
+        Some("outlined")
+    );
+    assert!(compiled
+        .arena
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_deref() == Some("CardBody")));
+}
+
+#[test]
+fn ui_v2_composite_component_forwards_default_slot_children() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/default_slot.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.TabStrip]
+root = "strip_root"
+slots = { default = { multiple = true } }
+
+[nodes.root]
+component = "TabStrip"
+control_id = "RuntimeTabStrip"
+children = [{ node = "tab_a" }, { node = "tab_b" }]
+
+[nodes.strip_root]
+component = "HorizontalGroup"
+control_id = "TabStripRoot"
+children = [{ node = "default_slot" }]
+
+[nodes.default_slot]
+component = "Slot"
+props = { name = "default" }
+
+[nodes.tab_a]
+component = "ToggleButton"
+control_id = "RuntimeTabA"
+props = { text = "A", selected = true }
+
+[nodes.tab_b]
+component = "ToggleButton"
+control_id = "RuntimeTabB"
+props = { text = "B" }
+"#,
+    )
+    .unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("expanded root"))
+        .unwrap();
+
+    assert_eq!(root.control_id.as_deref(), Some("RuntimeTabStrip"));
+    assert_eq!(root.children.len(), 2);
+    assert!(compiled
+        .arena
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_deref() == Some("RuntimeTabA")));
+    assert!(compiled
+        .arena
+        .nodes
+        .iter()
+        .any(|node| node.control_id.as_deref() == Some("RuntimeTabB")));
+}
+
+#[test]
+fn ui_v2_composite_component_validates_declared_slots() {
+    let mut document = v2_document("asset://ui/tests/slot_validation.v2.ui", "root");
+    document.components.insert(
+        "Card".to_string(),
+        zircon_runtime_interface::ui::v2::UiV2ComponentDefinition {
+            root: "card_root".to_string(),
+            slots: BTreeMap::from([(
+                "content".to_string(),
+                UiNamedSlotSchema {
+                    required: true,
+                    multiple: false,
+                },
+            )]),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Card".to_string(),
+            children: vec![
+                UiV2ChildMount {
+                    node: "body_a".to_string(),
+                    slot: BTreeMap::from([(
+                        "name".to_string(),
+                        Value::String("content".to_string()),
+                    )]),
+                },
+                UiV2ChildMount {
+                    node: "body_b".to_string(),
+                    slot: BTreeMap::from([(
+                        "name".to_string(),
+                        Value::String("content".to_string()),
+                    )]),
+                },
+            ],
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "card_root".to_string(),
+        UiV2NodeDefinition {
+            component: "Slot".to_string(),
+            props: BTreeMap::from([("name".to_string(), Value::String("content".to_string()))]),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "body_a".to_string(),
+        UiV2NodeDefinition {
+            component: "Text".to_string(),
+            ..Default::default()
+        },
+    );
+    document.nodes.insert(
+        "body_b".to_string(),
+        UiV2NodeDefinition {
+            component: "Text".to_string(),
+            ..Default::default()
+        },
+    );
+
+    let error = UiV2DocumentCompiler::compile(&document).unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::SlotDoesNotAcceptMultiple { slot_name, .. } if slot_name == "content"
+    ));
+}
+
+#[test]
+fn ui_v2_composite_component_can_be_loaded_from_prototype_store() {
+    let component = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/components/material_button.v2.ui"
+version = 2
+
+[components.MaterialButton]
+root = "button_root"
+
+[nodes.button_root]
+component = "Button"
+control_id = "PrototypeButton"
+props = { text = "Prototype" }
+"#,
+    )
+    .unwrap();
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/imported_component.v2.ui"
+version = 2
+
+[imports]
+widgets = ["asset://ui/components/material_button.v2.ui#MaterialButton"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "MaterialButton"
+control_id = "ApplyDraft"
+props = { text = "Apply Draft" }
+"#,
+    )
+    .unwrap();
+    let mut store = UiV2PrototypeStore::new();
+    store.insert(component);
+
+    let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&document, &store).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("expanded root"))
+        .unwrap();
+
+    assert_eq!(compiled.arena.node_count(), 1);
+    assert_eq!(root.component, "Button");
+    assert_eq!(root.control_id.as_deref(), Some("ApplyDraft"));
+    assert_eq!(
+        root.props.get("text").and_then(Value::as_str),
+        Some("Apply Draft")
+    );
+}
+
+#[test]
+fn ui_v2_imported_component_instance_style_patches_expanded_root() {
+    let component = UiV2AssetLoader::load_toml_str(
+        r##"
+[asset]
+kind = "component"
+id = "asset://ui/components/style_label.zui"
+version = 2
+
+[components.StyleLabel]
+root = "label_root"
+
+[nodes.label_root]
+component = "Label"
+control_id = "PrototypeLabel"
+props = { text = "Prototype", foreground_color = "#d8e3e7" }
+"##,
+    )
+    .unwrap();
+    let document = UiV2AssetLoader::load_toml_str(
+        r##"
+[asset]
+kind = "view"
+id = "asset://ui/tests/imported_component_instance_style.v2.ui"
+version = 2
+
+[imports]
+widgets = ["asset://ui/components/style_label.zui#StyleLabel"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "StyleLabel"
+control_id = "RuntimeLabel"
+style = { self = { foreground_color = "#ef493f", text_tone = "error" } }
+
+[[stylesheets]]
+id = "strict_label"
+
+[[stylesheets.rules]]
+selector = "Label"
+set = { self = { foreground_color = "#d8e3e7", text_tone = "primary" } }
+"##,
+    )
+    .unwrap();
+    let mut store = UiV2PrototypeStore::new();
+    store.insert(component);
+
+    let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&document, &store).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("expanded root"))
+        .unwrap();
+
+    assert_eq!(root.component, "Label");
+    assert_eq!(root.control_id.as_deref(), Some("RuntimeLabel"));
+    assert_eq!(
+        root.style
+            .self_values
+            .get("foreground_color")
+            .and_then(Value::as_str),
+        Some("#ef493f")
+    );
+    assert_eq!(
+        root.style
+            .self_values
+            .get("text_tone")
+            .and_then(Value::as_str),
+        Some("error")
+    );
+
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.imported_component_instance_style"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "RuntimeLabel");
+    let metadata = surface
+        .tree
+        .nodes
+        .get(&node_id)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        metadata
+            .style_overrides
+            .get("foreground_color")
+            .and_then(Value::as_str),
+        Some("#ef493f")
+    );
+    assert_eq!(
+        metadata
+            .style_overrides
+            .get("text_tone")
+            .and_then(Value::as_str),
+        Some("error")
+    );
+}

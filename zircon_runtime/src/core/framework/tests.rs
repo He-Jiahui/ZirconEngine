@@ -41,8 +41,8 @@ use super::{
     time::{Fixed, Real, Time, Virtual},
 };
 
-mod phase_queue_summary;
 mod framework_surfaces;
+mod phase_queue_summary;
 mod render_product_surface;
 
 #[test]

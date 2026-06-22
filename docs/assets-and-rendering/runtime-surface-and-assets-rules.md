@@ -3,8 +3,8 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/v2/surface_tree
@@ -12,8 +12,8 @@ related_code:
 implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/v2/surface_tree

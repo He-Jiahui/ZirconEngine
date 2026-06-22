@@ -11,7 +11,7 @@ from tools.zircon_export.export_template import validate_export_template
 from tools.zircon_export.tests.export_test_support import (
     LINUX_TEMPLATE,
     MACOS_TEMPLATE,
-    REPO_ROOT,
+    TEMPLATE_ROOT,
     VALID_TEMPLATE,
     _file_sha256,
     _platform_bundle_args,
@@ -1148,7 +1148,7 @@ class ExportTemplateValidationTests(unittest.TestCase):
                     out=root / "out",
                     profile="linux-release",
                     template_dir=None,
-                    template_root=REPO_ROOT / "export-templates",
+                    template_root=TEMPLATE_ROOT,
                     pack_file=pack,
                     target_platform="linux-x86_64",
                 )
@@ -1187,7 +1187,7 @@ class ExportTemplateValidationTests(unittest.TestCase):
                 out=root / "out",
                 profile="linux-release",
                 template_dir=None,
-                template_root=REPO_ROOT / "export-templates",
+                template_root=TEMPLATE_ROOT,
                 pack_file=pack,
                 target_platform="linux-x86_64",
             )
@@ -1291,7 +1291,7 @@ class ExportTemplateValidationTests(unittest.TestCase):
                     out=out,
                     profile="windows-release",
                     template_dir=None,
-                    template_root=REPO_ROOT / "export-templates",
+                    template_root=TEMPLATE_ROOT,
                     pack_file=pack,
                     target_platform=None,
                 )
@@ -1469,7 +1469,7 @@ class ExportTemplateValidationTests(unittest.TestCase):
                     out=root / "out",
                     profile="missing-profile",
                     template_dir=None,
-                    template_root=REPO_ROOT / "export-templates",
+                    template_root=TEMPLATE_ROOT,
                     pack_file=pack,
                     target_platform="windows-x86_64",
                 )

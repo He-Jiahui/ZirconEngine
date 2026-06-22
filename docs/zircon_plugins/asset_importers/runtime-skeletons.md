@@ -54,7 +54,7 @@ related_code:
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
-  - plugin_structure_audits/registration.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 implementation_files:
@@ -111,7 +111,7 @@ implementation_files:
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
-  - plugin_structure_audits/registration.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 plan_sources:
@@ -186,9 +186,9 @@ tests:
   - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
   - 2026-06-04: Model Asset Importer runtime root/test split static checks: rustfmt check, diff hygiene, trailing-whitespace scan, and conflict-marker scan over `model/runtime/src/{lib.rs,registration.rs,mesh_importer.rs,cad.rs,tests/*}` plus this doc/session note passed; focused Cargo validation is pending while other Cargo/rustc lanes are active.
-  - 2026-06-23: Plugins 12 M3/T1 importer family registration cutover: `asset_importers/{data,model,shader}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; `asset_importers/*` public `pub fn register(...)` scan is empty; `audit_plugin_structure.py --json` reports `registration_conformance.m3_t1_gate_status=family-single-entry-clean`; `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_data_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never` passed with existing runtime warnings.
+  - 2026-06-23: Plugins 12 M3/T1 importer family registration cutover: `asset_importers/{data,model,shader}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; `asset_importers/*` public `pub fn register(...)` scan is empty; `tools/audit_plugin_structure.py --json` reports `registration_conformance.m3_t1_gate_status=family-single-entry-clean`; `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_data_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never` passed with existing runtime warnings.
   - 2026-06-22: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never registration_contributes_stl_ply_and_dxf_importers -- --test-threads=1 --nocapture was blocked by unrelated zircon_runtime MaterialCaptureSeed / MaterialRuntime::capture_seed lib-test drift after an earlier 904s timeout without a test result.
-  - 2026-06-23: Plugins 12 M3/T1 split importer registration cutover: `zircon_plugins/{gltf_importer,obj_importer,texture_importer,audio_importer,opus_importer,shader_wgsl_importer,ui_document_importer}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; split importer public `pub fn register(...)` scan is empty; `audit_plugin_structure.py --json` reports `registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean` and aggregate `m3_importer_gate_status=importer-single-entry-clean`; split importer focused cargo check passed with existing zircon_runtime warnings.
+  - 2026-06-23: Plugins 12 M3/T1 split importer registration cutover: `zircon_plugins/{gltf_importer,obj_importer,texture_importer,audio_importer,opus_importer,shader_wgsl_importer,ui_document_importer}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; split importer public `pub fn register(...)` scan is empty; `tools/audit_plugin_structure.py --json` reports `registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean` and aggregate `m3_importer_gate_status=importer-single-entry-clean`; split importer focused cargo check passed with existing zircon_runtime warnings.
   - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
   - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the UI binary document backend dependency)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)

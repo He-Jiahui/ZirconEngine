@@ -10,7 +10,7 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
-  - plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/skeleton.py
 implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
@@ -24,7 +24,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
 tests:
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk_examples/editor/src/lib.rs zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs zircon_plugins/plugin_sdk_examples/editor/src/capability.rs zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs zircon_plugins/plugin_sdk_examples/editor/src/extension_ids.rs zircon_plugins/plugin_sdk_examples/editor/src/tests.rs: passed 2026-06-22
-  - python audit_plugin_structure.py --json: skeleton sample_conformance_status=sample-clean, sample_expected_count=1, sample_violation_count=0 on 2026-06-22
+  - python tools/audit_plugin_structure.py --json: skeleton sample_conformance_status=sample-clean, sample_expected_count=1, sample_violation_count=0 on 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never: passed 2026-06-22 with existing warning noise
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never -- --test-threads=1: timed out after 1200s on 2026-06-22, not counted as passing
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-editor-sdk-m2-0622 --message-format short --color never: passed 2026-06-22 with existing zircon_runtime/zircon_editor warnings

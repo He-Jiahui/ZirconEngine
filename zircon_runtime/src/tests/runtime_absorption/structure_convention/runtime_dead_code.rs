@@ -73,7 +73,7 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
         "runtime UI manager test support frame import",
         &runtime_ui_manager,
         &[
-            "use crate::ui::PublicRuntimeFrame;",
+            "use crate::ui::{dispatch::UiInputManager, PublicRuntimeFrame};",
             "pub(crate) fn build_frame(&self) -> PublicRuntimeFrame",
         ],
     );

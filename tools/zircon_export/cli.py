@@ -202,17 +202,17 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m zircon_export --profile windows-release --project zircon-project.toml --out E:\\zircon-export
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage validate --dry-run
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage source_template --dry-run
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage native_dynamic
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage compile_host --dry-run
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage cook_assets --asset-manifest cooked-assets.json
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage pack
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage platform_bundle --template-dir export-templates\\windows-x86_64-library_embed-debug
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage platform_bundle --template-root export-templates --target-platform windows-x86_64
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage report
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --resume-from pack
+  python -m tools.zircon_export --profile windows-release --project zircon-project.toml --out E:\\zircon-export
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage validate --dry-run
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage source_template --dry-run
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage native_dynamic
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage compile_host --dry-run
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage cook_assets --asset-manifest cooked-assets.json
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage pack
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage platform_bundle --template-dir tools/zircon_export/export-templates\\windows-x86_64-library_embed-debug
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage platform_bundle --template-root tools/zircon_export/export-templates --target-platform windows-x86_64
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --stage report
+  python -m tools.zircon_export --profile windows-release --out E:\\zircon-export --resume-from pack
 """.strip(),
     )
     parser.add_argument("--profile", required=True, help="Export profile name.")

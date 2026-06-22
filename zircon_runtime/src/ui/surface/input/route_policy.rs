@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiNavigationRoute, UiPointerEventKind, UiPointerRoute},
 };
 
+use crate::ui::dispatch::{route_policy_uses_stage, UiInputRouteStage};
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
 use super::{super::arranged_focus_path, super::surface::UiSurface, state::UiSurfaceInputState};
@@ -238,14 +239,19 @@ fn direct_target_for_policy(
     target: Option<UiNodeId>,
     capture_target: Option<UiNodeId>,
 ) -> Option<UiNodeId> {
-    match policy {
-        UiInputRoutePolicy::PointerCapture => capture_target.or(target),
-        UiInputRoutePolicy::Direct | UiInputRoutePolicy::DefaultAction => target,
-        UiInputRoutePolicy::Unrouted
-        | UiInputRoutePolicy::PreviewTunnel
-        | UiInputRoutePolicy::Bubble
-        | UiInputRoutePolicy::FocusPath => None,
+    if route_policy_uses_stage(policy, UiInputRouteStage::PointerCapture) {
+        return capture_target.or(target);
     }
+
+    let direct_only = route_policy_uses_stage(policy, UiInputRouteStage::DirectTarget)
+        && !route_policy_uses_stage(policy, UiInputRouteStage::PreviewTunnel)
+        && !route_policy_uses_stage(policy, UiInputRouteStage::BubblePath);
+    let default_action = route_policy_uses_stage(policy, UiInputRouteStage::DefaultAction);
+    if direct_only || default_action {
+        return target;
+    }
+
+    None
 }
 
 fn preview_tunnel_for_bubble(bubble_path: &[UiNodeId]) -> Vec<UiNodeId> {

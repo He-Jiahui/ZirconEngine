@@ -273,6 +273,33 @@ pub(super) const RUNTIME_15_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutpu
             "runtime_15_diagnostics_use_frame_trait_without_world_wrapper",
         ],
     ),
+    (
+        "Runtime 15 M3 core framework test folder split",
+        [
+            "runtime_15_core_framework_tests_folder_split_static_passed_cargo_lock_blocked",
+            "core/framework/tests/framework_surfaces.rs",
+            "core/framework/tests/render_product_surface.rs",
+            "runtime_15_core_framework_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI v2 asset test folder split",
+        [
+            "runtime_15_ui_v2_asset_tests_folder_split_static_passed_cargo_lock_blocked",
+            "ui/tests/v2_asset.rs",
+            "ui/tests/v2_asset/style_runtime.rs",
+            "runtime_15_ui_v2_asset_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI shared core test folder split",
+        [
+            "runtime_15_ui_shared_core_tests_folder_split_static_passed_cargo_lock_blocked",
+            "ui/tests/shared_core.rs",
+            "ui/tests/shared_core/layout_surface.rs",
+            "runtime_15_ui_shared_core_tests_are_folder_backed",
+        ],
+    ),
 ];
 
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICE_GROUPS: &[&[ExpectedStatusOutputSlice]] = &[

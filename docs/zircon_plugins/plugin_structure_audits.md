@@ -1,10 +1,10 @@
 ---
 related_code:
-  - audit_plugin_structure.py
-  - plugin_structure_audits/__init__.py
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
-  - plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
+  - tools/plugin_structure_audits/__init__.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/**/plugin.toml
@@ -23,11 +23,11 @@ related_code:
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
 implementation_files:
-  - audit_plugin_structure.py
-  - plugin_structure_audits/__init__.py
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
-  - plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
+  - tools/plugin_structure_audits/__init__.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/registration.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
@@ -45,12 +45,12 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python audit_plugin_structure.py --json: classified-and-clear, missing_plugin_toml=0, manifest_schema_violations=0, expected_manifest_count=37
-  - python audit_plugin_structure.py --json: sample_conformance_status=sample-clean, sample_expected_count=1, sample_violation_count=0, migration_debt_count=35, migration_debt_details_truncated=true on 2026-06-22
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py plugin_structure_audits/skeleton.py: passed 2026-06-22
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py plugin_structure_audits/skeleton.py plugin_structure_audits/registration.py: passed 2026-06-23
-  - python audit_plugin_structure.py --json: registration_conformance.m3_t1_gate_status=family-single-entry-clean, asset_importer_family_free_function_registration_sites=0, asset_importer_family_registration_owner_files=0 on 2026-06-23
-  - python audit_plugin_structure.py --json: registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean, split_importer_free_function_registration_sites=0, split_importer_registration_owner_files=0, m3_importer_gate_status=importer-single-entry-clean on 2026-06-23
+  - python tools/audit_plugin_structure.py --json: classified-and-clear, missing_plugin_toml=0, manifest_schema_violations=0, expected_manifest_count=37
+  - python tools/audit_plugin_structure.py --json: sample_conformance_status=sample-clean, sample_expected_count=1, sample_violation_count=0, migration_debt_count=35, migration_debt_details_truncated=true on 2026-06-22
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py: passed 2026-06-22
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py tools/plugin_structure_audits/registration.py: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: registration_conformance.m3_t1_gate_status=family-single-entry-clean, asset_importer_family_free_function_registration_sites=0, asset_importer_family_registration_owner_files=0 on 2026-06-23
+  - python tools/audit_plugin_structure.py --json: registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean, split_importer_free_function_registration_sites=0, split_importer_registration_owner_files=0, m3_importer_gate_status=importer-single-entry-clean on 2026-06-23
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk_examples/editor/src/*.rs zircon_plugins/first_party_runtime_catalog/src/lib.rs: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never: passed 2026-06-22 with existing warning noise
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_crate_skeleton_conformance --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never -- --test-threads=1 --nocapture: timed out after 900s on 2026-06-22, not counted as passing
@@ -60,7 +60,7 @@ doc_type: module-detail
 
 # Plugin Structure Audits
 
-`audit_plugin_structure.py` is the Plugins 12 structure-audit entry point. It mirrors the runtime audit pattern with a plugin-focused audit package under `plugin_structure_audits/`.
+`tools/audit_plugin_structure.py` is the Plugins 12 structure-audit entry point. It mirrors the runtime audit pattern with a plugin-focused audit package under `tools/plugin_structure_audits/`.
 
 The first landed audit is `plugin_manifest_schema_uniform`. It derives expected plugin roots from `zircon_plugins/Cargo.toml`, skips workspace support crates that are not plugins (`editor_support`, `first_party_runtime_catalog`, and `plugin_sdk`), folds `features/*` members back to their parent plugin, and treats `asset_importers/<kind>/runtime` as separate importer plugin roots. The current expected manifest set is 37 roots.
 

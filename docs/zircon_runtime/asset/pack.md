@@ -354,7 +354,7 @@ passed for the pack files after formatting. `cargo check -p zircon_runtime --bin
 zircon_export_validate --locked --offline --jobs 1 --target-dir
 D:\cargo-targets\zircon-export-m1-validate-0614` passed with existing runtime warnings, proving the
 new asset pack module type-checks in the runtime crate. The real CLI Pack smoke also passed through
-`python -m zircon_export --profile windows-release --out D:\zircon-export-m2-smoke --stage pack
+`python -m tools.zircon_export --profile windows-release --out D:\zircon-export-m2-smoke --stage pack
 --asset-manifest D:\zircon-export-m2-smoke\assets\assets.json --determinism-check --offline
 --target-dir D:\cargo-targets\zircon-export-m1-validate-0614 --pretty`; it wrote `assets.zrpack`,
 returned `fatal=false`, included two assets, trimmed one unused/editor-only asset, and confirmed
@@ -381,7 +381,7 @@ timed out after 604 seconds during lib-test compilation and did not produce targ
 delta by applying it to the previous pack and comparing the rebuilt bytes with the target pack before
 reporting success. `cargo check -p zircon_runtime --bin zircon_export_pack --locked --offline --jobs
 1 --target-dir D:\cargo-targets\zircon-export-m5-native-dynamic-0614 --message-format short --color
-never` passed with existing warning noise. A real `python -m zircon_export --stage pack` smoke using
+never` passed with existing warning noise. A real `python -m tools.zircon_export --stage pack` smoke using
 the prebuilt packer wrote `assets.delta.zrpd` and reported `fatal=false`, `delta_apply_verified=true`,
 `delta_asset_count=2`, `delta_chunk_count=2`, and `delta_reused_assets=keep.bin`. An earlier smoke
 without `--packer` timed out while waiting on `cargo run`; the base pack had already been produced,

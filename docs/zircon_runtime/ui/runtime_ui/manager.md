@@ -1,7 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/template/asset/surface_index.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
   - zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs
@@ -9,8 +10,9 @@ related_code:
   - zircon_runtime/src/ui/tests/runtime_ui_layout_routes.rs
   - zircon_runtime/src/ui/tests/mod.rs
 implementation_files:
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/tests/runtime_ui_asset_surface_index.rs
   - zircon_runtime/src/ui/tests/mod.rs
 plan_sources:
@@ -18,15 +20,15 @@ plan_sources:
   - docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
 tests:
-  - rustfmt --edition 2021 zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_runtime\src\ui\runtime_ui\runtime_ui_fixture.rs zircon_runtime\src\ui\tests\runtime_ui_asset_surface_index.rs zircon_runtime\src\ui\tests\mod.rs
+  - rustfmt --edition 2021 zircon_runtime\src\ui\tests\runtime_ui_support\runtime_ui_manager.rs zircon_runtime\src\ui\tests\runtime_ui_support\runtime_ui_fixture.rs zircon_runtime\src\ui\dispatch\input_manager\manager.rs zircon_runtime\src\ui\tests\runtime_ui_asset_surface_index.rs zircon_runtime\src\ui\tests\mod.rs
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-surface-node-index-0612-coremin --message-format short --color never (2026-06-12: passed before unrelated render-chain errors appeared; later rerun blocked by unrelated render pass command-list errors)
   - cargo test -p zircon_runtime --lib runtime_ui_asset_surface_index --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-runtime-index-0612-coremin-check --message-format short --color never -- --test-threads=1 --nocapture
 doc_type: module-detail
 ---
 
-# Runtime UI Manager
+# Runtime UI Test-Support Manager
 
-`RuntimeUiManager` is the runtime-owned retained UI host used by the editor UI architecture before the editor shell fully cuts over. It owns the active `UiSurface`, the V2 prototype file cache, the theme registry, and the input router. Host/editor code feeds normalized runtime events into this manager instead of directly juggling a surface plus separate dispatchers.
+`RuntimeUiManager` is the `#[cfg(test)]` retained UI host used by runtime/editor UI architecture tests before a live editor shell boundary is promoted. It owns the active `UiSurface`, the V2 prototype file cache, the theme registry, and a `UiInputManager`. Test host code feeds normalized, platform, window-pump, or ABI runtime events into this manager instead of directly juggling a surface plus separate dispatchers. Production keeps `PublicRuntimeFrame` as the crate-private frame surface and does not restore the old `ui/runtime_ui` production module.
 
 ## Fixture Asset Identity
 
@@ -45,7 +47,7 @@ After `load_builtin_fixture(...)` successfully loads and compiles a V2 document,
 - the fixture source URI,
 - every import/resource reference returned by `ui_v2_asset_references(root_document)`.
 
-After the surface computes layout, the manager also calls `UiAssetSurfaceIndex::record_tree_node_resources(&surface.tree)`. That production hook scans retained template node metadata for explicit resource URIs and `{ kind, uri, fallback }` tables, registering node-level resource edges when authored assets provide them. Existing runtime fixtures mostly use literal chrome values rather than real `res://` resource nodes, so the hook is primarily a forward-compatible data path for editor shell/runtime fixture assets that start using icon/font/texture resources.
+After the surface computes layout, the manager also calls `UiAssetSurfaceIndex::record_tree_node_resources(&surface.tree)`. That shared hook scans retained template node metadata for explicit resource URIs and `{ kind, uri, fallback }` tables, registering node-level resource edges when authored assets provide them. Existing runtime fixtures mostly use literal chrome values rather than real `res://` resource nodes, so the hook is primarily a forward-compatible data path for editor shell/runtime fixture assets that start using icon/font/texture resources.
 
 The index is updated only after the surface computes layout successfully, so failed fixture loads do not replace the active runtime surface registration. Current fixture files do not yet import external theme/icon/font resources, but the registration path is already wired for those references.
 

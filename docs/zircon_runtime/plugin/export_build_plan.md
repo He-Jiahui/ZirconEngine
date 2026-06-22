@@ -172,7 +172,7 @@ to the external CompileHost stage; this runtime module only owns the validated p
 
 `ExportBuildPlan.library_embed_compile_host` is populated only when the profile enables
 `LibraryEmbed`. `ExportValidateReport.plan_summary.library_embed_compile_host` exposes the same
-plan to `python -m zircon_export --stage validate`, so the later `CompileHost` stage can compare
+plan to `python -m tools.zircon_export --stage validate`, so the later `CompileHost` stage can compare
 what it executes against the validated plan.
 
 ## SourceTemplate Build Validation Plan
@@ -181,7 +181,7 @@ what it executes against the validated plan.
 like CompileHost: runtime code still does not spawn Cargo, but it records the generated project's
 manifest path, stage-local target directory, debug/release profile, and canonical `cargo build`
 command. `ExportValidateReport.plan_summary.source_template_build` exposes that command to
-`python -m zircon_export --stage source_template`.
+`python -m tools.zircon_export --stage source_template`.
 
 SourceTemplate and LibraryEmbed now share the linked-Rust dependency projection. A SourceTemplate-only
 profile therefore still receives external runtime plugin and feature crates in the generated
@@ -337,11 +337,11 @@ rustfmt check, direct tech-stack boundary audit, and static path/guard scans; Ca
 behavior tests remain deferred under the implementation-first direction.
 
 2026-06-14 M1-T3 update: the Validate CLI/report slice adds Python smoke coverage (`py_compile`,
-`python -m zircon_export --help`, and dry-run Validate command rendering) plus Rust formatting/static
+`python -m tools.zircon_export --help`, and dry-run Validate command rendering) plus Rust formatting/static
 checks for the report and validator sources. The M1 testing stage passed
 `cargo check -p zircon_runtime --bin zircon_export_validate --locked --offline --jobs 1
 --target-dir D:\cargo-targets\zircon-export-m1-validate-0614`, and a real
-`python -m zircon_export --profile windows-release --stage validate` run wrote a non-fatal
+`python -m tools.zircon_export --profile windows-release --stage validate` run wrote a non-fatal
 `report.json` containing the expected rendering and net feature linked crates. Focused
 `cargo test -p zircon_runtime --lib profile_with_features_compiles_to_build_plan --locked --offline`
 is still blocked before target-test execution by unrelated UI test compile drift in
@@ -349,7 +349,7 @@ is still blocked before target-test execution by unrelated UI test compile drift
 and `capture_released` fields are missing from `UiInputDispatchDiagnostics`).
 
 2026-06-14 M2-T1 update: `rustfmt --edition 2021 --check`, `git diff --check`, conflict-marker
-scan, and `python -m zircon_export ... --dry-run` passed after adding the LibraryEmbed CompileHost
+scan, and `python -m tools.zircon_export ... --dry-run` passed after adding the LibraryEmbed CompileHost
 plan. `cargo check -p zircon_runtime --bin zircon_export_validate --locked --offline --jobs 1
 --target-dir D:\cargo-targets\zircon-export-m1-validate-0614` also passed with existing runtime
 warnings, proving the Validate binary still compiles with the new compile-plan DTO. The focused

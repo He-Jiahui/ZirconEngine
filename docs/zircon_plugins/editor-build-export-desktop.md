@@ -303,7 +303,7 @@ crate.
 
 `zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/`
 is the M6 host-owned stream, command-plan, process-adapter, and job-state model.
-`progress.rs` consumes stdout lines from the shared `python -m zircon_export` CLI
+`progress.rs` consumes stdout lines from the shared `python -m tools.zircon_export` CLI
 without owning process execution. A `zircon_export stage=<Stage>
 profile=<Profile>` banner marks the stage as Running, recognized `key=value`
 lines record report/artifact paths, and top-level JSON `"fatal": false/true`
@@ -314,7 +314,7 @@ as `SourceTemplate`/`NativeDynamic` for the shared eight-stage pipeline.
 The wizard subtree keeps the editor-facing command contract folder-backed:
 `options.rs` describes user/host inputs, `stage.rs` owns CLI and report stage
 names, `command.rs` owns the per-stage command DTO, `plan.rs` projects those
-inputs into `python -m zircon_export` stage invocations, and `execution.rs`
+inputs into `python -m tools.zircon_export` stage invocations, and `execution.rs`
 connects that plan to the progress parser through a replaceable
 `ExportWizardCommandRunner`. The default `ProcessCommandRunner` is synchronous
 and returns captured stdout/stderr; host code can substitute its own runner for
@@ -323,7 +323,7 @@ an optional `working_dir`: when `repo_root` is present, `plan.rs` uses the same
 engine root for both `--repo-root` and the process working directory, and
 `ProcessCommandRunner` applies it before spawning Python. The retained app
 session fills this root from the editor crate's parent directory so
-`python -m zircon_export` can resolve the repo-local package even when the
+`python -m tools.zircon_export` can resolve the repo-local package even when the
 editor process was launched from a project directory. Stage and pipeline execution
 reports carry argv, exit code, stdout/stderr, diagnostics, explicit `fatal`, and
 the current `ExportWizardProgressState`. `job.rs` adds
@@ -636,7 +636,7 @@ path, Start/Cancel enablement, button binding/action metadata, and synthetic
 stage rows under `DesktopExportStageRows`.
 The retained app session tests cover profile-action routing, GeneratePlan view
 model storage, CompileHost default host path derivation, engine repo-root
-discovery for `python -m zircon_export`, and Start-time regeneration of an
+discovery for `python -m tools.zircon_export`, and Start-time regeneration of an
 existing profile plan with the latest options before the worker starts.
 `desktop_export_private_template_assets_match_registered_documents` checks that
 the registered panel/report/profile drawer/default profile document URIs point to
@@ -913,9 +913,9 @@ cargo/rustc leftovers were stopped, so no focused handoff test pass is claimed.
 `ExportWizardPipelineStageCommand` now carries `working_dir`, `wizard/plan.rs`
 sets it from `ExportWizardPipelineOptions.repo_root`, and `ProcessCommandRunner`
 uses it as the child process current directory before executing
-`python -m zircon_export`. `retained_host/app/build_export_wizard_session.rs`
+`python -m tools.zircon_export`. `retained_host/app/build_export_wizard_session.rs`
 fills `repo_root` from the engine repository root so the repo-local
-`zircon_export` Python package is importable even when the editor host runs from
+`tools.zircon_export` Python package is importable even when the editor host runs from
 a project directory. New focused coverage lives in `pipeline_launch_tests.rs`
 (`export_wizard_pipeline_commands_use_repo_root_as_working_dir` and
 `export_wizard_pipeline_commands_leave_working_dir_unset_without_repo_root`) and

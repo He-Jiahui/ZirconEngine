@@ -23,9 +23,10 @@ from tools.zircon_export.tests.pack_test_support import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-VALID_TEMPLATE = REPO_ROOT / "export-templates" / "windows-x86_64-library_embed-debug"
-LINUX_TEMPLATE = REPO_ROOT / "export-templates" / "linux-x86_64-library_embed-debug"
-MACOS_TEMPLATE = REPO_ROOT / "export-templates" / "macos-aarch64-library_embed-debug"
+TEMPLATE_ROOT = REPO_ROOT / "tools" / "zircon_export" / "export-templates"
+VALID_TEMPLATE = TEMPLATE_ROOT / "windows-x86_64-library_embed-debug"
+LINUX_TEMPLATE = TEMPLATE_ROOT / "linux-x86_64-library_embed-debug"
+MACOS_TEMPLATE = TEMPLATE_ROOT / "macos-aarch64-library_embed-debug"
 
 
 def _template_content_hash(path: str, sha256: str, *, bundle_path: str | None = None) -> str:

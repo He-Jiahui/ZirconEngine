@@ -33,6 +33,24 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
+  - zircon_runtime/src/core/framework/tests/render_product_surface.rs
+  - zircon_runtime/src/ui/tests/v2_asset.rs
+  - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
+  - zircon_runtime/src/ui/tests/v2_asset/style_runtime.rs
+  - zircon_runtime/src/ui/tests/v2_asset/default_controls.rs
+  - zircon_runtime/src/ui/tests/v2_asset/range_controls.rs
+  - zircon_runtime/src/ui/tests/v2_asset/demo_and_builder.rs
+  - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
+  - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/shared_core/layout_surface.rs
+  - zircon_runtime/src/ui/tests/shared_core/box_flow.rs
+  - zircon_runtime/src/ui/tests/shared_core/input_visibility.rs
+  - zircon_runtime/src/ui/tests/shared_core/navigation.rs
+  - zircon_runtime/src/ui/tests/shared_core/scroll_mutation.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/engine-architecture/large-file-ownership-m1.md
@@ -62,6 +80,24 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
+  - zircon_runtime/src/core/framework/tests/render_product_surface.rs
+  - zircon_runtime/src/ui/tests/v2_asset.rs
+  - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
+  - zircon_runtime/src/ui/tests/v2_asset/style_runtime.rs
+  - zircon_runtime/src/ui/tests/v2_asset/default_controls.rs
+  - zircon_runtime/src/ui/tests/v2_asset/range_controls.rs
+  - zircon_runtime/src/ui/tests/v2_asset/demo_and_builder.rs
+  - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
+  - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/shared_core/layout_surface.rs
+  - zircon_runtime/src/ui/tests/shared_core/box_flow.rs
+  - zircon_runtime/src/ui/tests/shared_core/input_visibility.rs
+  - zircon_runtime/src/ui/tests/shared_core/navigation.rs
+  - zircon_runtime/src/ui/tests/shared_core/scroll_mutation.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/module_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/renderer_output_accessors.rs
@@ -81,6 +117,9 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_15_facade_surface_guard_is_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_runtime_dead_code_guard_is_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_diagnostics_guard_is_folder_backed --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_framework_tests_are_folder_backed --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_ui_v2_asset_tests_are_folder_backed --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_ui_shared_core_tests_are_folder_backed --no-default-features --features core-min --locked
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - cargo fmt --all --check
 doc_type: structure-plan
@@ -202,6 +241,9 @@ status: in_progress
 | M3 | Runtime 15 M3 facade surface guard module split | runtime_15_facade_surface_guard_module_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：prelude coverage 与 graphics façade visibility 两个结构守卫已从顶层 `structure_convention.rs` 迁入 `structure_convention/facade_surface.rs`，把 crate prelude / subsystem prelude coverage 和 graphics façade 可见性说明放在同一 façade surface owner。新增 `runtime_15_facade_surface_guard_is_folder_backed`，验证顶层聚合文件只挂载 façade 子模块、不再直接持有 `runtime_15_prelude_covers_required_types` 与 `runtime_15_mixed_visibility_has_facade_note`，`structure_convention.rs` 回落到 500 行以下，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录只关闭 façade/prelude guard 测试组织子切片；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
 | M3 | Runtime 15 M3 runtime dead-code guard module split | runtime_15_runtime_dead_code_guard_module_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：runtime UI dead-code support、runtime-owned dead-code cleanup 与 script host value descriptor 三个非 graphics dead-code 结构守卫已从顶层 `structure_convention.rs` 迁入 `structure_convention/runtime_dead_code.rs`，让 F10/F12 runtime dead-code surface 的结构守卫同 owner。新增 `runtime_15_runtime_dead_code_guard_is_folder_backed`，验证顶层聚合文件只挂载 runtime dead-code 子模块、不再直接持有三段 dead-code guard，`structure_convention.rs` 回落到 180 行以下，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录只关闭 runtime dead-code guard 测试组织子切片；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
 | M3 | Runtime 15 M3 diagnostics guard module split | runtime_15_diagnostics_guard_module_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：diagnostics frame trait / ECS wrapper cleanup 结构守卫已从顶层 `structure_convention.rs` 迁入 `structure_convention/diagnostics_surface.rs`，让 F14 diagnostics normalization 守卫和 diagnostics 文档锚同 owner。新增 `runtime_15_diagnostics_guard_is_folder_backed`，验证顶层聚合文件只挂载 diagnostics 子模块、不再直接持有 `runtime_15_diagnostics_use_frame_trait_without_world_wrapper`，`structure_convention.rs` 回落到 80 行以下，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录只关闭 diagnostics guard 测试组织子切片；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
+| M3 | Runtime 15 M3 core framework test folder split | runtime_15_core_framework_tests_folder_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：`core/framework/tests.rs` 底部 framework surface 与 render product/camera 合约用例已迁入 folder-backed `core/framework/tests/framework_surfaces.rs` 与 `core/framework/tests/render_product_surface.rs`，父文件从 1848 行降到 653 行，两个新增子文件分别保持 800 行以下，既有 `phase_queue_summary.rs` 保持子 owner。新增 `structure_convention/test_file_budget.rs::runtime_15_core_framework_tests_are_folder_backed`，验证父/子模块挂载、 moved guard 不回流、所有 core framework test owner 行数低于 800，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录关闭 `core/framework/tests.rs` 的 M3 folder-backed 子切片；`ui/tests/v2_asset.rs`、`ui/tests/shared_core.rs`、完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
+| M3 | Runtime 15 M3 UI v2 asset test folder split | runtime_15_ui_v2_asset_tests_folder_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：`ui/tests/v2_asset.rs` 已拆成 folder-backed `ui/tests/v2_asset/{asset_loading,style_runtime,default_controls,range_controls,demo_and_builder,composite_components,file_cache}.rs` 七个行为 owner，父文件只保留共享导入、子模块挂载和 helper，行数从 3806 降到 331，最大子文件 `style_runtime.rs` 为 718 行，全部低于 800 行预算。新增 `structure_convention/test_file_budget.rs::runtime_15_ui_v2_asset_tests_are_folder_backed`，验证父/子模块挂载、代表性 moved guard 不回流、全部 UI v2 asset test owner 行数预算，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录关闭 `ui/tests/v2_asset.rs` 的 M3 folder-backed 子切片；`ui/tests/shared_core.rs`、完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
+| M3 | Runtime 15 M3 UI shared core test folder split | runtime_15_ui_shared_core_tests_folder_split_static_passed_cargo_lock_blocked | 2026-06-23 | R4.1/M3：`ui/tests/shared_core.rs` 已拆成 folder-backed `ui/tests/shared_core/{layout_surface,box_flow,input_visibility,navigation,scroll_mutation}.rs` 五个行为 owner，父文件只保留共享导入、模块挂载和 constraint / pointer helper，行数从 3145 降到 77，最大子文件 `input_visibility.rs` 为 771 行，全部低于 800 行预算。新增 `structure_convention/test_file_budget.rs::runtime_15_ui_shared_core_tests_are_folder_backed`，验证父/子模块挂载、代表性 moved guard 不回流、全部 UI shared core test owner 行数预算，并同步状态输出期望行。验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。该记录关闭 `ui/tests/shared_core.rs` 的 M3 folder-backed 子切片；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。 |
 
 ## 8. 与既有计划 / guard 的联动
 

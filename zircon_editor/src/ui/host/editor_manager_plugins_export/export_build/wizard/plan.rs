@@ -7,7 +7,7 @@ use super::{
     ExportWizardPipelineOptions, ExportWizardPipelineStageCommand, ExportWizardStageArtifactPath,
 };
 
-const ZIRCON_EXPORT_MODULE: &str = "zircon_export";
+const ZIRCON_EXPORT_MODULE: &str = "tools.zircon_export";
 const STAGES_DIR: &str = "stages";
 const COMPILE_HOST_STAGE_DIR: &str = "compile_host";
 const COMPILE_HOST_TARGET_DIR: &str = "target";

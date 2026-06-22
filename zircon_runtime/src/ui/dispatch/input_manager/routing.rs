@@ -1,3 +1,5 @@
+use zircon_runtime_interface::ui::dispatch::UiInputRoutePolicy;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiInputRouteStage {
     PointerCapture,
@@ -20,3 +22,53 @@ pub const UI_INPUT_ROUTE_ORDER: [UiInputRouteStage; 7] = [
     UiInputRouteStage::FocusPath,
     UiInputRouteStage::DefaultAction,
 ];
+
+pub fn route_stage_names_for_policy(policy: UiInputRoutePolicy) -> Vec<&'static str> {
+    UI_INPUT_ROUTE_ORDER
+        .iter()
+        .copied()
+        .filter(|stage| route_policy_uses_stage(policy, *stage))
+        .map(route_stage_name)
+        .collect()
+}
+
+pub const fn route_policy_uses_stage(policy: UiInputRoutePolicy, stage: UiInputRouteStage) -> bool {
+    match policy {
+        UiInputRoutePolicy::Unrouted => false,
+        UiInputRoutePolicy::PreviewTunnel => matches!(
+            stage,
+            UiInputRouteStage::PopupStack | UiInputRouteStage::PreviewTunnel
+        ),
+        UiInputRoutePolicy::Bubble => matches!(
+            stage,
+            UiInputRouteStage::PopupStack
+                | UiInputRouteStage::PreviewTunnel
+                | UiInputRouteStage::DirectTarget
+                | UiInputRouteStage::BubblePath
+        ),
+        UiInputRoutePolicy::Direct => matches!(stage, UiInputRouteStage::DirectTarget),
+        UiInputRoutePolicy::FocusPath => matches!(
+            stage,
+            UiInputRouteStage::PopupStack | UiInputRouteStage::FocusPath
+        ),
+        UiInputRoutePolicy::PointerCapture => {
+            matches!(stage, UiInputRouteStage::PointerCapture)
+        }
+        UiInputRoutePolicy::DefaultAction => matches!(
+            stage,
+            UiInputRouteStage::PopupStack | UiInputRouteStage::DefaultAction
+        ),
+    }
+}
+
+pub const fn route_stage_name(stage: UiInputRouteStage) -> &'static str {
+    match stage {
+        UiInputRouteStage::PointerCapture => "pointer_capture",
+        UiInputRouteStage::PopupStack => "popup_stack",
+        UiInputRouteStage::PreviewTunnel => "preview_tunnel",
+        UiInputRouteStage::DirectTarget => "direct_target",
+        UiInputRouteStage::BubblePath => "bubble_path",
+        UiInputRouteStage::FocusPath => "focus_path",
+        UiInputRouteStage::DefaultAction => "default_action",
+    }
+}

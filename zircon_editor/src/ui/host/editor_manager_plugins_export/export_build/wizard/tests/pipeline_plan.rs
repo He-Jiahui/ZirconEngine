@@ -143,7 +143,9 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     options.previous_pack = Some("D:\\old\\game.zrpack".to_string());
     options.delta_pack = Some("D:\\zircon-export\\custom\\game.zrpd".to_string());
     options.host_executable = Some("D:\\zircon-export\\host\\ZirconRuntime.exe".to_string());
-    options.template_dir = Some("export-templates\\windows-x86_64-library_embed-debug".to_string());
+    options.template_dir = Some(
+        "tools\\zircon_export\\export-templates\\windows-x86_64-library_embed-debug".to_string(),
+    );
     options.determinism_check = true;
 
     let plan = export_wizard_pipeline_plan(options);
@@ -211,7 +213,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     );
     assert_eq!(
         platform_bundle.argument_value("--template-dir"),
-        Some("export-templates\\windows-x86_64-library_embed-debug")
+        Some("tools\\zircon_export\\export-templates\\windows-x86_64-library_embed-debug")
     );
 }
 

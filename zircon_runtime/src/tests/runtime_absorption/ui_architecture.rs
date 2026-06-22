@@ -1040,6 +1040,8 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
     let dispatch_input = read_repo_file("zircon_runtime/src/ui/surface/input/dispatch.rs");
     let input_mod = read_repo_file("zircon_runtime/src/ui/surface/input/mod.rs");
     let route_authority = read_repo_file("zircon_runtime/src/ui/surface/input/route_authority.rs");
+    let input_manager_routing =
+        read_repo_file("zircon_runtime/src/ui/dispatch/input_manager/routing.rs");
     let surface = read_repo_file("zircon_runtime/src/ui/surface/surface.rs");
     let runtime_manager =
         read_repo_file("zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs");
@@ -1069,6 +1071,15 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
     for authority_anchor in [
         "runtime_09_m1_1_ui_input_route_authority",
         "route_authority=",
+        "route_authority_stage_names_for_policy",
+        "route_stage_names_for_policy",
+    ] {
+        assert!(
+            route_authority.contains(authority_anchor),
+            "Runtime 09 M1.1 route authority module should retain `{authority_anchor}`"
+        );
+    }
+    for routing_anchor in [
         "UI_INPUT_ROUTE_ORDER",
         "UiInputRouteStage::PointerCapture",
         "UiInputRouteStage::PopupStack",
@@ -1077,11 +1088,13 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
         "UiInputRouteStage::BubblePath",
         "UiInputRouteStage::FocusPath",
         "UiInputRouteStage::DefaultAction",
-        "route_authority_stage_names_for_policy",
+        "route_policy_uses_stage",
+        "route_stage_name",
+        "route_stage_names_for_policy",
     ] {
         assert!(
-            route_authority.contains(authority_anchor),
-            "Runtime 09 M1.1 route authority module should retain `{authority_anchor}`"
+            input_manager_routing.contains(routing_anchor),
+            "input_manager routing authority should retain `{routing_anchor}`"
         );
     }
 

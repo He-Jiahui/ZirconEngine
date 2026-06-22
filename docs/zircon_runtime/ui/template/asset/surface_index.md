@@ -6,8 +6,8 @@ related_code:
   - zircon_runtime/src/ui/template/asset/dependency_index.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs
@@ -18,8 +18,8 @@ related_code:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/surface_index.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_executor.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/tests/asset_surface_index.rs
@@ -87,9 +87,9 @@ Missing registered surfaces are reported in `UiAssetSurfaceHotReloadApplyReport:
 
 ## Runtime UI Manager Integration
 
-`RuntimeUiManager::load_builtin_fixture(...)` now records the active fixture surface after the V2 document compiles and computes layout. The registration includes the fixture's stable logical id, the `res://...v2.ui.toml` source URI exposed by `RuntimeUiFixture::asset_uri()`, and all V2 import/resource references collected from the loaded root document.
+`RuntimeUiManager::load_builtin_fixture(...)` in runtime UI test support records the active fixture surface after the V2 document compiles and computes layout. The registration includes the fixture's stable logical id, the `res://...v2.ui.toml` source URI exposed by `RuntimeUiFixture::asset_uri()`, and all V2 import/resource references collected from the loaded root document.
 
-The source URI entry is required for hot reload: asset watch events are expressed as `res://` URIs and `UiAssetHotReloadPlan` classifies template work by URI suffix. The logical id remains registered for diagnostics and runtime tree identity. This is the first production-side caller of the surface index; editor shell cutover can reuse the same registration shape when it moves from fixture surfaces to full workbench documents.
+The source URI entry is required for hot reload: asset watch events are expressed as `res://` URIs and `UiAssetHotReloadPlan` classifies template work by URI suffix. The logical id remains registered for diagnostics and runtime tree identity. This is the first runtime test-support caller of the surface index; editor shell cutover can reuse the same registration shape when it moves from fixture surfaces to full workbench documents.
 
 ## Boundary
 

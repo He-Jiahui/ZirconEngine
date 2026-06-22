@@ -37,7 +37,7 @@
 | --- | --- | --- |
 | Runtime | [runtime/15-code-structure-and-module-conventions.md](zircon_runtime/runtime/15-code-structure-and-module-conventions.md) | `module_convention_gate` + `runtime_structure_audits/module_convention_boundary.py` |
 | Editor UI | [editor_ui/10-code-structure-and-module-conventions.md](zircon_editor/editor_ui/10-code-structure-and-module-conventions.md) | editor `module_convention_gate` + `editor_structure_audits/` |
-| 插件生态 | [zircon_plugins/12-plugin-dx-and-structure-framework.md](zircon_plugins/12-plugin-dx-and-structure-framework.md) | `plugin_skeleton_gate` + `plugin_structure_audits/` |
+| 插件生态 | [zircon_plugins/12-plugin-dx-and-structure-framework.md](zircon_plugins/12-plugin-dx-and-structure-framework.md) | `plugin_skeleton_gate` + `tools/plugin_structure_audits/` |
 | Runtime 渲染 | render index「代码结构规范」节 | graphics 热点纳入 Runtime 15 + `large_file_ownership_gate` |
 | Zircon Hub | hub index「代码结构规范」节 | 巨型文件 + 前端组件化纳入规范 §1/§3/§4 |
 

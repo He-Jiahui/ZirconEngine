@@ -165,11 +165,11 @@ related_code:
   - tools/zircon_export/tests/test_export_template_trimmed_schema.py
   - tools/zircon_export/tests/test_templates.py
   - tools/zircon_export/tests/test_native_dynamic.py
-  - export-templates/windows-x86_64-library_embed-debug/template.toml
-  - export-templates/linux-x86_64-library_embed-debug/template.toml
-  - export-templates/macos-aarch64-library_embed-debug/template.toml
-  - zircon_export/__init__.py
-  - zircon_export/__main__.py
+  - tools/zircon_export/export-templates/windows-x86_64-library_embed-debug/template.toml
+  - tools/zircon_export/export-templates/linux-x86_64-library_embed-debug/template.toml
+  - tools/zircon_export/export-templates/macos-aarch64-library_embed-debug/template.toml
+  - tools/zircon_export/__init__.py
+  - tools/zircon_export/__main__.py
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
@@ -328,14 +328,14 @@ implementation_files:
   - tools/zircon_export/tests/test_export_template_trimmed_schema.py
   - tools/zircon_export/tests/test_templates.py
   - tools/zircon_export/tests/test_native_dynamic.py
-  - export-templates/windows-x86_64-library_embed-debug/template.toml
-  - export-templates/windows-x86_64-library_embed-debug/bin/zircon_runtime.host-placeholder
-  - export-templates/linux-x86_64-library_embed-debug/template.toml
-  - export-templates/linux-x86_64-library_embed-debug/bin/zircon_runtime.host-placeholder
-  - export-templates/macos-aarch64-library_embed-debug/template.toml
-  - export-templates/macos-aarch64-library_embed-debug/bin/zircon_runtime.host-placeholder
-  - export-templates/macos-aarch64-library_embed-debug/platform/macos/Info.plist
-  - zircon_export/__main__.py
+  - tools/zircon_export/export-templates/windows-x86_64-library_embed-debug/template.toml
+  - tools/zircon_export/export-templates/windows-x86_64-library_embed-debug/bin/zircon_runtime.host-placeholder
+  - tools/zircon_export/export-templates/linux-x86_64-library_embed-debug/template.toml
+  - tools/zircon_export/export-templates/linux-x86_64-library_embed-debug/bin/zircon_runtime.host-placeholder
+  - tools/zircon_export/export-templates/macos-aarch64-library_embed-debug/template.toml
+  - tools/zircon_export/export-templates/macos-aarch64-library_embed-debug/bin/zircon_runtime.host-placeholder
+  - tools/zircon_export/export-templates/macos-aarch64-library_embed-debug/platform/macos/Info.plist
+  - tools/zircon_export/__main__.py
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
@@ -488,8 +488,8 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_cook_assets_pack_stage tools.zircon_export.tests.test_cook_assets_project_fallback tools.zircon_export.tests.test_cook_assets_path_resolve_errors
   - python -m py_compile tools\zircon_export\tests\test_pipeline_report_validate_schema.py tools\zircon_export\tests\test_pipeline_report_validate_plan_vector_schema.py
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_plan_vector_schema
-  - python -m py_compile tools/zircon_export/__init__.py tools/zircon_export/__main__.py tools/zircon_export/cli.py tools/zircon_export/compile_host.py tools/zircon_export/cook_assets.py tools/zircon_export/export_template.py tools/zircon_export/native_build.py tools/zircon_export/native_dynamic.py tools/zircon_export/native_dynamic_plan.py tools/zircon_export/native_signing.py tools/zircon_export/pipeline_report.py tools/zircon_export/pipeline_report_platform_bundle.py tools/zircon_export/pipeline_stages.py tools/zircon_export/platform_bundle.py tools/zircon_export/source_template.py zircon_export/__init__.py zircon_export/__main__.py tools/zircon_export/tests/export_test_support.py tools/zircon_export/tests/test_templates.py tools/zircon_export/tests/test_compile_host_source_template.py tools/zircon_export/tests/test_cook_assets_pack_stage.py tools/zircon_export/tests/test_native_dynamic_stage.py tools/zircon_export/tests/test_pipeline_report_stage.py tools/zircon_export/tests/test_pipeline_resume_flow.py tools/zircon_export/tests/test_native_dynamic.py tools/zircon_export/tests/test_platform_bundle_delta.py
-  - python -m zircon_export --help
+  - python -m py_compile tools/zircon_export/__init__.py tools/zircon_export/__main__.py tools/zircon_export/cli.py tools/zircon_export/compile_host.py tools/zircon_export/cook_assets.py tools/zircon_export/export_template.py tools/zircon_export/native_build.py tools/zircon_export/native_dynamic.py tools/zircon_export/native_dynamic_plan.py tools/zircon_export/native_signing.py tools/zircon_export/pipeline_report.py tools/zircon_export/pipeline_report_platform_bundle.py tools/zircon_export/pipeline_stages.py tools/zircon_export/platform_bundle.py tools/zircon_export/source_template.py tools/zircon_export/tests/export_test_support.py tools/zircon_export/tests/test_templates.py tools/zircon_export/tests/test_compile_host_source_template.py tools/zircon_export/tests/test_cook_assets_pack_stage.py tools/zircon_export/tests/test_native_dynamic_stage.py tools/zircon_export/tests/test_pipeline_report_stage.py tools/zircon_export/tests/test_pipeline_resume_flow.py tools/zircon_export/tests/test_native_dynamic.py tools/zircon_export/tests/test_platform_bundle_delta.py
+  - python -m tools.zircon_export --help
   - python -m unittest tools.zircon_export.tests.test_templates
   - python -m unittest tools.zircon_export.tests.test_compile_host_source_template
   - python -m unittest tools.zircon_export.tests.test_cook_assets_pack_stage
@@ -581,7 +581,7 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_cook_assets_pack_stage tools.zircon_export.tests.test_pack_subprocess_failures tools.zircon_export.tests.test_pipeline_report_stage
   - python -m unittest discover tools.zircon_export.tests
   - python -m py_compile tools\zircon_export\stage_handoff.py tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_stages.py tools\zircon_export\platform_bundle.py tools\zircon_export\tests\test_stage_handoff.py tools\zircon_export\tests\test_pipeline_report_stage.py tools\zircon_export\tests\test_pipeline_resume_flow.py tools\zircon_export\tests\test_platform_bundle_inputs.py
-  - python -m zircon_export --profile windows-release --out D:\zircon-export-platform-manifest-boundary-smoke-0615\out --stage report --pretty
+  - python -m tools.zircon_export --profile windows-release --out D:\zircon-export-platform-manifest-boundary-smoke-0615\out --stage report --pretty
   - test_native_dynamic_stage_writes_package_export_report
   - test_native_dynamic_stage_materializes_package_and_loader_manifest
   - test_native_dynamic_stage_reports_materialized_file_manifest
@@ -676,40 +676,40 @@ tests:
   - native_loader_loads_real_fixture_from_export_load_manifest_payload
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:/cargo-targets/zircon-plugin-native-dynamic-loader-manifest-check-0615 --message-format short --color never
   - cargo test -p zircon_runtime --lib native_loader_loads_real_fixture_from_export_load_manifest_payload --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:/cargo-targets/zircon-plugin-native-dynamic-loader-manifest-check-0615 --message-format short --color never -- --exact --test-threads=1 --nocapture
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --resume-from native_dynamic --dry-run
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --stage native_dynamic
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --stage report --pretty
-  - python -m zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --resume-from native_dynamic --dry-run
-  - python -m zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --stage native_dynamic
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (file_manifest/content_hash smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (native_dynamic_package.toml payload smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (stale package cleanup smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (target-platform artifact filtering smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (loadable artifact gate smoke)
-  - python -m zircon_export --profile macos-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (macOS dSYM bundle copy smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (partial package cleanup smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (fatal stage atomic cleanup smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (inconsistent package path gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (inconsistent package_report gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (derived package_report gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (package directory/package_id gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate package_id gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (source manifest id mismatch smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (source manifest parse error smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate recursive source manifest smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (ABI version gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (ABI v3 contract value gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (selection/export consistency gate smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate selected package_id smoke)
-  - python -m zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (fatal package materialization leaves no loader manifest smoke)
-  - python -m zircon_export --profile native-dynamic-fixture-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-smoke-0615/out --stage native_dynamic --native-dynamic-build --offline --pretty
-  - python -m zircon_export --profile native-dynamic-fixture-v2-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-v2-smoke-0615/out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
-  - python -m zircon_export --profile native-dynamic-fixture-release-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-release-smoke-0615/out --stage native_dynamic --native-dynamic-build --offline --pretty
-  - python -m zircon_export --profile native-dynamic-fixture-release-v2-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-release-v2-smoke-0615/out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
-  - python -m zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --stage report --pretty
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-platform-native-plugins-smoke/out --resume-from platform_bundle
-  - python -m zircon_export --profile windows-release --out <temp>/out --resume-from platform_bundle (NativeDynamic payload hash smoke)
-  - python -m zircon_export --profile windows-release --out <temp>/out --resume-from platform_bundle (stale NativeDynamic payload hash smoke, expected exit code 2)
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --resume-from native_dynamic --dry-run
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --stage native_dynamic
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-native-dynamic-path-smoke --stage report --pretty
+  - python -m tools.zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --resume-from native_dynamic --dry-run
+  - python -m tools.zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --stage native_dynamic
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (file_manifest/content_hash smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (native_dynamic_package.toml payload smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (stale package cleanup smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (target-platform artifact filtering smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (loadable artifact gate smoke)
+  - python -m tools.zircon_export --profile macos-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (macOS dSYM bundle copy smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (partial package cleanup smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (fatal stage atomic cleanup smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (inconsistent package path gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (inconsistent package_report gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (derived package_report gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (package directory/package_id gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate package_id gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (source manifest id mismatch smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (source manifest parse error smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate recursive source manifest smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (ABI version gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (ABI v3 contract value gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (selection/export consistency gate smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (duplicate selected package_id smoke)
+  - python -m tools.zircon_export --profile windows-release --repo-root <temp>/repo --out <temp>/out --stage native_dynamic (fatal package materialization leaves no loader manifest smoke)
+  - python -m tools.zircon_export --profile native-dynamic-fixture-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-smoke-0615/out --stage native_dynamic --native-dynamic-build --offline --pretty
+  - python -m tools.zircon_export --profile native-dynamic-fixture-v2-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-v2-smoke-0615/out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
+  - python -m tools.zircon_export --profile native-dynamic-fixture-release-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-release-smoke-0615/out --stage native_dynamic --native-dynamic-build --offline --pretty
+  - python -m tools.zircon_export --profile native-dynamic-fixture-release-v2-smoke --repo-root E:/Git/ZirconEngine --out D:/zircon-native-dynamic-real-fixture-release-v2-smoke-0615/out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
+  - python -m tools.zircon_export --profile windows-release --repo-root D:/zircon-export-native-dynamic-materialize-smoke/repo --out D:/zircon-export-native-dynamic-materialize-smoke/out --stage report --pretty
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-platform-native-plugins-smoke/out --resume-from platform_bundle
+  - python -m tools.zircon_export --profile windows-release --out <temp>/out --resume-from platform_bundle (NativeDynamic payload hash smoke)
+  - python -m tools.zircon_export --profile windows-release --out <temp>/out --resume-from platform_bundle (stale NativeDynamic payload hash smoke, expected exit code 2)
   - test_pipeline_platform_bundle_ignores_pack_report_without_profile
   - test_report_stage_uses_source_template_profile_requirements
   - test_report_stage_requires_source_template_for_source_template_profile
@@ -756,7 +756,7 @@ tests:
   - test_report_rejects_native_plugins_payload_file_read_error
   - test_platform_bundle_rejects_native_plugins_payload_source_resolve_error
   - test_native_dynamic_payload_bundle_manifest_rejects_source_resolve_error
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-source-template-path-smoke --resume-from source_template --dry-run
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-source-template-path-smoke --resume-from source_template --dry-run
   - test_cook_assets_reports_asset_manifest_resolve_error
   - test_cook_assets_reports_project_manifest_resolve_error
   - test_pack_reports_missing_asset_manifest_before_packer
@@ -766,21 +766,21 @@ tests:
   - test_pack_rejects_pack_file_resolve_error
   - test_pack_rejects_packer_resolve_error
   - test_pack_rejects_target_dir_resolve_error
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-pack-missing-manifest-smoke --stage pack --pretty (expected exit code 2)
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-resume-smoke --resume-from pack --dry-run
-  - python -m zircon_export --profile windows-release --project zircon-project.toml --out D:/zircon-export-m1-smoke --stage validate --dry-run --offline --target-dir D:/cargo-targets/zircon-export-validate-cli-0614
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-compile-host-dryrun --stage compile_host --dry-run --offline
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-pack-missing-manifest-smoke --stage pack --pretty (expected exit code 2)
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-resume-smoke --resume-from pack --dry-run
+  - python -m tools.zircon_export --profile windows-release --project zircon-project.toml --out D:/zircon-export-m1-smoke --stage validate --dry-run --offline --target-dir D:/cargo-targets/zircon-export-validate-cli-0614
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-compile-host-dryrun --stage compile_host --dry-run --offline
   - test_compile_host_reports_target_dir_resolve_error
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-source-template-dryrun --stage source_template --dry-run --offline
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-m2-smoke --stage pack --asset-manifest D:/zircon-export-m2-smoke/assets/assets.json --determinism-check --offline --target-dir D:/cargo-targets/zircon-export-m1-validate-0614
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-source-template-dryrun --stage source_template --dry-run --offline
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-m2-smoke --stage pack --asset-manifest D:/zircon-export-m2-smoke/assets/assets.json --determinism-check --offline --target-dir D:/cargo-targets/zircon-export-m1-validate-0614
   - cargo check -p zircon_runtime --bin zircon_export_pack --locked --offline --jobs 1 --target-dir D:/cargo-targets/zircon-export-pack-profile-0615 --message-format short --color never
   - cargo test -p zircon_runtime --bin zircon_export_pack run_rejects_missing_dependency_without_writing_pack
   - cargo test -p zircon_runtime --bin zircon_export_pack run_rejects_duplicate_trim_input_without_writing_pack
   - cargo test -p zircon_runtime --bin zircon_export_pack run_reports_missing_asset_source_without_writing_pack
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-pack-profile-smoke/out --stage pack --asset-manifest D:/zircon-export-pack-profile-smoke/assets/assets.json --target-dir D:/cargo-targets/zircon-export-pack-profile-0615 --offline --pretty
-  - python -m zircon_export --profile windows-release --project D:/zircon-export-cook-project-smoke/project/zircon-project.toml --out D:/zircon-export-cook-project-smoke/out --stage cook_assets --asset-filter shipping --pretty
-  - python -m zircon_export --profile windows-release --out D:/zircon-export-m3-template-smoke --stage platform_bundle --pack-file D:/zircon-export-m3-template-smoke/inputs/assets.zrpack --template-dir export-templates/windows-x86_64-library_embed-debug --target-platform windows-x86_64
-  - python -m zircon_export --profile linux-release --out D:/zircon-export-template-root-smoke --stage platform_bundle --pack-file D:/zircon-export-template-root-smoke/inputs/assets.zrpack --template-root export-templates --target-platform linux-x86_64
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-pack-profile-smoke/out --stage pack --asset-manifest D:/zircon-export-pack-profile-smoke/assets/assets.json --target-dir D:/cargo-targets/zircon-export-pack-profile-0615 --offline --pretty
+  - python -m tools.zircon_export --profile windows-release --project D:/zircon-export-cook-project-smoke/project/zircon-project.toml --out D:/zircon-export-cook-project-smoke/out --stage cook_assets --asset-filter shipping --pretty
+  - python -m tools.zircon_export --profile windows-release --out D:/zircon-export-m3-template-smoke --stage platform_bundle --pack-file D:/zircon-export-m3-template-smoke/inputs/assets.zrpack --template-dir tools/zircon_export/export-templates/windows-x86_64-library_embed-debug --target-platform windows-x86_64
+  - python -m tools.zircon_export --profile linux-release --out D:/zircon-export-template-root-smoke --stage platform_bundle --pack-file D:/zircon-export-template-root-smoke/inputs/assets.zrpack --template-root tools/zircon_export/export-templates --target-platform linux-x86_64
   - validate_report_summarizes_profile_plan_and_fatal_state
   - native_dynamic_generates_loader_manifest_without_source_template
   - validate_report_exposes_native_dynamic_abi_v3_package_exports
@@ -917,7 +917,7 @@ doc_type: workflow-detail
 
 # Zircon Export Tool
 
-`python -m zircon_export` is the staged export pipeline entry point for project-level release
+`python -m tools.zircon_export` is the staged export pipeline entry point for project-level release
 builds. M1 implemented `Validate`; M2 added the first executable asset `Pack` stage and a
 `PlatformBundle` staging shell. M3-T1 adds the first `export-template` package contract and version
 lock validation. The CLI now also has a `SourceTemplate` generated-project stage, a
@@ -959,11 +959,11 @@ by `test_compile_host_rejects_plan_with_duplicate_target_dir_option` for Compile
 `--target-dir` stage gate aligned with the existing manifest-path and CompileHost option-looking
 value coverage.
 
-`zircon_export/__main__.py` is a thin top-level wrapper so the plan command works directly from the
+`tools/zircon_export/__main__.py` is a thin top-level wrapper so the plan command works directly from the
 repository root:
 
 ```powershell
-python -m zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export
+python -m tools.zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export
 ```
 
 Omitting `--stage` runs the main pipeline from `validate` through `report`. Passing `--stage
@@ -1355,7 +1355,7 @@ exit code and one diagnostic.
 When Validate report `profile_summary.strategies` contains `source_template`, the main pipeline now
 includes this stage. A SourceTemplate-only profile runs `Validate -> SourceTemplate -> Report`; a
 hybrid SourceTemplate + LibraryEmbed profile runs SourceTemplate first and then the LibraryEmbed
-host/assets/bundle stages. This keeps the first-class `python -m zircon_export --profile <name>`
+host/assets/bundle stages. This keeps the first-class `python -m tools.zircon_export --profile <name>`
 entry point aligned with the profile path instead of requiring a manual `--stage source_template`
 detour.
 
@@ -2810,7 +2810,7 @@ Validate succeeds, the runner reads `profile_summary.strategies` from
 the plan-level release command used by local export and CI orchestration:
 
 ```powershell
-python -m zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export
+python -m tools.zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export
 ```
 
 `--resume-from <stage>` now runs the main export stage machine from the selected stage through
@@ -2847,26 +2847,26 @@ strategy.
 Useful commands:
 
 ```powershell
-python -m zircon_export --help
-python -m zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export --stage validate
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage validate --dry-run --offline --target-dir D:\cargo-targets\zircon-export-validate-cli-0614
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage compile_host --offline
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage source_template --offline
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage source_template --source-template-build --offline
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --offline
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-sign-command D:\tools\sign-native.exe --native-dynamic-sign-arg "{artifact}"
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-notarize-command D:\tools\notarize-native.exe --native-dynamic-notarize-arg "{artifact}" --native-dynamic-notarize-profile windows-attestation --native-dynamic-notarize-platform windows
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage cook_assets --asset-manifest D:\zircon-export\assets\assets.json
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage pack --determinism-check
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage pack --previous-pack D:\zircon-export\previous\assets.zrpack --delta-pack D:\zircon-export\stages\pack\assets.delta.zrpd
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --host-executable D:\zircon-export\stages\compile_host\zircon_runtime.exe
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --host-executable D:\zircon-export\stages\compile_host\zircon_runtime.exe --native-plugins-dir D:\zircon-export\stages\native_dynamic\plugins
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --pack-file D:\zircon-export\stages\pack\assets.zrpack --template-dir export-templates\windows-x86_64-library_embed-debug --target-platform windows-x86_64
-python -m zircon_export --profile linux-release --out D:\zircon-export --stage platform_bundle --pack-file D:\zircon-export\stages\pack\assets.zrpack --template-root export-templates --target-platform linux-x86_64
-python -m zircon_export --profile windows-release --out D:\zircon-export --stage report
-python -m zircon_export --profile windows-release --out D:\zircon-export --resume-from pack
+python -m tools.zircon_export --help
+python -m tools.zircon_export --profile windows-release --project zircon-project.toml --out D:\zircon-export --stage validate
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage validate --dry-run --offline --target-dir D:\cargo-targets\zircon-export-validate-cli-0614
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage compile_host --offline
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage source_template --offline
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage source_template --source-template-build --offline
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --offline
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-sign-command D:\tools\sign-native.exe --native-dynamic-sign-arg "{artifact}"
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-notarize-command D:\tools\notarize-native.exe --native-dynamic-notarize-arg "{artifact}" --native-dynamic-notarize-profile windows-attestation --native-dynamic-notarize-platform windows
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage cook_assets --asset-manifest D:\zircon-export\assets\assets.json
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage pack --determinism-check
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage pack --previous-pack D:\zircon-export\previous\assets.zrpack --delta-pack D:\zircon-export\stages\pack\assets.delta.zrpd
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --host-executable D:\zircon-export\stages\compile_host\zircon_runtime.exe
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --host-executable D:\zircon-export\stages\compile_host\zircon_runtime.exe --native-plugins-dir D:\zircon-export\stages\native_dynamic\plugins
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage platform_bundle --pack-file D:\zircon-export\stages\pack\assets.zrpack --template-dir tools/zircon_export/export-templates\windows-x86_64-library_embed-debug --target-platform windows-x86_64
+python -m tools.zircon_export --profile linux-release --out D:\zircon-export --stage platform_bundle --pack-file D:\zircon-export\stages\pack\assets.zrpack --template-root tools/zircon_export/export-templates --target-platform linux-x86_64
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage report
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export --resume-from pack
 ```
 
 `--validator <path>` lets callers use a prebuilt `zircon_export_validate` executable and skip
@@ -3936,7 +3936,7 @@ CookAssets can feed it real host and cooked asset outputs.
 M3-T1 adds `tools.zircon_export.tests.test_templates`. The plan-named
 `template_version_mismatch_rejected` check mutates a copied template manifest to
 `format_version = 999` and asserts a fatal validation report. The valid-template check proves the
-checked-in `export-templates/windows-x86_64-library_embed-debug/template.toml` resolves its declared
+checked-in `tools/zircon_export/export-templates/windows-x86_64-library_embed-debug/template.toml` resolves its declared
 host path and computed content hash. `test_template_rejects_aliasing_file_and_host_paths` mutates a
 copied template to use `bin/./zircon_runtime.host-placeholder` for both host and file paths, then
 recomputes the aggregate content hash; validation must still fail so path aliases cannot become
@@ -3951,7 +3951,7 @@ M3-T2 layout coverage in the same Python test module checks the signed-in
 Linux directory output paths and the macOS `.app/Contents` output paths, including template-file copy
 for `Info.plist`. These are layout tests only, not executable launch tests.
 
-M3-T2 template-root coverage verifies that `--template-root export-templates --target-platform
+M3-T2 template-root coverage verifies that `--template-root tools/zircon_export/export-templates --target-platform
 linux-x86_64` resolves the checked-in Linux template, records `template_resolution`, materializes the
 Linux directory layout, and returns a fatal report when no compatible profile/platform template is
 found. `test_template_root_skips_invalid_matching_template_candidate` keeps template-root resolution
@@ -6485,7 +6485,7 @@ check for the touched export build-plan code passes.
 The real NativeDynamic fixture smoke used the checked-in `native_dynamic_fixture` package:
 
 ```powershell
-python -m zircon_export --profile native-dynamic-fixture-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-smoke-0615\out --stage native_dynamic --native-dynamic-build --offline --pretty
+python -m tools.zircon_export --profile native-dynamic-fixture-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-smoke-0615\out --stage native_dynamic --native-dynamic-build --offline --pretty
 ```
 
 It returned `fatal=false`, built one cdylib package with Cargo exit code `0`, and staged the
@@ -6494,7 +6494,7 @@ fixture `.dll` plus `.pdb` sidecar into the NativeDynamic payload.
 The ABI v2 fixture feature smoke used the same package with the `abi_v2_only` Cargo feature:
 
 ```powershell
-python -m zircon_export --profile native-dynamic-fixture-v2-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-v2-smoke-0615\out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
+python -m tools.zircon_export --profile native-dynamic-fixture-v2-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-v2-smoke-0615\out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
 ```
 
 It returned `fatal=false`, wrote `native_build_plan.build_features = ["abi_v2_only"]`, built the
@@ -6504,8 +6504,8 @@ feature-matrix hook and ABI v2 fixture build path, not runtime loading of the fa
 The same checked-in fixture also has release-mode stage smokes:
 
 ```powershell
-python -m zircon_export --profile native-dynamic-fixture-release-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-release-smoke-0615\out --stage native_dynamic --native-dynamic-build --offline --pretty
-python -m zircon_export --profile native-dynamic-fixture-release-v2-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-release-v2-smoke-0615\out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
+python -m tools.zircon_export --profile native-dynamic-fixture-release-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-release-smoke-0615\out --stage native_dynamic --native-dynamic-build --offline --pretty
+python -m tools.zircon_export --profile native-dynamic-fixture-release-v2-smoke --repo-root E:\Git\ZirconEngine --out D:\zircon-native-dynamic-real-fixture-release-v2-smoke-0615\out --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline --pretty
 ```
 
 Both returned `fatal=false`, wrote `cargo_profile = "release"`, completed Cargo with exit code `0`,
@@ -6517,7 +6517,7 @@ The M1 testing stage passed the validator binary check and a real CLI Validate r
 
 ```powershell
 cargo check -p zircon_runtime --bin zircon_export_validate --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m1-validate-0614
-python -m zircon_export --profile windows-release --project D:\zircon-export-m1-smoke\project\zircon-project.toml --out D:\zircon-export-m1-smoke\run-valid --stage validate --offline --target-dir D:\cargo-targets\zircon-export-m1-validate-0614
+python -m tools.zircon_export --profile windows-release --project D:\zircon-export-m1-smoke\project\zircon-project.toml --out D:\zircon-export-m1-smoke\run-valid --stage validate --offline --target-dir D:\cargo-targets\zircon-export-m1-validate-0614
 ```
 
 The real smoke wrote `<out>/stages/validate/report.json`, returned non-fatal JSON, and confirmed the
@@ -6529,7 +6529,7 @@ pass is claimed yet.
 The M2 Pack smoke used:
 
 ```powershell
-python -m zircon_export --profile windows-release --out D:\zircon-export-m2-smoke --stage pack --asset-manifest D:\zircon-export-m2-smoke\assets\assets.json --determinism-check --offline --target-dir D:\cargo-targets\zircon-export-m1-validate-0614 --pretty
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export-m2-smoke --stage pack --asset-manifest D:\zircon-export-m2-smoke\assets\assets.json --determinism-check --offline --target-dir D:\cargo-targets\zircon-export-m1-validate-0614 --pretty
 ```
 
 It wrote `<out>/stages/pack/assets.zrpack` and `<out>/stages/pack/report.json`. The report returned
@@ -6539,7 +6539,7 @@ It wrote `<out>/stages/pack/assets.zrpack` and `<out>/stages/pack/report.json`. 
 The CookAssets project fallback smoke used:
 
 ```powershell
-python -m zircon_export --profile windows-release --project D:\zircon-export-cook-project-smoke\project\zircon-project.toml --out D:\zircon-export-cook-project-smoke\out --stage cook_assets --asset-filter shipping --pretty
+python -m tools.zircon_export --profile windows-release --project D:\zircon-export-cook-project-smoke\project\zircon-project.toml --out D:\zircon-export-cook-project-smoke\out --stage cook_assets --asset-filter shipping --pretty
 ```
 
 It returned `fatal=false`, `generated_from_project=true`, and one staged root
@@ -6550,7 +6550,7 @@ It returned `fatal=false`, `generated_from_project=true`, and one staged root
 The Pack profile smoke used:
 
 ```powershell
-python -m zircon_export --profile windows-release --out D:\zircon-export-pack-profile-smoke\out --stage pack --asset-manifest D:\zircon-export-pack-profile-smoke\assets\assets.json --target-dir D:\cargo-targets\zircon-export-pack-profile-0615 --offline --pretty
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export-pack-profile-smoke\out --stage pack --asset-manifest D:\zircon-export-pack-profile-smoke\assets\assets.json --target-dir D:\cargo-targets\zircon-export-pack-profile-0615 --offline --pretty
 ```
 
 It returned `fatal=false`, wrote `profile=windows-release` in the Pack report, and packed one asset
@@ -6560,7 +6560,7 @@ The Pack missing-manifest smoke used the default CookAssets handoff path without
 `<out>/stages/cook_assets/assets.json`:
 
 ```powershell
-python -m zircon_export --profile windows-release --out D:\zircon-export-pack-missing-manifest-smoke --stage pack --pretty
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export-pack-missing-manifest-smoke --stage pack --pretty
 ```
 
 It returned exit code `2`, wrote `<out>/stages/pack/report.json`, and recorded `fatal=true`,
@@ -6570,7 +6570,7 @@ It returned exit code `2`, wrote `<out>/stages/pack/report.json`, and recorded `
 The M3-T1 template smoke used a placeholder pack and the checked-in template package:
 
 ```powershell
-python -m zircon_export --profile windows-release --out D:\zircon-export-m3-template-smoke --stage platform_bundle --pack-file D:\zircon-export-m3-template-smoke\inputs\assets.zrpack --template-dir E:\Git\ZirconEngine\export-templates\windows-x86_64-library_embed-debug --target-platform windows-x86_64
+python -m tools.zircon_export --profile windows-release --out D:\zircon-export-m3-template-smoke --stage platform_bundle --pack-file D:\zircon-export-m3-template-smoke\inputs\assets.zrpack --template-dir E:\Git\ZirconEngine\tools\zircon_export\tools/zircon_export/export-templates\windows-x86_64-library_embed-debug --target-platform windows-x86_64
 ```
 
 It returned `fatal=false`, copied the template-declared host placeholder and pack into
@@ -6631,7 +6631,7 @@ metadata from being copied into PlatformBundle template reports.
 The M3-T2 template-root smoke used the checked-in template repository:
 
 ```powershell
-python -m zircon_export --profile linux-release --out D:\zircon-export-template-root-smoke --stage platform_bundle --pack-file D:\zircon-export-template-root-smoke\inputs\assets.zrpack --template-root E:\Git\ZirconEngine\export-templates --target-platform linux-x86_64
+python -m tools.zircon_export --profile linux-release --out D:\zircon-export-template-root-smoke --stage platform_bundle --pack-file D:\zircon-export-template-root-smoke\inputs\assets.zrpack --template-root E:\Git\ZirconEngine\tools\zircon_export\tools/zircon_export/export-templates --target-platform linux-x86_64
 ```
 
 It returned `fatal=false`, resolved `linux-x86_64-library_embed-debug`, wrote

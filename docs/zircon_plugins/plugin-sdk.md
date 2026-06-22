@@ -53,8 +53,8 @@ related_code:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_plugins/Cargo.toml
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
 implementation_files:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
@@ -106,8 +106,8 @@ implementation_files:
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/Cargo.toml
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
   - docs/plans/engine-code-structure-convention.md
@@ -116,8 +116,8 @@ tests:
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk/src/lib.rs zircon_plugins/plugin_sdk/src/prelude.rs zircon_plugins/plugin_sdk/src/runtime.rs zircon_plugins/plugin_sdk/src/manifest/defaults.rs zircon_plugins/plugin_sdk/src/manifest/mod.rs zircon_plugins/plugin_sdk/src/manifest/package_builder.rs zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs zircon_plugins/plugin_sdk/src/manifest/tests.rs: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-m2-0622 --message-format short --color never: passed 2026-06-22 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-m2-0622 --message-format short --color never -- --test-threads=1: 3 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
-  - python audit_plugin_structure.py --json: passed 2026-06-22 with m1_gate_status classified-and-clear, missing_plugin_toml 0, manifest_schema_violations 0, expected_manifest_count 37
-  - python audit_plugin_structure.py --json: passed 2026-06-22 with skeleton sample_conformance_status sample-clean, sample_expected_count 1, sample_violation_count 0
+  - python tools/audit_plugin_structure.py --json: passed 2026-06-22 with m1_gate_status classified-and-clear, missing_plugin_toml 0, manifest_schema_violations 0, expected_manifest_count 37
+  - python tools/audit_plugin_structure.py --json: passed 2026-06-22 with skeleton sample_conformance_status sample-clean, sample_expected_count 1, sample_violation_count 0
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never: passed 2026-06-22 with existing warning noise
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never -- --test-threads=1: timed out after 1200s on 2026-06-22, not counted as passing
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-native-sdk-m2-0622 --message-format short --color never: passed 2026-06-22

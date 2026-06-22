@@ -59,6 +59,12 @@ pub(super) fn expected_status_for_slice(slice: &str) -> &'static str {
         "runtime_15_runtime_dead_code_guard_module_split_static_passed_cargo_lock_blocked"
     } else if slice == "Runtime 15 M3 diagnostics guard module split" {
         "runtime_15_diagnostics_guard_module_split_static_passed_cargo_lock_blocked"
+    } else if slice == "Runtime 15 M3 core framework test folder split" {
+        "runtime_15_core_framework_tests_folder_split_static_passed_cargo_lock_blocked"
+    } else if slice == "Runtime 15 M3 UI v2 asset test folder split" {
+        "runtime_15_ui_v2_asset_tests_folder_split_static_passed_cargo_lock_blocked"
+    } else if slice == "Runtime 15 M3 UI shared core test folder split" {
+        "runtime_15_ui_shared_core_tests_folder_split_static_passed_cargo_lock_blocked"
     } else if slice == "Runtime 10 F18 asset manager resolution return shape" {
         "runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed"
     } else if slice == "Runtime 08 F17 entity path lookup verb rename" {
@@ -234,6 +240,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> &'static str {
         "render_prepared_sideband_frame_owner_move_coremin_check_passed_partial"
     } else if slice == "Runtime 07 render direct runtime-frame streaming camera loop" {
         "render_direct_runtime_frame_streaming_camera_loop_coremin_check_passed_partial"
+    } else if slice == "Runtime 07 render generated camera-loop shared extract" {
+        "render_generated_camera_loop_shared_extract_static_passed_cargo_locked_blocked"
     } else if slice == "Runtime 07 render shared effective extract frame source" {
         "render_shared_effective_extract_frame_source_coremin_check_passed_partial"
     } else if slice == "Runtime 07 render direct runtime-frame shared context extract" {

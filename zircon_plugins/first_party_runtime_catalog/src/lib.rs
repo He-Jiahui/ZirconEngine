@@ -315,7 +315,7 @@ mod tests {
             .parent()
             .and_then(std::path::Path::parent)
             .expect("first_party_runtime_catalog should live under zircon_plugins");
-        let audit_script = repo_root.join("audit_plugin_structure.py");
+        let audit_script = repo_root.join("tools").join("audit_plugin_structure.py");
         assert!(
             audit_script.exists(),
             "missing plugin structure audit script at {}",
@@ -353,7 +353,7 @@ mod tests {
             .parent()
             .and_then(std::path::Path::parent)
             .expect("first_party_runtime_catalog should live under zircon_plugins");
-        let audit_script = repo_root.join("audit_plugin_structure.py");
+        let audit_script = repo_root.join("tools").join("audit_plugin_structure.py");
 
         let output = run_python_audit(&audit_script, repo_root);
         assert!(
@@ -390,7 +390,7 @@ mod tests {
             .parent()
             .and_then(std::path::Path::parent)
             .expect("first_party_runtime_catalog should live under zircon_plugins");
-        let audit_script = repo_root.join("audit_plugin_structure.py");
+        let audit_script = repo_root.join("tools").join("audit_plugin_structure.py");
 
         let output = run_python_audit(&audit_script, repo_root);
         assert!(

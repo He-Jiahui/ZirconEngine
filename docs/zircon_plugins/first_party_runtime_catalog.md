@@ -19,9 +19,9 @@ related_code:
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
-  - audit_plugin_structure.py
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
+  - tools/audit_plugin_structure.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
@@ -29,9 +29,9 @@ related_code:
 implementation_files:
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
-  - audit_plugin_structure.py
-  - plugin_structure_audits/manifest_schema.py
-  - plugin_structure_audits/skeleton.py
+  - tools/audit_plugin_structure.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/skeleton.py
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/source_assertions.rs
@@ -60,10 +60,10 @@ tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_static_plugin_manifest_is_generated --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-missing-manifests-0622 --message-format short --color never -- --test-threads=1: 1 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
   - static plugin manifest required-field schema scan over generated and native zircon_plugins/**/plugin.toml: 37/37 passed 2026-06-22
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_manifest_schema_uniform --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-missing-manifests-0622 --message-format short --color never -- --test-threads=1: 1 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
-  - python audit_plugin_structure.py --json: passed 2026-06-22 with m1_gate_status classified-and-clear, missing_plugin_toml 0, manifest_schema_violations 0, expected_manifest_count 37
-  - python audit_plugin_structure.py --json: passed 2026-06-22 with skeleton sample_conformance_status sample-clean, sample_violation_count 0, migration_debt_count 35
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py: passed 2026-06-22
-  - python -m py_compile audit_plugin_structure.py plugin_structure_audits/__init__.py plugin_structure_audits/manifest_schema.py plugin_structure_audits/skeleton.py: passed 2026-06-22
+  - python tools/audit_plugin_structure.py --json: passed 2026-06-22 with m1_gate_status classified-and-clear, missing_plugin_toml 0, manifest_schema_violations 0, expected_manifest_count 37
+  - python tools/audit_plugin_structure.py --json: passed 2026-06-22 with skeleton sample_conformance_status sample-clean, sample_violation_count 0, migration_debt_count 35
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py: passed 2026-06-22
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk_examples_editor -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never: passed 2026-06-22 with existing warning noise
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_crate_skeleton_conformance --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-skeleton-m2-0622 --message-format short --color never -- --test-threads=1 --nocapture: timed out after 900s on 2026-06-22, not counted as passing
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-missing-manifests-0622 --message-format short --color never -- --test-threads=1: 3 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
@@ -127,7 +127,7 @@ This is a structural guard, not a replacement for profile bootstrap tests. Provi
 
 Plugins 12 adds `plugins_12_static_plugin_manifest_is_generated` in this crate because the catalog already owns first-party runtime provider fan-out. The guard requires every covered non-native `plugin.toml` to carry the `@generated` header, including the nested `asset_importers/*` family manifests and `opus_importer`; compares feature-enabled static runtime manifest slices against the corresponding `package_manifest()` descriptor output, including `supported_platforms`; parses multiline TOML arrays used by real plugin manifests; and checks that `native_dynamic_fixture` embeds its single hand-written root manifest through `include_str!` instead of carrying an inline duplicate.
 
-Plugins 12 also adds `plugins_12_manifest_schema_uniform` and `plugins_12_manifest_schema_uniform_audit_report_is_clean` as T4 guards. The direct guard checks the 36 generated non-native manifests plus the native hand-written manifest for the fixed required schema fields and module fields. The audit-report guard runs `audit_plugin_structure.py --json` and checks the machine-readable M1 fields: `missing_plugin_toml = 0`, `manifest_schema_violations = 0`, `expected_manifest_count = 37`, and `m1_gate_status = classified-and-clear`.
+Plugins 12 also adds `plugins_12_manifest_schema_uniform` and `plugins_12_manifest_schema_uniform_audit_report_is_clean` as T4 guards. The direct guard checks the 36 generated non-native manifests plus the native hand-written manifest for the fixed required schema fields and module fields. The audit-report guard runs `tools/audit_plugin_structure.py --json` and checks the machine-readable M1 fields: `missing_plugin_toml = 0`, `manifest_schema_violations = 0`, `expected_manifest_count = 37`, and `m1_gate_status = classified-and-clear`.
 
 Plugins 12 now also has the explicit feature-gated guard `plugins_12_feature_enabled_runtime_descriptor_manifest_parity`. When the catalog is built with `base-runtime-plugins`, `advanced-render-runtime-plugins`, `navigation-runtime-plugin`, and `zr-vm-language-runtime-plugin`, it compares every linked provider descriptor manifest against the generated static manifest for category, maturity, targets, platforms, capabilities, default packaging, and runtime modules. This closes descriptor/static manifest parity for linked first-party runtime catalog providers; full capability four-source convergence remains the Plugins 12 M4 audit.
 

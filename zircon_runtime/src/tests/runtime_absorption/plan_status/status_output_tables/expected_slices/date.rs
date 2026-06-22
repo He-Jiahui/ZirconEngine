@@ -57,6 +57,12 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
         "2026-06-23"
     } else if slice == "Runtime 15 M3 diagnostics guard module split" {
         "2026-06-23"
+    } else if slice == "Runtime 15 M3 core framework test folder split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 UI v2 asset test folder split" {
+        "2026-06-23"
+    } else if slice == "Runtime 15 M3 UI shared core test folder split" {
+        "2026-06-23"
     } else if slice == "Runtime 10 F18 asset manager resolution return shape" {
         "2026-06-22"
     } else if slice == "Runtime 08 F17 entity path lookup verb rename" {
@@ -382,6 +388,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> &'static str {
     } else if slice == "Runtime 07 render prepared sideband frame owner move" {
         "2026-06-22"
     } else if slice == "Runtime 07 render direct runtime-frame streaming camera loop" {
+        "2026-06-22"
+    } else if slice == "Runtime 07 render generated camera-loop shared extract" {
         "2026-06-22"
     } else if slice == "Runtime 07 render shared effective extract frame source" {
         "2026-06-22"

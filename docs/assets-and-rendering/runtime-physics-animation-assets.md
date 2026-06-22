@@ -158,7 +158,7 @@ related_code:
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml.zmeta
@@ -298,7 +298,7 @@ implementation_files:
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml.zmeta
@@ -1124,7 +1124,7 @@ physics / animation 资产虽然不会各自打开第三个专用 editor，但�
 
 为了让这条 editor 回归真正能执行到断言，本轮还补齐了共享 render 契约扩展后的默认值路径：
 
-- `zircon_runtime::ui::runtime_ui::runtime_ui_manager::empty_scene_snapshot(...)` 现在会给 `RenderSceneSnapshot.virtual_geometry_debug` 明确填 `None`
+- runtime UI test-support manager 的 `empty_scene_snapshot(...)` helper 现在会给 `RenderSceneSnapshot.virtual_geometry_debug` 明确填 `None`
 - `zircon_editor::scene::viewport::render_packet::build_render_packet(...)` 现在会给 `SceneViewportExtractRequest.virtual_geometry_debug` 明确填 `None`
 
 这不是 physics / animation 资产新能力本身，但它避免了上层 asset/browser retained-host 测试在编译阶段被共享 render DTO 漏补字段直接截断。

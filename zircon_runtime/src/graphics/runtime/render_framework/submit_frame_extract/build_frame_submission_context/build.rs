@@ -26,73 +26,23 @@ use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::target_resolution::resolve_camera_target_size;
 
-pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context(
-    server: &WgpuRenderFramework,
-    viewport: RenderViewportHandle,
-    sized_extract: RenderFrameExtract,
-    ui_extract: Option<&UiRenderExtract>,
-) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    build_frame_submission_context_from_source(
-        server,
-        viewport,
-        FrameSubmissionExtractSource::Owned(sized_extract),
-        ui_extract,
-    )
-}
-
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    build_frame_submission_context_from_source(
-        server,
-        viewport,
-        FrameSubmissionExtractSource::RuntimeFrame(extract),
-        ui_extract,
-    )
-}
-
-enum FrameSubmissionExtractSource<'a> {
-    Owned(RenderFrameExtract),
-    RuntimeFrame(&'a mut Arc<RenderFrameExtract>),
-}
-
-impl FrameSubmissionExtractSource<'_> {
-    fn as_extract(&self) -> &RenderFrameExtract {
-        match self {
-            Self::Owned(extract) => extract,
-            Self::RuntimeFrame(extract) => extract.as_ref(),
-        }
-    }
-
-    fn as_extract_mut(&mut self) -> &mut RenderFrameExtract {
-        match self {
-            Self::Owned(extract) => extract,
-            Self::RuntimeFrame(extract) => Arc::make_mut(extract),
-        }
-    }
-
-    fn into_source_extract(self) -> Arc<RenderFrameExtract> {
-        match self {
-            Self::Owned(effective_extract) => {
-                let source_extract = Arc::new(effective_extract);
-                source_extract
-            }
-            Self::RuntimeFrame(extract) => Arc::clone(extract),
-        }
-    }
+    build_frame_submission_context_from_source(server, viewport, extract, ui_extract)
 }
 
 fn build_frame_submission_context_from_source(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    mut extract_source: FrameSubmissionExtractSource<'_>,
+    extract_source: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
     let mut viewport_state =
-        resolve_viewport_record_state(server, viewport, extract_source.as_extract())?;
+        resolve_viewport_record_state(server, viewport, extract_source.as_ref())?;
     let primary_target_size = viewport_state.size();
     let asset_manager = {
         let state = server.lock_state();
@@ -100,15 +50,15 @@ fn build_frame_submission_context_from_source(
     };
     let submission_size = resolve_camera_target_size(
         primary_target_size,
-        extract_source.as_extract().view.selected_camera_target(),
+        extract_source.as_ref().view.selected_camera_target(),
         asset_manager.as_ref(),
     )?;
     {
-        let sized_extract = extract_source.as_extract_mut();
+        let sized_extract = Arc::make_mut(extract_source);
         sized_extract.apply_viewport_size(submission_size);
         apply_renderer_owned_particle_previous_state(sized_extract, &viewport_state);
     }
-    let sized_extract = extract_source.as_extract();
+    let sized_extract = extract_source.as_ref();
     let camera_history_key = camera_history_key_for_extract(sized_extract);
     let effective_view_size = sized_extract.view.effective_view_size();
     let render_size = sized_extract.view.effective_render_size();
@@ -188,7 +138,7 @@ fn build_frame_submission_context_from_source(
     let authored_hybrid_gi_present = sized_extract.lighting.hybrid_global_illumination.is_some();
     let source_anti_alias = sized_extract.view.anti_alias;
     let source_msaa_samples = sized_extract.view.camera.msaa_samples;
-    let effective_extract = extract_source.as_extract_mut();
+    let effective_extract = Arc::make_mut(extract_source);
     apply_effective_advanced_features(
         effective_extract,
         hybrid_gi_enabled,
@@ -202,7 +152,7 @@ fn build_frame_submission_context_from_source(
         effective_color_grading,
         effective_effect_stack,
     );
-    let effective_extract = extract_source.as_extract();
+    let effective_extract = extract_source.as_ref();
     let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
         .as_ref()
         .map(|output| output.cpu_reference_instances().to_vec())
@@ -286,7 +236,7 @@ fn build_frame_submission_context_from_source(
     let temporal_jitter =
         temporal_jitter_for_submission(anti_alias_report, viewport_state.temporal_frame_index());
     {
-        let effective_extract = extract_source.as_extract_mut();
+        let effective_extract = Arc::make_mut(extract_source);
         apply_effective_view_and_graph_settings(
             effective_extract,
             anti_alias_report,
@@ -295,7 +245,7 @@ fn build_frame_submission_context_from_source(
             post_process_graph.clone(),
         );
     }
-    let effective_extract = extract_source.as_extract();
+    let effective_extract = extract_source.as_ref();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
@@ -324,7 +274,7 @@ fn build_frame_submission_context_from_source(
     let virtual_geometry_extract_for_context = virtual_geometry_enabled
         .then(|| effective_virtual_geometry_extract.clone())
         .flatten();
-    let source_extract = extract_source.into_source_extract();
+    let source_extract = Arc::clone(extract_source);
 
     Ok(FrameSubmissionContext::new(
         submission_size,
