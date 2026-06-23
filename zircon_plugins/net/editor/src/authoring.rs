@@ -11,7 +11,8 @@ use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, EditorAuthoringContributionBatch, EditorAuthoringSurface,
 };
 
-pub const NET_AUTHORING_CAPABILITY: &str = "editor.extension.net_authoring";
+use crate::capability::NET_AUTHORING_CAPABILITY;
+
 pub const NET_AUTHORING_VIEW_ID: &str = "net.authoring";
 pub const NET_DIAGNOSTICS_VIEW_ID: &str = "net.diagnostics";
 pub const NET_DRAWER_ID: &str = "net.drawer";

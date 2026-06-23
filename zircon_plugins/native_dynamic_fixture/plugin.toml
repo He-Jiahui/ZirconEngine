@@ -10,6 +10,17 @@ supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
 default_packaging = ["native_dynamic"]
 
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_native_dynamic_fixture_native"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_native_dynamic_fixture_runtime_entry_v3"
+editor_entry = "zircon_native_dynamic_fixture_editor_entry_v3"
+assets = ["assets/**"]
+
 [[modules]]
 name = "native_dynamic_fixture.runtime"
 kind = "runtime"
@@ -23,3 +34,10 @@ kind = "editor"
 crate_name = "zircon_plugin_native_dynamic_fixture_native"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.native_dynamic_fixture"]
+
+[[provides_interfaces]]
+id = "native_dynamic_fixture.runtime"
+
+[[provides_interfaces.methods]]
+name = "tick"
+method_slot = 0

@@ -249,6 +249,40 @@ fn explicit_request_camera_ignores_scene_camera_post_process_settings() {
 }
 
 #[test]
+fn explicit_request_camera_uses_volume_mask_for_post_process_volumes() {
+    let mut world = World::empty();
+    spawn_global_volume_on_layer(&mut world, 0b0100);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(812),
+        SceneViewportExtractRequest {
+            camera: Some(camera_descriptor_with_culling_and_volume_layers(
+                0b0010, 0b0100,
+            )),
+            ..SceneViewportExtractRequest::default()
+        },
+    ));
+
+    assert_eq!(
+        *extract.view.selected_camera_layers(),
+        RenderLayerSet::from_legacy_mask(0b0010)
+    );
+    assert_eq!(
+        *extract.view.selected_camera_volume_layers(),
+        RenderLayerSet::from_legacy_mask(0b0100)
+    );
+    assert_eq!(extract.post_process.volumes.len(), 1);
+    assert_eq!(
+        extract.post_process.volumes[0].volume_mask,
+        RenderLayerSet::from_legacy_mask(0b0100)
+    );
+    assert_near(
+        resolved_post_process_settings(&extract).bloom.intensity,
+        1.0,
+    );
+}
+
+#[test]
 fn local_sphere_post_process_volume_uses_camera_distance_for_full_influence() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
@@ -447,7 +481,7 @@ fn resolved_post_process_settings(
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            extract.view.selected_camera_layers(),
+            extract.view.selected_camera_volume_layers(),
         )
         .expect("planned volume evaluation should resolve")
 }
@@ -457,6 +491,17 @@ fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
     camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
     camera.volume_mask = camera.culling_mask.clone();
+    camera
+}
+
+fn camera_descriptor_with_culling_and_volume_layers(
+    culling_mask: u32,
+    volume_mask: u32,
+) -> CameraRenderDescriptor {
+    let mut camera =
+        CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+    camera.culling_mask = RenderLayerSet::from_legacy_mask(culling_mask);
+    camera.volume_mask = RenderLayerSet::from_legacy_mask(volume_mask);
     camera
 }
 
@@ -541,6 +586,24 @@ fn spawn_local_volume(
             )
             .unwrap();
     }
+    world.set_render_layer_mask(entity, layer_mask).unwrap();
+    entity
+}
+
+fn spawn_global_volume_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {
+    let entity = world.spawn_node(NodeKind::Empty);
+    world
+        .insert(
+            entity,
+            PostProcessVolumeComponent::global(
+                0.0,
+                RenderPostProcessVolumeProfile::default().with_bloom(RenderBloomSettings {
+                    intensity: 1.0,
+                    ..RenderBloomSettings::default()
+                }),
+            ),
+        )
+        .unwrap();
     world.set_render_layer_mask(entity, layer_mask).unwrap();
     entity
 }

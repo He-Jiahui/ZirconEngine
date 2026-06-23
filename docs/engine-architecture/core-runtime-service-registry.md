@@ -41,7 +41,11 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/registration/descriptor_entries_three.rs
   - zircon_runtime/src/core/runtime/handle/registration/duplicates.rs
   - zircon_runtime/src/core/runtime/handle/registration/entry.rs
-  - zircon_runtime/src/core/runtime/handle/registration/service_lists.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
   - zircon_runtime/src/core/runtime/handle/registration/validation.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/activation/startup.rs
@@ -144,7 +148,11 @@ implementation_files:
   - zircon_runtime/src/core/runtime/handle/registration/descriptor_entries_three.rs
   - zircon_runtime/src/core/runtime/handle/registration/duplicates.rs
   - zircon_runtime/src/core/runtime/handle/registration/entry.rs
-  - zircon_runtime/src/core/runtime/handle/registration/service_lists.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
   - zircon_runtime/src/core/runtime/handle/registration/validation.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/activation/startup.rs
@@ -427,7 +435,7 @@ direct resolve 一个未激活 module 的 immediate service 时，resolution fra
   - `mod.rs` 只保留 child module declarations，不承载 `CoreHandle` implementation。
   - `register_module.rs` 拥有 `CoreHandle::register_module(...)` orchestration、empty/single/two/three/four/five service registration paths、six-or-more pending registration path, and final transactional commit。
   - `descriptor_entries*.rs` 只准备 descriptor-backed service entries。
-  - `service_lists.rs` 只构造 owner/startup/shutdown `Arc<[RegistryName]>` lifecycle caches。
+  - `service_lists/mod.rs` 只分派 service-list construction；`types.rs` owns `ModuleServiceLists`，`multi.rs` owns generic scans，`specialized.rs` owns 1-5 service fast paths，`shutdown.rs` owns owner/startup/shutdown `Arc<[RegistryName]>` lifecycle cache assembly。
   - `validation.rs` 和 `duplicates.rs` 分别拥有 registration-time descriptor validation 与 final duplicate lookup。
   - `duplicates.rs` keeps the six-or-more pending-service duplicate check as an explicit first-match scan over canonical `RegistryName` keys, returning the first existing service-table key directly and falling through to `None` without `find_map(...then_some(...))` adapter projection.
 - `activation.rs`
@@ -495,6 +503,10 @@ M5 之后，每个 topic 的 subscriber list 以 `Arc<[ChannelSender<EngineEvent
 - `cargo test -p zircon_runtime script::vm --locked --target-dir F:\cargo-targets\zircon-codex-a -- --nocapture`
 - `cargo build --workspace --locked --verbose --target-dir F:\cargo-targets\zircon-codex-a`
 - `cargo test --workspace --locked --verbose --target-dir F:\cargo-targets\zircon-codex-a`
+
+2026-06-23 Runtime 15 M4 service-list folder visibility correction:
+
+- 15:01 +08:00: the folder-backed `service_lists` split exposed a registration-boundary visibility blocker before editor UI diagnostics. `ModuleServiceLists`, its three cached-list fields, and `single_service_module_lists(...)` are now visible only within `crate::core::runtime::handle::registration`, which keeps `register_module.rs` on the narrow owner path without widening helpers to `pub(crate)` or restoring the deleted flat `service_lists.rs`. Static validation passed with `rustfmt --edition 2021 --check` over `service_lists/{types,specialized,mod}.rs` plus `register_module.rs`, and source scans confirmed only those four symbols/fields use registration-scoped visibility while other service-list helpers remain `pub(super)`. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-service-lists-0623 --message-format short --color never` passed with existing warnings after the narrow `scene/world/render.rs` type inference unblock; locked validation is still rejected before compile by current lockfile drift, and `Cargo.lock` is restored after Cargo attempts.
 
 2026-06-05 M5 runtime-core registry/dependency-name validation:
 

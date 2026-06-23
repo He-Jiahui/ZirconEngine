@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from plugin_structure_audits.capability import audit_plugin_capability_conformance
+from plugin_structure_audits.dependency_boundary import (
+    audit_plugin_dependency_boundary,
+)
 from plugin_structure_audits.manifest_schema import audit_plugin_manifest_schema
 from plugin_structure_audits.registration import audit_plugin_registration_conformance
 from plugin_structure_audits.skeleton import audit_plugin_skeleton_conformance
@@ -25,18 +28,27 @@ def build_report(root: Path) -> dict[str, Any]:
     skeleton_conformance = audit_plugin_skeleton_conformance(root).to_json()
     registration_conformance = audit_plugin_registration_conformance(root).to_json()
     capability_conformance = audit_plugin_capability_conformance(root).to_json()
+    dependency_boundary = audit_plugin_dependency_boundary(root).to_json()
+    skeleton_sample_is_clean = (
+        skeleton_conformance["sample_conformance_status"] == "sample-clean"
+    )
+    skeleton_migration_debt_count = skeleton_conformance["migration_debt_count"]
+    skeleton_gate_status = (
+        "sample-clean-migration-debt-clear"
+        if skeleton_sample_is_clean and skeleton_migration_debt_count == 0
+        else "sample-clean-migration-debt-present"
+        if skeleton_sample_is_clean
+        else "sample-violations-present"
+    )
     report = {
         "plugin_manifest_schema_uniform": manifest_schema,
         "skeleton_conformance": skeleton_conformance,
         "registration_conformance": registration_conformance,
         "capability_conformance": capability_conformance,
+        "standalone_distribution_conformance": dependency_boundary,
         "plugin_skeleton_gate": {
-            "m2_gate_status": (
-                "sample-clean-migration-debt-present"
-                if skeleton_conformance["sample_conformance_status"] == "sample-clean"
-                else "sample-violations-present"
-            ),
-            "migration_debt_count": skeleton_conformance["migration_debt_count"],
+            "m2_gate_status": skeleton_gate_status,
+            "migration_debt_count": skeleton_migration_debt_count,
         },
         "summary": {
             "missing_plugin_toml": manifest_schema["missing_plugin_toml"],
@@ -74,6 +86,21 @@ def build_report(root: Path) -> dict[str, Any]:
             "m4_t2_builder_mirror_gate_status": capability_conformance[
                 "m4_t2_builder_mirror_gate_status"
             ],
+            "dist_capable_plugin_count": dependency_boundary[
+                "dist_capable_plugin_count"
+            ],
+            "dist_build_matrix_count": dependency_boundary[
+                "dist_build_matrix_count"
+            ],
+            "distribution_section_violations": dependency_boundary[
+                "distribution_section_violations"
+            ],
+            "dist_dependency_boundary_violations": dependency_boundary[
+                "dist_dependency_boundary_violations"
+            ],
+            "m1_dist_dependency_boundary_gate_status": dependency_boundary[
+                "m1_dist_dependency_boundary_gate_status"
+            ],
         },
     }
     report["m1_gate_status"] = (
@@ -88,6 +115,7 @@ def build_report(root: Path) -> dict[str, Any]:
 def render_markdown(report: dict[str, Any]) -> str:
     manifest_schema = report["plugin_manifest_schema_uniform"]
     capability = report["capability_conformance"]
+    standalone = report["standalone_distribution_conformance"]
     lines = [
         "# Plugin Structure Audit",
         "",
@@ -109,6 +137,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- M4 runtime capability gate status: `{capability['m4_runtime_capability_gate_status']}`",
         f"- SDK builder/mirror violations: {capability['sdk_builder_mirror_violations']}",
         f"- M4/T2 builder mirror gate status: `{capability['m4_t2_builder_mirror_gate_status']}`",
+        f"- Dist-capable plugins: {standalone['dist_capable_plugin_count']}",
+        f"- Dist build matrix entries: {standalone['dist_build_matrix_count']}",
+        f"- Distribution section violations: {standalone['distribution_section_violations']}",
+        f"- Dist dependency boundary violations: {standalone['dist_dependency_boundary_violations']}",
+        f"- Plugins 13 M1 dist boundary gate status: `{standalone['m1_dist_dependency_boundary_gate_status']}`",
     ]
     if manifest_schema["missing_plugin_toml_paths"]:
         lines.append("")
@@ -162,6 +195,20 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             f"- `{violation}`"
             for violation in capability["sdk_builder_mirror_violation_details"]
+        )
+    if standalone["distribution_section_violation_details"]:
+        lines.append("")
+        lines.append("## Distribution Section Violations")
+        lines.extend(
+            f"- `{violation}`"
+            for violation in standalone["distribution_section_violation_details"]
+        )
+    if standalone["dist_dependency_boundary_violation_details"]:
+        lines.append("")
+        lines.append("## Dist Dependency Boundary Violations")
+        lines.extend(
+            f"- `{violation}`"
+            for violation in standalone["dist_dependency_boundary_violation_details"]
         )
     return "\n".join(lines) + "\n"
 

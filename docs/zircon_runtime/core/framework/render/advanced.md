@@ -9,7 +9,12 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/backend_types/capability.rs
+  - zircon_runtime/src/core/framework/render/backend_types/command.rs
+  - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
@@ -49,7 +54,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/backend_types/capability.rs
+  - zircon_runtime/src/core/framework/render/backend_types/command.rs
+  - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
@@ -243,6 +253,8 @@ This is submit-local profile participation. It does not replace app-level render
 `PreparedRuntimeSubmission` can carry neutral plugin renderer outputs produced by runtime prepare collectors. `collect_runtime_feedback(...)` now merges HGI and VG renderer readback outputs with those prepared sideband outputs in production, not only in test helpers.
 
 For HGI, renderer and sideband outputs are appended, including scene-prepare atlas/capture/voxel payloads. For VG, page-table/completion/render-path outputs and NodeAndClusterCull page requests are appended before `VirtualGeometryGpuCompletion::from_readback_outputs(...)` and `take_node_and_cluster_cull_page_request_ids()` consume them. Particle feedback keeps its existing renderer-authoritative merge rule.
+
+The 2026-06-24 VG debug snapshot stream types owner split keeps the framework readback stream contract navigable: `core/framework/render/virtual_geometry_debug_snapshot_streams.rs` owns encode/decode orchestration and child mounts, while `core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs` owns the stream DTOs, decode errors, and summary types. `runtime_15_vg_debug_snapshot_stream_types_are_child_owner` locks that owner boundary and the status anchor `render_plan02_vg_debug_snapshot_stream_types_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
 
 ## Reports And Degradation
 

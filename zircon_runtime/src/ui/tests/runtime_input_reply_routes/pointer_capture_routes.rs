@@ -11,8 +11,7 @@ fn unified_pointer_cancel_routes_to_capture_and_releases_pointer_capture() {
         )
         .expect("pointer press should dispatch");
     assert_two_node_bubble_handled_at_target(&pressed);
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    capture_pointer_for_test(&mut surface, UiPointerId::new(7), UiNodeId::new(2));
     assert_eq!(surface.focus.pressed, Some(UiNodeId::new(2)));
 
     let canceled = surface
@@ -82,7 +81,7 @@ fn unified_pointer_cancel_routes_to_capture_and_releases_pointer_capture() {
             .pressed
     );
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
 }
 
 #[test]
@@ -143,7 +142,7 @@ fn pointer_capture_release_rejects_owner_mismatch_even_when_pointer_id_is_active
         Some(UiNodeId::new(3))
     );
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(surface.input.captured_pointer_id, Some(first_pointer));
+    assert_pointer_capture(&surface, first_pointer, UiNodeId::new(2));
 }
 
 #[test]
@@ -160,7 +159,7 @@ fn direct_pointer_reply_release_preserves_capture_route_trace_after_cleanup() {
     );
     assert!(capture.rejected_effects.is_empty());
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(surface.input.captured_pointer_id, Some(pointer_id));
+    assert_pointer_capture(&surface, pointer_id, UiNodeId::new(2));
 
     let released = surface.apply_dispatch_reply(
         pointer_event(UiPointerEventKind::Up, UiPoint::new(200.0, 200.0)),
@@ -174,7 +173,7 @@ fn direct_pointer_reply_release_preserves_capture_route_trace_after_cleanup() {
     assert!(released.rejected_effects.is_empty());
     assert_eq!(released.applied_effects.len(), 1);
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
     assert_eq!(
         released.diagnostics.route_policy,
         UiInputRoutePolicy::PointerCapture
@@ -239,7 +238,6 @@ fn direct_pointer_reply_capture_high_precision_and_lock_emit_host_requests() {
     assert!(result.rejected_effects.is_empty());
     assert_eq!(result.applied_effects.len(), 3);
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(surface.input.captured_pointer_id, Some(pointer_id));
     assert_eq!(
         surface.input.pointer_capture_owner(pointer_id),
         Some(UiNodeId::new(2))
@@ -309,7 +307,7 @@ fn direct_pointer_reply_release_capture_disables_high_precision_host_mode() {
     assert!(released.rejected_effects.is_empty());
     assert_eq!(released.applied_effects.len(), 1);
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
     assert_eq!(surface.input.high_precision_owner, None);
     assert_eq!(
         released.diagnostics.route_policy,

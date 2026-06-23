@@ -9,6 +9,8 @@ description = "Native dynamic ABI fixture plugin for Zircon."
 crate-type = ["cdylib"]
 
 [features]
+default = ["dist"]
+dist = []
 abi_unknown_version = []
 
 [dependencies]

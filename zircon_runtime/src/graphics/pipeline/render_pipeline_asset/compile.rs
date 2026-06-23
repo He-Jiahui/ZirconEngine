@@ -211,7 +211,7 @@ fn core_scene_particle_descriptor_is_needed(
     declared_stages: &[RenderPassStage],
     descriptors: &[RenderFeatureDescriptor],
 ) -> bool {
-    !extract.particles.sprites.is_empty()
+    particle_sprites_intersect_selected_camera_layers(extract)
         && !options
             .disabled_features
             .contains(&BuiltinRenderFeature::Particle)
@@ -222,6 +222,15 @@ fn core_scene_particle_descriptor_is_needed(
         && !descriptors
             .iter()
             .any(descriptor_provides_scene_particle_pass)
+}
+
+fn particle_sprites_intersect_selected_camera_layers(extract: &RenderFrameExtract) -> bool {
+    let camera_layers = extract.view.selected_camera_layers();
+    extract
+        .particles
+        .sprites
+        .iter()
+        .any(|sprite| camera_layers.intersects(&sprite.render_layer_mask))
 }
 
 fn descriptor_provides_scene_particle_pass(descriptor: &RenderFeatureDescriptor) -> bool {

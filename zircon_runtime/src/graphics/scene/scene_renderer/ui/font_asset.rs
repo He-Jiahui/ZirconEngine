@@ -10,7 +10,7 @@ pub(crate) struct LoadedUiFontManifest {
     pub(crate) render_mode: Option<UiTextRenderMode>,
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn load_ui_font_manifest(asset_ref: &str) -> Option<LoadedUiFontManifest> {
     load_ui_font_manifest_with_asset_manager(asset_ref, None)
 }

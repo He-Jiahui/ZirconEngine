@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AntiAliasSettings, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
-    RenderFramework, RenderMotionBlurSettings, RenderOverlayExtract,
+    RenderFramework, RenderLayerSet, RenderMotionBlurSettings, RenderOverlayExtract,
     RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderPipelineHandle,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
@@ -516,6 +516,7 @@ fn particle_sprite_snapshot(
         color: Vec4::new(1.0, 0.48, 0.12, 0.85),
         intensity: 1.0,
         depth_test: true,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         material: None,
         texture: None,
     }

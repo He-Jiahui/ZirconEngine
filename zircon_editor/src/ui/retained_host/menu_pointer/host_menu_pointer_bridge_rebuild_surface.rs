@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,
@@ -14,22 +12,26 @@ use zircon_runtime_interface::ui::{
 
 use super::constants::{DISMISS_NODE_ID, POPUP_ROW_HEIGHT, ROOT_NODE_ID};
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
-use super::host_menu_pointer_target::HostMenuPointerTarget;
+use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 use super::menu_item_spec::MenuItemSpec;
 use super::menu_item_tree::menu_item_route_index;
 use super::menu_items_for_layout::menu_items_for_layout;
-use super::node_ids::{menu_button_node_id, menu_item_node_id, popup_node_id};
+use super::node_ids::{
+    dismiss_route_id, menu_button_node_id, menu_button_route_id, menu_item_node_id,
+    menu_item_route_id, popup_node_id, popup_route_id,
+};
 use super::popup_layout::{
     clipped_menu_button_frame, popup_grid_layout, popup_scroll_metrics, submenu_popup_grid_layout,
 };
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::state_flags::base_state;
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 impl HostMenuPointerBridge {
     pub(in crate::ui::retained_host::menu_pointer) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.workbench.menu_pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
+        let mut route_intents = EditorRouteIntentMap::default();
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.workbench.menu.root"))
@@ -61,7 +63,11 @@ impl HostMenuPointerBridge {
                 )
                 .expect("menu pointer root must exist");
             register_handled_pointer_node(&mut dispatcher, node_id);
-            targets.insert(node_id, HostMenuPointerTarget::MenuButton(menu_index));
+            route_intents.bind_node(
+                node_id,
+                menu_button_route_id(menu_index),
+                EditorRouteIntent::Menu(HostMenuPointerRouteIntent::MenuButton(menu_index)),
+            );
         }
 
         if let Some(menu_index) = self.state.open_menu_index {
@@ -85,7 +91,11 @@ impl HostMenuPointerBridge {
             dispatcher.register(DISMISS_NODE_ID, UiPointerEventKind::Down, |_context| {
                 UiPointerDispatchEffect::handled()
             });
-            targets.insert(DISMISS_NODE_ID, HostMenuPointerTarget::DismissOverlay);
+            route_intents.bind_node(
+                DISMISS_NODE_ID,
+                dismiss_route_id(),
+                EditorRouteIntent::Menu(HostMenuPointerRouteIntent::DismissOverlay),
+            );
 
             let root_items = menu_items_for_layout(&self.layout, menu_index);
             let root_grid = popup_grid_layout(
@@ -99,7 +109,7 @@ impl HostMenuPointerBridge {
             let mut row_frames = insert_popup_layer(PopupLayerInsert {
                 surface: &mut surface,
                 dispatcher: &mut dispatcher,
-                targets: &mut targets,
+                route_intents: &mut route_intents,
                 menu_index,
                 level: 0,
                 popup_path: &popup_path,
@@ -129,7 +139,7 @@ impl HostMenuPointerBridge {
                 row_frames = insert_popup_layer(PopupLayerInsert {
                     surface: &mut surface,
                     dispatcher: &mut dispatcher,
-                    targets: &mut targets,
+                    route_intents: &mut route_intents,
                     menu_index,
                     level: level + 1,
                     popup_path: &popup_path,
@@ -145,15 +155,14 @@ impl HostMenuPointerBridge {
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
-        self.targets = targets;
+        self.route_intents = route_intents;
     }
 }
 
 struct PopupLayerInsert<'a> {
     surface: &'a mut UiSurface,
     dispatcher: &'a mut UiPointerDispatcher,
-    targets:
-        &'a mut BTreeMap<zircon_runtime_interface::ui::event_ui::UiNodeId, HostMenuPointerTarget>,
+    route_intents: &'a mut EditorRouteIntentMap,
     menu_index: usize,
     level: usize,
     popup_path: &'a [usize],
@@ -201,9 +210,10 @@ fn insert_popup_layer(args: PopupLayerInsert<'_>) -> Vec<UiFrame> {
         .insert_child(ROOT_NODE_ID, popup_node)
         .expect("menu pointer root must exist");
     register_handled_pointer_node(args.dispatcher, popup_id);
-    args.targets.insert(
+    args.route_intents.bind_node(
         popup_id,
-        HostMenuPointerTarget::PopupSurface(args.menu_index),
+        popup_route_id(args.level),
+        EditorRouteIntent::Menu(HostMenuPointerRouteIntent::PopupSurface(args.menu_index)),
     );
 
     let mut row_frames = Vec::with_capacity(args.items.len());
@@ -247,19 +257,21 @@ fn insert_popup_layer(args: PopupLayerInsert<'_>) -> Vec<UiFrame> {
 
         if is_branch {
             register_handled_pointer_node(args.dispatcher, node_id);
-            args.targets.insert(
+            args.route_intents.bind_node(
                 node_id,
-                HostMenuPointerTarget::SubmenuBranch {
+                menu_item_route_id(args.level, item_index),
+                EditorRouteIntent::Menu(HostMenuPointerRouteIntent::SubmenuBranch {
                     menu_index: args.menu_index,
                     item_index,
                     item_path: path,
-                },
+                }),
             );
         } else if is_leaf {
             register_handled_pointer_node(args.dispatcher, node_id);
-            args.targets.insert(
+            args.route_intents.bind_node(
                 node_id,
-                HostMenuPointerTarget::MenuItem {
+                menu_item_route_id(args.level, item_index),
+                EditorRouteIntent::Menu(HostMenuPointerRouteIntent::MenuItem {
                     menu_index: args.menu_index,
                     item_index,
                     item_path: path,
@@ -267,7 +279,7 @@ fn insert_popup_layer(args: PopupLayerInsert<'_>) -> Vec<UiFrame> {
                         .action_id
                         .clone()
                         .expect("interactive leaf items need an action"),
-                },
+                }),
             );
         }
     }

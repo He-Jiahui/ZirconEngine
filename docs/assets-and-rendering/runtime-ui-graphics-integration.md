@@ -455,6 +455,8 @@ The default product pipelines all include this pass. `RenderPipelineAsset::defau
 
 Graph execution now passes the renderer-owned `ScreenSpaceUiRenderer` through `RenderPassGpuExecutionContext`. `RenderPassExecutorRegistry` registers `ui.screen-space`, and that executor calls `ScreenSpaceUiRenderer::record(...)` against the final-color target inside the graph execution slice. The old manual late `ScreenSpaceUiRenderer::record(...)` call after overlay is no longer the authority path for product placement.
 
+Since `render_plan14_ui_font_attachment_test_surface_suppression_static_passed_cargo_deferred_active_lanes`, the renderer-local `last_attachment_ops()` accessor is test-only. Runtime attachment ownership remains visible through graph pass declarations and WGPU execution, while the accessor exists only to keep the focused `ui.screen-space` executor attachment-op contract from becoming a production observation API.
+
 `RenderStats` keeps the legacy payload counters from `UiSubmissionStats` and adds graph placement evidence: `last_ui_graph_executed_pass_count`, `last_ui_target_size`, and `last_ui_graph_pass_order`. `update_base_stats(...)` derives those fields from the real `RenderGraphExecutionRecord`: Core2D records `postprocess-ui-overlay` when `runtime-ui` appears before `overlay-gizmo`, while default 3D records `postprocess-overlay-ui` when `overlay-gizmo` appears before terminal `runtime-ui`. This keeps clipped command, image payload, and text payload stats tied to the shared extract while making placement observable from the render framework facade.
 
 ## Editor Native Visual Asset Rasterization
@@ -637,6 +639,7 @@ M1 这里再补了一条最小默认策略：
 - [`font_asset.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs) 现在直接复用 `FontAsset::from_toml_str(...)`，并把 `render_mode` 以强类型 `UiTextRenderMode` 暴露给 text backend，不再保留一层裸字符串中转
 - [`ScreenSpaceUiTextSystem`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 和 renderer 构造链现在会接收 [`ProjectAssetManager`](../../zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs)，因此 `res://fonts/*.font.toml` 会优先从当前打开项目的正式资产注册表里解析，再回退到 runtime crate 自带默认字体
 - [`collect_files.rs`](../../zircon_runtime/src/asset/project/manager/collect_files.rs) 现在会把 `.ttf`、`.otf`、`.woff`、`.woff2` 视为字体 manifest 的 source auxiliary，而不是 standalone project asset；这样项目把原始字体文件放进 `assets/fonts/` 时，不会再在 `scan_and_import()` 阶段直接炸成 unsupported format
+- `render_plan14_ui_font_attachment_test_surface_suppression_static_passed_cargo_deferred_active_lanes` 之后，无 asset-manager 的 `load_ui_font_manifest(...)` 只作为测试契约入口存在；生产字体 manifest 解析继续通过 `load_ui_font_manifest_with_asset_manager(...)` 优先消费当前项目资产管理器，再回退 runtime 默认字体。
 
 这让“允许显式引用字体资产”终于从“只对 runtime crate 自带默认字体成立”推进到了“项目自己的 `res://` 字体资产也能进入同一条 runtime text backend”。
 

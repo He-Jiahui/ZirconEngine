@@ -22,9 +22,7 @@ pub(crate) struct MeshDraw {
     pub(super) draw_index_count: u32,
     pub(super) indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) indirect_args_offset: u64,
-    #[allow(dead_code)]
     pub(super) virtual_geometry_submission_key: Option<(u64, u32)>,
-    #[allow(dead_code)]
     pub(super) virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
     pub(super) material_textures: MaterialTextureSet,
     pub(super) material_bind_group: wgpu::BindGroup,
@@ -42,11 +40,8 @@ pub(crate) struct MeshDraw {
     pub(super) has_previous_velocity_transform: bool,
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) skinned: bool,
-    #[allow(dead_code)]
     pub(super) skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
-    #[allow(dead_code)]
     pub(super) previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) skinned_joint_count: u32,
     pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     pub(super) command_sort_input: MeshCommandSortInput,
     // Retains the source mesh that allowed this draw to enter the shader-skinning
@@ -84,7 +79,6 @@ impl MeshDraw {
         skinned: bool,
         skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
         previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
-        skinned_joint_count: u32,
         previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source_uses_cpu_morphed_source: bool,
@@ -122,7 +116,6 @@ impl MeshDraw {
             skinned,
             skinned_joint_palette_buffer,
             previous_skinned_joint_palette_buffer,
-            skinned_joint_count,
             previous_skinned_gpu_source,
             command_sort_input: MeshCommandSortInput::new(0.0, source_entity),
             skinned_gpu_source,

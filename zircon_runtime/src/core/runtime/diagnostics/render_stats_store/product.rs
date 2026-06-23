@@ -754,6 +754,19 @@ mod tests {
             last_mesh_cached_command_hit_count: 4,
             last_mesh_command_rebuild_count: 5,
             last_mesh_dynamic_command_count: 2,
+            last_mesh_pending_static_command_cache_draw_candidate_count: 3,
+            last_mesh_pending_static_command_cache_phase_candidate_count: 7,
+            last_mesh_pending_static_command_cache_depth_prepass_candidate_count: 3,
+            last_mesh_pending_static_command_cache_shadow_candidate_count: 2,
+            last_mesh_pending_static_command_cache_opaque_candidate_count: 1,
+            last_mesh_pending_static_command_cache_alpha_mask_candidate_count: 1,
+            last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count: 2,
+            last_mesh_pre_mesh_draw_static_command_cache_skipped_phase_count: 5,
+            last_mesh_pre_mesh_draw_static_command_cache_visibility_pruned_draw_count: 1,
+            last_mesh_pre_mesh_draw_static_command_cache_residual_material_phase_draw_count: 3,
+            last_mesh_pre_mesh_draw_static_command_cache_residual_rebuild_input_missing_draw_count:
+                4,
+            last_mesh_pre_mesh_draw_static_command_cache_residual_rebuild_rejected_draw_count: 6,
             last_mesh_command_cache_miss_count: 1,
             last_mesh_command_cache_invalidated_transform_count: 0,
             last_mesh_command_cache_invalidated_geometry_count: 1,
@@ -782,6 +795,78 @@ mod tests {
             &store,
             "render.mesh.queue.dynamic_command_count",
             2.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.draw_candidate_count",
+            3.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.phase_candidate_count",
+            7.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.depth_prepass_candidate_count",
+            3.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.shadow_candidate_count",
+            2.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.opaque_candidate_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pending_static_command_cache.alpha_mask_candidate_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.skipped_draw_count",
+            2.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.skipped_phase_count",
+            5.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.visibility_pruned_draw_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.residual_material_phase_draw_count",
+            3.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.residual_rebuild_input_missing_draw_count",
+            4.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.mesh.queue.pre_mesh_draw_static_command_cache.residual_rebuild_rejected_draw_count",
+            6.0,
             "count",
         );
         assert_series(

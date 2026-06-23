@@ -60,6 +60,50 @@ jobs:
       - name: Run plugin workspace tests
         run: cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
+  plugin-standalone-dist:
+    name: Plugin standalone dist (${{ matrix.plugin_id }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - plugin_id: native_dynamic_fixture
+            package: zircon_plugin_native_dynamic_fixture_native
+          - plugin_id: ai
+            package: zircon_plugin_ai_dist
+          - plugin_id: animation
+            package: zircon_plugin_animation_dist
+          - plugin_id: hybrid_gi
+            package: zircon_plugin_hybrid_gi_dist
+          - plugin_id: solari
+            package: zircon_plugin_solari_dist
+          - plugin_id: physics
+            package: zircon_plugin_physics_dist
+          - plugin_id: texture
+            package: zircon_plugin_texture_dist
+          - plugin_id: particles
+            package: zircon_plugin_particles_dist
+          - plugin_id: navigation
+            package: zircon_plugin_navigation_dist
+          - plugin_id: zr_vm_language
+            package: zircon_plugin_zr_vm_language_dist
+          - plugin_id: terrain
+            package: zircon_plugin_terrain_dist
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check standalone dist package
+        run: cargo check --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
+
+      - name: Build standalone dist package
+        run: cargo build --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
+
   export-platform-contract:
     name: Export platform contract (${{ matrix.export-platform }})
     runs-on: ubuntu-latest

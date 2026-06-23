@@ -5,19 +5,17 @@ use zircon_runtime::asset::{
     ShaderEntryPointAsset, ShaderSourceLanguage,
 };
 
+mod capability;
 mod plugin;
 
+pub use capability::{
+    IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, ShaderWgslImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "shader_wgsl_importer";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_shader_wgsl_importer_runtime";
-pub const MODULE_NAME: &str = "ShaderWgslImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.shader_wgsl_importer";
-pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.shader.wgsl";
 
 pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     let source = context.source_text()?;

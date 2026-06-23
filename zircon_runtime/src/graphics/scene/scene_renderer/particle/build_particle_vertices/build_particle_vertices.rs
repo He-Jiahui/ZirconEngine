@@ -11,9 +11,13 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
     let camera = frame.effective_camera().transform;
     let right = camera.right();
     let up = camera.up();
+    let camera_layers = frame.extract.view.selected_camera_layers();
     let mut vertices = Vec::new();
 
     for sprite in &frame.extract.particles.sprites {
+        if !camera_layers.intersects(&sprite.render_layer_mask) {
+            continue;
+        }
         if sprite.depth_test != depth_test {
             continue;
         }
@@ -54,9 +58,10 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
-        RenderParticleSpriteSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+        CameraRenderDescriptor, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
+        RenderLayerSet, RenderOverlayExtract, RenderParticleSpriteSnapshot,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+        ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
     use crate::graphics::types::ViewportRenderFrame;
@@ -77,6 +82,22 @@ mod tests {
         assert_eq!(overlay.len(), 6);
         assert!(depth_tested.iter().all(|vertex| vertex.position[0] < 0.5));
         assert!(overlay.iter().all(|vertex| vertex.position[0] > -0.5));
+    }
+
+    #[test]
+    fn particle_vertices_filter_sprites_by_selected_camera_layers() {
+        let mut hidden = particle_sprite(7, Vec3::new(-0.25, 0.0, -2.5), true);
+        hidden.render_layer_mask = RenderLayerSet::layer(1);
+        let mut visible = particle_sprite(8, Vec3::new(0.25, 0.0, -2.5), true);
+        visible.render_layer_mask = RenderLayerSet::layer(2);
+
+        let frame =
+            particle_frame_with_camera_layers(vec![hidden, visible], RenderLayerSet::layer(2));
+
+        let vertices = build_particle_vertices(&frame, true);
+
+        assert_eq!(vertices.len(), 6);
+        assert!(vertices.iter().all(|vertex| vertex.position[0] > -0.5));
     }
 
     fn particle_frame(sprites: Vec<RenderParticleSpriteSnapshot>) -> ViewportRenderFrame {
@@ -111,6 +132,43 @@ mod tests {
         ViewportRenderFrame::from_extract(extract, viewport_size)
     }
 
+    fn particle_frame_with_camera_layers(
+        sprites: Vec<RenderParticleSpriteSnapshot>,
+        camera_layers: RenderLayerSet,
+    ) -> ViewportRenderFrame {
+        let viewport_size = UVec2::new(64, 64);
+        let mut camera = ViewportCameraSnapshot::default();
+        camera.transform = Transform::from_translation(Vec3::new(0.0, 0.0, 4.0));
+        let mut descriptor = CameraRenderDescriptor::from_camera_payload(Some(7), camera.clone());
+        descriptor.culling_mask = camera_layers;
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            RenderSceneSnapshot {
+                scene: RenderSceneGeometryExtract {
+                    camera,
+                    meshes: Vec::new(),
+                    directional_lights: Vec::new(),
+                    point_lights: Vec::new(),
+                    spot_lights: Vec::new(),
+                    ambient_lights: Vec::new(),
+                    rect_lights: Vec::new(),
+                },
+                overlays: RenderOverlayExtract::default(),
+                preview: PreviewEnvironmentExtract {
+                    lighting_enabled: false,
+                    skybox_enabled: false,
+                    fallback_skybox: FallbackSkyboxKind::None,
+                    clear_color: Vec4::ZERO,
+                },
+                virtual_geometry_debug: None,
+            },
+        );
+        extract.apply_viewport_size(viewport_size);
+        extract.particles.sprites = sprites;
+        extract.select_camera_descriptor(descriptor);
+        ViewportRenderFrame::from_extract(extract, viewport_size)
+    }
+
     fn particle_sprite(
         entity: u64,
         position: Vec3,
@@ -128,6 +186,7 @@ mod tests {
             color: Vec4::ONE,
             intensity: 1.0,
             depth_test,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
             material: None,
             texture: None,
         }

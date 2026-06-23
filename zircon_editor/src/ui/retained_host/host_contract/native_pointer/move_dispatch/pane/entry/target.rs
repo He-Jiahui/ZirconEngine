@@ -22,7 +22,7 @@ pub(super) fn dispatch_pane_pointer_move_target(ui: &UiHostWindow, pointer: &Pan
         PanePointerTarget::Console
         | PanePointerTarget::Inspector
         | PanePointerTarget::BrowserAssetDetails
-        | PanePointerTarget::ViewportToolbar(_)
+        | PanePointerTarget::ViewportToolbar { .. }
         | PanePointerTarget::UiAsset
         | PanePointerTarget::Other => clear_passive_pane_move_hover(ui),
     }

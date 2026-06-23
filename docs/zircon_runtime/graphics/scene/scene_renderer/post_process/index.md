@@ -6,6 +6,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/post_process/color_space.rs
   - zircon_runtime/src/core/framework/render/post_process/chain.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/params.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
   - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
@@ -29,6 +31,13 @@ related_code:
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/effect_stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/screen_space_reflection.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
@@ -110,6 +119,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/smaa.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/upscale.wgsl
   - zircon_runtime/src/graphics/tests/render_product_post_process_terminal.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process_volume.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/fixture.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_stack.rs
 implementation_files:
   - zircon_runtime/src/graphics/resource_limits.rs
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
@@ -117,6 +130,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/color_space.rs
   - zircon_runtime/src/core/framework/render/post_process/chain.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/params.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
   - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
@@ -140,6 +155,13 @@ implementation_files:
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/effect_stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/screen_space_reflection.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
@@ -178,6 +200,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_upscale/mod.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/fixture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/color_lut_bake_params_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs
@@ -220,6 +244,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/upscale.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_stack.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
@@ -238,7 +263,7 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_maps_local_postprocess_coords_to_physical_target_coords
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::tests::history_region_copy_targets_selected_camera_region
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::tests::history_region_copy_clamps_dynamic_resolution_to_viewport_region
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs::taa_resolve_declares_history_velocity_and_output_transfer_input
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::taa_reactive_mask_processor_draws_visible_transparent_batches_only
@@ -249,15 +274,16 @@ tests:
   - zircon_runtime/src/core/framework/render/post_process/color_space.rs::tests::render_post_output_transfer_defaults_to_srgb
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_features_require_rg11b10_render_target_for_post_process
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::enabled_effect_stack_declares_tonemapped_for_uber_descriptor
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/effect_stack.rs::enabled_effect_stack_declares_tonemapped_for_uber_descriptor
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_alias_input
   - zircon_runtime/src/graphics/tests/project_render.rs::ssao_quality_profile_darkens_scene_when_enabled
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_shader_parses_and_declares_history_outputs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::output_transfer_shader_source_declares_single_texture_input
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs::tests::output_transfer_shader_parses
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::builtin_registry_covers_product_postprocess_executor_ids
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs::tests::render_volume_param_interp_blends_float_vec3_and_discrete_values
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs::tests::render_volume_component_descriptor_applies_defaults_to_resolved_stack
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs::render_volume_param_interp_blends_float_vec3_and_discrete_values
+  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs::render_volume_component_descriptor_applies_defaults_to_resolved_stack
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_volume_component.rs::runtime_15_post_process_volume_component_is_folder_backed
   - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs::tests::render_volume_registry_exposes_builtin_post_process_components
   - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs::tests::render_volume_registry_rejects_duplicate_component_id
   - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs::tests::render_volume_extract_maps_profile_to_component_overrides
@@ -266,9 +292,9 @@ tests:
   - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests::render_volume_evaluator_box_blend_distance_weight
   - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests::render_volume_evaluator_keeps_unset_component_params_from_current_stack
   - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::manual_exposure_declares_resolve_without_histogram
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::histogram_exposure_declares_histogram_before_resolve
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::color_grading_declares_color_lut_bake_before_output_transfer
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs::manual_exposure_declares_resolve_without_histogram
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs::histogram_exposure_declares_histogram_before_resolve
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs::default_stack_declares_light_list_for_uber_cluster_bind_group
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs::tests::color_lut_bake_dispatch_covers_default_lut_volume
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs::tests::color_lut_bake_is_required_for_all_color_transform_sources
@@ -291,7 +317,7 @@ tests:
   - zircon_runtime/src/graphics/backend/render_backend/read_buffer_f32x4.rs::tests::f32x4_readback_decodes_little_endian_words
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs::tests::rgba16float_3d_readback_strips_row_padding_per_slice
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_neutral_color_lut_readback_identity
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::fxaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs::fxaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_routes_output_transfer_through_fxaa_terminal_input
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_fxaa_terminal_input
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::output_transfer_executor_targets_terminal_input_when_declared
@@ -306,7 +332,7 @@ tests:
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs::builtin_smaa_terminal_aa_pass_compiles_after_output_transfer_when_requested
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::builtin_registry_covers_product_postprocess_executor_ids
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_overrides_preimported_terminal_aa_input_with_owned_transient
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::dynamic_resolution_declares_upscale_before_output_transfer
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs::dynamic_resolution_declares_upscale_before_output_transfer
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_output
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::output_transfer_executor_reads_upscaled_input_when_declared
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::upscale_shader_source_declares_filtered_source_sampling
@@ -315,7 +341,7 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_routes_bloom_extract_after_split_scene_color_passes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::bloom_executor_reads_motion_blurred_source_when_declared
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::bloom_executor_falls_back_to_scene_color_input
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::effect_stack_blur_feeds_uber_from_dedicated_intermediate
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/effect_stack.rs::effect_stack_blur_feeds_uber_from_dedicated_intermediate
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_blur/mod.rs::tests::blur_pass_writes_dedicated_intermediate_resource
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/blur_pipeline.rs::tests::blur_shader_entry_is_split_from_uber
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::uber_executor_reads_blurred_source_when_declared
@@ -329,6 +355,7 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_post_process_scene_composite.rs::render_product_post_scene_composite_ssr_changes_final_frame
   - zircon_runtime/src/graphics/tests/render_product_post_process_terminal.rs::render_product_post_terminal_fxaa_changes_final_frame_after_output_transfer
   - zircon_runtime/src/graphics/tests/render_product_post_process_terminal.rs::render_product_post_dynamic_resolution_upscale_feeds_smaa_terminal_frame
+  - zircon_runtime/src/graphics/tests/render_product_post_process_volume.rs::render_product_post_volume_camera_transition
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs::tests::post_process_pass_graph_records_nodes_from_executed_executor_ids
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_split_motion_blur_node_motion_vectors
   - zircon_runtime/src/core/framework/tests.rs::render_product_post_process_graph_elides_disabled_effects
@@ -341,7 +368,8 @@ tests:
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::smaa_resolution_keeps_terminal_mode_when_supported
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::auto_resolution_uses_smaa_when_fxaa_is_unavailable
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::screen_space_anti_alias_capability_accepts_smaa
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::smaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs::smaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_stack.rs::runtime_15_post_process_stack_is_folder_backed
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs::tests::post_process_layout_binds_resolved_exposure_storage_buffer
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_multiplies_color_grading_by_resolved_exposure
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs::local_sphere_post_process_volume_uses_camera_distance_for_full_influence
@@ -368,6 +396,7 @@ tests:
   - cargo test -p zircon_runtime --lib render_product_post_ --locked --target-dir target\codex-runtime-postprocess-0621 -- --test-threads=1 --nocapture
   - cargo check -p zircon_runtime --lib --locked --target-dir target\codex-runtime-postprocess-0621
   - cargo test -p zircon_runtime --lib render_product_post_process_terminal --locked (2026-06-22: passed 2/2)
+  - cargo test -p zircon_runtime --lib render_product_post_volume_camera_transition --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan07-volume-transition-0623 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-23: timed out after 245s with no result; not counted as passed)
   - cargo test -p zircon_runtime --lib smaa --locked (2026-06-22: passed 11/11)
   - cargo test -p zircon_runtime --lib dynamic_resolution --locked (2026-06-22: passed 8/8)
   - cargo test -p zircon_runtime --lib render_product_post_process --locked (2026-06-22: passed 22/22)
@@ -411,6 +440,9 @@ This directory documents post-process renderer behavior that is too specific for
 - PP-M1-S2b replaces the legacy `FinalComposite` contract node with `OutputTransfer` and introduces `postprocess.tonemapped` as the explicit handoff from the tonemap/uber stage to `post.output-transfer`. The WGPU side now owns `output_transfer.wgsl`, a dedicated bind group layout/pipeline, `execute_output_transfer`, and a registered `post.output-transfer` graph executor that writes `FINAL_COLOR`.
 - 2026-06-22 tightened this handoff for first-party plugin descriptors that reuse built-in post-process executor ids. `descriptor_filtering.rs` now routes plugin-authored `post.uber`, `post.output-transfer`, terminal AA, upscale, and related built-in executor ids through the same stack filtering as built-ins, so terminal AA rewrites output-transfer to `FINAL_COMPOSITED` before FXAA/SMAA writes `FINAL_COLOR`. Effect-stack outputs always declare `TONEMAPPED`, and `AMBIENT_OCCLUSION` remains active for `post.uber` so SSAO can feed the final post-process product independently of SSR.
 - PP-M1-S3 clears the old runtime pass/executor names for color grading and effect-stack routing. The graph now uses `color-lut-bake`/`post.color-lut-bake` and `uber`/`post.uber`, while data-schema names such as `RenderColorGradingSettings` and `RenderPostProcessEffectStackSettings` remain until the PP-M2/PP-M3 schema migration.
+- 2026-06-23 Plan 07 post-process stack owner split (`render_plan07_post_process_stack_owner_split_static_passed`) moves `PostProcessGraphResourceNames` into `core/framework/render/post_process/graph_resource_names.rs` and moves the 17 stack graph contract tests into `core/framework/render/post_process/stack/tests/{exposure,terminal_chain,screen_space_reflection,temporal_history,effect_stack}.rs`. `stack.rs` is now a 586-line descriptor owner that only mounts `mod tests;`; `runtime_15_post_process_stack_is_folder_backed` locks the resource-name owner, test owner layout, moved-test count, docs/status anchors, and line budgets. This is a structure-only owner split; no new Cargo/WGPU/RenderDoc pass is claimed here.
+- 2026-06-23 Plan 07 volume component owner split (`render_plan07_volume_component_owner_split_static_passed`) moves `VolumeParamValue`, `VolumeParamSchema`, `VolumeParamInterpFn`, `interp_*`, and parameter default factories into `core/framework/render/post_process/volume_component/params.rs`, then moves the 5 volume component behavior tests into `core/framework/render/post_process/volume_component/tests.rs`. `volume_component.rs` is now a 642-line descriptor/registry-map owner that only mounts `mod params;` and `mod tests;`; `runtime_15_post_process_volume_component_is_folder_backed` locks params/tests owners, moved-test count, docs/status anchors, and line budgets. This is a structure-only owner split; scoped rustfmt/static/docs/diff checks passed, focused locked `render_volume_component` Cargo timed out after 184s with no result and no matching target residual, and no new WGPU/RenderDoc pass is claimed here.
+- 2026-06-23 Plan 07 volume camera transition product guard (`render_plan07_volume_camera_transition_product_guard_static_passed_cargo_timeout_no_result`) adds `graphics/tests/render_product_post_process_volume.rs::render_product_post_volume_camera_transition`. The guard submits outside/blend/inside camera positions through real headless WGPU, drives a sphere `PostProcessVolumeExtract` into `post.vignette`, and checks `post.uber`, `post.output-transfer`, corner luma falloff, and final-frame deltas. It is isolated from the 913-line `render_product_post_process.rs`; scoped rustfmt/static/line-count checks passed, focused locked Cargo timed out after 245s with no result, and no new RenderDoc pass is claimed here.
 - PP-M2-S1 adds the contract-only volume component schema and registry. `VolumeParamValue`, `VolumeParamSchema`, and `VolumeComponentDescriptor` define parameter defaults plus interpolation/apply hooks, while `VolumeComponentRegistry::with_builtin_post_process_components()` exposes the planned built-in component ids from Plan 07 for later volume extract/evaluator wiring.
 - PP-M2-S2 adds `PostProcessVolumeExtract` as the planned per-frame volume DTO. Scene extraction now emits global/box/sphere shape snapshots plus component override vectors, with local volume projection isolated in `scene/world/render_post_process.rs` so the main render extract module stays below the large-file threshold.
 - PP-M2-S3 adds `VolumeEvaluator` and switches WGPU frame submission to `PostProcessExtract::resolved_settings_for_camera(...)`. Evaluator uses registered component descriptors to read current strong-typed values, apply per-param overrides, compute global/box/sphere weights, and write a `ResolvedPostProcessStack`; the former `volume_stack`/`volume.rs` fallback path has been hard-deleted.
@@ -438,6 +470,7 @@ This directory documents post-process renderer behavior that is too specific for
 - PP-M4-S1d/S1e moves SMAA from an external plugin-slot requirement to a built-in terminal AA pass and upgrades it to an internal three-stage WGPU path. `AntiAliasSettings::smaa()` resolves when capabilities expose `supports_smaa`, `PostProcessEffectKind::Smaa` maps to the same `TerminalAntiAlias` chain slot as FXAA, and `post.output-transfer` writes `postprocess.terminal-aa-input`. The built-in `post.smaa` executor now creates per-frame `Rgba8Unorm` edge and blend-weight textures, records `SmaaEdgePass`, `SmaaBlendPass`, and `SmaaResolvePass`, then writes external `final-color`. `smaa.wgsl` exposes `fs_edge`, `fs_blend`, and `fs_resolve`; `smaa_pipeline.rs` owns matching edge/blend/resolve pipelines over the dedicated two-texture SMAA bind group layout. The compiler still chooses between built-in FXAA and built-in SMAA by effective stack state, so SMAA no longer requires a plugin pass. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and focused SMAA shader/graph tests.
 - PP-M4-S2a connects dynamic-resolution output to an explicit chain-tail upscale pass. `build_frame_submission_context` compares `effective_render_size` with `effective_view_size` and enables `PostProcessEffectKind::Upscale` when the internal render size is smaller than the viewport. The stack declares `postprocess.upscaled`, `post.upscale` samples `postprocess.tonemapped` through `upscale.wgsl`, and `post.output-transfer` is re-routed to read the full-viewport `postprocess.upscaled` transient instead of the internal-size tonemapped texture. The WGPU path owns `upscale.rs`, `upscale_pipeline.rs`, `execute_upscale`, and a registered `post.upscale` executor. A transient-pool regression now materializes 0.5 scale, 1.0 scale, and 0.5 scale graph frames through `TransientResourcePool`, proving the scale swap keeps only the two descriptor buckets and reuses the half-size backing when the scale returns. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and focused terminal-AA/upscale test reruns.
 - 2026-06-22 PP-M4-S3 closes the focused/product validation gap for terminal AA and dynamic-resolution upscale. `render_product_post_terminal_fxaa_changes_final_frame_after_output_transfer` submits matching baseline and FXAA product frames, verifies `post.output-transfer` writes `postprocess.terminal-aa-input`, checks `post.fxaa` executes after output-transfer, then compares final captured RGB deltas. `render_product_post_dynamic_resolution_upscale_feeds_smaa_terminal_frame` submits a 160x120 viewport at 0.5 render-scale, verifies 80x60 internal rendering plus full-viewport `post.upscale -> post.output-transfer -> post.smaa`, checks `postprocess.upscaled` and terminal-AA input backings, and proves final visibility. The red run exposed that submit stats counted FXAA/TAA but not SMAA terminal execution; `base_stats.rs` now includes `post.smaa` in `last_anti_alias_graph_executed_pass_count`. Remaining PP-M4 work is RenderDoc evidence for terminal AA/upscale.
+- 2026-06-23 Plan 07 adds the full-chain all-effects product guard (`render_plan07_full_chain_all_effects_product_guard_static_passed_cargo_timeout_no_result`). `render_product_post_full_chain_all_effects_on` uses a real headless WGPU mesh + particle-velocity scene and enables histogram exposure, bloom, split DoF, motion blur, SSR/fog scene-composite, blur, color LUT bake/tonemap/user LUT, light uber effects, dynamic-resolution upscale, output-transfer, and SMAA terminal AA in one frame. The guard checks executor ordering, active effect families, graph aliases/backings, scene-velocity readback, and final-frame delta. Its scene/material/LUT/particle setup lives in `render_product_post_process_full_chain/fixture.rs` so the product guard stays folder-backed instead of expanding the legacy post-process test file.
 - 2026-06-19 Plan 09 CO-M2 carries the selected-camera viewport region through post-process. `PostProcessParams` now packs local viewport size, physical viewport origin, cluster dimensions, and the source origin for fixed full-frame scene textures separately. `post_process.wgsl` and `post_process_screen_space_reflection.wgsl` read graph-owned intermediates in local coordinates while adding the physical origin for fixed frame targets, history textures, G-buffer inputs, ambient occlusion, and scene color/depth/velocity sources. Split bloom, depth-of-field prepare, motion blur, scene-composite, blur, and SSR executors receive the source origin for their current scene-color input. `BLOOM` and `GLOBAL_ILLUMINATION` are graph-owned post-process textures, and the Hybrid GI history copy now copies the graph-owned GI result back into the selected camera's physical history region. Terminal output-transfer now chooses its render region by output target: it uses local origin-zero viewport/scissor and local params when writing graph-owned `FINAL_COMPOSITED` for terminal AA input, while the no-terminal-AA direct output path keeps physical target coordinates. FXAA and the final SMAA resolve always write imported/full-frame `FINAL_COLOR` with the physical region and origin; SMAA edge and blend stages remain local intermediate passes with origin zero. The validated slice used `cargo fmt --package zircon_runtime`, focused params/viewport/history tests, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked` against `D:\cargo-targets\zircon-runtime-postprocess-region-tests-0619`; the later split-screen PrimarySurface guard and terminal local/physical split passed `graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions` after the unrelated Runtime 05 compile blocker cleared.
 - 2026-06-16 editor-focused validation repaired the dynamic-resolution upscale pipeline's shader-source import path. `upscale_pipeline.rs` now imports `UPSCALE_SHADER` from the renderer-private `resources::shader_sources` module with the same relative ownership pattern used by the other post-process pipeline builders, instead of depending on a non-existent top-level `post_process::shader_sources` export. This changes module ownership only; `upscale.wgsl` and the render pipeline descriptor remain unchanged.
 - 2026-06-16 runtime fallback validation restored `render_pipeline_asset/compile.rs` test-module imports for `PostProcessStackDescriptor` and `RenderPipelineCompileOptions`. This is a test-owner compile repair only: it lets focused runtime filters compile existing post-process pipeline descriptor tests without changing render production behavior; the Runtime 06 `vm_lifecycle_fallback` Cargo filter passed 5/5 after the repair.

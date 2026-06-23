@@ -10,11 +10,11 @@ use crate::core::framework::render::{
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
     SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
-    VisibilityInput, VisibilityRenderableInput,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
 
+use super::render_visibility::{build_visibility_input, empty_visibility_input};
 use super::World;
 use crate::scene::components::{
     default_render_layer_mask, MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding,
@@ -149,8 +149,7 @@ impl World {
             .and_then(|entity| self.post_process_settings.get(&entity))
             .cloned()
             .unwrap_or_default();
-        let post_process_volumes =
-            self.collect_post_process_volumes(&camera_layers, view.camera.transform.translation);
+        let post_process_volumes = self.collect_post_process_volumes_for_view(&view);
         let camera_exposure_ev100 = view.camera.exposure_ev100;
 
         RenderFrameExtract {
@@ -268,7 +267,8 @@ impl World {
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
-        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+        let render_layer_mask = RenderLayerSet::from_legacy_mask(render_layer_mask);
+        if !camera_layers.intersects(&render_layer_mask) {
             return Vec::new();
         }
 
@@ -298,7 +298,7 @@ impl World {
                     tint: mesh.tint,
                     mobility,
                     static_state,
-                    render_layer_mask,
+                    render_layer_mask: render_layer_mask.clone(),
                 })
                 .collect();
         }
@@ -344,7 +344,8 @@ impl World {
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
-        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+        let render_layer_mask = RenderLayerSet::from_legacy_mask(render_layer_mask);
+        if !camera_layers.intersects(&render_layer_mask) {
             return None;
         }
 
@@ -408,9 +409,10 @@ impl World {
             .map(|(entity, light)| RenderDirectionalLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: self
-                    .render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
+                layer_mask: RenderLayerSet::from_legacy_mask(
+                    self.render_layer_mask(*entity)
+                        .unwrap_or(default_render_layer_mask()),
+                ),
                 direction: light.direction,
                 color: light.color,
                 intensity: light.intensity,
@@ -435,9 +437,10 @@ impl World {
             .map(|(entity, light)| RenderPointLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: self
-                    .render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
+                layer_mask: RenderLayerSet::from_legacy_mask(
+                    self.render_layer_mask(*entity)
+                        .unwrap_or(default_render_layer_mask()),
+                ),
                 position: self
                     .world_transform(*entity)
                     .unwrap_or_default()
@@ -465,9 +468,10 @@ impl World {
                 RenderRectLightSnapshot {
                     node_id: *entity,
                     light_id: *entity,
-                    layer_mask: self
-                        .render_layer_mask(*entity)
-                        .unwrap_or(default_render_layer_mask()),
+                    layer_mask: RenderLayerSet::from_legacy_mask(
+                        self.render_layer_mask(*entity)
+                            .unwrap_or(default_render_layer_mask()),
+                    ),
                     position: transform.translation,
                     direction: transform.forward(),
                     color: light.color,
@@ -497,9 +501,10 @@ impl World {
             .map(|(entity, light)| RenderSpotLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: self
-                    .render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
+                layer_mask: RenderLayerSet::from_legacy_mask(
+                    self.render_layer_mask(*entity)
+                        .unwrap_or(default_render_layer_mask()),
+                ),
                 position: self
                     .world_transform(*entity)
                     .unwrap_or_default()
@@ -836,67 +841,6 @@ fn inactive_camera_frame_extract(
         sprites: SpriteExtract::default(),
         particles: ParticleExtract::default(),
         visibility: empty_visibility_input(),
-    }
-}
-
-fn build_visibility_input(
-    meshes: &[RenderMeshSnapshot],
-    sprites: &[RenderSpriteSnapshot],
-    particles: &ParticleExtract,
-) -> VisibilityInput {
-    let mut renderables = meshes
-        .iter()
-        .map(|mesh| VisibilityRenderableInput {
-            entity: mesh.node_id,
-            mobility: mesh.mobility,
-            render_layer_mask: mesh.render_layer_mask,
-        })
-        .chain(sprites.iter().map(|sprite| VisibilityRenderableInput {
-            entity: sprite.entity,
-            mobility: crate::scene::components::Mobility::Dynamic,
-            render_layer_mask: sprite.render_layer_mask,
-        }))
-        .chain(
-            particles
-                .emitters
-                .iter()
-                .map(|entity| VisibilityRenderableInput {
-                    entity: *entity,
-                    mobility: crate::scene::components::Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
-                }),
-        )
-        .collect::<Vec<_>>();
-    renderables.sort_by_key(|entry| entry.entity);
-    let renderable_entities = renderables
-        .iter()
-        .map(|entry| entry.entity)
-        .collect::<Vec<_>>();
-    let static_entities = renderables
-        .iter()
-        .filter(|entry| entry.mobility == crate::scene::components::Mobility::Static)
-        .map(|entry| entry.entity)
-        .collect::<Vec<_>>();
-    let dynamic_entities = renderables
-        .iter()
-        .filter(|entry| entry.mobility == crate::scene::components::Mobility::Dynamic)
-        .map(|entry| entry.entity)
-        .collect::<Vec<_>>();
-
-    VisibilityInput {
-        renderable_entities,
-        static_entities,
-        dynamic_entities,
-        renderables,
-    }
-}
-
-fn empty_visibility_input() -> VisibilityInput {
-    VisibilityInput {
-        renderable_entities: Vec::new(),
-        static_entities: Vec::new(),
-        dynamic_entities: Vec::new(),
-        renderables: Vec::new(),
     }
 }
 

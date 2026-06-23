@@ -1,5 +1,3 @@
-#[cfg(test)]
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchChromeMetrics};
 use crate::ui::workbench::layout::ActivityDrawerSlot;
@@ -8,15 +6,6 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::build_surface::build_surface;
 use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
-
-#[cfg(test)]
-pub(crate) fn build_host_drawer_header_pointer_layout(
-    model: &WorkbenchViewModel,
-    metrics: &WorkbenchChromeMetrics,
-    _shared_root_frames: Option<&BuiltinHostRootShellFrames>,
-) -> HostDrawerHeaderPointerLayout {
-    build_host_drawer_header_pointer_layout_with_optional_workbench_frames(model, metrics, None)
-}
 
 pub(crate) fn build_host_drawer_header_pointer_layout_with_workbench_layout_frames(
     model: &WorkbenchViewModel,

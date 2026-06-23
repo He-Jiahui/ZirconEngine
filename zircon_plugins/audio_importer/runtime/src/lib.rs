@@ -14,20 +14,18 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
 
+mod capability;
 mod plugin;
 
+pub use capability::{
+    CODEC_IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    WAV_IMPORTER_CAPABILITY,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, AudioImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "audio_importer";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_audio_importer_runtime";
-pub const MODULE_NAME: &str = "AudioImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.audio_importer";
-pub const WAV_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.audio.wav";
-pub const CODEC_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.audio.codec";
 
 pub fn import_wav(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     let asset =

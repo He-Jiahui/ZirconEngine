@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -20,7 +21,12 @@ related_code:
   - zircon_runtime/src/core/framework/render/sprite/extract.rs
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/runtime/history/validation_key.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
@@ -57,8 +63,10 @@ related_code:
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -66,7 +74,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/runtime/history/validation_key.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
@@ -136,9 +149,11 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_writeback_plan_waits_for_target_descriptor
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_writeback_plan_accepts_matching_srgb_format
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_writeback_plan_accepts_linear_rgba_target_for_conversion
+  - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_writeback_plan_blocks_prepared_format_drift
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_marks_srgb_texture_ready_for_direct_import
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_keeps_linear_texture_on_conversion_writeback_path
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_unsupported_target_format
+  - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_prepared_format_drift
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs::tests::build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs::tests::direct_runtime_frame_submit_projects_resolved_output_target
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_uses_resolved_texture_target_only
@@ -171,14 +186,24 @@ tests:
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked unified_sort_components --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked render_product_sprite_phase_queue_honors --jobs 1 --message-format short --color never
-  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::render_view_apply_target_size_preserves_descriptor_target_and_layers
-  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::render_frame_extract_selected_camera_descriptor_replaces_active_selection_only
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_apply_target_size_preserves_descriptor_target_and_layers
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_selected_camera_descriptor_replaces_active_selection_only
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs::tests::particle_velocity_vertices_filter_current_sprites_by_selected_camera_layers
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers
+  - cargo test -p zircon_runtime --lib particle_vertices_filter_sprites_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-particle-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
+  - cargo test -p zircon_runtime --lib phase_ordered_meshes_filter_meshes_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-mesh-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
+  - cargo test -p zircon_runtime --lib render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-input-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-input-typed-layer-0623-check --message-format short --color never (blocked before compilation by current Cargo.lock drift)
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs::explicit_request_camera_uses_volume_mask_for_post_process_volumes
 doc_type: module-detail
 ---
 
@@ -192,9 +217,13 @@ doc_type: module-detail
 
 `RenderViewExtract` records an optional `target_size` alongside the transitional `camera` snapshot and the descriptor list in `cameras`. During the Plan 09 camera hard cutover, `CameraRenderDescriptor` owns the selected camera target, viewport rectangle, render order, clear policy, and render layers; the legacy `ViewportCameraSnapshot` is a projection for callers that have not yet been migrated.
 
-`RenderViewExtract::selected_camera_descriptor()` selects the descriptor matching `scene_camera_entity` and falls back to the first descriptor for synthetic or explicit camera extracts. `selected_camera_target()`, `selected_camera_layers()`, and `selected_effective_camera()` are the submit/visibility read path for descriptor-owned fields. `sync_selected_descriptor_camera_payload()` exists only for the transition window: it copies the current snapshot payload fields such as transform, projection, dynamic resolution, MSAA, and temporal jitter into the selected descriptor. It does not reproject target, viewport, order, clear, or layer data back onto `ViewportCameraSnapshot`; those fields no longer exist on the snapshot. `apply_target_size(...)` runs that sync before applying the descriptor viewport clamp and writing the sized aspect ratio into the selected descriptor payload. `render_view_apply_target_size_preserves_descriptor_target_and_layers` covers that transition by asserting a headless descriptor target, layer masks, volume mask, and viewport-derived aspect ratio survive sizing.
+`RenderViewExtract::selected_camera_descriptor()` selects the descriptor matching `scene_camera_entity` and falls back to the first descriptor for synthetic or explicit camera extracts. `selected_camera_target()`, `selected_camera_layers()`, and `selected_effective_camera()` are the submit/visibility read path for descriptor-owned fields. Plan 09 CO-M4 also exposes `selected_camera_volume_layers()` as the post-process Volume read path: visibility and draw culling keep using `selected_camera_layers()`, while `PostProcessExtract::resolved_settings_for_camera(...)` must receive only the selected descriptor `volume_mask`. `sync_selected_descriptor_camera_payload()` exists only for the transition window: it copies the current snapshot payload fields such as transform, projection, dynamic resolution, MSAA, and temporal jitter into the selected descriptor. It does not reproject target, viewport, order, clear, or layer data back onto `ViewportCameraSnapshot`; those fields no longer exist on the snapshot. `apply_target_size(...)` runs that sync before applying the descriptor viewport clamp and writing the sized aspect ratio into the selected descriptor payload. `render_view_apply_target_size_preserves_descriptor_target_and_layers` covers that transition by asserting a headless descriptor target, layer masks, volume mask, and viewport-derived aspect ratio survive sizing.
+
+Status anchor `render_plan09_volume_mask_separate_from_culling_static_passed_cargo_lock_blocked_timeout_no_result` records the 2026-06-23 separation: scene post-process extraction now collects volumes for the selected/stack `volume_mask`, and submit-time resolution no longer reuses the camera culling mask.
 
 The size is derived from the selected descriptor's explicit viewport rectangle or headless camera target when present, then falls back to the known submission target size. `RenderFrameExtract::apply_viewport_size(...)` updates both the selected descriptor payload aspect ratio and the stored target size before submission.
+
+Plan 09 CO-M4 now keeps visibility renderable layer input typed through the frame DTO. `VisibilityRenderableInput.render_layer_mask` is a `RenderLayerSet`; `RenderFrameExtract::from_snapshot(...)` clones the typed mesh snapshot layer set instead of projecting through `to_legacy_mask_lossy()`, and `render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width` locks layer 40 through the snapshot adapter. The 2026-06-23 status anchor is `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result`; its focused locked Cargo test timed out after 124 seconds with no test binary, while locked check was blocked before compilation by current `Cargo.lock` drift. The inline `frame_extract.rs` tests were moved to `frame_extract/tests.rs`, keeping the production owner below the large-file threshold.
 
 `RenderViewExtract::effective_view_size()` is the canonical read path for SRP and RenderGraph descriptor derivation. It clamps through the camera viewport when present and falls back to `1 x 1` only when the extract does not yet know a surface or headless target size.
 
@@ -202,11 +231,11 @@ During submit, `build_frame_submission_context(...)` resolves the camera target 
 
 The same context also resolves a crate-internal `ViewportRenderOutputTarget` and attaches it to renderer-bound `ViewportRenderFrame` values. Generated extract submits and direct runtime-frame submits both carry the resolved target kind, headless size, or texture handle plus size after preflight. `ViewportRenderFrame::camera()` now returns the selected `CameraRenderDescriptor`; renderer code that still needs a legacy `ViewportCameraSnapshot` for matrix math, shadows, particles, or post-process uniforms must call `ViewportRenderFrame::effective_camera()` and treat the returned snapshot as a projection. This keeps texture writeback and target-aware capture from revalidating authored camera state while `RenderFrameExtract` remains neutral and still carries no WGPU surface or texture object.
 
-`ViewportRenderOutputTarget::writeback_plan(...)` is the renderer-internal planning seam. Non-texture targets report `NotRequested`; texture targets without a descriptor format report `PendingTargetDescriptor`; texture targets matching the framework offscreen output format label `rgba8unorm_srgb` report `ReadyForSrgbCopy`; linear `rgba8unorm` targets report `ReadyForConversion`; and unsupported target formats report `BlockedFormatMismatch`. The plan records texture handle, resolved size, source format, and target format without exposing resource-streamer texture internals.
+`ViewportRenderOutputTarget::writeback_plan(...)` is the renderer-internal planning seam. Non-texture targets report `NotRequested`; texture targets without a descriptor format report `PendingTargetDescriptor`; texture targets matching the framework offscreen output format label `rgba8unorm_srgb` report `ReadyForSrgbCopy`; linear `rgba8unorm` targets report `ReadyForConversion`; unsupported target formats report `BlockedFormatMismatch`; and prepared WGPU resources whose descriptor format no longer matches the camera-target preflight result report `BlockedPreparedFormatMismatch` before copy or conversion. The plan records texture handle, resolved size, source format, actual prepared target format, and expected preflight target format without exposing resource-streamer texture internals.
 
 `ResourceStreamer::ensure_scene_resources(...)` notices the resolved texture output target on `ViewportRenderFrame` and asks a dedicated output-target residency path to prepare that texture. Primary-surface and headless targets are ignored. Output-target residency uses `OutputTargetTextureResource` instead of the sampled material/sprite `GpuTextureResource`, so a valid camera target may be render-target-only without also needing sampled binding usage. When an sRGB target is prepared and the graph-import plan is ready, the renderer imports the prepared texture view as the final graph target aliases instead of binding those aliases to the framework offscreen final color. Linear `rgba8unorm` targets still use `ResourceStreamer::execute_output_target_writeback(...)` after graph execution: the fullscreen conversion pass samples the framework final color and writes the prepared linear target. The writeback report records skipped-direct-import, suppressed-by-camera-stack, blocked, ready, copied, or converted status plus target extent, copy/conversion counts, and separate copy/conversion debug-marker emission. Prepared texture internals and WGPU handles stay behind the renderer resource owner instead of entering the frame DTO.
 
-The renderer also records a separate graph-import report from that prepared output target. `ViewportRenderOutputTarget::graph_import_plan(...)` marks matching `rgba8unorm_srgb` texture targets as `ReadyForDirectImport` during residency/readiness preflight, linear `rgba8unorm` targets as `RequiresConversionWriteback`, unsupported formats as `BlockedFormatMismatch`, and non-texture targets as `NotRequested`. Graph execution upgrades successful sRGB imports to `DirectImported`, increments `direct_import_count`, and makes output-target writeback report `SkippedDirectImport`; readiness-only reports keep `direct_import_count` at zero. If the selected child frame is not the stack-terminal final-output owner, `select_final_target_output(...)` records `SuppressedByCameraStack` for texture targets instead of importing the prepared target. `RenderStats.last_camera_target_graph_import` and `render.camera.target.graph_import.*` expose those status/count/extent rows without moving WGPU texture handles into `RenderFrameExtract`.
+The renderer also records a separate graph-import report from that prepared output target. `ViewportRenderOutputTarget::graph_import_plan(...)` marks matching `rgba8unorm_srgb` texture targets as `ReadyForDirectImport` during residency/readiness preflight, linear `rgba8unorm` targets as `RequiresConversionWriteback`, unsupported formats as `BlockedFormatMismatch`, prepared-format drift as `BlockedPreparedFormatMismatch`, and non-texture targets as `NotRequested`. Graph execution upgrades successful sRGB imports to `DirectImported`, increments `direct_import_count`, and makes output-target writeback report `SkippedDirectImport`; readiness-only reports keep `direct_import_count` at zero. Both internal blocked states project to the neutral `blocked_format_mismatch` report row, so diagnostics stay stable while the planner keeps cache-key/preflight format identity aligned with the actual resource descriptor. If the selected child frame is not the stack-terminal final-output owner, `select_final_target_output(...)` records `SuppressedByCameraStack` for texture targets instead of importing the prepared target. `RenderStats.last_camera_target_graph_import` and `render.camera.target.graph_import.*` expose those status/count/extent rows without moving WGPU texture handles into `RenderFrameExtract`.
 
 `ViewportFrame` now carries `RenderCaptureReport` from the renderer readback path into `record_capture(...)`, and `CapturedFrame` stores the same report in the viewport record. `record_submission(...)` then forwards the stored report into `SubmissionRecordUpdate`, so `update_base_stats(...)` can publish `RenderStats.last_capture_report`. This is intentionally result metadata: it records whether the capture came from framework offscreen color, an imported texture target, a converted texture writeback, or a copied texture writeback, while `RenderFrameExtract` remains the authored-frame DTO and still carries no backend texture handle.
 
@@ -218,7 +247,9 @@ Object previous transforms no longer travel through the neutral frame DTO. The r
 
 ## Particle State Contract
 
-`ParticleExtract` now separates current transparent billboard state from optional previous-state evidence. `sprites` carries the current `RenderParticleSpriteSnapshot` list used by the transparent particle pass. `previous_sprites` carries `RenderParticlePreviousSpriteSnapshot` rows keyed by entity, with previous position, size, aspect ratio, billboard offset, and rotation. The scene JSON extraction path initializes `previous_sprites` as empty because it does not yet own previous particle state.
+`ParticleExtract` now separates current transparent billboard state from optional previous-state evidence. `sprites` carries the current `RenderParticleSpriteSnapshot` list used by the transparent particle pass. The current sprite snapshot's `render_layer_mask` is a typed `RenderLayerSet`; scene extraction wraps the legacy authored entity mask at this DTO boundary, while visibility input still downgrades through `to_legacy_mask_lossy()` because `VisibilityRenderableInput` remains on the legacy `u32` ABI. `previous_sprites` carries `RenderParticlePreviousSpriteSnapshot` rows keyed by entity, with previous position, size, aspect ratio, billboard offset, and rotation. The scene JSON extraction path initializes `previous_sprites` as empty because it does not yet own previous particle state.
+
+Plan 09 CO-M4 also routes the particle selected-camera filter through that typed mask: `build_particle_vertices(...)`, `build_particle_velocity_vertices(...)`, and `RenderPipelineAsset::compile(...)` intersect the selected camera `RenderLayerSet` with each particle sprite `render_layer_mask`. The status anchor for this follow-up is `render_plan09_particle_render_layer_set_snapshot_static_passed_cargo_lock_blocked`; scoped rustfmt/static checks passed, but the focused locked Cargo command stopped before compilation on current `Cargo.lock` drift.
 
 `ParticleExtract::previous_state_sprite_count()` matches current sprite entities against previous-state rows with per-entity counts, consuming one previous row for one current sprite. `missing_previous_state_sprite_count()` reports the remaining current sprites. Submit stats use that count to avoid marking particles as missing velocity input once a caller supplies matched previous state. This is still a neutral DTO contract and diagnostic contraction; it does not write particle velocity into `scene-velocity`.
 
@@ -257,16 +288,31 @@ queue. The batch list is derived automatically by
 `GeometryExtract::from_meshes(...)` and
 `GeometryExtract::from_meshes_and_phase_inputs(...)`: only meshes whose
 `mobility` is `Mobility::Static` are eligible, and they are grouped by source
-model, optional mesh primitive handle, material handle, and render-layer mask.
+model, optional mesh primitive handle, material handle, and typed render-layer
+set. The internal batch key stores the layer set as an ordered layer list, so
+static batching does not collapse layer 32+ meshes through a lossy legacy mask.
 Groups with one instance are omitted so downstream renderers can treat the list
 as actual batch candidates rather than a mirror of every static mesh.
 
-`StaticMeshBatchExtract` records the resource key, the source `mesh_indices`,
-and the entity ids in deterministic mesh-vector order. It is still neutral
-frame data: it does not store renderer buffers, WGPU bind groups, or draw
-commands. The immediate consumer is diagnostics and acceptance testing, while a
-later renderer pass can use the same DTO to emit instanced/static draw calls
-without recomputing scene ownership from `World`.
+`StaticMeshBatchExtract` records the resource key, typed `render_layer_mask`,
+the source `mesh_indices`, and the entity ids in deterministic mesh-vector
+order. It is still neutral frame data: it does not store renderer buffers, WGPU
+bind groups, or draw commands. The immediate consumer is diagnostics,
+frame-history validation, and acceptance testing, while a later renderer pass
+can use the same DTO to emit instanced/static draw calls without recomputing
+scene ownership from `World`. The remaining legacy conversions are explicit:
+`RenderFrameExtract::from_snapshot(...)`, scene `build_visibility_input(...)`,
+and visibility fallback rows call `to_legacy_mask_lossy()` only when exporting
+to the old `VisibilityRenderableInput` / visibility ABI.
+
+Plan 09 CO-M4 routes mesh selected-camera filtering through the same typed mask:
+`RenderMeshSnapshot.render_layer_mask` is a `RenderLayerSet`, and
+`build_mesh_draws/build/phase_ordering.rs` intersects selected camera layers
+with that set for raw mesh-vector fallback and `RenderPhaseQueue` consumption.
+The status anchor is
+`render_plan09_mesh_render_layer_set_snapshot_static_passed_cargo_lock_blocked`;
+scoped rustfmt/static checks passed, but the focused locked Cargo command
+stopped before compilation on current `Cargo.lock` drift.
 
 The vampire example relies on this path for its authored billboard grass:
 six `Static Grass Batch ...` entities share the same grass model/material and

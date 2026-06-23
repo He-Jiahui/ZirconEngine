@@ -6,9 +6,9 @@ use crate::{
 };
 
 use super::{
-    PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest, PluginOptionManifest,
-    PluginPackageKind, PluginPackageManifest,
+    PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
+    PluginFeatureBundleManifest, PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest,
+    PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
 };
 
 impl PluginModuleManifest {
@@ -131,6 +131,7 @@ impl PluginPackageManifest {
                 ExportPackagingStrategy::SourceTemplate,
                 ExportPackagingStrategy::LibraryEmbed,
             ],
+            distribution: None,
         }
     }
 
@@ -320,6 +321,11 @@ impl PluginPackageManifest {
         packaging: impl IntoIterator<Item = ExportPackagingStrategy>,
     ) -> Self {
         self.default_packaging = packaging.into_iter().collect();
+        self
+    }
+
+    pub fn with_distribution(mut self, distribution: PluginDistributionManifest) -> Self {
+        self.distribution = Some(distribution);
         self
     }
 

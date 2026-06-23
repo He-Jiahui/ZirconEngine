@@ -2,7 +2,7 @@
 
 > 本文是 ZirconEngine 插件 `plugin.toml` 的**唯一 schema 权威**，由 [Plugins 12](../plans/zircon_plugins/12-plugin-dx-and-structure-framework.md) 落地、[引擎结构规范 §6.2](../plans/engine-code-structure-convention.md) 引用。所有插件（含 `asset_importers/*`、native-dynamic）必须提供符合本 schema 的 `plugin.toml`，位于插件 crate 根。
 >
-> 状态：in_progress（schema 定稿；2026-06-22 已落 D-S7/D3 静态生成标记与 native 单源嵌入、补齐 `asset_importers/*` 与 `opus_importer` 缺失 manifest，并让 `plugins_12_manifest_schema_uniform` 与 `tools/audit_plugin_structure.py --json` 覆盖 37 份 manifest 的必选字段与 `supported_platforms`；完整 runtime schema 校验器、全 feature descriptor parity 与 capability 四源一致性 guard 仍由 Plugins 12 后续切片收口）
+> 状态：in_progress（schema 定稿；2026-06-22 已落 D-S7/D3 静态生成标记与 native 单源嵌入、补齐 `asset_importers/*` 与 `opus_importer` 缺失 manifest，并让 `plugins_12_manifest_schema_uniform` 与 `tools/audit_plugin_structure.py --json` 覆盖 37 份 manifest 的必选字段与 `supported_platforms`；2026-06-23 已让首个 `[distribution]` 段进入 Plugins 13 M1 guard，`distribution_section_violations = 0`，并在 Plugins 13 M4/T2 接入 runtime typed manifest 与 native loader compatibility gate；完整 runtime schema 校验器、全 feature descriptor parity 与 capability 四源一致性 guard 仍由 Plugins 12 后续切片收口）
 
 ## 1. 设计原则
 
@@ -64,6 +64,7 @@ assets = ["assets/**"]                     # 随包资产（进 per-plugin zrpac
 ```
 
 - 非 native 插件的 `[distribution]` 由 descriptor `package_manifest()` 投影（`@generated`），不手写漂移。
+- runtime 侧 `PluginPackageManifest` 已 typed 承载 `[distribution]`，native loader 会在库路径探测前校验 `forms`、`abi_version` 与 `engine_compat`；不匹配时输出结构化诊断并跳过插件。
 - `dist` 形态产物的依赖闭包禁含 `zircon_runtime`（依赖边界 guard，见规范 §8）。
 
 ## 4. native-dynamic 插件规则
@@ -75,5 +76,5 @@ native-dynamic 仍保留手写根 `plugin.toml`，但 native cdylib 代码不得
 ## 5. 校验器与 guard（Plugins 12 M1）
 
 - 校验器：`zircon_runtime/src/plugin/package_manifest/*` 扩 schema 校验。
-- 一致性 guard：`plugins_12_manifest_schema_uniform`、`plugins_12_static_plugin_manifest_is_generated`、`plugins_12_capability_single_source`。当前已落的 `plugins_12_static_plugin_manifest_is_generated` 覆盖生成头、静态 runtime descriptor 子集 parity、native 单源嵌入以及多行 TOML 数组解析；`plugins_12_manifest_schema_uniform` 与 `tools/audit_plugin_structure.py --json` 已覆盖 36 个 generated 非 native manifest + 1 个 native 手写 manifest 的必选字段和 `supported_platforms`。后续仍需收口 runtime schema 校验器、全 feature descriptor parity 与 capability 四源一致性。
-- 审计字段：`missing_plugin_toml`、`manifest_schema_violations`、`capability_source_mismatches`（见 `tools/plugin_structure_audits/`）。
+- 一致性 guard：`plugins_12_manifest_schema_uniform`、`plugins_12_static_plugin_manifest_is_generated`、`plugins_12_capability_single_source`、`plugins_13_dist_dependency_boundary_clean`。当前已落的 `plugins_12_static_plugin_manifest_is_generated` 覆盖生成头、静态 runtime descriptor 子集 parity、native 单源嵌入以及多行 TOML 数组解析；`plugins_12_manifest_schema_uniform` 与 `tools/audit_plugin_structure.py --json` 已覆盖 36 个 generated 非 native manifest + 1 个 native 手写 manifest 的必选字段和 `supported_platforms`；Plugins 13 M1 首个 `[distribution]` guard 覆盖 `native_dynamic_fixture`，报告 `distribution_section_violations = 0`、`dist_dependency_boundary_violations = 0`。后续仍需收口 runtime schema 校验器、全 feature descriptor parity 与 capability 四源一致性。
+- 审计字段：`missing_plugin_toml`、`manifest_schema_violations`、`capability_source_mismatches`、`distribution_section_violations`、`dist_dependency_boundary_violations`（见 `tools/plugin_structure_audits/`）。

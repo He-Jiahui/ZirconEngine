@@ -6,6 +6,7 @@ mod validation;
 
 pub(crate) use compiled_graph_cache::{
     extract_compile_fingerprint, CompiledGraphCache, CompiledGraphCacheKey,
+    RenderGraphCompileCameraTargetFingerprint, RenderGraphCompileTextureTargetFormat,
 };
 pub use declarations::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,

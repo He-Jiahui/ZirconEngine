@@ -5,9 +5,16 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn inspector_surface_controls_use_pane_surface_host_callbacks() {
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring.rs");
-    let inspector = source("src/ui/retained_host/app/inspector.rs");
+    let globals = source("src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs");
+    let wiring = source("src/ui/retained_host/app/callback_wiring/pane_surface/inspector.rs");
+    let inspector = [
+        "src/ui/retained_host/app/inspector/surface_controls/value_change.rs",
+        "src/ui/retained_host/app/inspector/surface_controls/click.rs",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n");
 
     for required in [
         "on_inspector_control_changed",

@@ -19,7 +19,6 @@ pub use occlusion::{
     HzbBuildPlan, HzbBuilder, HzbOcclusionCullReadbackStats, HzbOcclusionCullReport,
     HzbOcclusionIndirectArgsReadbackSummary,
 };
-#[allow(unused_imports)]
 pub(crate) use static_index::VisibilityStaticIndex;
 pub use static_index::VisibilityStaticIndexReport;
 pub use view_context::{

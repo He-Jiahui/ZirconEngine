@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderFramework,
-    RenderMeshSnapshot, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderLayerSet, RenderMeshSnapshot, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
@@ -117,6 +118,6 @@ fn static_mesh(node_id: u64, translation: Vec3) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }

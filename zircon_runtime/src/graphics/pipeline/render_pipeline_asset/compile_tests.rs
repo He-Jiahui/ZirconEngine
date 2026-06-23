@@ -1,9 +1,11 @@
 use crate::core::framework::render::{
-    AntiAliasSettings, PostProcessGraphResourceNames, PostProcessStackDescriptor,
-    RenderBloomSettings, RenderBlurSettings, RenderDepthOfFieldSettings, RenderFrameExtract,
-    RenderMotionBlurSettings, RenderPhase, RenderPipelineHandle,
-    RenderPostProcessEffectStackSettings, RenderWorldSnapshotHandle,
+    AntiAliasSettings, CameraRenderDescriptor, PostProcessGraphResourceNames,
+    PostProcessStackDescriptor, RenderBloomSettings, RenderBlurSettings,
+    RenderDepthOfFieldSettings, RenderFrameExtract, RenderLayerSet, RenderMotionBlurSettings,
+    RenderParticleSpriteSnapshot, RenderPhase, RenderPipelineHandle,
+    RenderPostProcessEffectStackSettings, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
+use crate::core::math::{Vec3, Vec4};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
 };
@@ -118,6 +120,41 @@ fn compile_preserves_compute_workload_from_feature_descriptor() {
     assert_eq!(
         workload.dispatch_extent,
         RenderGraphComputeDispatchExtent::Viewport
+    );
+}
+
+#[test]
+fn compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers() {
+    let mut extract = test_extract();
+    let mut descriptor =
+        CameraRenderDescriptor::from_camera_payload(Some(7), ViewportCameraSnapshot::default());
+    descriptor.culling_mask = RenderLayerSet::layer(2);
+    extract.select_camera_descriptor(descriptor);
+    extract
+        .particles
+        .sprites
+        .push(RenderParticleSpriteSnapshot {
+            entity: 1,
+            stable_sprite_key: 1,
+            position: Vec3::ZERO,
+            size: 1.0,
+            color: Vec4::ONE,
+            intensity: 1.0,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(1 << 1),
+            ..RenderParticleSpriteSnapshot::default()
+        });
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile(&extract)
+        .unwrap();
+
+    assert!(
+        !compiled
+            .graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "particle-render"),
+        "hidden particle sprites should not auto-enable the core particle pass"
     );
 }
 

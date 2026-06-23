@@ -218,8 +218,12 @@ pub(super) fn runtime_behavior_descriptor(
         state_schema_version: plugin.runtime_state_schema_version(),
         command_manifest_schema: plugin.runtime_command_manifest_schema().map(str::to_string),
         event_manifest_schema: plugin.runtime_event_manifest_schema().map(str::to_string),
+        registration_manifest_schema: plugin
+            .runtime_registration_manifest_schema()
+            .map(str::to_string),
         command_manifest: plugin.runtime_command_manifest().map(str::to_string),
         event_manifest: plugin.runtime_event_manifest().map(str::to_string),
+        registration_manifest: plugin.runtime_registration_manifest().map(str::to_string),
         validation_report: plugin.runtime_behavior_validation_report().cloned(),
     }
 }

@@ -380,6 +380,7 @@ WGSL include 只暴露函数与 struct(index §8.3):`zr_volumetric_apply(color, 
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | 全部未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 18 Advanced Lighting 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：clearcoat/anisotropy/transmission/SSS、cookies/irradiance volumes、froxel fog/OIT/planar reflection；验收缺口：需要等 05/07/08/09/11/13 地基完成后逐 feature 做 parity 和 RenderDoc 验收 |
 | 2026-06-15 | AF-M1 material feature family | 未启动: 依赖计划 08 shading model registry | clearcoat、anisotropy、transmission 和 SSS 所需材质参数、G-buffer 位与 shading model 仍未落地。 | 本文件 `现状与差距` 明确 StandardPBR 不含这些参数,计划 08 MS-M3 状态表也标为未启动。 | 先完成计划 08 的 shading model registry、G-buffer packing 与材质资产验证。 |
 | 2026-06-15 | AF-M2 light cookies and irradiance volumes | 未启动: 依赖 05/11/13 | `GpuLightData` 尚无 cookie 槽位,计划 11 的 probe/lightmap 仍未完整,texture array/cubemap 资产也未完成;irradiance volumes 仍是后续设计。 | 本文件 `现状与差距` 记录 light cookies 和 irradiance volumes 缺口;计划 05/11/13 状态表分别记录相关基础仍有后续项。 | 扩展 light data ABI、cookie texture binding、local irradiance volume asset 和 sampling path。 |
 | 2026-06-15 | AF-M3 froxel volumetric fog and lighting | 未启动: 依赖 light grid/history/post/compute 地基 | 体积介质、froxel volume、volumetric shadowing 和 temporal reprojection 均未实现。 | 本文件 `现状与差距` 明确计划 11 只有解析雾、计划 07 只有 screen-space fog 槽位,不与 light grid/shadow 交互。 | 等计划 05/06/07/16 稳定后实施 froxel grid、lighting injection、history filter 和 composite pass。 |

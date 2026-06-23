@@ -384,7 +384,7 @@ unsafe fn register_system_from_abi(
     builder.register().map_err(|error| error.to_string())
 }
 
-struct NativeDynamicAccess;
+pub(super) struct NativeDynamicAccess;
 
 impl SystemParam for NativeDynamicAccess {
     type State = ();

@@ -1,6 +1,7 @@
 mod builtin_catalog;
 mod constructors;
 mod plugin_dependency_manifest;
+mod plugin_distribution_manifest;
 mod plugin_event_manifest;
 mod plugin_feature_bundle_manifest;
 mod plugin_feature_dependency;
@@ -12,6 +13,7 @@ mod plugin_package_kind;
 mod plugin_package_manifest;
 
 pub use plugin_dependency_manifest::PluginDependencyManifest;
+pub use plugin_distribution_manifest::PluginDistributionManifest;
 pub use plugin_event_manifest::{PluginEventCatalogManifest, PluginEventManifest};
 pub use plugin_feature_bundle_manifest::PluginFeatureBundleManifest;
 pub use plugin_feature_dependency::PluginFeatureDependency;

@@ -4,8 +4,16 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+mod capability;
+mod plugin;
+
+pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
+pub use plugin::{
+    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
+    RenderingVfxGraphRuntimeFeature,
+};
+
 pub const FEATURE_ID: &str = "rendering.vfx_graph";
-pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.vfx_graph";
 pub const FEATURE_NAME: &str = "vfx_graph";
 pub const SIMULATION_EXECUTOR_ID: &str = "vfx-graph.simulate";
 pub const TRANSPARENT_EXECUTOR_ID: &str = "vfx-graph.transparent";
@@ -61,44 +69,6 @@ pub fn compile_vfx_graph(asset: &VfxGraphAsset) -> VfxGraphCompileReport {
         render_pass: "vfx-graph-transparent".to_string(),
         diagnostics,
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct RenderingVfxGraphRuntimeFeature;
-
-impl zircon_runtime::plugin::RuntimePluginFeature for RenderingVfxGraphRuntimeFeature {
-    fn manifest(&self) -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-        feature_manifest()
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_component(vfx_emitter_component_descriptor())?;
-        registry.register_render_feature(render_feature_descriptor())?;
-        for registration in render_pass_executor_registrations() {
-            registry.register_render_pass_executor(registration)?;
-        }
-        Ok(())
-    }
-}
-
-pub fn runtime_plugin_feature() -> RenderingVfxGraphRuntimeFeature {
-    RenderingVfxGraphRuntimeFeature
-}
-
-pub fn plugin_feature_registration(
-) -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(
-        &runtime_plugin_feature(),
-    )
-}
-
-pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_plugin_rendering_runtime::feature_manifest(
-        zircon_plugin_rendering_runtime::RenderingFeatureKind::VfxGraph,
-    )
 }
 
 pub fn vfx_emitter_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {

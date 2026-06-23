@@ -309,7 +309,7 @@ pub(super) fn legacy_asset_kind(kind: UiV2AssetKind) -> UiAssetKind {
     match kind {
         UiV2AssetKind::View => UiAssetKind::Layout,
         UiV2AssetKind::Component => UiAssetKind::Widget,
-        UiV2AssetKind::Style => UiAssetKind::Style,
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => UiAssetKind::Style,
     }
 }
 

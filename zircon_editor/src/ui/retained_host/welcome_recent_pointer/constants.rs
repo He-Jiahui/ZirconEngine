@@ -8,6 +8,8 @@ pub(in crate::ui::retained_host::welcome_recent_pointer) const ITEM_NODE_ID_BASE
 pub(in crate::ui::retained_host::welcome_recent_pointer) const OPEN_BUTTON_NODE_ID_BASE: u64 = 1000;
 pub(in crate::ui::retained_host::welcome_recent_pointer) const REMOVE_BUTTON_NODE_ID_BASE: u64 =
     2000;
+pub(in crate::ui::retained_host::welcome_recent_pointer) const WELCOME_RECENT_ROUTE_ID_BASE: u64 =
+    60_000;
 
 pub(in crate::ui::retained_host::welcome_recent_pointer) const OUTER_MARGIN: f32 = 18.0;
 pub(in crate::ui::retained_host::welcome_recent_pointer) const OUTER_VERTICAL_MARGIN: f32 = 18.0;

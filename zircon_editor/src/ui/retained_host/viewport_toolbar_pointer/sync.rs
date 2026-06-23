@@ -16,7 +16,7 @@ impl ViewportToolbarPointerBridge {
             .iter()
             .map(|surface| surface.key.clone())
             .collect::<BTreeSet<_>>();
-        self.active_controls
+        self.controls_by_surface
             .retain(|surface_key, _| valid_surface_keys.contains(surface_key));
         self.rebuild_surface();
         true

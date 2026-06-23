@@ -1,6 +1,7 @@
 mod integration_contracts {
     mod activity_drawer_window_template;
     mod editor_main_frame_template;
+    mod floating_window_design_parity;
     mod host_drag_targets;
     mod native_window_hosts;
     mod structure_roots;

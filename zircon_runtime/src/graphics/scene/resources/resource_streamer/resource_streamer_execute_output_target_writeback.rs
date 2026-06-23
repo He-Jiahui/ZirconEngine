@@ -72,7 +72,8 @@ impl ResourceStreamer {
             }
             ViewportTextureWritebackStatus::NotRequested
             | ViewportTextureWritebackStatus::PendingTargetDescriptor
-            | ViewportTextureWritebackStatus::BlockedFormatMismatch => {}
+            | ViewportTextureWritebackStatus::BlockedFormatMismatch
+            | ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch => {}
         }
         Ok(())
     }
@@ -159,6 +160,9 @@ fn output_target_writeback_report_for_plan(
         ViewportTextureWritebackStatus::BlockedFormatMismatch => {
             RenderCameraTargetWritebackReport::blocked_format_mismatch(size)
         }
+        ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch => {
+            RenderCameraTargetWritebackReport::blocked_format_mismatch(size)
+        }
     }
 }
 
@@ -219,6 +223,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
         let ready = target.writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         let conversion = target.writeback_plan(Some("rgba8unorm"));
@@ -246,6 +251,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
         let ready = output_target_writeback_report_for_plan(
             &target.writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)),
@@ -289,6 +295,7 @@ mod tests {
         let texture = ViewportRenderOutputTarget::Texture {
             handle: texture_handle("tests/writeback/suppressed"),
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
         let texture_report = suppressed_output_target_writeback_report(texture);
         let primary_report =
@@ -345,6 +352,7 @@ mod tests {
         ViewportRenderOutputTarget::Texture {
             handle: texture_handle("tests/writeback/extent"),
             size,
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         }
         .writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL))
     }

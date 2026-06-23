@@ -4,8 +4,8 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AntiAliasFallbackReason, AntiAliasMode, AntiAliasSettings, CapturedFrame, FallbackSkyboxKind,
     PostProcessGraphResourceNames, PreviewEnvironmentExtract, RenderCapabilitySummary,
-    RenderDynamicResolutionSettings, RenderFrameExtract, RenderFramework, RenderOverlayExtract,
-    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderQualityProfile,
+    RenderDynamicResolutionSettings, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderOverlayExtract, RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderQualityProfile,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
     RenderViewportHandle, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
@@ -287,6 +287,7 @@ fn terminal_particle_sprites() -> Vec<RenderParticleSpriteSnapshot> {
                 color,
                 intensity: 1.0,
                 depth_test: false,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material: None,
                 texture: None,
             });

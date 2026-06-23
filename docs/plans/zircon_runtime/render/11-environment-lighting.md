@@ -482,6 +482,7 @@ GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 insta
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | EL-M1~M3 部分完成,EL-M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 11 Environment Lighting 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：analytic fog/ambient modes、正式 skybox/IBL、probe capture/bake；验收缺口：需要 cubemap/IBL 资产链、probe blending/parallax、fog/ambient product tests |
 | 2026-06-15 | EL-M1 skybox and IBL | 部分完成: preview sky 存在,正式 skybox/IBL 未落地 | 当前有 preview-sky executor 和环境色基础,但无 skybox 材质域、IBL cubemap 预滤波链与正式资产格式。 | 本文件 `现状与差距` 明确只有 preview-sky executor;计划 13 纹理 cubemap 资产也尚未完成。 | 实施 skybox material、cubemap import、diffuse/specular IBL prefilter 和 shader binding。 |
 | 2026-06-15 | EL-M2 reflection probes | 部分完成: descriptor/占位链路存在,捕获/烘焙未完成 | reflection probe feature/合成入口已有占位;计划 06 已把反射探针投屏 helper 改走 unjittered matrix pair,但探针捕获、烘焙数据和采样 ABI 仍缺。 | 计划 06 TP-M2-S2 状态表记录 reflection probe projection helper 审计完成。 | 建立 probe capture camera、cubemap storage、parallax correction 与 blending。 |
 | 2026-06-15 | EL-M3 lightmap and light probe consumption | 部分完成: 单一 SH grid 设计面存在,完整 lightmap/probe 消费未完成 | 计划 18 现状记录当前只有全局单个均匀 SH 网格概念,无局部/可变换/逐像素 irradiance volume;lightmap asset 与 shader sampling 尚未闭环。 | 计划 18 `现状与差距` 将 irradiance volumes 标为后续扩展;本文件未记录完成实现。 | 落地 lightmap UV/channel、LightProbeGridData 上传、instance 采样和编辑器 bake 输入。 |

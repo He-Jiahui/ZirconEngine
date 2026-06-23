@@ -123,13 +123,13 @@ fn custom_target_view_from_camera(
     let mut visible = Vec::new();
     let mut layer_filtered_count = 0usize;
     let mut frustum_culled_count = 0usize;
-    for (index, (relevance, render_layer_mask)) in frame_visibility
+    for (index, (relevance, render_layers)) in frame_visibility
         .relevance
         .iter()
         .zip(frame_visibility.render_layer_masks.iter())
         .enumerate()
     {
-        if !relevance.view_visible_for_layers(&descriptor.culling_mask, *render_layer_mask) {
+        if !relevance.view_visible_for_layers(&descriptor.culling_mask, render_layers) {
             layer_filtered_count += 1;
             continue;
         }

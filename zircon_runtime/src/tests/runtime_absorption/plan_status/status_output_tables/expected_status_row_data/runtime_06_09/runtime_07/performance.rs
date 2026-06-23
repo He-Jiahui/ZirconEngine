@@ -3,7 +3,7 @@ use super::ExpectedStatusOutputSlice;
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
     (
         "Runtime 07 scene/EventBus poison-safe locks",
-        [
+        &[
             "scene_level_poison_recovery_coremin_passed_eventbus_guard_timeout",
             "LevelSystem",
             "EventBus",
@@ -12,7 +12,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render submit source-extract sharing",
-        [
+        &[
             "render_submit_source_extract_shared_coremin_check_passed_partial",
             "source_extract: Arc<RenderFrameExtract>",
             "runtime_07_submit_context_shares_large_extract_payloads",
@@ -21,7 +21,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render camera-loop descriptor submissions",
-        [
+        &[
             "render_camera_loop_descriptor_submissions_coremin_check_passed_partial",
             "camera_loop_submissions",
             "CameraLoopSubmission",
@@ -30,7 +30,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render camera-loop frame terminal move",
-        [
+        &[
             "render_camera_loop_frame_terminal_move_coremin_check_passed_partial",
             "camera_loop_frame_submissions",
             "source_frame.take()",
@@ -39,7 +39,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render submit feedback sideband owned merge",
-        [
+        &[
             "render_submit_feedback_sidebands_owned_merge_coremin_check_passed_partial",
             "collect_runtime_feedback",
             "take_hybrid_gi_readback_outputs",
@@ -48,7 +48,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render prepared sideband frame owner move",
-        [
+        &[
             "render_prepared_sideband_frame_owner_move_coremin_check_passed_partial",
             "into_prepared_runtime_sidebands",
             "prepared_runtime_sidebands_mut",
@@ -57,7 +57,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render direct runtime-frame streaming camera loop",
-        [
+        &[
             "render_direct_runtime_frame_streaming_camera_loop_coremin_check_passed_partial",
             "submit_camera_loop_frame",
             "CameraLoopFrameSourceState",
@@ -65,8 +65,17 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 07 render generated camera-loop shared extract",
+        &[
+            "render_generated_camera_loop_shared_extract_static_passed_cargo_locked_blocked",
+            "stream_camera_loop_extract_submissions",
+            "CameraLoopExtractSourceState",
+            "Cargo.lock",
+        ],
+    ),
+    (
         "Runtime 07 render shared effective extract frame source",
-        [
+        &[
             "render_shared_effective_extract_frame_source_coremin_check_passed_partial",
             "ViewportRenderFrame::from_shared_extract",
             "source_extract()",
@@ -75,7 +84,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render direct runtime-frame shared context extract",
-        [
+        &[
             "render_direct_runtime_frame_shared_context_extract_coremin_check_passed_partial",
             "build_frame_submission_context_from_runtime_frame_extract",
             "Arc::make_mut(extract)",
@@ -84,7 +93,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render VG debug overlay frame override",
-        [
+        &[
             "render_vg_debug_overlay_frame_override_coremin_check_passed_partial",
             "runtime_overlay_override",
             "runtime_virtual_geometry_debug_overlays",
@@ -93,7 +102,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render direct runtime-frame trace export",
-        [
+        &[
             "render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending",
             "render_profiling.rs",
             "direct_runtime_frame_submit_exports_perfetto_trace_artifacts",
@@ -102,16 +111,16 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 render submit effective extract projection",
-        [
+        &[
             "render_submit_effective_extract_projection_coremin_check_passed_partial",
-            "build_frame_submission_context",
-            "Arc::new(effective_extract)",
-            "初始 viewport-sized clone",
+            "build_frame_submission_context_from_runtime_frame_extract",
+            "Arc::make_mut(extract_source)",
+            "Arc::clone(extract_source)",
         ],
     ),
     (
         "Runtime 07 Performance hotpath Markdown renderer split",
-        [
+        &[
             "performance_hotpath_markdown_split_static_passed_cargo_deferred_tests_deferred",
             "performance_hotpath_markdown.py",
             "performance_hotpath_boundary.py` remains the 643-line audit/risk owner",
@@ -120,7 +129,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 Performance hotpath inventory split",
-        [
+        &[
             "performance_hotpath_inventory_split_static_passed_cargo_deferred_tests_deferred",
             "performance_hotpath_source_inventory.py",
             "performance_hotpath_anchor_inventory.py",
@@ -129,7 +138,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 Performance hotpath 镜像文档守卫",
-        [
+        &[
             "runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
             "performance_hotpath_boundary",
             "expected_source_file_count = 26",
@@ -138,7 +147,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 ECS frame diagnostics aggregation",
-        [
+        &[
             "EcsFramePerformanceDiagnostics",
             "ecs_frame_performance_diagnostics_record_query_and_change_counts",
             "expected_source_file_count = 24",
@@ -147,7 +156,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 extract rebuild cache",
-        [
+        &[
             "RuntimeFrameExtractCache",
             "extract.rebuild_clones = 0",
             "frame_extract_rebuilds_after_scene_change",
@@ -156,7 +165,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 animation scene frame diagnostics",
-        [
+        &[
             "AnimationSceneFrameDiagnostics",
             "animation.scene.scanned_entities",
             "animation.scene.output_poses",
@@ -165,7 +174,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 profile counter hotspot export",
-        [
+        &[
             "CounterHotspotReport",
             "counter_hotspots.json",
             "analyze_counter_hotspots",
@@ -174,7 +183,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 QueryState cache owner performance audit sync",
-        [
+        &[
             "query_state/cache.rs",
             "expected_source_file_count = 45",
             "missing_query_counter_anchors = []",
@@ -183,7 +192,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 extract cache hit/miss diagnostics",
-        [
+        &[
             "EXTRACT_CACHE_HITS_DIAGNOSTIC",
             "extract.cache_hits",
             "extract.cache_misses",
@@ -192,7 +201,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 QueryState frame auto-collection",
-        [
+        &[
             "QueryState::take_unreported_cache_stats()",
             "SystemParam::record_performance_diagnostics",
             "World::record_ecs_query_cache_stats",
@@ -201,7 +210,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 ChangeDetection frame auto-collection",
-        [
+        &[
             "matches_component_locations_with_stats",
             "take_unreported_change_detection_stats",
             "World::record_ecs_change_detection_stats",
@@ -210,7 +219,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 QueryState iterator lifetime guard",
-        [
+        &[
             "NonNull<QueryState<D, F>>",
             "read-only, non-cached iterators",
             "QueryState::single",
@@ -219,7 +228,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 FPS gate support unblock",
-        [
+        &[
             "ZR_VM_RUST_BINDING_LIB_DIR",
             "zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION",
             "RenderBloomSettings",
@@ -228,7 +237,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 07 profiling build tooling",
-        [
+        &[
             "--mode profiling",
             "--runtime-features target-client,profiling,profiling-tracy",
             "-CargoProfile profiling",

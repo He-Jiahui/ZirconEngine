@@ -5,7 +5,7 @@ use super::callbacks::validate_callbacks;
 use super::diagnostics::{health_from_diagnostics, module_kind_label};
 use super::schema::{
     has_manifest_text, validate_v3_schema, ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3,
-    ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3,
+    ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3, ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,8 +24,10 @@ pub struct NativePluginBehaviorValidationReport {
     pub state_schema_version: Option<u32>,
     pub command_manifest_schema: Option<String>,
     pub event_manifest_schema: Option<String>,
+    pub registration_manifest_schema: Option<String>,
     pub has_command_manifest: bool,
     pub has_event_manifest: bool,
+    pub has_registration_manifest: bool,
     pub has_invoke_command: bool,
     pub has_save_state: bool,
     pub has_restore_state: bool,
@@ -66,6 +68,16 @@ impl NativePluginBehaviorValidationReport {
             behavior.event_manifest.as_deref(),
             ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3,
         );
+        validate_v3_schema(
+            &mut diagnostics,
+            abi_version,
+            plugin_id,
+            module_kind,
+            "registration_manifest_schema",
+            behavior.registration_manifest_schema.as_deref(),
+            behavior.registration_manifest.as_deref(),
+            ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
+        );
         validate_callbacks(&mut diagnostics, plugin_id, module_kind, behavior);
 
         let health = health_from_diagnostics(&diagnostics);
@@ -77,8 +89,10 @@ impl NativePluginBehaviorValidationReport {
             state_schema_version: Some(behavior.state_schema_version),
             command_manifest_schema: behavior.command_manifest_schema.clone(),
             event_manifest_schema: behavior.event_manifest_schema.clone(),
+            registration_manifest_schema: behavior.registration_manifest_schema.clone(),
             has_command_manifest: has_manifest_text(behavior.command_manifest.as_deref()),
             has_event_manifest: has_manifest_text(behavior.event_manifest.as_deref()),
+            has_registration_manifest: has_manifest_text(behavior.registration_manifest.as_deref()),
             has_invoke_command: behavior.has_invoke_command(),
             has_save_state: behavior.has_save_state(),
             has_restore_state: behavior.has_restore_state(),
@@ -100,8 +114,10 @@ impl NativePluginBehaviorValidationReport {
             state_schema_version: None,
             command_manifest_schema: None,
             event_manifest_schema: None,
+            registration_manifest_schema: None,
             has_command_manifest: false,
             has_event_manifest: false,
+            has_registration_manifest: false,
             has_invoke_command: false,
             has_save_state: false,
             has_restore_state: false,

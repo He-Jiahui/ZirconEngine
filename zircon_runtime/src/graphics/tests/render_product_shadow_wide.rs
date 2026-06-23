@@ -5,10 +5,11 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -223,7 +224,7 @@ fn mixed_shadow_extract(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 55_200,
                     light_id: 55_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                     direction: Vec3::new(0.38, 0.20, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 0.78,
@@ -300,7 +301,7 @@ fn mixed_shadow_spot_light(index: usize, x: f32) -> RenderSpotLightSnapshot {
     RenderSpotLightSnapshot {
         node_id: 55_300 + index as u64,
         light_id: 55_400 + index as u64,
-        layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
         position,
         direction: (target - position).normalize(),
         color: Vec3::ONE,
@@ -343,7 +344,7 @@ fn shadow_mesh(node_id: u64, transform: Transform, material: ResourceId) -> Rend
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 

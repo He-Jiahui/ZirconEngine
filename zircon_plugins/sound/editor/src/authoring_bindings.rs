@@ -8,7 +8,8 @@ use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
 
-use crate::{
+use crate::capability::SOUND_AUTHORING_CAPABILITY;
+use crate::extension_ids::{
     SOUND_AUDIO_LISTENER_DRAWER_ID, SOUND_AUDIO_SOURCE_DRAWER_ID, SOUND_AUDIO_VOLUME_DRAWER_ID,
 };
 
@@ -80,7 +81,7 @@ pub fn sound_editor_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             let path = EditorOperationPath::parse(spec.path).expect("valid sound operation path");
             let mut descriptor = EditorOperationDescriptor::new(path, spec.display_name)
                 .with_payload_schema_id(spec.payload_schema)
-                .with_required_capabilities(["editor.extension.sound_authoring"]);
+                .with_required_capabilities([SOUND_AUTHORING_CAPABILITY]);
             if spec.undoable {
                 descriptor =
                     descriptor.with_undoable(UndoableEditorOperation::new(spec.display_name));

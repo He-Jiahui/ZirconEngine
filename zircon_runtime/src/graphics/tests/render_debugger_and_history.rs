@@ -4,9 +4,10 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderFramework, RenderFrameworkError, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderFramework, RenderFrameworkError, RenderLayerSet, RenderMeshSnapshot,
+    RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -362,7 +363,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
         .push(RenderDirectionalLightSnapshot {
             node_id: 71,
             light_id: 71,
-            layer_mask: default_render_layer_mask(),
+            layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 3.0,
@@ -488,7 +489,7 @@ fn extract_with_camera_and_mesh(
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
                     static_state: Default::default(),
-                    render_layer_mask: default_render_layer_mask(),
+                    render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
                 }],
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),

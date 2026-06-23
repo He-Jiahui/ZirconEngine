@@ -68,6 +68,8 @@ doc_type: module-detail
 
 The binder is graph-lifetime-aware. It only considers live `CompiledRenderGraph::resource_lifetime_by_name(...)` rows whose external binding is typed as `Buffer`, then binds those names into the same execution resource table used by frame, history, HZB, and transient resources. Runtime prepare collectors can now register actual WGPU buffers through `RuntimePrepareCollectorContext::register_external_buffer_binding(...)`; those bindings are carried by `SceneRendererAdvancedPluginReadbacks` and are bound before fallback buffers are considered.
 
+The 2026-06-24 F12 cleanup (`render_plan01_advanced_plugin_resource_readback_suppression_cleanup_static_passed_cargo_deferred_active_lanes`) keeps this boundary narrow: test-only readback emptiness checks, test-only runtime-prepare collector injection, and the currently unconsumed Hybrid GI resource capability getter no longer require production `dead_code` suppression.
+
 ## Bound Resources
 
 The current binding set covers:

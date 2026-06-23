@@ -3,7 +3,7 @@ use super::ExpectedStatusOutputSlice;
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
     (
         "Runtime 09 UI architecture Markdown renderer split",
-        [
+        &[
             "ui_architecture_markdown_split_static_passed_cargo_deferred_tests_deferred",
             "ui_architecture_markdown.py",
             "ui_architecture_boundary.py` remains the 541-line audit/risk owner",
@@ -12,7 +12,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 09 UI architecture 镜像文档守卫",
-        [
+        &[
             "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",
             "ui_architecture_boundary",
             "standalone rustc 18/18",
@@ -21,7 +21,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     ),
     (
         "Runtime 09 UI input route authority",
-        [
+        &[
             "runtime_09_m1_1_ui_input_route_authority_static_passed_cargo_pending",
             "runtime_09_m1_1_ui_input_route_authority",
             "runtime_09_m1_1_direct_pointer_navigation_routes_are_leaf_owner_helpers",

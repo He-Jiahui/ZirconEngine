@@ -6,9 +6,21 @@ fn source(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
+fn sources(relatives: &[&str]) -> String {
+    relatives
+        .iter()
+        .map(|relative| source(relative))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[test]
 fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
-    let panes = source("src/ui/retained_host/host_contract/data/panes.rs");
+    let panes = sources(&[
+        "src/ui/retained_host/host_contract/data/panes.rs",
+        "src/ui/retained_host/host_contract/data/panes/pane.rs",
+        "src/ui/retained_host/host_contract/data/panes/animation.rs",
+    ]);
     let asset = source("assets/ui/editor/animation_editor.v2.ui.toml");
 
     for required in [

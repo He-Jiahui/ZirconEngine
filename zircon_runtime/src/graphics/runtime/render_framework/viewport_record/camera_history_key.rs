@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, CameraRenderType, RenderCameraTargetOrderKey, RenderViewportRect,
+    CameraRenderDescriptor, CameraRenderType, RenderCameraTargetOrderKey, RenderLayer,
+    RenderLayerSet, RenderViewportRect,
 };
 use crate::core::framework::scene::EntityId;
 
@@ -10,6 +11,8 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportCameraHistoryK
     render_type: CameraRenderType,
     target: RenderCameraTargetOrderKey,
     viewport: Option<ViewportCameraHistoryRectKey>,
+    culling_layers: ViewportCameraHistoryLayerKey,
+    volume_layers: ViewportCameraHistoryLayerKey,
 }
 
 impl ViewportCameraHistoryKey {
@@ -22,6 +25,21 @@ impl ViewportCameraHistoryKey {
             render_type: camera.render_type,
             target: camera.target_key(),
             viewport: camera.viewport_rect.map(ViewportCameraHistoryRectKey::from),
+            culling_layers: ViewportCameraHistoryLayerKey::from(&camera.culling_mask),
+            volume_layers: ViewportCameraHistoryLayerKey::from(&camera.volume_mask),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct ViewportCameraHistoryLayerKey {
+    layers: Vec<RenderLayer>,
+}
+
+impl From<&RenderLayerSet> for ViewportCameraHistoryLayerKey {
+    fn from(value: &RenderLayerSet) -> Self {
+        Self {
+            layers: value.iter().collect(),
         }
     }
 }
@@ -52,8 +70,8 @@ impl From<RenderViewportRect> for ViewportCameraHistoryRectKey {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        CameraRenderDescriptor, CameraRenderType, RenderCameraTarget, RenderViewportRect,
-        ViewportCameraSnapshot,
+        CameraRenderDescriptor, CameraRenderType, RenderCameraTarget, RenderLayerSet,
+        RenderViewportRect, ViewportCameraSnapshot,
     };
     use crate::core::framework::scene::EntityId;
     use crate::core::math::UVec2;
@@ -84,6 +102,34 @@ mod tests {
         assert_ne!(
             ViewportCameraHistoryKey::from_camera(&base),
             ViewportCameraHistoryKey::from_camera(&overlay)
+        );
+    }
+
+    #[test]
+    fn camera_history_key_distinguishes_culling_layers_without_legacy_loss() {
+        let mut wide_layer = descriptor(13);
+        wide_layer.culling_mask = RenderLayerSet::layer(40);
+        let mut no_layers = descriptor(13);
+        no_layers.culling_mask = RenderLayerSet::none();
+
+        assert_eq!(wide_layer.culling_mask.to_legacy_mask_lossy(), 0);
+        assert_ne!(
+            ViewportCameraHistoryKey::from_camera(&wide_layer),
+            ViewportCameraHistoryKey::from_camera(&no_layers)
+        );
+    }
+
+    #[test]
+    fn camera_history_key_distinguishes_volume_layers_without_legacy_loss() {
+        let mut wide_layer = descriptor(17);
+        wide_layer.volume_mask = RenderLayerSet::layer(41);
+        let mut no_layers = descriptor(17);
+        no_layers.volume_mask = RenderLayerSet::none();
+
+        assert_eq!(wide_layer.volume_mask.to_legacy_mask_lossy(), 0);
+        assert_ne!(
+            ViewportCameraHistoryKey::from_camera(&wide_layer),
+            ViewportCameraHistoryKey::from_camera(&no_layers)
         );
     }
 

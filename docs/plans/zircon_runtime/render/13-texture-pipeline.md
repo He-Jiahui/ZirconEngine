@@ -497,6 +497,7 @@ SVT 帧间流水(帧 N):
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | TX-M1 部分完成,TX-M2~M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 13 Texture Pipeline 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：mip/normal pipeline、array/cubemap assets、sparse virtual texture；验收缺口：需要 importer metadata、mip/normal compute、cubemap/array ABI、SVT feedback/readback |
 | 2026-06-15 | TX-M1 metadata and color-space authority | 部分完成: 上传/就绪追踪存在,权威元数据未完成 | `gpu_texture` 上传和 `texture_slot_summary` 可用,KTX importer 有基础;但 sRGB/linear 仍缺 asset metadata contract。 | 本文件 `现状与差距` 记录 texture upload/KTX 基础和色彩空间后缀猜测问题;计划 07 已独立定稿 postprocess HDR/intermediate format。 | 建立 texture asset metadata、色彩空间校验和 material/shader sampling contract。 |
 | 2026-06-15 | TX-M2 mip generation and normal pipeline | 未启动: 仍依赖源数据自带 mip | 当前无 runtime/import mip generation,normal map 压缩、重建和 Toksvig/specular AA 烘焙也未落地。 | 本文件 `现状与差距` 明确 mip 全靠源数据自带、normal map 无压缩与重建约定;计划 19 也把 specular AA 列为未覆盖。 | 实现 mip compute/import pipeline、normal map 标记、roughness adjustment 与验证图。 |
 | 2026-06-15 | TX-M3 array and cubemap assets | 未启动: 资产语义未定稿 | texture array、cubemap、reflection/skybox 所需格式仍未形成资产契约。 | 本文件 `现状与差距` 明确无 texture array/cubemap 资产语义;计划 11 skybox/IBL 依赖该能力。 | 定义 array/cubemap importer、view creation、sampler policy 与 bind group ABI。 |

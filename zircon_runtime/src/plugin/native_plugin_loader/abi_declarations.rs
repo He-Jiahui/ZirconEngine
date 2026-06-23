@@ -30,6 +30,7 @@ pub struct NativePluginSchemaVersionsV3 {
     pub state_schema_version: u32,
     pub command_manifest_schema: *const c_char,
     pub event_manifest_schema: *const c_char,
+    pub registration_manifest_schema: *const c_char,
 }
 
 #[repr(C)]
@@ -99,6 +100,7 @@ pub struct NativePluginBehaviorV3 {
     pub schema_versions: NativePluginSchemaVersionsV3,
     pub command_manifest: *const c_char,
     pub event_manifest: *const c_char,
+    pub registration_manifest: *const c_char,
     pub invoke_command: Option<NativePluginInvokeCommandFnV3>,
     pub save_state: Option<NativePluginSaveStateFnV3>,
     pub restore_state: Option<NativePluginRestoreStateFnV3>,

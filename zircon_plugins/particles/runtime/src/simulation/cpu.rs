@@ -1,4 +1,4 @@
-use zircon_runtime::core::framework::render::RenderParticleSpriteSnapshot;
+use zircon_runtime::core::framework::render::{RenderLayerSet, RenderParticleSpriteSnapshot};
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec2, Vec3};
 
@@ -344,6 +344,7 @@ impl ParticleEmitterInstance {
                 color: self.pool.color[index],
                 intensity: 1.0,
                 depth_test: true,
+                render_layer_mask: RenderLayerSet::default(),
                 material: self.asset.material,
                 texture: self.asset.texture,
             });

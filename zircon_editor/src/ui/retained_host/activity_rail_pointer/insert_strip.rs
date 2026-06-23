@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath},
@@ -10,15 +8,16 @@ use zircon_runtime_interface::ui::{
 use super::base_state::base_state;
 use super::constants::{BUTTON_EXTENT, BUTTON_GAP, STRIP_X_INSET, STRIP_Y_INSET};
 use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
+use super::host_activity_rail_pointer_route::HostActivityRailPointerRoute;
 use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;
-use super::host_activity_rail_pointer_target::HostActivityRailPointerTarget;
 use super::register_handled_pointer_node::register_handled_pointer_node;
-use super::strip_button_node_id::strip_button_node_id;
+use super::strip_button_node_id::{strip_button_node_id, strip_button_route_id, strip_route_id};
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 pub(super) fn insert_strip(
     surface: &mut UiSurface,
     dispatcher: &mut UiPointerDispatcher,
-    targets: &mut BTreeMap<UiNodeId, HostActivityRailPointerTarget>,
+    route_intents: &mut EditorRouteIntentMap,
     root_node_id: UiNodeId,
     strip_node_id: UiNodeId,
     path: &str,
@@ -42,7 +41,11 @@ pub(super) fn insert_strip(
         )
         .expect("activity rail root must exist");
     register_handled_pointer_node(dispatcher, strip_node_id);
-    targets.insert(strip_node_id, HostActivityRailPointerTarget::Strip(side));
+    route_intents.bind_node(
+        strip_node_id,
+        strip_route_id(side),
+        EditorRouteIntent::ActivityRail(HostActivityRailPointerRoute::Strip(side)),
+    );
 
     for (item_index, tab) in tabs.iter().enumerate() {
         let node_id = strip_button_node_id(side, item_index);
@@ -66,14 +69,15 @@ pub(super) fn insert_strip(
             )
             .expect("activity rail strip must exist");
         register_handled_pointer_node(dispatcher, node_id);
-        targets.insert(
+        route_intents.bind_node(
             node_id,
-            HostActivityRailPointerTarget::Button {
+            strip_button_route_id(side, item_index),
+            EditorRouteIntent::ActivityRail(HostActivityRailPointerRoute::Button {
                 side,
                 item_index,
                 slot: tab.slot.clone(),
                 instance_id: tab.instance_id.clone(),
-            },
+            }),
         );
     }
 }

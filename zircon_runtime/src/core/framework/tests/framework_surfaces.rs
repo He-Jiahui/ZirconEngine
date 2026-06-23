@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::framework::render::RenderLayerSet;
 
 #[test]
 fn time_framework_tracks_real_virtual_and_fixed_clocks() {
@@ -366,7 +367,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
                 light_id: 10,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                 direction: Vec3::new(-0.4, -1.0, -0.2),
                 color: Vec3::new(1.0, 0.9, 0.8),
                 intensity: 3.0,
@@ -375,7 +376,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             point_lights: vec![RenderPointLightSnapshot {
                 node_id: 20,
                 light_id: 20,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(2.0, 3.0, 4.0),
                 color: Vec3::new(0.2, 0.6, 1.0),
                 intensity: 4.5,
@@ -385,7 +386,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 30,
                 light_id: 30,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(-1.0, 5.0, 2.0),
                 direction: Vec3::new(0.0, -1.0, 0.3),
                 color: Vec3::new(1.0, 0.7, 0.2),
@@ -406,7 +407,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             rect_lights: vec![RenderRectLightSnapshot {
                 node_id: 40,
                 light_id: 40,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(1.0, 2.0, 3.0),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::new(1.0, 0.8, 0.6),
@@ -496,7 +497,7 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 80,
         light_id: 80,
-        layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),

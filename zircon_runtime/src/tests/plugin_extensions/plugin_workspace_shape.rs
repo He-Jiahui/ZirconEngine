@@ -428,7 +428,10 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
             .find(|module| module.kind == PluginModuleKind::Editor)
             .expect("editor-only authoring plugin should declare editor module");
 
-        assert_eq!(RuntimePluginId::parse_key(id), None);
+        assert_eq!(
+            RuntimePluginId::parse_key(id),
+            Some(RuntimePluginId::new(id))
+        );
         assert_eq!(manifest.category, "authoring");
         assert!(!runtime_catalog_ids.contains(id));
         assert!(manifest

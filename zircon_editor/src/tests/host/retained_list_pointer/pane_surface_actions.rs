@@ -5,9 +5,9 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn pane_surface_actions_use_generic_rust_control_callbacks() {
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring.rs");
-    let actions = source("src/ui/retained_host/app/pane_surface_actions.rs");
+    let globals = source("src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs");
+    let wiring = source("src/ui/retained_host/app/callback_wiring/pane_surface/pane_controls.rs");
+    let actions = source("src/ui/retained_host/app/pane_surface_actions/click.rs");
 
     assert!(globals.contains("on_surface_control_clicked"));
     assert!(wiring.contains("pane_surface_host.on_surface_control_clicked("));

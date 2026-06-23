@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, PostProcessGraphResourceNames, PreviewEnvironmentExtract,
-    RenderBlurSettings, RenderFrameExtract, RenderFramework, RenderOverlayExtract,
+    RenderBlurSettings, RenderFrameExtract, RenderFramework, RenderLayerSet, RenderOverlayExtract,
     RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
     RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
@@ -188,6 +188,7 @@ fn blur_particle_sprites() -> Vec<RenderParticleSpriteSnapshot> {
                 color,
                 intensity: 1.0,
                 depth_test: false,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material: None,
                 texture: None,
             });

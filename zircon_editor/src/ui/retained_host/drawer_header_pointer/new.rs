@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
@@ -10,10 +8,10 @@ impl HostDrawerHeaderPointerBridge {
     pub(crate) fn new() -> Self {
         let mut bridge = Self {
             layout: HostDrawerHeaderPointerLayout::default(),
-            measured_frames: BTreeMap::new(),
+            measured_frames: Default::default(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.drawer_header.pointer")),
             dispatcher: UiPointerDispatcher::default(),
-            targets: BTreeMap::new(),
+            route_intents: Default::default(),
         };
         bridge.rebuild_surface();
         bridge

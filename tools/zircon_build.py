@@ -24,6 +24,12 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
 TARGETS = ("hub", "editor", "runtime", "plugins")
 MODES = ("debug", "release", "profiling")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
+PLUGIN_DISTRIBUTION_FORM_DIST = "dist"
+PLUGIN_DISTRIBUTION_FORM_EMBED = "embed"
+PLUGIN_DISTRIBUTION_FORMS = (
+    PLUGIN_DISTRIBUTION_FORM_EMBED,
+    PLUGIN_DISTRIBUTION_FORM_DIST,
+)
 TARGET_FEATURES = ("target-client", "target-server", "target-editor-host")
 ENGINE_DIR_NAME = "ZirconEngine"
 HUB_TAURI_BUNDLE_TARGET = "nsis"
@@ -60,15 +66,33 @@ class PluginPackage:
     manifest_path: Path
     package_root: Path
     default_packaging: tuple[str, ...]
+    distribution_forms: tuple[str, ...]
+    dist_crate_name: str | None
     module_crate_names: tuple[str, ...]
     crates: tuple[CargoPackage, ...]
 
     @property
     def native_dynamic_crates(self) -> tuple[CargoPackage, ...]:
+        if self.distribution_forms:
+            if PLUGIN_DISTRIBUTION_FORM_DIST not in self.distribution_forms:
+                return ()
+            if self.dist_crate_name:
+                return tuple(
+                    crate for crate in self.crates if crate.name == self.dist_crate_name
+                )
+            return tuple(crate for crate in self.crates if crate.is_native_dynamic)
         return tuple(crate for crate in self.crates if crate.is_native_dynamic)
 
     @property
     def rlib_static_crates(self) -> tuple[CargoPackage, ...]:
+        if self.distribution_forms:
+            if PLUGIN_DISTRIBUTION_FORM_EMBED not in self.distribution_forms:
+                return ()
+            if self.dist_crate_name and len(self.crates) > 1:
+                return tuple(
+                    crate for crate in self.crates if crate.name != self.dist_crate_name
+                )
+            return self.crates
         return tuple(crate for crate in self.crates if not crate.is_native_dynamic)
 
     @property
@@ -385,7 +409,14 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
         data = read_toml(manifest_path)
         plugin_id = str(data.get("id", manifest_path.parent.name))
         display_name = str(data.get("display_name", plugin_id))
-        default_packaging = tuple(normalize_packaging(data.get("default_packaging", [])))
+        distribution = distribution_table(data)
+        default_packaging = tuple(
+            normalize_packaging(
+                distribution.get("default_packaging", data.get("default_packaging", []))
+            )
+        )
+        distribution_forms = normalize_distribution_forms(distribution.get("forms", []))
+        dist_crate_name = normalize_optional_string(distribution.get("dist_crate"))
         module_crate_names = tuple(unique_in_order(collect_module_crate_names(data)))
         matched_crates = tuple(
             crates_by_name[name] for name in module_crate_names if name in crates_by_name
@@ -397,6 +428,8 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 manifest_path=manifest_path,
                 package_root=manifest_path.parent,
                 default_packaging=default_packaging,
+                distribution_forms=distribution_forms,
+                dist_crate_name=dist_crate_name,
                 module_crate_names=module_crate_names,
                 crates=matched_crates,
             )
@@ -438,6 +471,31 @@ def normalize_packaging(values: object) -> list[str]:
     if not isinstance(values, list):
         return []
     return [str(value).strip().lower() for value in values if str(value).strip()]
+
+
+def distribution_table(data: dict) -> dict:
+    distribution = data.get("distribution", {})
+    if isinstance(distribution, dict):
+        return distribution
+    return {}
+
+
+def normalize_distribution_forms(values: object) -> tuple[str, ...]:
+    if not isinstance(values, list):
+        return ()
+    forms = (
+        str(value).strip().lower()
+        for value in values
+        if str(value).strip().lower() in PLUGIN_DISTRIBUTION_FORMS
+    )
+    return tuple(unique_in_order(forms))
+
+
+def normalize_optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def collect_module_crate_names(data: dict) -> list[str]:

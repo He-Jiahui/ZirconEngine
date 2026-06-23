@@ -74,6 +74,7 @@ mod tests {
             crate::graphics::ViewportRenderOutputTarget::Texture {
                 handle: texture,
                 size: UVec2::new(64, 64),
+                format: crate::graphics::types::FRAMEWORK_OUTPUT_FORMAT_LABEL,
             },
         );
 

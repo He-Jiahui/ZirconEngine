@@ -46,7 +46,6 @@ impl std::fmt::Debug for RenderPassExecutionContext<'_> {
 }
 
 impl<'a> RenderPassExecutionContext<'a> {
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn new(pass_name: impl Into<String>, executor_id: RenderPassExecutorId) -> Self {
         Self::with_graph_metadata(
             pass_name,
@@ -56,7 +55,6 @@ impl<'a> RenderPassExecutionContext<'a> {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn with_graph_metadata(
         pass_name: impl Into<String>,
         executor_id: RenderPassExecutorId,
@@ -66,7 +64,6 @@ impl<'a> RenderPassExecutionContext<'a> {
         Self::with_graph_metadata_and_resources(pass_name, executor_id, queue, flags, Vec::new())
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn with_declared_graph_metadata(
         pass_name: impl Into<String>,
         executor_id: RenderPassExecutorId,
@@ -84,7 +81,6 @@ impl<'a> RenderPassExecutionContext<'a> {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn with_graph_metadata_and_resources(
         pass_name: impl Into<String>,
         executor_id: RenderPassExecutorId,
@@ -221,7 +217,6 @@ impl<'a> RenderPassExecutionContext<'a> {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(in crate::graphics::scene::scene_renderer) fn require_buffer_by_name(
         &mut self,
         resource_name: &str,
@@ -258,7 +253,6 @@ impl<'a> RenderPassExecutionContext<'a> {
         })
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn uses_queue_fallback(&self) -> bool {
         self.declared_queue != self.queue
     }

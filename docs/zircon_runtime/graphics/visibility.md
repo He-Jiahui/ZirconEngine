@@ -1,16 +1,27 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/light/snapshots.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_visibility.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/graphics/visibility/mod.rs
   - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_batch_key.rs
   - zircon_runtime/src/graphics/visibility/declarations/visibility_relevance_entry.rs
   - zircon_runtime/src/graphics/visibility/view_context/mod.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_draw_commands.rs
+  - zircon_runtime/src/graphics/visibility/culling/visibility_entries.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
   - zircon_runtime/src/graphics/visibility/culling/is_mesh_visible.rs
   - zircon_runtime/src/graphics/visibility/culling/mesh_bounds.rs
@@ -33,6 +44,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/compile_options/methods.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/new_compile_options.rs
   - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
@@ -45,6 +58,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/hzb_occlusion_cull.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/zr_hzb.wgsl
@@ -78,15 +92,22 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/page.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/node_cull.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/execution.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/support.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
   - zircon_runtime/src/graphics/tests/render_framework_visibility_submit.rs
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
@@ -94,19 +115,27 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_visibility.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs
 implementation_files:
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/graphics/visibility/declarations/visibility_relevance_entry.rs
   - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_batch_key.rs
   - zircon_runtime/src/graphics/visibility/view_context/mod.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/batching_result.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_draw_commands.rs
+  - zircon_runtime/src/graphics/visibility/culling/visibility_entries.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
   - zircon_runtime/src/graphics/visibility/culling/is_mesh_visible.rs
   - zircon_runtime/src/graphics/visibility/culling/mod.rs
@@ -139,6 +168,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/hzb_occlusion_cull.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/zr_hzb.wgsl
@@ -178,8 +208,13 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/page.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/node_cull.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/execution.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/support.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
@@ -191,6 +226,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
@@ -205,8 +242,12 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_tracks_material_layer_and_motion_policy
   - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_keeps_shadow_eligibility_separate_from_main_view_layers
+  - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs::tests::parallel_frustum_visibility_matches_serial_order_and_results
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_records_relevance_and_filters_main_view_layers
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_batch_key_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_scene_world_render_visibility_input_is_child_owner
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_shadow_view_independent_from_main_layers
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_shadow_views_for_atlas_light_slots
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_custom_target_view_from_camera_descriptors
@@ -217,6 +258,13 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::processors_keep_shadow_candidate_when_main_view_layer_filters_mesh
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::shadow_processor_respects_shadow_view_visibility
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::mesh_visibility_states_preserve_shadow_only_casters
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
+  - cargo test -p zircon_runtime --lib primitive_relevance --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-relevance-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (timed out in the tool window; no pass evidence)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-relevance-typed-layer-0623-check --message-format short --color never (blocked before compilation by current Cargo.lock drift)
+  - cargo test -p zircon_runtime --lib visibility_batch_key_preserves_layers_above_legacy_mask_width --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-batch-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-batch-typed-layer-0623-check --message-format short --color never (blocked before compilation by current Cargo.lock drift)
+  - cargo test -p zircon_runtime --lib render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-input-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-input-typed-layer-0623-check --message-format short --color never (blocked before compilation by current Cargo.lock drift)
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_visibility_stats
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_builder_sizes_odd_viewport_to_half_power_of_two_chain
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_builder_keeps_one_pixel_viewports_valid
@@ -224,13 +272,13 @@ tests:
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_build_plan_reports_each_mip_extent
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs::tests::hzb_shader_declares_reduce_entry_and_storage_target
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_as_half_power_of_two_mip_chain
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs::tests::hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs::tests::hzb_occlusion_culler_shader_declares_expected_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_culler_shader_declares_expected_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs::tests::hzb_occlusion_dispatch_groups_cover_indirect_args
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs::tests::hzb_occlusion_dispatch_groups_sum_phase_local_workloads
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs::tests::hzb_occlusion_dispatch_summary_saturates_phase_and_group_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs::tests::hzb_occlusion_uploads_phase_params_in_encoder_order
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs::tests::hzb_occlusion_culler_clears_compaction_outputs_before_culling_dispatch
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_uploads_phase_params_in_encoder_order
+  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_culler_clears_compaction_outputs_before_culling_dispatch
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs::tests::hzb_external_fallback_buffers_satisfy_materialization_report
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs::tests::hzb_occlusion_cull_declares_execution_owned_external_buffers
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_validation_fails_unbound_required_external_buffer
@@ -252,6 +300,7 @@ tests:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::update_visibility_static_index_stats_records_latest_report
   - zircon_runtime/src/graphics/tests/render_framework_visibility_submit.rs::render_framework_reuses_static_index_and_reports_main_view_prefilter
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs::render_product_hzb_occlusion_wall_scene
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs::explicit_request_camera_uses_volume_mask_for_post_process_volumes
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs::render_product_hzb_occlusion_respects_storage_buffer_limit_fallback
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_declares_uber_light_list_frame_resource_for_default_stack
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disabled
@@ -313,6 +362,12 @@ It then builds a linear candidate array of `{ entity, VisibilityBounds }` and ru
 
 Final main-view visibility requires both `PrimitiveRelevance::main_view()` and a positive frustum result. This means camera `RenderLayerSet` filtering now participates in the `FrameVisibility` main-view set and in `VisibilityContext::main_view_visible_batches()`. The main-view layer mask is read through `RenderViewExtract::selected_camera_layers()`, so scene-backed extracts consume the selected `CameraRenderDescriptor` layer ownership instead of any snapshot-side layer field. A layer-mismatched mesh appears in `main_view_culled_entities()`, but its relevance entry remains available for diagnostics and future non-main views.
 
+The 2026-06-23 Plan 09 CO-M4 volume-mask separation does not change this visibility contract. Culling, mesh phase ordering, sprite expansion, and particle expansion still consume `selected_camera_layers()`; post-process Volume extraction and submit-time resolution consume `selected_camera_volume_layers()` instead. Status anchor `render_plan09_volume_mask_separate_from_culling_static_passed_cargo_lock_blocked_timeout_no_result` records that separation so future visibility work does not collapse Volume filtering back into the culling mask.
+
+The 2026-06-23 Plan 09 CO-M4 relevance cutover keeps that same authority typed inside the shared relevance layer. `PrimitiveRelevance::for_mesh_view(...)` and `PrimitiveRelevance::view_visible_for_layers(...)` now take `&RenderLayerSet` instead of a legacy `u32` mask, so the main-view relevance bit and custom-target layer gate no longer call `intersects_legacy_mask(...)` internally. Main-view batching passes the typed `RenderMeshSnapshot.render_layer_mask` directly. Status anchor `render_plan09_primitive_relevance_typed_layer_filter_static_passed_cargo_lock_blocked_timeout_no_result` records this as the relevance-layer cutover.
+
+The follow-up Plan 09 CO-M4 batch-key cutover moves `VisibilityBatchKey.render_layer_mask` and `FrameVisibility.render_layer_masks` to `RenderLayerSet`. Batching now clones the typed mesh snapshot layer set into the batch key, BVH instance, and history entry; custom-target view construction passes those typed layer sets directly into relevance without `from_legacy_mask(*render_layer_mask)`. `VisibilityBatchKey` is intentionally no longer `Copy`, so derived visible batches and draw commands clone it explicitly at ownership boundaries. At that slice time, visibility input awaited typed convergence. Status anchor `render_plan09_visibility_batch_key_layer_set_static_passed_cargo_lock_blocked` records the batch-key cutover, and `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result` records the later `VisibilityRenderableInput` cutover.
+
 `FrameVisibility::from_frame_views(...)` converts the same result into index-oriented view data. `ViewVisibilityContext::visible` stores `u32` indices into `FrameVisibility::entities`, not entity ids. Main-view stats count the original primitive input, layer-filtered primitives, frustum-culled primitives, occlusion-culled primitives, and final visible primitive count. Directional shadow views derive orthographic light cameras from cascade-specific camera frustum slice bounds; point and spot shadow views derive perspective cameras from authored light position, direction, range, and cone/face data. All shadow views ignore main-camera layer visibility and filter candidates through `PrimitiveRelevance::shadow_caster()` plus their own frustum result. Occlusion is fixed at zero until VC-M3 wires HZB.
 
 `FrameVisibility` exposes view-key and entity-set helpers. `main_view_visible_entity_set()` is now the source passed into Hybrid GI and Virtual Geometry visibility planning, while `shadow_views()` / `shadow_visible_entity_set()` give shadow consumers a single place to union directional cascade, point-face, and spot shadow results without scanning the raw view vector themselves.
@@ -323,7 +378,7 @@ Final main-view visibility requires both `PrimitiveRelevance::main_view()` and a
 
 `FrameSubmissionContext` now carries the computed `VisibilityContext` into both runtime-frame paths. `ViewportRenderFrame` stores the `FrameVisibility` sideband so the renderer can consume visibility without rebuilding it from scene data.
 
-`build_mesh_draws(...)` maps frame primitive indices back to source entities, attaches `PrimitiveRelevance`, main-view visibility, and shadow-view visibility onto each `MeshDraw`, and then forwards those flags into `MeshBatchRef`. The mesh pass processors use that data as the pass-participation gate:
+`phase_ordering.rs` owns mesh phase-queue consumption for draw construction. It first filters both the raw mesh-vector fallback and `RenderPhaseQueue` entries through `RenderViewExtract::selected_camera_layers()` against each typed `RenderMeshSnapshot.render_layer_mask: RenderLayerSet`, so renderer-bound synthetic frames and material-adjusted phase queues cannot reintroduce meshes outside the selected camera culling mask or lose future layer 32+ identities. `StaticMeshBatchExtract`, the frame-history mesh validation key, `VisibilityBatchKey`, `FrameVisibility.render_layer_masks`, and `VisibilityRenderableInput` keep the same typed mask; the remaining old mask boundaries are scene authoring inputs and explicit WGPU buffer ABIs. `build_mesh_draws(...)` then maps frame primitive indices back to source entities, attaches `PrimitiveRelevance`, main-view visibility, and shadow-view visibility onto each `MeshDraw`, and forwards those flags into `MeshBatchRef`. The mesh pass processors use that data as the pass-participation gate:
 
 - depth prepass, opaque, alpha-mask, transparent, and motion-vector commands require main-view visibility and the matching relevance bit
 - shadow commands require shadow-caster relevance and at least one shadow view containing the primitive
@@ -331,9 +386,23 @@ Final main-view visibility requires both `PrimitiveRelevance::main_view()` and a
 
 `mesh_visibility_states_preserve_shadow_only_casters` guards this handoff at the source mapping layer: a primitive culled from the main camera but visible in a shadow view is recorded with `main_view_visible=false` and `shadow_view_visible=true`, so later shadow processors can still emit the caster.
 
+`phase_ordered_meshes_filter_meshes_by_selected_camera_layers` guards the earlier phase-ordering gate: a layer-1 mesh and a layer-2 mesh are supplied through both raw mesh-vector and phase-queue paths while the selected descriptor uses `RenderLayerSet::layer(2)`, and only the layer-2 mesh remains eligible for draw construction.
+
+Sprite visibility now preserves the selected-descriptor layer authority on the sprite DTO itself. `RenderSpriteSnapshot.render_layer_mask` is a `RenderLayerSet`, `World::render_sprite_snapshot_for_camera(...)` wraps the scene entity legacy mask at extraction time, and `build_sprite_vertices(...)` filters WGPU sprite vertices with `selected_camera_layers().intersects(&sprite.render_layer_mask)`. This keeps layer 32+ sprite visibility CPU-side and non-lossy. The later `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result` follow-up also keeps sprite rows typed when they enter `VisibilityRenderableInput`. Status anchor `render_plan09_sprite_render_layer_set_snapshot_static_passed_cargo_lock_blocked` records the original sprite DTO cutover and its locked-Cargo blocker.
+
+Particle visibility now uses the same selected-descriptor authority with typed DTO boundaries. `RenderParticleSpriteSnapshot.render_layer_mask` is a `RenderLayerSet`, and `World::collect_render_particles(...)` wraps the source entity legacy mask into authored particle sprites plus world HUD bar quads. `build_visibility_input(...)` now folds particle sprite masks per emitter with `RenderLayerSet::union(...)` and keeps `VisibilityRenderableInput.render_layer_mask` typed; it falls back to the default typed layer set only for emitters with no sprite snapshots, so particle-only entities no longer appear as unconditional all-layer visibility inputs.
+
+The Plan 09 CO-M4 world visibility input owner split moves this scene-side assembly into `scene/world/render_visibility.rs`. `scene/world/render.rs` now delegates visibility input construction, while `render_visibility.rs` owns `build_visibility_input(...)`, `particle_emitter_render_layer_masks(...)`, `empty_visibility_input()`, and the typed `VisibilityRenderableInput` rows. `runtime_15_scene_world_render_visibility_input_is_child_owner` guards that the owner remains mounted and that the status anchor `render_plan09_world_visibility_input_owner_split_static_passed_cargo_timeout_no_result` stays recorded.
+
+Renderer-bound particle CPU vertex builders repeat the selected camera check because synthetic or direct `RenderFrameExtract` values can bypass world extraction. `build_particle_vertices(...)` and `build_particle_velocity_vertices(...)` filter every current sprite through `RenderViewExtract::selected_camera_layers().intersects(&sprite.render_layer_mask)` before writing billboard or velocity vertices. `RenderPipelineAsset::compile(...)` mirrors that gate by auto-inserting `particle-render` only when at least one particle sprite intersects the selected camera mask. Status anchor `render_plan09_particle_render_layer_set_snapshot_static_passed_cargo_lock_blocked` records the typed-mask follow-up; the older `render_plan09_particle_selected_camera_layer_filter_static_passed_cargo_timeout_no_result` row is the initial filter slice.
+
 The older queue profile still determines which material phase and pipeline variant a draw would use. Relevance now decides whether the draw participates in that phase for the current view.
 
 `FrameSubmissionContext::view_visibility(key)` exposes per-view results to submit-time consumers. The Virtual Geometry debug node/cluster cull snapshot now reads the main camera through that accessor, so debug replay follows the same view authority as runtime visibility instead of reaching back to `frame_extract.view.camera` first.
+
+VG debug snapshot owner split keeps that submit-time evidence path inspectable. `graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs` now only assembles the final `RenderVirtualGeometryDebugSnapshot`; `build_virtual_geometry_debug_snapshot/page.rs` owns page residency and cull-input projection, `node_cull.rs` owns node/cluster traversal replay, and `execution.rs` owns render-path execution segments, selected clusters, visbuffer marks, visbuffer64 entries, and hardware rasterization records. `runtime_15_render_vg_debug_snapshot_is_child_owner_split` locks those owners and the status anchor `render_plan02_vg_debug_snapshot_owner_split_static_passed_cargo_deferred_active_compile_lane`.
+
+VG debug snapshot stream types owner split keeps the framework stream contract separated from the submit-time snapshot builder. `core/framework/render/virtual_geometry_debug_snapshot_streams.rs` remains the encode/decode orchestration owner, and `core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs` owns readback/decoded stream DTOs, decode errors, and the summary type family. `runtime_15_vg_debug_snapshot_stream_types_are_child_owner` locks that boundary and the status anchor `render_plan02_vg_debug_snapshot_stream_types_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
 
 ## Visibility Diagnostics
 
@@ -460,6 +529,8 @@ The current structure is a single-level uniform grid. Each static entity stores 
 
 `VisibilityStaticIndexReport` tracks cumulative rebuild/update counters, per-frame rebuild/update counters, inserted/updated/removed counts, indexed entity count, occupied cell count, and main-view static prefilter evidence. The prefilter evidence records whether the 10,000 static-instance threshold path was used, how many static instances entered the frame, and how many static candidates survived the grid coarse query. The local tests compare incremental update query results against a fresh full rebuild and verify that a full-rebuild strategy replaces old rows.
 
+The 2026-06-24 F12 cleanup keeps the static-index observation surface on that report contract. `VisibilityStaticIndex::indexed_entity_count()` was removed because it only served the local test module; tests now assert `VisibilityStaticIndexReport.indexed_entity_count` through `report()`. The `graphics::visibility` root still re-exports `VisibilityStaticIndex` crate-locally for render-framework history, viewport-record state, and visibility-context consumers, but the re-export no longer needs an unused-import suppression. Status anchor: `render_plan04_visibility_static_index_suppression_cleanup_static_passed_cargo_timeout_no_result`.
+
 The index now has a per-viewport persistent owner. `ViewportRecord` stores the latest `VisibilityStaticIndex`; `resolve_viewport_record_state(...)` clones it beside the existing previous `VisibilityHistorySnapshot`; `VisibilityContext::from_extract_with_history_and_static_index(...)` applies the current frame's static-only `VisibilityBvhInstance` rows against the BVH update plan; and `record_history(...)` writes the resulting index back after a successful submission history update. If a previous visibility history exists but the previous static index is missing, the context forces one full static-index rebuild so unchanged static rows are not lost.
 
 Main-view culling now uses the persistent index for static/dynamic split. Static sets below 10,000 instances keep the old linear path. Static sets at or above 10,000 instances first query the static grid with a conservative world-space camera bounds sphere, then pass only those static candidates plus all dynamic main-view candidates into the existing bounds-level frustum refinement. This preserves the old `mesh_frustum_visibility(...)` narrow-phase behavior while avoiding full static-scene linear scans for large static worlds. `graphics/tests/render_framework_visibility_submit.rs::render_framework_reuses_static_index_and_reports_main_view_prefilter` now provides the render-framework static-scene source assertion: two consecutive 10,001-static-mesh submissions must report second-frame `frame_full_rebuild_count == 0` and a main-view static candidate count below static input count. Its first run exposed an older scene-renderer debug assert that still required per-phase command counts to equal the source draw census; with visibility pruning, command counts are allowed to be lower, so the assert now enforces only `command_count <= source_draw_count`. The scoped rerun and direct `visibility` sweep both passed on 2026-06-15; remaining VC-M4 acceptance is full render-product regression and RenderDoc visual review.
@@ -485,6 +556,22 @@ Formatting passed for all touched Rust files.
 `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain` passed after the relevance/frustum integration, bounds-kernel follow-up, main-view `FrameVisibility` integration, shadow-view integration, mesh-pass relevance consumption, main-view planning accessor migration, and visibility RenderStats/diagnostics integration, with the repository's existing warning set.
 
 The scoped core-min check passed again after the shadow-view atlas expansion: `VisibilityViewKey` now covers `ShadowCascade`, `ShadowPointFace`, and `ShadowSpot`; `FrameVisibility::from_frame_views(...)` builds all Plan 05 shadow atlas view keys currently required by directional/point/spot slots; and the source test `visibility_context_builds_shadow_views_for_atlas_light_slots` asserts the 4 + 6 + 1 view-key surface plus distinct directional cascade camera sizing. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` passed with the repository warning set. The directional cascade slice follow-up compiled the shared lib-test target with `--no-run`, then ran `cargo test ... visibility_context_builds_shadow_views_for_atlas_light_slots -- --nocapture` successfully as one filtered test. A prior `--exact` attempt matched zero tests because the full module path was required, so it is not counted as coverage.
+
+The 2026-06-23 Plan 09 CO-M4 mesh selected-camera layer filter split moved mesh phase ordering into `build_mesh_draws/build/phase_ordering.rs`, reducing `build.rs` from 1036 to 721 lines and keeping the new owner at 401 lines. `phase_ordered_meshes_filter_meshes_by_selected_camera_layers` covers raw mesh-vector fallback and material-adjusted phase queue consumption. Scoped formatting and static scans passed; the focused locked Cargo run for this guard timed out after 124 seconds without output or a `zircon_runtime*.exe` test binary in `target\codex-plan09-mesh-layer-0623`, and only unrelated cargo/rustc processes remained active afterward, so this slice does not claim a Cargo/WGPU pass.
+
+The 2026-06-23 Plan 09 CO-M4 mesh typed-mask follow-up moves `RenderMeshSnapshot.render_layer_mask` from legacy `u32` to `RenderLayerSet`. Scene extraction still starts from entity legacy masks, but mesh snapshots, static mesh batches, and frame-history mesh validation now retain the typed set until the explicit old visibility ABI boundary. Status is `render_plan09_mesh_render_layer_set_snapshot_static_passed_cargo_lock_blocked`: scoped rustfmt/check, stale legacy-intersection scans, direct bitwise/equality scans, line counts, static debt scans, and diff checks passed. The focused locked Cargo run for `phase_ordered_meshes_filter_meshes_by_selected_camera_layers` stopped before compilation because the current `Cargo.lock` would need an update under `--locked`, so this slice does not claim a Cargo/WGPU pass.
+
+The 2026-06-23 Plan 09 CO-M4 PrimitiveRelevance typed-layer filter follow-up updates `relevance.rs`, `collect_batching_result.rs`, and `view_context/build_views.rs` so shared relevance tests consume typed layer sets. It adds `primitive_relevance_preserves_layers_above_legacy_mask_width` for layer 40, updates mesh pass processor/build fixtures to pass typed masks, and leaves the only remaining `intersects_legacy_mask(render_layer_mask)` production use in `scene/world/render.rs` where scene entity authoring masks are still legacy input. Status is `render_plan09_primitive_relevance_typed_layer_filter_static_passed_cargo_lock_blocked_timeout_no_result`: scoped rustfmt/check, stale legacy-intersection scans, line counts, and diff checks passed; the focused `primitive_relevance` Cargo test timed out without pass evidence, and a follow-up locked check was blocked before compilation by current `Cargo.lock` drift.
+
+The 2026-06-23 Plan 09 CO-M4 VisibilityBatchKey typed-layer follow-up moves `VisibilityBatchKey.render_layer_mask` and `FrameVisibility.render_layer_masks` from legacy `u32` to `RenderLayerSet`. `collect_batching_result.rs`, `visible_batches_for_entities(...)`, and draw-command planning now clone the non-`Copy` batch key explicitly, and `build_views.rs` consumes typed layer sets directly for custom-target visibility. It adds `visibility_batch_key_preserves_layers_above_legacy_mask_width` for layer 40. Status is `render_plan09_visibility_batch_key_layer_set_static_passed_cargo_lock_blocked`: scoped rustfmt/check, stale legacy batch-key scans, line counts, and diff checks passed; the focused locked Cargo test and locked check both stopped before compilation because the current `Cargo.lock` would need an update under `--locked`.
+
+The 2026-06-23 Plan 09 CO-M4 VisibilityRenderableInput typed-layer follow-up moves `VisibilityRenderableInput.render_layer_mask` from legacy `u32` to `RenderLayerSet`. `RenderFrameExtract::from_snapshot(...)`, `visibility_entries(...)`, and `World::build_visibility_input(...)` now clone typed mesh/sprite layer sets, while particle emitter rows aggregate typed sprite masks with `RenderLayerSet::union(...)`. The inline `frame_extract.rs` tests moved into `frame_extract/tests.rs`, keeping the frame extract owner at 894 lines, and `render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width` locks layer 40 through the snapshot adapter. Status is `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result`: scoped rustfmt/check, stale visibility-input scans, line counts, and diff checks passed; the focused locked Cargo test timed out after 124 seconds without output or a test binary; locked check stopped before compilation because the current `Cargo.lock` would need an update under `--locked`.
+
+The 2026-06-23 Plan 09 CO-M4 world visibility input owner split moves that `VisibilityInput` assembly from the near-threshold scene render root into `scene/world/render_visibility.rs`. The structure guard `runtime_15_scene_world_render_visibility_input_is_child_owner` verifies `mod render_visibility;`, parent delegation, child ownership of typed `VisibilityRenderableInput` construction, moved functions not returning to `scene/world/render.rs`, and docs/status coverage. Status is `render_plan09_world_visibility_input_owner_split_static_passed_cargo_timeout_no_result`: scoped rustfmt/static scans, line counts, and diff checks passed; the focused locked Cargo run timed out after 124 seconds without output or a test binary.
+
+The 2026-06-23 Plan 09 CO-M4 particle typed-mask follow-up moves `RenderParticleSpriteSnapshot.render_layer_mask` from legacy `u32` to `RenderLayerSet`. Scene extraction still starts from entity legacy masks, but authored particles and world HUD bars wrap those masks at the DTO boundary, and the particle billboard/velocity builders plus `RenderPipelineAsset::compile(...)` now call `intersects(&sprite.render_layer_mask)` directly. At that slice time, `build_visibility_input(...)` was the explicit legacy boundary through `to_legacy_mask_lossy()`; the later `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result` follow-up moves `VisibilityRenderableInput` to `RenderLayerSet`. Status is `render_plan09_particle_render_layer_set_snapshot_static_passed_cargo_lock_blocked`: scoped rustfmt --check, typed snapshot-literal scans, stale legacy-intersection scans, line counts, static debt scans, and diff checks passed. The focused locked Cargo run for `particle_vertices_filter_sprites_by_selected_camera_layers` stopped before compilation because the current `Cargo.lock` would need an update under `--locked`, so this slice does not claim a Cargo/WGPU pass.
+
+The 2026-06-23 Plan 09 CO-M4 light-layer typed-mask slice moves directional, point, spot, and rect light snapshot masks to `RenderLayerSet`. This does not change `FrameVisibility` shadow view construction or WGPU light buffer layout; it removes the remaining raw `u32` from CPU `LightingExtract` rows, with `light_buffer.rs` performing the single legacy conversion when filling `GpuLightData.shadow_slot_layer[1]`. Status is `render_plan09_light_layer_set_snapshot_static_passed_cargo_timeout_no_result`: scoped rustfmt/check, old direct light-mask scans, diff-level debt scans, line counts, and diff checks passed. The focused locked Cargo run for `pack_light_slices_encodes_directional_shadow_and_layer_contract` timed out after 188 seconds without output or a test binary in `target\codex-plan09-light-layer-0623`, and residual cargo/rustc processes were stopped.
 
 The scoped core-min check passed again after the LS-M3 caster/receiver source guard: `mesh_visibility_states_preserve_shadow_only_casters` now proves that `build_mesh_draws(...)` preserves shadow-only casters when main-view culling excludes them. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-caster-receiver-coremin --message-format short --color never` passed with the repository warning set. The focused `cargo test ... mesh_visibility_states_preserve_shadow_only_casters -- --exact --nocapture` attempt timed out after 904 seconds without a filtered result; matching target-dir cargo/rustc processes were stopped.
 
@@ -515,6 +602,8 @@ The scoped check passed again after the VC-M3 exact stats readback path: `rustfm
 The scoped format and whitespace checks passed again after the VC-M3 indirect args readback summary path: `rustfmt --edition 2021 --check` passed for the touched Rust file list, and scoped `git diff --check` exited 0 with only Git LF-to-CRLF notices. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-args-readback-coremin --message-format short --color never` reached `zircon_runtime` but failed on an unrelated task-module visibility error: `zircon_runtime/src/core/runtime/tasks/mod.rs` re-exports private `JobSchedulerDiagnosticsState`. No render visibility error was returned before that blocker.
 
 The scoped checks passed again after the VC-M3 local WGPU wall/front args rewrite test and params-upload ordering fix: `rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs` passed, scoped `git diff --check` and trailing-whitespace scans passed with only Git LF-to-CRLF notices, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-coremin --message-format short --color never` completed with the repository warning set, reporting 74 existing warnings.
+
+The 2026-06-24 HZB occlusion culler test owner split keeps the WGPU cull pipeline owner below the structure budget: `graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs` owns the production compute pipeline, bind group layout, dispatch/readback stats, and `#[cfg(test)] mod tests;` mount, while `graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs` owns WGPU/static tests and fixtures. `runtime_15_hzb_occlusion_culler_tests_are_child_owner` locks that boundary and the status anchor `render_plan04_hzb_occlusion_culler_test_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
 
 Focused lib-test execution still has no clean result for this latest slice. `cargo test -p zircon_runtime --lib hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-test --message-format short --color never -- --test-threads=1 --nocapture` timed out after 10 minutes without returning a filtered test result. `cargo test -p zircon_runtime --lib hzb_occlusion_uploads_phase_params_in_encoder_order --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-coremin --message-format short --color never -- --test-threads=1 --nocapture` timed out after 15 minutes while still compiling the shared `zircon_runtime` lib-test target. The leftover cargo/rustc processes for those two target dirs were stopped.
 

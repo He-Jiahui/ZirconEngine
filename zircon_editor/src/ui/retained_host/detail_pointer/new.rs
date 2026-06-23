@@ -1,6 +1,8 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
+use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
+
 use super::scroll_surface_pointer_bridge::ScrollSurfacePointerBridge;
 use super::scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
 use super::scroll_surface_pointer_state::ScrollSurfacePointerState;
@@ -14,6 +16,7 @@ impl ScrollSurfacePointerBridge {
             state: ScrollSurfacePointerState::default(),
             surface: UiSurface::new(UiTreeId::new(tree_id)),
             dispatcher: UiPointerDispatcher::default(),
+            route_intents: EditorRouteIntentMap::default(),
         };
         bridge.rebuild_surface();
         bridge

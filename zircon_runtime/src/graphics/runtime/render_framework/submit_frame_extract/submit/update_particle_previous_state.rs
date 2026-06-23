@@ -38,8 +38,8 @@ pub(super) fn update_particle_previous_state_after_success(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderFrameExtract, RenderParticleBillboardBasisSnapshot, RenderParticleSpriteSnapshot,
-        RenderViewportDescriptor, RenderWorldSnapshotHandle,
+        RenderFrameExtract, RenderLayerSet, RenderParticleBillboardBasisSnapshot,
+        RenderParticleSpriteSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
     use crate::graphics::runtime::render_framework::viewport_record::{
@@ -69,6 +69,7 @@ mod tests {
             color: Vec4::ONE,
             intensity: 1.0,
             depth_test: true,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
             material: None,
             texture: None,
         }];
@@ -117,6 +118,7 @@ mod tests {
                 color: Vec4::ONE,
                 intensity: 1.0,
                 depth_test: true,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material: None,
                 texture: None,
             },
@@ -132,6 +134,7 @@ mod tests {
                 color: Vec4::ONE,
                 intensity: 1.0,
                 depth_test: true,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material: None,
                 texture: None,
             },
@@ -147,6 +150,7 @@ mod tests {
                 color: Vec4::ONE,
                 intensity: 1.0,
                 depth_test: true,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material: None,
                 texture: None,
             },

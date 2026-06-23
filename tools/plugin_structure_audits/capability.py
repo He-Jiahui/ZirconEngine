@@ -221,18 +221,20 @@ def collect_lib_capability_literal_sites(
 ) -> None:
     if not lib_path.exists():
         return
-    lines = lib_path.read_text(encoding="utf-8").splitlines()
+    lib_text = lib_path.read_text(encoding="utf-8")
+    lines = lib_text.splitlines()
     has_capability_mod = any(line.strip() == "mod capability;" for line in lines)
-    has_runtime_export = any(
-        "pub fn runtime_capabilities()" in line for line in lines
-    ) and any("RUNTIME_CAPABILITIES" in line for line in lines)
+    has_runtime_export = exposes_runtime_capabilities_from_single_source(
+        lib_path,
+        lib_text,
+    )
     if not has_capability_mod:
         literal_sites.append(
             f"{lib_path.relative_to(repo_root).as_posix()}: missing `mod capability;`"
         )
     if not has_runtime_export:
         literal_sites.append(
-            f"{lib_path.relative_to(repo_root).as_posix()}: runtime_capabilities() does not return RUNTIME_CAPABILITIES"
+            f"{lib_path.relative_to(repo_root).as_posix()}: runtime_capabilities() is not projected from RUNTIME_CAPABILITIES"
         )
 
     for line_number, line in enumerate(lines, start=1):
@@ -248,6 +250,30 @@ def collect_lib_capability_literal_sites(
             literal_sites.append(
                 f"{lib_path.relative_to(repo_root).as_posix()}:{line_number}: importer capability literal belongs in capability.rs"
             )
+
+
+def exposes_runtime_capabilities_from_single_source(
+    lib_path: Path,
+    lib_text: str,
+) -> bool:
+    if "pub fn runtime_capabilities()" in lib_text and "RUNTIME_CAPABILITIES" in lib_text:
+        return True
+
+    plugin_path = lib_path.parent / "plugin.rs"
+    if not plugin_path.exists():
+        return False
+    if not re.search(
+        r"pub\s+use\s+plugin::\s*(?:\{[^}]*runtime_capabilities[^}]*\}|runtime_capabilities)",
+        lib_text,
+        re.DOTALL,
+    ):
+        return False
+
+    plugin_text = plugin_path.read_text(encoding="utf-8")
+    return (
+        "pub fn runtime_capabilities()" in plugin_text
+        and "RUNTIME_CAPABILITIES" in plugin_text
+    )
 
 
 def collect_sdk_builder_mirror_violations(repo_root: Path) -> list[str]:

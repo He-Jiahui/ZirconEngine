@@ -78,7 +78,7 @@ mod tests {
     use crate::core::framework::render::RenderCameraTargetGraphImportStatus;
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::ViewportRenderOutputTarget;
+    use crate::graphics::types::{ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL};
 
     use super::suppressed_graph_import_report;
 
@@ -90,6 +90,7 @@ mod tests {
         let texture_target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(96, 54),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
 
         let texture_report =

@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
   - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
   - zircon_runtime/src/scene/reflect/fixed/lights.rs
+  - zircon_runtime/src/scene/reflect/fixed/lights/write_fields.rs
   - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
   - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
   - zircon_runtime/src/scene/reflect/fixed/mobility.rs
@@ -39,6 +40,7 @@ implementation_files:
   - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
   - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
   - zircon_runtime/src/scene/reflect/fixed/lights.rs
+  - zircon_runtime/src/scene/reflect/fixed/lights/write_fields.rs
   - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
   - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
   - zircon_runtime/src/scene/reflect/fixed/mobility.rs
@@ -286,6 +288,14 @@ cargo test -p zircon_editor --lib viewport_edit_mode_projection_consumes_runtime
 ```
 
 The runtime command passed 2 tests with 0 failures and 1458 filtered out. The editor command passed 1 test with 0 failures and 1341 filtered out. A crate-level `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short` currently fails outside this reflection slice in `zircon_runtime/src/scene/world/render.rs`, where the active rendering parity work has a `PostProcessExtract` initializer missing `graph` and `stack` fields.
+
+## Runtime 15 M4 scene fixed light reflection write-field owner split
+
+状态：`runtime_15_scene_fixed_light_reflection_write_fields_owner_split_static_passed_cargo_lock_blocked`。
+
+Runtime 15 M4 的当前新增落地部分是 fixed light reflection adapter 的生产文件减压。`scene/reflect/fixed/lights.rs` 继续拥有 Ambient/Directional/Point/Rect/Spot light 的 schema registration、adapter construction、contains、read/read_fields 与 remove callbacks；`scene/reflect/fixed/lights/write_fields.rs` 承接五类 light 的 editable field write callbacks、typed component presence checks、Vec2/Vec3/scalar/bool value validation 与 no-op mutation comparisons。
+
+该切片不改变 `ReflectComponent` 函数表、不改变 fixed light type path、字段名、错误模型或 `World` typed ECS mutation path。守卫：`runtime_15_scene_fixed_light_reflection_write_fields_are_child_owner` 验证父/子 owner 挂载、write helper 不回流、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、module-convention、本文档和 status-output expectations 的状态锚同步。验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 通过；focused locked Cargo 被当前 `Cargo.lock`/`Cargo.toml` 漂移在编译前阻断，不计 Cargo 通过。完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 scene reflection Cargo sweep 仍 pending。
 
 ## Fixed Error Model
 

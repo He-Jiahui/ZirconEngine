@@ -46,7 +46,9 @@ related_code:
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
   - tools/zircon_build.py
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/mod.rs
@@ -89,7 +91,9 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
   - tools/zircon_build.py
 plan_sources:
   - user: 2026-05-20 Bevy rendering completion plan continuation
@@ -162,6 +166,7 @@ tests:
   - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-quality-prewarm-check-0617 (2026-06-17 quality-tier prewarm enumeration slice: passed with existing warnings)
   - python tools\zircon_build.py --targets runtime --out D:\zircon-shader-quality-prewarm-dry-run --mode debug --prewarm-shaders --shader-quality-tier high --shader-quality-tier ultra --dry-run (2026-06-17 quality-tier prewarm enumeration slice: command includes --quality-tier high --quality-tier ultra)
   - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-quality-prewarm-check-0617 -- --asset-root examples/vampire/assets --quality-tier high --quality-tier ultra (2026-06-17 quality-tier prewarm runtime probe: timed out during build/run; no pass claimed)
+  - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_manifest_tests_are_folder_backed --no-default-features --features core-min --locked: deferred in Runtime 15 M3 shader prewarm manifest test folder split
   - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/{mesh_pipeline_cache,new,ensure_pipeline}.rs (2026-06-17 base mesh quality-aware cache owner slice: passed)
   - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-quality-cache-check-0617 (2026-06-17 base mesh quality-aware cache owner slice: passed with existing warnings)
 doc_type: module-detail
@@ -208,6 +213,14 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 `ShaderVariantMissReport` is the neutral diagnostic DTO for variant cache behavior. It records variant requests, memory hits, disk hits, compile misses, disk writes, and disk errors for the last frame so runtime diagnostics can verify whether prewarm and disk-cache slices actually removed runtime compiles.
 
 `ShaderVariantPrewarmManifest`, `ShaderVariantPrewarmRequest`, and `ShaderVariantPrewarmReport` are the neutral offline-cache DTOs. The manifest version-gates a list of requests; each request carries the final `ShaderVariantKey`, WGSL source, include/source hashes, and template/compiler version strings. The report records requested, written, and failed counts plus per-variant failures. These DTOs let build tooling and headless runtime code populate `graphics::shader::variant_cache` without depending on WGPU objects. The `zircon_shader_prewarm` tool can read an authored manifest, emit the built-in fallback manifest, or scan asset roots for `.zmeta` compound shader packages, `.zshader` files, standalone `.wgsl` files, and `.zmaterial` material instances. Automatically generated built-in and asset-root requests can be expanded with repeated `--quality-tier low|medium|high|ultra` or `--quality-tier all`; no explicit tier still defaults to Medium so existing staging size stays stable. Authored manifest files keep their serialized quality keys unchanged. `tools/zircon_build.py --prewarm-shaders` forwards those tiers through its `--shader-quality-tier` option. The scan path mirrors the shader package importer by reading `.zshader` `wgsl_files` in order and combining those files into the runtime WGSL payload before writing disk-cache entries. `.zshader` entry-point stages drive static-mesh StandardPBR pass expansion: vertex+fragment sources emit Forward, GBuffer, DepthPrepass, Shadow, and Velocity; vertex-only sources emit DepthPrepass, Shadow, and Velocity; fragment-only sources emit Forward and GBuffer; compute-only sources do not enter the material-variant prewarm space. Standalone `.wgsl` sources default to the full material pass set because they do not carry serialized stage metadata. Scanned shader requests use material revision `1`, matching `ResourceManager::register_ready` initial ready resource revision, while source/include hashes remain part of the disk-cache key payload for stale-entry invalidation. `.zmaterial` files are parsed through `MaterialAsset`, joined back to scanned shader sources by shader `AssetReference` URL or resource id, and expanded into deduplicated material-dimension variants. The feature mapping matches runtime `PipelineKey`: `AlphaMode::Mask` sets `ShaderFeatureBits::ALPHA_TEST`, and `double_sided = true` sets `ShaderFeatureBits::DOUBLE_SIDED`. Built-in material lighting models also enter the prewarm key through `ShadingModelId::from_lighting_model`: PBR maps to StandardPBR, BlinnPhong maps to BlinnPhong, and Unlit maps to Unlit. `AlphaMode::Blend` material-instance requests are filtered to the Forward pass so transparent materials align with the current runtime transparent queue instead of prewarming unused G-buffer, depth, shadow, or velocity variants for that material instance. Custom lighting models still need a project shading-model registry export before prewarm can assign plugin ids safely, so unknown custom models continue to fall back to StandardPBR in this tool path.
+
+## Runtime 15 M3 shader prewarm manifest test folder split
+
+状态：`runtime_15_shader_prewarm_manifest_tests_folder_split_static_passed_cargo_deferred`。
+
+Runtime 15 R4.1/M3 的当前结构切片只移动 shader prewarm manifest 的测试 owner，不改变 manifest 读取、asset-root 扫描、quality-tier 扩展、material feature 映射或 disk-cache 写入路径。`bin/zircon_shader_prewarm/manifest.rs` 从 810 行降到 672 行，父文件只保留生产逻辑和 `#[cfg(test)] mod tests;` 挂载；原内联测试迁入 `bin/zircon_shader_prewarm/manifest/tests.rs`。
+
+子文件保留 `shader_prewarm_asset_root_manifest_reads_compound_zshader_package`，继续覆盖 compound `.zshader`、`.zmaterial` feature bits、BlinnPhong/Unlit shading model 映射、material revision 与 alpha-blend Forward-only pass filtering。新增 `structure_convention/test_file_budget/shader_prewarm_manifest.rs::runtime_15_shader_prewarm_manifest_tests_are_folder_backed`，锁定父/子文件、moved test 不回流、1 个测试保留、800 行预算，以及 Runtime 15 计划、runtime index、结构规范、review findings、module-convention、本文档和 status-output expectations 的状态锚同步。
 
 `RenderShaderPipelineLayoutDescriptor` records the intended shader resource interface. Each `RenderShaderBindGroupLayoutDescriptor` stores a group index, optional label, and binding rows. Each `RenderShaderBindingDescriptor` stores binding index, optional label, resource type, and stage visibility. `RenderShaderBindingResourceType` currently names uniform buffers, storage buffers, sampled textures, storage textures, and samplers. `push_constant_ranges` is intentionally a vector of labels or range descriptions rather than a WGPU-native range type because the neutral contract must remain serializable and backend-agnostic.
 

@@ -1,13 +1,15 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,
-    event_ui::{UiNodePath, UiTreeId},
+    event_ui::{UiNodePath, UiRouteId, UiTreeId},
     layout::UiFrame,
     surface::UiPointerEventKind,
     tree::{UiInputPolicy, UiTreeNode},
 };
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
+use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::autolayout::ShellSizePx;
@@ -17,8 +19,11 @@ use super::node_ids::{
     RESIZE_POINTER_ROOT_NODE_ID, RESIZE_TARGET_BOTTOM_NODE_ID, RESIZE_TARGET_LEFT_NODE_ID,
     RESIZE_TARGET_RIGHT_NODE_ID,
 };
+use super::route::HostShellPointerRoute;
 
-pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
+const RESIZE_ROUTE_ID_BASE: u64 = 51_000;
+
+pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher, EditorRouteIntentMap) {
     let mut surface = UiSurface::new(UiTreeId::new(
         "zircon.editor.workbench.shell_pointer.resize",
     ));
@@ -31,21 +36,29 @@ pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
         .with_frame(UiFrame::new(0.0, 0.0, 1.0, 1.0)),
     );
 
-    for (node_id, path, z_index) in [
+    let mut route_intents = EditorRouteIntentMap::default();
+
+    for (node_id, path, z_index, route_id, group) in [
         (
             RESIZE_TARGET_LEFT_NODE_ID,
             "editor.workbench.shell_pointer/resize/left",
             10,
+            resize_route_id(1),
+            HostResizeTargetGroup::Left,
         ),
         (
             RESIZE_TARGET_RIGHT_NODE_ID,
             "editor.workbench.shell_pointer/resize/right",
             20,
+            resize_route_id(2),
+            HostResizeTargetGroup::Right,
         ),
         (
             RESIZE_TARGET_BOTTOM_NODE_ID,
             "editor.workbench.shell_pointer/resize/bottom",
             30,
+            resize_route_id(3),
+            HostResizeTargetGroup::Bottom,
         ),
     ] {
         surface
@@ -58,6 +71,11 @@ pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
                     .with_state_flags(base_target_state(true)),
             )
             .expect("resize pointer root must exist");
+        route_intents.bind_node(
+            node_id,
+            route_id,
+            EditorRouteIntent::ShellPointer(HostShellPointerRoute::Resize(group)),
+        );
     }
 
     let mut resize_dispatcher = UiPointerDispatcher::default();
@@ -90,7 +108,11 @@ pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
     }
 
     surface.rebuild();
-    (surface, resize_dispatcher)
+    (surface, resize_dispatcher, route_intents)
+}
+
+const fn resize_route_id(offset: u64) -> UiRouteId {
+    UiRouteId::new(RESIZE_ROUTE_ID_BASE + offset)
 }
 
 pub(super) fn update_resize_surface(

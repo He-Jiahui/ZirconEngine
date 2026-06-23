@@ -3,6 +3,7 @@ related_code:
   - tools/zircon_export/__init__.py
   - tools/zircon_export/__main__.py
   - tools/zircon_export/cli.py
+  - tools/zircon_export/plugin_build.py
   - tools/zircon_export/compile_host.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
@@ -89,6 +90,7 @@ related_code:
   - tools/zircon_export/tests/test_native_dynamic_signing_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_payload_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_path_resolve_errors.py
+  - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/tests/test_native_dynamic_stage.py
   - tools/zircon_export/tests/test_pipeline_report_source_template.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_validate_build_plan.py
@@ -189,6 +191,7 @@ related_code:
   - zircon_runtime/Cargo.toml
 implementation_files:
   - tools/zircon_export/cli.py
+  - tools/zircon_export/plugin_build.py
   - tools/zircon_export/compile_host.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
@@ -264,6 +267,7 @@ implementation_files:
   - tools/zircon_export/tests/test_native_dynamic_signing_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_payload_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_stage.py
+  - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/tests/test_platform_bundle_native_dynamic.py
   - tools/zircon_export/tests/test_platform_bundle_native_dynamic_operation_audit.py
   - tools/zircon_export/tests/test_platform_bundle_native_payload_loader_manifest.py
@@ -490,6 +494,12 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_plan_vector_schema
   - python -m py_compile tools/zircon_export/__init__.py tools/zircon_export/__main__.py tools/zircon_export/cli.py tools/zircon_export/compile_host.py tools/zircon_export/cook_assets.py tools/zircon_export/export_template.py tools/zircon_export/native_build.py tools/zircon_export/native_dynamic.py tools/zircon_export/native_dynamic_plan.py tools/zircon_export/native_signing.py tools/zircon_export/pipeline_report.py tools/zircon_export/pipeline_report_platform_bundle.py tools/zircon_export/pipeline_stages.py tools/zircon_export/platform_bundle.py tools/zircon_export/source_template.py tools/zircon_export/tests/export_test_support.py tools/zircon_export/tests/test_templates.py tools/zircon_export/tests/test_compile_host_source_template.py tools/zircon_export/tests/test_cook_assets_pack_stage.py tools/zircon_export/tests/test_native_dynamic_stage.py tools/zircon_export/tests/test_pipeline_report_stage.py tools/zircon_export/tests/test_pipeline_resume_flow.py tools/zircon_export/tests/test_native_dynamic.py tools/zircon_export/tests/test_platform_bundle_delta.py
   - python -m tools.zircon_export --help
+  - python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py: passed 2026-06-23
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-package-fixture --target-dir D:\cargo-targets\zircon-plugin-m3-build-fixture: passed 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-a --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-b --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23; package sha256 comparison returned MATCH
+  - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m4-t1-package-fixture --target-dir D:\cargo-targets\zircon-plugin-m4-t1-build-fixture: timed out after 604s during packer Cargo build/run on 2026-06-23; not counted as passed
   - python -m unittest tools.zircon_export.tests.test_templates
   - python -m unittest tools.zircon_export.tests.test_compile_host_source_template
   - python -m unittest tools.zircon_export.tests.test_cook_assets_pack_stage
@@ -2856,6 +2866,7 @@ python -m tools.zircon_export --profile windows-release --out D:\zircon-export -
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --offline
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-build --native-dynamic-build-feature abi_v2_only --offline
+python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --out D:\zircon-export\plugins --target-dir D:\cargo-targets\zircon-plugin-native_dynamic_fixture
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-sign-command D:\tools\sign-native.exe --native-dynamic-sign-arg "{artifact}"
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage native_dynamic --native-dynamic-notarize-command D:\tools\notarize-native.exe --native-dynamic-notarize-arg "{artifact}" --native-dynamic-notarize-profile windows-attestation --native-dynamic-notarize-platform windows
 python -m tools.zircon_export --profile windows-release --out D:\zircon-export --stage cook_assets --asset-manifest D:\zircon-export\assets\assets.json
@@ -2896,14 +2907,30 @@ without it, NativeDynamic only consumes existing package `native/` artifacts. Re
 `--native-dynamic-build-feature` to pass Cargo features such as `abi_v2_only` into the native cdylib
 build plan and execution command. Build feature arguments must be non-empty trimmed strings; blank,
 padded, or non-string values fail before the stage can construct a Cargo `--features` argument.
-`--native-dynamic-sign-command` enables an external signer for staged NativeDynamic loadable artifacts;
-repeat `--native-dynamic-sign-arg` for signer arguments and use placeholders such as `{artifact}` and
-`{target_platform}` when the signer needs artifact-specific values. Add
-`--native-dynamic-sign-profile` to record and pass a profile label, and repeat
-`--native-dynamic-sign-platform` to restrict that profile to target-platform prefixes before the
-external signer is launched. These signing command, argument, profile, and platform values are
-schema-clean release inputs: they must be strings without leading/trailing whitespace and cannot be
-blank, and invalid values stop before payload materialization or external command launch.
+`plugin build <id>` is the Plugins 13 per-plugin dist entry. It reads the plugin root
+`plugin.toml` `[distribution]` section, builds the declared `dist_crate` with
+`--no-default-features --features dist --locked` by default, and writes an isolated package
+directory at `<out>/<id>/` containing the loadable library renamed to `<id>.dll|so|dylib`,
+`plugin.toml`, optional `<id>.zrpack` assets from `[distribution].assets`, and
+`native_dynamic_package.toml`, plus a generated `<id>.sig` hash sidecar. It also writes
+`<out>/native_plugins.toml` so the isolated package output already has an ABI v3 loader manifest
+for runtime-side discovery. Asset subpackages are built by the Rust `zircon_export_pack`
+binary with `--determinism-check`; use `--packer <path>` to point at a prebuilt packer instead of
+running it through Cargo. The command uses its own `--target-dir` and does not create profile
+pipeline output under `<out>/stages`. Package reports use package-relative paths so two runs from
+the same source can be compared byte-for-byte without out/target absolute path drift.
+`--sign-command` enables an external signer for per-plugin dist build output, with
+`--native-dynamic-sign-command` kept as the profile-stage spelling. Repeat `--sign-arg` or
+`--native-dynamic-sign-arg` for signer arguments and use placeholders such as `{artifact}`,
+`{package_id}`, and `{target_platform}` when the signer needs artifact-specific values. Add
+`--sign-profile` / `--native-dynamic-sign-profile` to record and pass a profile label, and repeat
+`--sign-platform` / `--native-dynamic-sign-platform` to restrict that profile to target-platform
+prefixes before the external signer is launched. These signing command, argument, profile, and
+platform values are schema-clean release inputs: they must be strings without leading/trailing
+whitespace and cannot be blank, and invalid values stop before payload materialization or external
+command launch. The `.sig` sidecar is still emitted without an external signer and records loadable
+artifact bytes/hash evidence; with signing enabled it additionally records signer before/after hash
+evidence before `native_dynamic_package.toml` and the loader manifest are sealed.
 `--dry-run` prints the exact stage command or bundle inputs without creating stage output. Cargo
 commands use `--locked` by default;
 `--native-dynamic-notarize-command` enables an external notarization or platform post-processing

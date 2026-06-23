@@ -1,6 +1,7 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
 use crate::graphics::ViewportFrame;
+use std::collections::BTreeSet;
 
 use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -20,7 +21,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
 ) -> SubmissionRecordUpdate {
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
-    let virtual_geometry_indirect_segment_count = 0;
+    let virtual_geometry_indirect_segment_count = virtual_geometry_indirect_segment_count(context);
     let (previous_handle, history_handle, history_status) =
         record_history(record, context, frame.generation, allocated_history);
     record_capture(record, context, frame);
@@ -118,4 +119,23 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         stats.replaced_page_count(),
         indirect_segment_count,
     )
+}
+
+pub(super) fn virtual_geometry_indirect_segment_count(context: &FrameSubmissionContext) -> usize {
+    let Some(page_upload_plan) = context.virtual_geometry_page_upload_plan() else {
+        return 0;
+    };
+    let executable_pages = page_upload_plan
+        .resident_pages
+        .iter()
+        .chain(page_upload_plan.requested_pages.iter())
+        .copied()
+        .collect::<BTreeSet<_>>();
+
+    context
+        .visibility_context()
+        .virtual_geometry_draw_segments
+        .iter()
+        .filter(|segment| executable_pages.contains(&segment.page_id))
+        .count()
 }

@@ -42,10 +42,10 @@ pub use extension_registry::{
 };
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use package_manifest::{
-    PluginDependencyManifest, PluginEventCatalogManifest, PluginEventManifest,
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginInterfaceManifest,
-    PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest, PluginOptionManifest,
-    PluginPackageKind, PluginPackageManifest,
+    PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
+    PluginEventManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
+    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
+    PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
 };
 pub use plugin_maturity::PluginMaturity;
 pub use project_plugin_manifest::{

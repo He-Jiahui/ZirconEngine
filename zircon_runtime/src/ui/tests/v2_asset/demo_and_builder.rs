@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn material_demo_window_compiles_and_resolves_material_dark_states() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml"
     ))
     .unwrap();
 
@@ -217,7 +217,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
 #[test]
 fn layout_demo_window_compiles_with_window_drawer_and_data_view_components() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml"
     ))
     .unwrap();
 
@@ -269,7 +269,7 @@ fn layout_demo_window_compiles_with_window_drawer_and_data_view_components() {
 #[test]
 fn fyrox_panel_demo_window_compiles_with_all_panel_role_components() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../zircon_editor/assets/ui/editor/fyrox_panel_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/fyrox_panel_demo_window.v2.ui.toml"
     ))
     .unwrap();
 

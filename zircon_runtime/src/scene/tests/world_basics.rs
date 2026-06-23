@@ -667,7 +667,7 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         .sprites
         .sprites
         .iter()
-        .all(|sprite| sprite.render_layer_mask & 0b0010 != 0));
+        .all(|sprite| sprite.render_layer_mask.intersects_legacy_mask(0b0010)));
     assert!(extract
         .visibility
         .dynamic_entities

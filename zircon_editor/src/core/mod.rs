@@ -4,6 +4,7 @@ pub mod editing;
 pub mod editor_authoring_extension;
 pub mod editor_event;
 pub mod editor_extension;
+pub mod editor_message;
 pub mod editor_operation;
 pub mod editor_plugin;
 pub(crate) mod editor_plugin_catalog_gen;

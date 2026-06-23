@@ -4,17 +4,21 @@ use super::support::*;
 fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is_closer_to_right_edge(
 ) {
     let geometry = shell_geometry(
-        ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
+        ShellFrame::new(1348.0, 50.0, 92.0, 830.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
+    );
+    let workbench_layout_frames = workbench_layout_frames_from_geometry_with_drawers(
+        &geometry,
+        &[ShellRegionId::Right, ShellRegionId::Bottom],
     );
 
     assert_eq!(
-        resolve_host_drag_target_group_with_root_frames(
+        resolve_host_drag_target_group_with_workbench_layout_frames(
             UiSize::new(1440.0, 900.0),
             true,
             UiPoint::new(1428.0, 860.0),
-            Some(&root_frames_from_geometry(&geometry)),
+            workbench_layout_frames,
         ),
         Some(HostDragTargetGroup::Right)
     );
@@ -24,17 +28,21 @@ fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is
 fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is_closer_to_bottom_edge(
 ) {
     let geometry = shell_geometry(
-        ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
+        ShellFrame::new(1348.0, 50.0, 92.0, 830.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
+    );
+    let workbench_layout_frames = workbench_layout_frames_from_geometry_with_drawers(
+        &geometry,
+        &[ShellRegionId::Right, ShellRegionId::Bottom],
     );
 
     assert_eq!(
-        resolve_host_drag_target_group_with_root_frames(
+        resolve_host_drag_target_group_with_workbench_layout_frames(
             UiSize::new(1440.0, 900.0),
             true,
             UiPoint::new(1380.0, 860.0),
-            Some(&root_frames_from_geometry(&geometry)),
+            workbench_layout_frames,
         ),
         Some(HostDragTargetGroup::Bottom)
     );

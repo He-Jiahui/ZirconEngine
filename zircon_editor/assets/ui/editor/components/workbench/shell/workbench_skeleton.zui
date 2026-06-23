@@ -1,0 +1,50 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/shell/workbench_skeleton.zui"
+version = 2
+display_name = "Workbench Skeleton"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui#WorkbenchTopToolbar",
+  "res://ui/editor/components/workbench/shell/workbench_activity_rail.zui#WorkbenchActivityRail",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui#WorkbenchTabStrip",
+  "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
+  "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
+]
+styles = [
+  "res://ui/theme/editor_workbench_strict.v2.ui.toml",
+  "res://ui/editor/theme/editor_tokens.v2.ui.toml",
+]
+
+[components.WorkbenchSkeleton]
+root = "skeleton"
+default_classes = ["workbench-skeleton"]
+
+[nodes.skeleton]
+component = "VerticalGroup"
+control_id = "WorkbenchSkeleton"
+classes = ["workbench-skeleton"]
+style = { self = { background = { color = "editor.surface.0" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 0.0, radius = 0.0 } } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_toolbar" }, { node = "document_tabs" }, { node = "main_band" }, { node = "status_bar" }]
+
+[nodes.top_toolbar]
+component = "WorkbenchTopToolbar"
+control_id = "WorkbenchSkeletonTopToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.document_tabs]
+component = "WorkbenchTabStrip"
+control_id = "WorkbenchSkeletonDocumentTabs"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.main_band]
+component = "WorkbenchMainBand"
+control_id = "WorkbenchSkeletonMainBand"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_bar]
+component = "WorkbenchStatusBar"
+control_id = "WorkbenchSkeletonStatusBar"
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }

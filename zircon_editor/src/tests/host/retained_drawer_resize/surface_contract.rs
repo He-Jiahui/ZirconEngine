@@ -57,3 +57,40 @@ fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
         );
     }
 }
+
+#[test]
+fn shell_pointer_bridge_uses_route_intent_only() {
+    let retained_host_mod = source("src/ui/retained_host/mod.rs");
+    let route_intent_map = source("src/ui/retained_host/route_intent/map.rs");
+    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
+    let shell_pointer_route = source("src/ui/retained_host/shell_pointer/route.rs");
+    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
+    let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+
+    assert!(retained_host_mod.contains("pub(crate) mod route_intent;"));
+    assert!(route_intent_map.contains("pub(crate) struct EditorRouteIntentMap"));
+    assert!(route_intent_map.contains("route_id_for_node"));
+    assert!(route_intent_map.contains("shell_pointer_route_for_node"));
+    assert!(shell_pointer_bridge.contains("EditorRouteIntentMap"));
+    assert!(shell_pointer_bridge.contains("shell_pointer_route_from_input_result"));
+    assert!(shell_pointer_bridge.contains("shell_pointer_reply_effect_target"));
+    assert!(drag_surface.contains("EditorRouteIntent::ShellPointer"));
+    assert!(resize_surface.contains("EditorRouteIntent::ShellPointer"));
+    assert!(!shell_pointer_route.contains("drag_route_from_node"));
+    assert!(!shell_pointer_route.contains("resize_group_from_dispatch"));
+    assert!(!shell_pointer_bridge.contains("handled_by"));
+    assert!(!shell_pointer_bridge.contains("captured_by"));
+}
+
+#[test]
+fn drawer_resize_capture_goes_through_reply() {
+    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
+    let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+
+    assert!(shell_pointer_bridge.contains("dispatch_input_event("));
+    assert!(shell_pointer_bridge.contains("UiDispatchEffect::CapturePointer"));
+    assert!(shell_pointer_bridge.contains("UiDispatchEffect::ReleasePointerCapture"));
+    assert!(shell_pointer_bridge.contains("shell_pointer_reply_effect_target(result)"));
+    assert!(!shell_pointer_bridge.contains("dispatch_pointer_event("));
+    assert!(resize_surface.contains("UiPointerDispatchEffect::capture()"));
+}

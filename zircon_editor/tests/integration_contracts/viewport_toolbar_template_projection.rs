@@ -28,31 +28,43 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
     let set_tool = host_model
         .node_by_control_id("SetTool")
         .expect("set tool group should exist");
-    assert_eq!(set_tool.frame, UiFrame::new(8.0, 4.0, 172.0, 20.0));
+    assert_eq!(set_tool.frame, UiFrame::new(0.0, 0.0, 58.0, 28.0));
 
     let set_transform_space = host_model
         .node_by_control_id("SetTransformSpace")
         .expect("transform space group should exist");
     assert_eq!(
         set_transform_space.frame,
-        UiFrame::new(189.0, 4.0, 86.0, 20.0)
+        UiFrame::new(
+            set_tool.frame.x + set_tool.frame.width + 4.0,
+            0.0,
+            68.0,
+            28.0
+        )
     );
 
     let set_projection_mode = host_model
         .node_by_control_id("SetProjectionMode")
         .expect("projection mode group should exist");
-    assert_eq!(
-        set_projection_mode.frame,
-        UiFrame::new(958.0, 4.0, 92.0, 20.0)
-    );
 
     let align_view = host_model
         .node_by_control_id("AlignView")
         .expect("align view group should exist");
-    assert_eq!(align_view.frame, UiFrame::new(1054.0, 4.0, 200.0, 20.0));
+    assert_eq!(set_projection_mode.frame.height, 28.0);
+    assert_eq!(align_view.frame.height, 28.0);
+    assert_eq!(
+        align_view.frame.x,
+        set_projection_mode.frame.x + set_projection_mode.frame.width + 4.0
+    );
+    assert_eq!(
+        align_view.frame.x + align_view.frame.width,
+        root.frame.width
+    );
 
     let frame_selection = host_model
         .node_by_control_id("FrameSelection")
         .expect("frame selection control should exist");
-    assert_eq!(frame_selection.frame, UiFrame::new(649.0, 4.0, 20.0, 20.0));
+    assert_eq!(frame_selection.frame.width, 68.0);
+    assert_eq!(frame_selection.frame.height, 28.0);
+    assert!(frame_selection.frame.x > set_transform_space.frame.x);
 }

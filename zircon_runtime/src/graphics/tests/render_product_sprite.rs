@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, ProjectionMode, RenderFrameExtract, RenderFramework,
-    RenderMaterialAlphaMode, RenderParticleSpriteSnapshot, RenderPhase, RenderPhaseMeshSource,
-    RenderPipelineHandle, RenderQualityProfile, RenderQueueValue, RenderSpriteAnchor,
-    RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
+    RenderLayerSet, RenderMaterialAlphaMode, RenderParticleSpriteSnapshot, RenderPhase,
+    RenderPhaseMeshSource, RenderPipelineHandle, RenderQualityProfile, RenderQueueValue,
+    RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
     RenderWorldSnapshotHandle, SpriteExtract,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -34,7 +34,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.5, 0.75, 1.0, 0.6),
         z_order: 7,
-        render_layer_mask: 0b10,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(0b10),
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let particle = RenderParticleSpriteSnapshot {
@@ -49,6 +49,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         color: sprite.color,
         intensity: 1.0,
         depth_test: true,
+        render_layer_mask: sprite.render_layer_mask.clone(),
         material: sprite.material,
         texture: Some(sprite.image),
     };
@@ -209,7 +210,7 @@ fn render_product_sprite_submit_records_sprite_stats_without_particle_feature() 
             image_mode: RenderSpriteImageMode::Stretch,
             color: Vec4::ONE,
             z_order: 0,
-            render_layer_mask: u32::MAX,
+            render_layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
             material_alpha_mode: RenderMaterialAlphaMode::Blend,
         }],
     );

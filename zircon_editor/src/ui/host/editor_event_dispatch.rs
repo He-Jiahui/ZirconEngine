@@ -3,6 +3,7 @@ use crate::core::editor_event::{
     EditorEventRecord, EditorEventResult, EditorEventRuntime, EditorEventSequence,
     EditorEventSource, EditorEventTransient, MenuAction,
 };
+use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{
     EditorOperationDescriptor, EditorOperationInvocation, EditorOperationPath,
     EditorOperationSource, EditorOperationStackEntry,
@@ -110,7 +111,10 @@ impl EditorEventRuntime {
                     after_revision,
                     result: EditorEventResult::failure(error.clone()),
                 };
-                Self::refresh_reflection_locked(&mut inner);
+                Self::refresh_workbench_locked(
+                    &mut inner,
+                    EditorViewInvalidationMask::PRESENTATION_DATA,
+                );
                 inner.journal.push(record.clone());
                 inner.event_listeners.notify(&record);
                 return Err(error);
@@ -163,7 +167,7 @@ impl EditorEventRuntime {
                 ));
             }
         }
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_for_effects_locked(&mut inner, execution.effects());
         inner.journal.push(record.clone());
         inner.event_listeners.notify(&record);
         Ok(record)

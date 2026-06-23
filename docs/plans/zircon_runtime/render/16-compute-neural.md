@@ -505,6 +505,7 @@ runtime 侧(`zircon_runtime/src/graphics/tests/render_compute.rs`、`gpu_readbac
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | CN-M1 部分完成,CN-M2~M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 16 Compute/Neural 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：NN operators、graph executor、NN postprocess、统一 compute framework；验收缺口：需要 compute descriptor/readback/dispatch helper、NN CPU reference tests、e2e inference |
 | 2026-06-15 | CN-M1 compute framework | 部分完成: compute executor 分散存在,统一框架未落地 | HZB、SSAO、postprocess exposure、contact shadow、particle/other passes 已各自手写 compute dispatch;但无统一 descriptor、dispatch indirect、readback 和 resource validation 框架。 | 计划 04 VC-M3、计划 05 LS-M4、计划 07 PP-M3-S1b 状态表记录多个 compute executor 已接入;本文件 `现状与差距` 指出仍是 executor 内手写。 | 抽象 compute pipeline descriptor、bind layout contract、dispatch/readback helper 和 diagnostics。 |
 | 2026-06-15 | CN-M2 NN operators / NN plugin skeleton and operator V1 | 未启动: 神经网络支持空白 | 无 NN graph、tensor resource、operator registry 或 model import。 | 本文件 `现状与差距` 明确神经网络完全空白。 | 建立 NN plugin crate、tensor buffer ABI、NN operators/basic ops 与 CPU reference tests。 |
 | 2026-06-15 | CN-M3 graph executor and end-to-end inference | 未启动: 依赖 CN-M2 | 无图执行器、schedule、barrier 或 frame-synced inference。 | 当前无相关实现或状态表证据。 | 实施 graph compiler、resource planner、dispatch chain 和 readback/e2e tests。 |

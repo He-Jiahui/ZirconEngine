@@ -203,7 +203,7 @@ This module deliberately lives under `zircon_runtime/src/graphics/scene/` rather
 
 ## Related Files
 
-- `mod.rs` mounts the subsystem and re-exports only the small set of types that later renderer code should consume.
+- `mod.rs` mounts the subsystem and re-exports only the small set of types that later renderer code should consume. The 2026-06-24 Plan 03/F12 cleanup (`render_plan03_gpu_scene_root_facade_suppression_cleanup_static_passed_cargo_timeout_active_compile`) removed the root `dead_code`/`unused_imports` suppression and stopped re-exporting child-owned binding helpers, allocators, dirty queues, capacity constants, layout offset constants, and roll-report types.
 - `binding.rs` defines the read-only storage bind group layout for primitive, instance, and light buffers; its remap params uniform also carries the active light count for shader iteration.
 - `gpu_scene.rs` owns primitive, instance, and fallback light storage buffers, shared and per-palette scene-data bind groups, CPU shadow vectors, and stable-key entries.
 - `layout.rs` defines `GpuPrimitiveData` and `GpuInstanceData` as `#[repr(C, align(16))]` Pod structs with explicit stride and offset constants.

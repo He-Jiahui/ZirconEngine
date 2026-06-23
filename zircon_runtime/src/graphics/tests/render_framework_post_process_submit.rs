@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     MotionVectorCameraStatus, RenderDepthOfFieldSettings, RenderFrameExtract, RenderFramework,
-    RenderMeshSnapshot, RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
-    RenderQualityProfile, RenderScreenSpaceReflectionSettings, RenderViewportDescriptor,
+    RenderLayerSet, RenderMeshSnapshot, RenderMotionBlurSettings,
+    RenderPostProcessEffectStackSettings, RenderQualityProfile,
+    RenderScreenSpaceReflectionSettings, RenderViewportDescriptor,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -275,6 +276,6 @@ fn motion_vector_mesh(node_id: u64, translation: Vec3) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }

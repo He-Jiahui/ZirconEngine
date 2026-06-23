@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision,
     RenderDirectionalLightSnapshot, RenderHybridGiDebugView, RenderHybridGiExtract,
-    RenderHybridGiQuality, RenderMeshSnapshot, RenderMeshStaticState, RenderPointLightSnapshot,
-    RenderSpotLightSnapshot,
+    RenderHybridGiQuality, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec4};
@@ -498,6 +498,6 @@ fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }

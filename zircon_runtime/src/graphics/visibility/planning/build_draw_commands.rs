@@ -15,7 +15,7 @@ pub(crate) fn build_draw_commands(
             u32::try_from(batch.entities.len()).expect("batch instance count should fit in u32");
         visible_instances.extend(batch.entities.iter().copied());
         draw_commands.push(VisibilityDrawCommand {
-            key: batch.key,
+            key: batch.key.clone(),
             visible_instance_offset,
             visible_instance_count,
         });

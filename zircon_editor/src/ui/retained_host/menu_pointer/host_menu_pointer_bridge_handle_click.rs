@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
 
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_dispatch::HostMenuPointerDispatch;
-use super::host_menu_pointer_target::HostMenuPointerTarget;
+use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 use super::menu_item_tree::parent_path;
 use super::route_conversion::to_public_route;
 
@@ -15,7 +15,7 @@ impl HostMenuPointerBridge {
     ) -> Result<HostMenuPointerDispatch, String> {
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
         let action_id = match route.as_ref() {
-            Some(HostMenuPointerTarget::MenuButton(index)) => {
+            Some(HostMenuPointerRouteIntent::MenuButton(index)) => {
                 if self.state.open_menu_index == Some(*index) {
                     self.close_popup();
                 } else {
@@ -23,7 +23,7 @@ impl HostMenuPointerBridge {
                 }
                 None
             }
-            Some(HostMenuPointerTarget::SubmenuBranch {
+            Some(HostMenuPointerRouteIntent::SubmenuBranch {
                 menu_index,
                 item_index,
                 item_path,
@@ -38,7 +38,7 @@ impl HostMenuPointerBridge {
                 }
                 None
             }
-            Some(HostMenuPointerTarget::MenuItem {
+            Some(HostMenuPointerRouteIntent::MenuItem {
                 action_id,
                 menu_index,
                 item_path,
@@ -48,11 +48,11 @@ impl HostMenuPointerBridge {
                 self.close_popup();
                 Some((action_id.clone(), *menu_index))
             }
-            Some(HostMenuPointerTarget::DismissOverlay) => {
+            Some(HostMenuPointerRouteIntent::DismissOverlay) => {
                 self.close_popup();
                 None
             }
-            Some(HostMenuPointerTarget::PopupSurface(menu_index)) => {
+            Some(HostMenuPointerRouteIntent::PopupSurface(menu_index)) => {
                 self.state.hovered_menu_index = Some(*menu_index);
                 self.state.hovered_item_index = None;
                 self.state.hovered_item_path.clear();

@@ -9,13 +9,13 @@ use crate::core::framework::render::{
     AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
     FallbackSkyboxKind, GeometryExtract, PreviewEnvironmentExtract, ProjectionMode,
     RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderFramework, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature,
-    RenderProductProfile, RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor,
-    RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
-    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SolariRuntimeStatus,
-    SpriteExtract, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
+    RenderOverlayExtract, RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
+    RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot,
+    RenderViewportDescriptor, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -182,7 +182,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         RenderDirectionalLightSnapshot {
             node_id: 701,
             light_id: 701,
-            layer_mask: DEFAULT_RENDER_LAYER_MASK,
+            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 4.0,
@@ -191,7 +191,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         RenderDirectionalLightSnapshot {
             node_id: 702,
             light_id: 702,
-            layer_mask: DEFAULT_RENDER_LAYER_MASK,
+            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
             direction: Vec3::new(1.0, -1.0, 0.0),
             color: Vec3::new(0.6, 0.7, 1.0),
             intensity: 2.0,
@@ -204,7 +204,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         .push(RenderPointLightSnapshot {
             node_id: 703,
             light_id: 703,
-            layer_mask: DEFAULT_RENDER_LAYER_MASK,
+            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
             position: Vec3::new(-1.0, 1.0, 0.5),
             color: Vec3::new(0.9, 0.8, 1.0),
             intensity: 6.0,
@@ -214,7 +214,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     extract.lighting.spot_lights.push(RenderSpotLightSnapshot {
         node_id: 704,
         light_id: 704,
-        layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(0.0, 3.0, 2.0),
         direction: Vec3::new(0.0, -1.0, -0.5),
         color: Vec3::new(1.0, 0.95, 0.75),
@@ -227,7 +227,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 700,
         light_id: 700,
-        layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
@@ -303,7 +303,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: u32::MAX,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         }],
     );
 
@@ -365,7 +365,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: u32::MAX,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         }],
     );
 
@@ -555,6 +555,12 @@ pub(super) fn snapshot_with_projection_for_sprite_tests(
     snapshot_with_projection(projection_mode)
 }
 
+pub(super) fn snapshot_with_projection_for_mesh_cache_tests(
+    projection_mode: ProjectionMode,
+) -> RenderSceneSnapshot {
+    snapshot_with_projection(projection_mode)
+}
+
 fn snapshot_with_projection(projection_mode: ProjectionMode) -> RenderSceneSnapshot {
     let camera = ViewportCameraSnapshot {
         projection_mode,
@@ -600,11 +606,11 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }
 
-fn material_with_import_note() -> MaterialAsset {
+pub(super) fn material_with_import_note() -> MaterialAsset {
     MaterialAsset {
         name: Some("ImportNote".to_string()),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
@@ -698,7 +704,7 @@ fn default_core2d_sprite_acceptance_extract() -> RenderFrameExtract {
             image_mode: RenderSpriteImageMode::Stretch,
             color: Vec4::ONE,
             z_order: 0,
-            render_layer_mask: u32::MAX,
+            render_layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
             material_alpha_mode: RenderMaterialAlphaMode::Blend,
         }],
     );

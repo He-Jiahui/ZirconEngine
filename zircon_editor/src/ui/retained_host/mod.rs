@@ -13,6 +13,7 @@ mod host_contract;
 pub(crate) mod host_page_pointer;
 pub(crate) mod menu_pointer;
 pub(crate) mod primitives;
+pub(crate) mod route_intent;
 pub(crate) mod scroll_surface_host;
 pub(crate) mod shell_pointer;
 pub mod tab_drag;

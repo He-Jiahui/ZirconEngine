@@ -11,7 +11,16 @@ capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_p
 maturity = "experimental"
 asset_roots = []
 content_roots = []
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_zr_vm_language_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_zr_vm_language_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.zr_vm_language"
@@ -25,5 +34,12 @@ status = "partial"
 name = "zr_vm_language.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_zr_vm_language_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_project"]
+
+[[modules]]
+name = "zr_vm_language.dist"
+kind = "native"
+crate_name = "zircon_plugin_zr_vm_language_dist"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_project"]

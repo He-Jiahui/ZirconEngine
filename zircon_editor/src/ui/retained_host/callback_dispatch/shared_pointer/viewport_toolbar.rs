@@ -1,4 +1,5 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::retained_host::{
@@ -58,6 +59,24 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
         }
         Err(error) => return Err(error),
     };
+    let effects = pointer
+        .route
+        .as_ref()
+        .map(|route| dispatch_viewport_toolbar_pointer_route(runtime, bridge, route))
+        .transpose()?;
+    Ok(SharedViewportToolbarPointerClickDispatch { pointer, effects })
+}
+
+pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
+    runtime: &EditorEventRuntime,
+    bridge: &BuiltinViewportToolbarTemplateBridge,
+    pointer_bridge: &mut ViewportToolbarPointerBridge,
+    surface_key: &str,
+    surface_frame: &UiSurfaceFrame,
+    point: UiPoint,
+) -> Result<SharedViewportToolbarPointerClickDispatch, String> {
+    pointer_bridge.sync_surface_frame(surface_key, surface_frame)?;
+    let pointer = pointer_bridge.handle_click_at_point(surface_key, point)?;
     let effects = pointer
         .route
         .as_ref()

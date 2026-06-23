@@ -1,0 +1,83 @@
+[asset]
+kind = "theme_tokens"
+id = "zircon.editor.workbench"
+version = 2
+display_name = "Zircon Editor Workbench Tokens"
+
+[palette]
+surface = ["#111416", "#171a1d", "#1b1f23", "#252b31"]
+accent = "#3cc7d6"
+border = "#394147"
+text_primary = "#e8ecee"
+text_secondary = "#a4aeb4"
+text_disabled = "#656f76"
+success = "#55be78"
+info = "#5faae6"
+warning = "#dcac50"
+error = "#eb605c"
+
+[controls]
+default_height = 32.0
+compact_height = 32.0
+dense_height = 28.0
+small_radius = 4.0
+control_radius = 5.0
+large_radius = 8.0
+panel_radius = 8.0
+border_width = 1.0
+
+[density]
+gap_small = 4.0
+gap_medium = 8.0
+gap_large = 12.0
+drawer_padding = 12.0
+panel_padding = 16.0
+row_height = 28.0
+left_drawer_width = 332.0
+right_drawer_width = 404.0
+bottom_output_height = 228.0
+
+[state_roles]
+default = "surface_1"
+hovered = "surface_2"
+pressed = "surface_3"
+selected = "accent"
+focused = "accent"
+disabled = "text_disabled"
+loading = "accent"
+
+[names.palette]
+surface_0 = "editor.surface.0"
+surface_1 = "editor.surface.1"
+surface_2 = "editor.surface.2"
+surface_3 = "editor.surface.3"
+accent = "editor.accent"
+border = "editor.border"
+text_primary = "editor.text.primary"
+text_secondary = "editor.text.secondary"
+text_disabled = "editor.text.disabled"
+success = "editor.semantic.success"
+info = "editor.semantic.info"
+warning = "editor.semantic.warning"
+error = "editor.semantic.error"
+
+[names.controls]
+default_height = "editor.control.height.default"
+compact_height = "editor.control.height.compact"
+dense_height = "editor.control.height.dense"
+small_radius = "editor.control.radius.small"
+control_radius = "editor.control.radius.control"
+large_radius = "editor.control.radius.large"
+panel_radius = "editor.control.radius.panel"
+border_width = "editor.control.border_width"
+
+[names.density]
+gap_small = "editor.density.gap.small"
+gap_medium = "editor.density.gap.medium"
+gap_large = "editor.density.gap.large"
+drawer_padding = "editor.density.drawer_padding"
+panel_padding = "editor.density.panel_padding"
+row_height = "editor.density.row_height"
+left_drawer_width = "--left-drawer-width"
+right_drawer_width = "--right-drawer-width"
+bottom_output_height = "--bottom-output-height"

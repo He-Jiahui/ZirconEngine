@@ -3,6 +3,7 @@ mod accessibility_contracts;
 mod boundary;
 mod contracts;
 mod dispatch_reply_contracts;
+mod editor_design_tokens;
 mod layout_engine_contracts;
 mod pipeline_contracts;
 mod plugin_api_contracts;

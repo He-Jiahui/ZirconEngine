@@ -5,17 +5,13 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
+    let pointer_layout = source("src/ui/retained_host/app/pointer_layout/menu.rs");
     let pointer_builder =
         source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
     let menu_sync = pointer_layout
-        .split("pub(super) fn sync_menu_pointer_layout")
+        .split("fn sync_menu_pointer_layout")
         .nth(1)
-        .and_then(|source| {
-            source
-                .split("pub(super) fn apply_menu_pointer_state_to_ui")
-                .next()
-        })
+        .and_then(|source| source.split("fn apply_menu_pointer_state_to_ui").next())
         .expect("menu pointer sync function should exist");
 
     for getter in [
@@ -40,7 +36,7 @@ fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
 
 #[test]
 fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
+    let pointer_layout = source("src/ui/retained_host/app/pointer_layout/menu.rs");
     let pointer_builder =
         source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
     let workbench_bridge =
@@ -48,13 +44,9 @@ fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
     let workbench_layout_frames =
         source("src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs");
     let menu_sync = pointer_layout
-        .split("pub(super) fn sync_menu_pointer_layout")
+        .split("fn sync_menu_pointer_layout")
         .nth(1)
-        .and_then(|source| {
-            source
-                .split("pub(super) fn apply_menu_pointer_state_to_ui")
-                .next()
-        })
+        .and_then(|source| source.split("fn apply_menu_pointer_state_to_ui").next())
         .expect("menu pointer sync function should exist");
 
     assert!(workbench_bridge.contains("pub(crate) fn outer_shell_frames(&self)"));
@@ -71,8 +63,10 @@ fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
 
 #[test]
 fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
-    let host_components = source("src/ui/retained_host/host_contract/data/host_components.rs");
-    let host_interaction = source("src/ui/retained_host/host_contract/data/host_interaction.rs");
+    let host_components =
+        source("src/ui/retained_host/host_contract/data/host_components/menus.rs");
+    let host_interaction =
+        source("src/ui/retained_host/host_contract/data/host_interaction/menu.rs");
     let pointer_builder =
         source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
     let chrome_projection =
@@ -133,6 +127,36 @@ fn menu_popup_projection_mutes_disabled_item_labels() {
         assert!(
             chrome_projection.contains(required),
             "menu popup projection should make disabled item text visually muted `{required}`"
+        );
+    }
+}
+
+#[test]
+fn menu_pointer_bridge_uses_route_intent_only() {
+    let bridge = source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs");
+    let rebuild =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+    let dispatch =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs");
+    let route_payload =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs");
+
+    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
+    assert!(rebuild.contains("EditorRouteIntent::Menu"));
+    assert!(rebuild.contains("route_intents.bind_node"));
+    assert!(dispatch.contains("menu_route_for_pointer_dispatch"));
+    assert!(route_payload.contains("HostMenuPointerRouteIntent"));
+    for forbidden in [
+        "targets:",
+        "HostMenuPointerTarget",
+        "handled_by",
+        "route.target",
+    ] {
+        assert!(
+            !bridge.contains(forbidden)
+                && !rebuild.contains(forbidden)
+                && !dispatch.contains(forbidden),
+            "menu pointer bridge should not keep old hit target marker `{forbidden}`"
         );
     }
 }

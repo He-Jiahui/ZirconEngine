@@ -9,7 +9,7 @@ use super::light::{
     RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderRectLightSnapshot, RenderSpotLightSnapshot,
 };
-use super::{FallbackSkyboxKind, RenderOverlayExtract, ViewportCameraSnapshot};
+use super::{FallbackSkyboxKind, RenderLayerSet, RenderOverlayExtract, ViewportCameraSnapshot};
 
 pub const RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS: u32 = 16;
 pub const RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL: u32 =
@@ -102,7 +102,7 @@ pub struct RenderMeshSnapshot {
     pub tint: Vec4,
     pub mobility: Mobility,
     pub static_state: RenderMeshStaticState,
-    pub render_layer_mask: u32,
+    pub render_layer_mask: RenderLayerSet,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -411,7 +411,7 @@ impl RenderParticleSpriteIdentity {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RenderParticleSpriteSnapshot {
     pub entity: EntityId,
     pub stable_sprite_key: u64,
@@ -424,6 +424,7 @@ pub struct RenderParticleSpriteSnapshot {
     pub color: Vec4,
     pub intensity: Real,
     pub depth_test: bool,
+    pub render_layer_mask: RenderLayerSet,
     pub material: Option<ResourceHandle<MaterialMarker>>,
     pub texture: Option<ResourceHandle<TextureMarker>>,
 }
@@ -501,6 +502,7 @@ impl Default for RenderParticleSpriteSnapshot {
             color: Vec4::ZERO,
             intensity: 0.0,
             depth_test: true,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
             material: None,
             texture: None,
         }

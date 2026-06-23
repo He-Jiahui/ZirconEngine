@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
@@ -11,16 +9,19 @@ use super::constants::{
     CLOSE_EXTENT, CLOSE_X_OFFSET, CLOSE_Y_OFFSET, ROOT_NODE_ID, STRIP_X, STRIP_Y,
     SURFACE_NODE_ID_BASE, TAB_GAP, TAB_HEIGHT,
 };
-use super::helper::{base_state, close_node_id, root_frame, tab_min_width, tab_node_id};
+use super::helper::{
+    base_state, close_node_id, close_route_id, root_frame, tab_min_width, tab_node_id, tab_route_id,
+};
 use super::host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;
-use super::host_document_tab_pointer_target::HostDocumentTabPointerTarget;
+use super::host_document_tab_pointer_route::HostDocumentTabPointerRoute;
 use super::register_handled_pointer_node::register_handled_pointer_node;
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 impl HostDocumentTabPointerBridge {
     pub(in crate::ui::retained_host::document_tab_pointer) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.document_tab.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
+        let mut route_intents = EditorRouteIntentMap::default();
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.document_tab.root"))
@@ -83,13 +84,14 @@ impl HostDocumentTabPointerBridge {
                     )
                     .expect("document tab surface must exist");
                 register_handled_pointer_node(&mut dispatcher, tab_node_id);
-                targets.insert(
+                route_intents.bind_node(
                     tab_node_id,
-                    HostDocumentTabPointerTarget::ActivateTab {
+                    tab_route_id(surface_index, item_index),
+                    EditorRouteIntent::DocumentTab(HostDocumentTabPointerRoute::ActivateTab {
                         surface_key: surface_layout.key.clone(),
                         item_index,
                         instance_id: item.instance_id.clone(),
-                    },
+                    }),
                 );
 
                 if item.closeable {
@@ -117,13 +119,14 @@ impl HostDocumentTabPointerBridge {
                         )
                         .expect("document tab surface must exist");
                     register_handled_pointer_node(&mut dispatcher, close_node_id);
-                    targets.insert(
+                    route_intents.bind_node(
                         close_node_id,
-                        HostDocumentTabPointerTarget::CloseTab {
+                        close_route_id(surface_index, item_index),
+                        EditorRouteIntent::DocumentTab(HostDocumentTabPointerRoute::CloseTab {
                             surface_key: surface_layout.key.clone(),
                             item_index,
                             instance_id: item.instance_id.clone(),
-                        },
+                        }),
                     );
                 }
             }
@@ -132,6 +135,6 @@ impl HostDocumentTabPointerBridge {
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
-        self.targets = targets;
+        self.route_intents = route_intents;
     }
 }

@@ -10,6 +10,10 @@ fn source(relative: &str) -> String {
 fn workbench_shell_window_resize_contract_is_owned_by_rust_host_contract() {
     let retained_host_mod = source("src/ui/retained_host/mod.rs");
     let host_window_contract = source("src/ui/retained_host/host_contract/window.rs");
+    let host_window_handle = source("src/ui/retained_host/host_contract/window/handle.rs");
+    let host_window_lifecycle = source("src/ui/retained_host/host_contract/window/lifecycle.rs");
+    let host_window_snapshot =
+        source("src/ui/retained_host/host_contract/window/presentation/snapshot.rs");
     let shell_window_test = source("src/tests/host/retained_window/shell_window.rs");
 
     let generated_include = [
@@ -19,9 +23,10 @@ fn workbench_shell_window_resize_contract_is_owned_by_rust_host_contract() {
     .concat();
     assert!(!retained_host_mod.contains(&generated_include));
     assert!(host_window_contract.contains("pub(crate) struct UiHostWindow"));
-    assert!(host_window_contract.contains("pub(crate) fn set_size"));
-    assert!(host_window_contract.contains("pub(crate) fn set_maximized"));
-    assert!(host_window_contract.contains("pub(crate) fn get_host_window_bootstrap"));
+    assert!(host_window_handle.contains("pub(crate) fn set_size"));
+    assert!(host_window_handle.contains("pub(crate) fn set_maximized"));
+    assert!(host_window_lifecycle.contains("pub(crate) fn new()"));
+    assert!(host_window_snapshot.contains("pub(crate) fn get_host_window_bootstrap"));
     assert!(shell_window_test.contains("UiHostWindow::new()"));
     assert!(shell_window_test.contains("set_size"));
     assert!(shell_window_test.contains("set_maximized(true)"));

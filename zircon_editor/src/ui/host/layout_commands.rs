@@ -5,6 +5,8 @@ use super::builtin_layout::ensure_builtin_shell_instances;
 use super::editor_error::EditorError;
 use super::editor_ui_host::EditorUiHost;
 
+const DEFAULT_LAYOUT_PERSISTENCE_USER_ID: &str = "default";
+
 impl EditorUiHost {
     pub(super) fn apply_layout_command(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
         match cmd {
@@ -14,6 +16,30 @@ impl EditorUiHost {
             }
             LayoutCommand::LoadPreset { name } => {
                 return self.load_preset(&name);
+            }
+            LayoutCommand::ActivateMainPage { page_id } => {
+                let previous_page = self.lock_session().layout.active_main_page.clone();
+                if previous_page == page_id {
+                    return Ok(false);
+                }
+                self.save_page_layout(DEFAULT_LAYOUT_PERSISTENCE_USER_ID, &previous_page)?;
+                let mut session = self.lock_session();
+                let diff = self
+                    .layout_manager
+                    .apply(
+                        &mut session.layout,
+                        LayoutCommand::ActivateMainPage {
+                            page_id: page_id.clone(),
+                        },
+                    )
+                    .map_err(|error| EditorError::Layout(error.to_string()))?;
+                session
+                    .layout
+                    .sync_legacy_drawers_from_active_activity_window();
+                self.recompute_session_metadata(&mut session);
+                drop(session);
+                self.restore_page_layout(DEFAULT_LAYOUT_PERSISTENCE_USER_ID, &page_id)?;
+                return Ok(diff.changed);
             }
             LayoutCommand::ResetToDefault => {
                 let mut session = self.lock_session();
@@ -43,7 +69,7 @@ impl EditorUiHost {
         let diff = self
             .layout_manager
             .apply(&mut session.layout, cmd)
-            .map_err(EditorError::Layout)?;
+            .map_err(|error| EditorError::Layout(error.to_string()))?;
         session
             .layout
             .sync_legacy_drawers_from_active_activity_window();

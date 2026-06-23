@@ -12,7 +12,16 @@ maturity = "beta"
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.navigation", "runtime.plugin.navigation.recast"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_navigation_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_navigation_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.navigation"
@@ -23,6 +32,13 @@ note = "Gameplay navmesh/pathfinding is optional; UI navigation parity is separa
 name = "navigation.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_navigation_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.navigation", "runtime.plugin.navigation.recast"]
+
+[[modules]]
+name = "navigation.dist"
+kind = "native"
+crate_name = "zircon_plugin_navigation_dist"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.navigation", "runtime.plugin.navigation.recast"]
 

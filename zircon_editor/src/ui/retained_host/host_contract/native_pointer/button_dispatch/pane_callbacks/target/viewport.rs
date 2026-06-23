@@ -22,11 +22,15 @@ pub(super) fn dispatch_viewport_pane_target_button(
     cleared_text_input_frame: Option<FrameRect>,
 ) -> Option<NativePointerDispatchResult> {
     match &pointer.target {
-        PanePointerTarget::ViewportToolbar(hit) => Some(dispatch_viewport_toolbar_target_button(
+        PanePointerTarget::ViewportToolbar {
+            surface_key,
+            control_id,
+        } => Some(dispatch_viewport_toolbar_target_button(
             pane_host,
             presentation,
             pointer,
-            hit,
+            surface_key,
+            control_id.as_ref(),
             state,
             button,
             cleared_text_input_frame,

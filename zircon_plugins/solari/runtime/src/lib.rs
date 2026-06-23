@@ -9,35 +9,13 @@ pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
     "Solari realtime raytraced lighting pass executor is not implemented yet";
 
 mod capability;
+mod plugin;
 
 pub use capability::{RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, SOLARI_CAPABILITY};
-
-#[derive(Clone, Debug)]
-pub struct SolariRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
-}
-
-impl SolariRuntimePlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: runtime_plugin_descriptor(),
-        }
-    }
-}
-
-impl zircon_runtime::plugin::RuntimePlugin for SolariRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
-        &self.descriptor
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
-        registry.register_solari_runtime_provider(solari_runtime_provider_registration())
-    }
-}
+pub use plugin::{
+    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, SolariRuntimePlugin,
+};
 
 #[derive(Debug)]
 pub struct PluginSolariRuntimeProvider;
@@ -65,41 +43,6 @@ pub fn solari_runtime_provider_registration(
         SOLARI_PROVIDER_ID,
         Arc::new(PluginSolariRuntimeProvider),
     )
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Solari",
-        zircon_runtime::builtin::RuntimePluginId::Solari,
-        "zircon_plugin_solari_runtime",
-    )
-    .with_category("rendering")
-    .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
-    .with_capability(RUNTIME_CAPABILITY)
-    .with_capability(SOLARI_CAPABILITY)
-    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
-        RUNTIME_CAPABILITY,
-        zircon_runtime::plugin::CapabilityStatus::Partial,
-    ))
-    .with_capability_status(
-        zircon_runtime::plugin::CapabilityStatusManifest::new(
-            SOLARI_CAPABILITY,
-            zircon_runtime::plugin::CapabilityStatus::Partial,
-        )
-        .with_note(SOLARI_UNAVAILABLE_MESSAGE),
-    )
-    .build()
-}
-
-zircon_plugin_sdk::runtime_plugin_exports!(SolariRuntimePlugin);
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]
@@ -192,6 +135,41 @@ mod tests {
             status.capability == SOLARI_CAPABILITY
                 && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
                 && status.note.as_deref() == Some(SOLARI_UNAVAILABLE_MESSAGE)
+        }));
+    }
+
+    #[test]
+    fn solari_package_manifest_declares_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("solari dist distribution");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+        assert_eq!(distribution.dist_crate, "zircon_plugin_solari_dist");
+        assert_eq!(
+            distribution.descriptor_symbol,
+            "zircon_native_plugin_descriptor_v3"
+        );
+        assert_eq!(
+            distribution.runtime_entry,
+            "zircon_plugin_solari_runtime_entry_v3"
+        );
+        assert!(manifest.modules.iter().any(|module| {
+            module.kind == zircon_runtime::plugin::PluginModuleKind::Native
+                && module.name == "solari.dist"
+                && module.crate_name == "zircon_plugin_solari_dist"
+                && module.capabilities == RUNTIME_CAPABILITIES
         }));
     }
 }

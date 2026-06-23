@@ -443,6 +443,7 @@ editor crate(同 manifest `-p zircon_plugin_terrain_editor`):`terrain_brush_ops_
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | 全部未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 15 Terrain/Vegetation 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：terrain renderer/plugin skeleton、editor delta、grass scatter、tree/imposter；验收缺口：需要等 03/04/08/10/13 地基稳定后进入实现和产品场景验收 |
 | 2026-06-15 | TV-M1 terrain data plane and renderer plugin skeleton | 未启动: 等待 mesh/GPUScene/texture 地基稳定 | 当前引擎无 terrain renderer、heightfield asset、patch mesh 或 terrain material path。 | 本文件 `现状与差距` 明确无任何 terrain/植被能力。 | 在计划 03/10/13 基础完成后创建 terrain plugin skeleton 与 patch renderer。 |
 | 2026-06-15 | TV-M2 editor contract and incremental updates | 未启动: 等待 TV-M1 | 无 terrain editing delta、height/weight map update 或 editor brush contract。 | 本文件将 terrain/vegetation 定位为上层消费者,依赖前置计划。 | 定义编辑器 brush operation、dirty tiles、undo/redo 和 runtime upload。 |
 | 2026-06-15 | TV-M3 grass scatter layer | 未启动: 等待 GPU instancing/LOD/texture array | grass scatter、density map、wind animation 与 culling 均未实现。 | 计划 03/10/13 状态表显示 GPUScene/renderer/texture 地基仍有后续验收项。 | 基于 GPUScene instance batches 实现 grass scatter 与 visibility culling。 |

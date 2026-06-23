@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
-use crate::ui::retained_host::host_contract::surface_hit_test::ViewportToolbarPointerHit;
+use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::super::super::super::super::routing::PanePointerRoute;
@@ -12,7 +12,8 @@ pub(super) fn dispatch_viewport_toolbar_target_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     presentation: &HostWindowPresentationData,
     pointer: &PanePointerRoute,
-    hit: &ViewportToolbarPointerHit,
+    surface_key: &SharedString,
+    control_id: Option<&SharedString>,
     state: NativePointerButtonState,
     button: UiPointerButton,
     cleared_text_input_frame: Option<FrameRect>,
@@ -21,7 +22,8 @@ pub(super) fn dispatch_viewport_toolbar_target_button(
         pane_host,
         presentation,
         pointer,
-        hit,
+        surface_key,
+        control_id,
         state,
         button,
         cleared_text_input_frame,

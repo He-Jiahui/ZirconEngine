@@ -22,6 +22,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/solari/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/backend_types/capability.rs
+  - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -45,6 +47,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/core/framework/render/solari/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/backend_types/capability.rs
+  - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/engine_entry.rs

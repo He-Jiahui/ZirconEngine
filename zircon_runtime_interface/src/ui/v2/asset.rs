@@ -18,6 +18,8 @@ pub enum UiV2AssetKind {
     View,
     Component,
     Style,
+    #[serde(rename = "theme_tokens")]
+    ThemeTokens,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

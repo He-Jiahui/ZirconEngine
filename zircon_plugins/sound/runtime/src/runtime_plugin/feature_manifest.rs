@@ -1,4 +1,7 @@
-use crate::PLUGIN_ID;
+use crate::capability::{
+    PLUGIN_ID, SOUND_RAY_TRACED_CONVOLUTION_REVERB_CAPABILITY, SOUND_RUNTIME_CAPABILITY,
+    SOUND_TIMELINE_ANIMATION_TRACK_CAPABILITY,
+};
 
 pub fn sound_timeline_animation_track_feature_manifest(
 ) -> zircon_runtime::plugin::PluginFeatureBundleManifest {
@@ -9,13 +12,13 @@ pub fn sound_timeline_animation_track_feature_manifest(
     )
     .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
         PLUGIN_ID,
-        "runtime.plugin.sound",
+        SOUND_RUNTIME_CAPABILITY,
     ))
     .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
         "animation",
         "runtime.feature.animation.timeline_event_track",
     ))
-    .with_capability("runtime.feature.sound.timeline_animation_track")
+    .with_capability(SOUND_TIMELINE_ANIMATION_TRACK_CAPABILITY)
     .with_runtime_module(
         zircon_runtime::plugin::PluginModuleManifest::runtime(
             "sound.timeline_animation_track.runtime",
@@ -25,7 +28,7 @@ pub fn sound_timeline_animation_track_feature_manifest(
             zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
             zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
-        .with_capabilities(["runtime.feature.sound.timeline_animation_track".to_string()]),
+        .with_capabilities([SOUND_TIMELINE_ANIMATION_TRACK_CAPABILITY.to_string()]),
     )
     .with_editor_module(
         zircon_runtime::plugin::PluginModuleManifest::editor(
@@ -45,7 +48,7 @@ pub fn sound_ray_traced_convolution_reverb_feature_manifest(
     )
     .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
         PLUGIN_ID,
-        "runtime.plugin.sound",
+        SOUND_RUNTIME_CAPABILITY,
     ))
     .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
         "physics",
@@ -55,7 +58,7 @@ pub fn sound_ray_traced_convolution_reverb_feature_manifest(
         "physics",
         "runtime.capability.physics.raycast",
     ))
-    .with_capability("runtime.feature.sound.ray_traced_convolution_reverb")
+    .with_capability(SOUND_RAY_TRACED_CONVOLUTION_REVERB_CAPABILITY)
     .with_runtime_module(
         zircon_runtime::plugin::PluginModuleManifest::runtime(
             "sound.ray_traced_convolution_reverb.runtime",
@@ -65,7 +68,7 @@ pub fn sound_ray_traced_convolution_reverb_feature_manifest(
             zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
             zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
-        .with_capabilities(["runtime.feature.sound.ray_traced_convolution_reverb".to_string()]),
+        .with_capabilities([SOUND_RAY_TRACED_CONVOLUTION_REVERB_CAPABILITY.to_string()]),
     )
     .with_editor_module(
         zircon_runtime::plugin::PluginModuleManifest::editor(

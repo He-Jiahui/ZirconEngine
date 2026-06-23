@@ -14,7 +14,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.v2.ui.toml"]
 
 [components.WorkbenchInspectorPanel]
 root = "inspector_panel"
@@ -24,7 +24,7 @@ default_classes = ["workbench-panel", "workbench-right-panel"]
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorPanel"
 classes = ["workbench-panel", "workbench-right-panel"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { preferred = "$--right-drawer-width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "inspector_tabs" }, { node = "inspector_content" }]
 
 [nodes.inspector_tabs]

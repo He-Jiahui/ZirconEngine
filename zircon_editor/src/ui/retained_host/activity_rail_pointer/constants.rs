@@ -5,6 +5,7 @@ pub(super) const LEFT_STRIP_NODE_ID: UiNodeId = UiNodeId::new(10);
 pub(super) const RIGHT_STRIP_NODE_ID: UiNodeId = UiNodeId::new(20);
 pub(super) const LEFT_BUTTON_NODE_ID_BASE: u64 = 100;
 pub(super) const RIGHT_BUTTON_NODE_ID_BASE: u64 = 200;
+pub(super) const ACTIVITY_RAIL_ROUTE_ID_BASE: u64 = 55_000;
 
 pub(super) const STRIP_X_INSET: f32 = 3.0;
 pub(super) const STRIP_Y_INSET: f32 = 6.0;

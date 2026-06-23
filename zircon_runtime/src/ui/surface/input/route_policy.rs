@@ -168,8 +168,6 @@ fn pointer_event_has_capture(input: &UiSurfaceInputState, pointer: &UiPointerInp
         .metadata
         .pointer_id
         .is_some_and(|pointer_id| input.pointer_capture_owner(pointer_id).is_some())
-        || (input.captured_pointer_id.is_some()
-            && input.captured_pointer_id == pointer.metadata.pointer_id)
 }
 
 fn pointer_capture_release_target(

@@ -4,10 +4,11 @@ use crate::core::editor_event::{
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::retained_host::callback_dispatch::{
     dispatch_shared_drawer_header_pointer_click, BuiltinHostWindowTemplateBridge,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 use crate::ui::retained_host::drawer_header_pointer::{
-    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
-    HostDrawerHeaderPointerRoute,
+    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
+    HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
 };
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -27,11 +28,17 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
     template_bridge
         .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
         .expect("builtin workbench template bridge should project drawer headers");
+    let mut workbench_window_bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
+            .expect("componentized workbench bridge should build");
+    workbench_window_bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .expect("componentized workbench bridge should project drawer headers");
     let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
-    let pointer_layout = build_host_drawer_header_pointer_layout(
+    let pointer_layout = build_host_drawer_header_pointer_layout_with_workbench_layout_frames(
         &model,
         &metrics,
-        Some(&template_bridge.root_shell_frames()),
+        workbench_window_bridge.layout_frames(),
     );
     let left_top = pointer_layout
         .surfaces
@@ -98,11 +105,17 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
     template_bridge
         .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
         .expect("builtin workbench template bridge should project drawer headers");
+    let mut workbench_window_bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
+            .expect("componentized workbench bridge should build");
+    workbench_window_bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .expect("componentized workbench bridge should project drawer headers");
     let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
-    let pointer_layout = build_host_drawer_header_pointer_layout(
+    let pointer_layout = build_host_drawer_header_pointer_layout_with_workbench_layout_frames(
         &model,
         &metrics,
-        Some(&template_bridge.root_shell_frames()),
+        workbench_window_bridge.layout_frames(),
     );
     let runtime_diagnostics = pointer_layout
         .surfaces

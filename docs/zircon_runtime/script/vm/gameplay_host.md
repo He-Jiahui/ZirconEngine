@@ -2,12 +2,22 @@
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/property_animation.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
   - examples/vampire/scripts/vampire_game/main.zr
 implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/tests/property_animation.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
 plan_sources:
@@ -19,6 +29,7 @@ tests:
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_writes_world_hud_for_scene_authored_enemies --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
+  - cargo test -p zircon_runtime --lib runtime_15_gameplay_host_tests_are_folder_backed --no-default-features --features core-min --locked: deferred in Runtime 15 M3 gameplay host test folder split
   - cargo check -p zircon_runtime --lib --message-format short --color never
 doc_type: module-detail
 ---
@@ -48,3 +59,11 @@ Per-frame gameplay state for the current vampire slice remains intentionally sma
 The focused host registration test verifies that the built-in gameplay module exposes the reflected gameplay API. The `gameplay_host_component_string_reads_string_dynamic_state` unit test locks the string-component read helper used by the vampire menu command flow. `gameplay_host_script_property_match_and_heal_update_bindings` now also covers `entity_exists` and `script_number_at_most`, and `host_function_registry_matches_documented_ledger` keeps the ledger aligned at 52 fixed host functions / 39 gameplay callbacks. The vampire project manifest test verifies that the project script imports this host module and drives gameplay through generic markers such as `gameplay.key_pressed`, `gameplay.translate`, `gameplay.face_direction`, `gameplay.camera_follow`, `gameplay.follow_position`, `gameplay.nearest_by_script_property`, `gameplay.nav_move_towards_entity`, `gameplay.component_string`, `gameplay.entity_exists`, `gameplay.script_number_at_most`, `gameplay.damage_entity`, `gameplay.set_world_hud_bar`, `gameplay.set_animation_bool`, and `gameplay.set_particle_sprites`.
 
 The 2026-06-11 real VM diagnostic run reported `fps_current=60.872053031732605` and `last_ui_command_count=0` for the vampire scene after disabled duplicate bindings and the fixed-update phase skip, which confirms the gameplay host path is driving scene-following HUD data and not a screen-space upper-left combat HUD.
+
+## Runtime 15 M3 gameplay host test folder split
+
+状态：`runtime_15_gameplay_host_tests_folder_split_static_passed_cargo_deferred`。
+
+Runtime 15 R4.1/M3 的当前结构切片只调整 gameplay host 测试 owner，不改变 `zr.zircon.gameplay` 注册面、callback 行为或 Runtime 13 host ledger 计数。`script/vm/gameplay_host/tests.rs` 从 891 行降到 46 行，只保留共享导入、`mod combat_lifecycle;`、`mod component_state;`、`mod property_animation;`、`mod spawn_transform;` 和 `assert_vec3_close` / `assert_quat_close` helper。
+
+9 个原测试迁入 `script/vm/gameplay_host/tests/spawn_transform.rs`、`script/vm/gameplay_host/tests/component_state.rs`、`script/vm/gameplay_host/tests/combat_lifecycle.rs` 与 `script/vm/gameplay_host/tests/property_animation.rs`；最大 child `property_animation.rs` 为 289 行，全部低于 800 行预算。新增 `structure_convention/test_file_budget/script_vm_tests.rs::runtime_15_gameplay_host_tests_are_folder_backed`，锁定父/子模块挂载、moved test 不回流、迁移测试数量、owner 行数预算，并要求 Runtime 15 计划、runtime index、结构规范、review findings、module-convention、本文档和 status-output expectations 同步该状态锚。

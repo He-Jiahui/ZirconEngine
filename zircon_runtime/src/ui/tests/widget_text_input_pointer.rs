@@ -38,7 +38,10 @@ fn text_input_pointer_press_moves_caret_and_captures_pointer() {
     );
     assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(surface.input.captured_pointer_id, Some(UiPointerId::new(7)));
+    assert_eq!(
+        surface.input.pointer_capture_owner(UiPointerId::new(7)),
+        Some(UiNodeId::new(2))
+    );
     assert_eq!(int_attr(&surface, "caret_offset"), 3);
     assert_eq!(int_attr(&surface, "selection_anchor"), 3);
     assert_eq!(int_attr(&surface, "selection_focus"), 3);
@@ -184,8 +187,8 @@ fn text_input_secondary_press_outside_selection_moves_caret_without_drag() {
     assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
     assert_eq!(
-        surface.input.captured_pointer_id,
-        Some(UiPointerId::new(13))
+        surface.input.pointer_capture_owner(UiPointerId::new(13)),
+        Some(UiNodeId::new(2))
     );
     assert_eq!(int_attr(&surface, "caret_offset"), 6);
     assert_eq!(int_attr(&surface, "selection_anchor"), 6);
@@ -219,8 +222,8 @@ fn text_input_secondary_press_inside_selection_preserves_selection_without_drag(
     );
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
     assert_eq!(
-        surface.input.captured_pointer_id,
-        Some(UiPointerId::new(14))
+        surface.input.pointer_capture_owner(UiPointerId::new(14)),
+        Some(UiNodeId::new(2))
     );
     assert_eq!(int_attr(&surface, "caret_offset"), 5);
     assert_eq!(int_attr(&surface, "selection_anchor"), 0);
@@ -280,7 +283,7 @@ fn text_input_secondary_release_opens_context_menu_popup_at_release_point() {
         Some("pointer.text_secondary_release")
     );
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.active_pointer_capture(), None);
     assert_eq!(surface.input.popup_stack.len(), 1);
     assert_eq!(
         surface.input.popup_stack[0].popup_id,
@@ -356,7 +359,7 @@ fn text_input_secondary_release_outside_target_does_not_open_context_menu_popup(
         Some("pointer.text_secondary_release")
     );
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.active_pointer_capture(), None);
     assert!(surface.input.popup_stack.is_empty());
     assert!(release
         .reply
@@ -433,7 +436,7 @@ fn text_input_pointer_drag_extends_selection_until_release() {
     );
 
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.active_pointer_capture(), None);
     assert_eq!(
         release.diagnostics.handled_phase.as_deref(),
         Some("pointer.text_release")
@@ -497,7 +500,7 @@ fn disabled_text_input_pointer_press_does_not_move_caret_or_capture() {
     assert!(result.binding_reports.is_empty());
     assert!(result.drag.is_none());
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.active_pointer_capture(), None);
     assert_eq!(int_attr(&surface, "caret_offset"), 1);
     assert_eq!(int_attr(&surface, "selection_anchor"), 1);
     assert_eq!(int_attr(&surface, "selection_focus"), 1);

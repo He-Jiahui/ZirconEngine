@@ -188,7 +188,7 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
         "routed_result",
         "runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending",
         "runtime_09_pointer_capture_fallback_rename_reduces_ui_input_debt",
-        "has_pointer_capture_or_unindexed_fallback_for_owner",
+        "has_pointer_capture_for_owner",
         "runtime_09_m1_2_table_row_label_fallback_renamed_static_passed_cargo_pending",
         "runtime_09_table_row_label_fallback_rename_reduces_ui_render_debt",
         "split_row_label_table_text",

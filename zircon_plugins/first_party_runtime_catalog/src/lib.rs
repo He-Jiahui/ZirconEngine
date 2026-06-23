@@ -384,6 +384,38 @@ mod tests {
     }
 
     #[test]
+    fn plugins_13_dist_dependency_boundary_clean() {
+        let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir
+            .parent()
+            .and_then(std::path::Path::parent)
+            .expect("first_party_runtime_catalog should live under zircon_plugins");
+        let audit_script = repo_root.join("tools").join("audit_plugin_structure.py");
+
+        let output = run_python_audit(&audit_script, repo_root);
+        assert!(
+            output.status.success(),
+            "plugin structure audit failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stdout = String::from_utf8(output.stdout).expect("audit JSON must be UTF-8");
+        for expected_anchor in [
+            "\"dist_capable_plugin_count\": 1",
+            "\"dist_capable_plugins\": [",
+            "\"native_dynamic_fixture\"",
+            "\"distribution_section_violations\": 0",
+            "\"dist_dependency_boundary_violations\": 0",
+            "\"m1_dist_dependency_boundary_gate_status\": \"dist-boundary-clean\"",
+        ] {
+            assert!(
+                stdout.contains(expected_anchor),
+                "plugin standalone distribution audit JSON missing `{expected_anchor}`\n{stdout}"
+            );
+        }
+    }
+
+    #[test]
     fn plugins_12_crate_skeleton_conformance() {
         let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let repo_root = manifest_dir

@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
+
+use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_layout::HierarchyPointerLayout;
@@ -14,7 +14,7 @@ impl HierarchyPointerBridge {
             state: HierarchyPointerState::default(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.hierarchy.pointer")),
             dispatcher: UiPointerDispatcher::default(),
-            targets: BTreeMap::new(),
+            route_intents: EditorRouteIntentMap::default(),
         };
         bridge.rebuild_surface();
         bridge

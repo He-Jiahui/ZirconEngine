@@ -299,11 +299,11 @@ mod tests {
     use crate::core::framework::render::{
         AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AntiAliasFallbackReport,
         AntiAliasMode, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTargetKind,
-        RenderCapabilitySummary, RenderFrameExtract, RenderMeshSnapshot, RenderOverlayExtract,
-        RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, RenderPluginRendererOutputs,
-        RenderProfileBundle, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
-        RenderVirtualGeometryReadbackOutputs, SceneViewportRenderPacket, TemporalJitterSample,
-        ViewportCameraSnapshot,
+        RenderCapabilitySummary, RenderFrameExtract, RenderLayerSet, RenderMeshSnapshot,
+        RenderOverlayExtract, RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle,
+        RenderPluginRendererOutputs, RenderProfileBundle,
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+        SceneViewportRenderPacket, TemporalJitterSample, ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -359,6 +359,7 @@ mod tests {
             crate::graphics::ViewportRenderOutputTarget::Texture {
                 handle: output_texture,
                 size: UVec2::new(640, 480),
+                format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
             },
             Default::default(),
             None,
@@ -532,7 +533,7 @@ mod tests {
             tint: Vec4::ONE,
             mobility: crate::core::framework::scene::Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: 1,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(1),
         }
     }
 }

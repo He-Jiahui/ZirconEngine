@@ -4,9 +4,9 @@ use zircon_runtime_interface::ui::{
     surface::UiPointerEventKind,
 };
 
-use super::active_viewport_toolbar_control::ActiveViewportToolbarControl;
 use super::route_for_control::route_for_control;
 use super::viewport_toolbar_pointer_bridge::ViewportToolbarPointerBridge;
+use super::viewport_toolbar_pointer_control::ViewportToolbarPointerControl;
 use super::viewport_toolbar_pointer_dispatch::ViewportToolbarPointerDispatch;
 
 impl ViewportToolbarPointerBridge {
@@ -25,9 +25,9 @@ impl ViewportToolbarPointerBridge {
             .map(|surface| surface.frame)
             .ok_or_else(|| format!("Unknown viewport toolbar surface {surface_key}"))?;
         route_for_control(surface_key, control_id)?;
-        self.active_controls.insert(
+        self.controls_by_surface.insert(
             surface_key.to_string(),
-            ActiveViewportToolbarControl {
+            vec![ViewportToolbarPointerControl {
                 action_key: control_id.to_string(),
                 frame: UiFrame::new(
                     surface_frame.x + control_x,
@@ -35,14 +35,27 @@ impl ViewportToolbarPointerBridge {
                     control_width.max(1.0),
                     control_height.max(1.0),
                 ),
-            },
+            }],
         );
         self.rebuild_surface();
 
         let point = UiPoint::new(surface_frame.x + point.x, surface_frame.y + point.y);
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(ViewportToolbarPointerDispatch {
-            route: route.map(|target| target.route),
-        })
+        Ok(ViewportToolbarPointerDispatch { route })
+    }
+
+    pub(crate) fn handle_click_at_point(
+        &mut self,
+        surface_key: &str,
+        point: UiPoint,
+    ) -> Result<ViewportToolbarPointerDispatch, String> {
+        let surface_frame = self
+            .surface_layout(surface_key)
+            .map(|surface| surface.frame)
+            .ok_or_else(|| format!("Unknown viewport toolbar surface {surface_key}"))?;
+
+        let point = UiPoint::new(surface_frame.x + point.x, surface_frame.y + point.y);
+        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        Ok(ViewportToolbarPointerDispatch { route })
     }
 }

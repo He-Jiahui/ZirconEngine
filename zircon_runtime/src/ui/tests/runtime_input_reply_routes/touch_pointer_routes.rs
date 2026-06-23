@@ -71,7 +71,7 @@ fn unified_touch_start_move_end_share_pointer_routes_and_preserve_touch_identity
             .state_flags
             .pressed
     );
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
 
     let moved = dispatch_touch_pointer(
         &mut surface,
@@ -161,8 +161,7 @@ fn unified_touch_cancel_routes_to_capture_and_releases_pointer_capture() {
         UiPoint::new(20.0, 20.0),
     );
     assert_two_node_bubble_handled_at_target(&pressed);
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    capture_pointer_for_test(&mut surface, UiPointerId::new(7), UiNodeId::new(2));
     assert_eq!(surface.focus.pressed, Some(UiNodeId::new(2)));
 
     let result = dispatch_touch_pointer(
@@ -237,14 +236,13 @@ fn unified_touch_cancel_routes_to_capture_and_releases_pointer_capture() {
             .pressed
     );
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
 }
 
 #[test]
 fn unified_touch_move_with_different_pointer_id_bypasses_existing_capture() {
     let mut surface = press_release_route_surface();
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(4));
+    capture_pointer_for_test(&mut surface, UiPointerId::new(4), UiNodeId::new(2));
 
     let moved = dispatch_touch_pointer(
         &mut surface,
@@ -275,7 +273,7 @@ fn unified_touch_move_with_different_pointer_id_bypasses_existing_capture() {
     assert!(moved.reply.effects.is_empty());
     assert_touch_notes(&moved, UiPointerId::new(9));
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
-    assert_eq!(surface.input.captured_pointer_id, Some(UiPointerId::new(4)));
+    assert_pointer_capture(&surface, UiPointerId::new(4), UiNodeId::new(2));
 
     let released = dispatch_touch_pointer(
         &mut surface,
@@ -300,7 +298,7 @@ fn unified_touch_move_with_different_pointer_id_bypasses_existing_capture() {
     )));
     assert_touch_notes(&released, UiPointerId::new(4));
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
 }
 
 #[test]
@@ -403,7 +401,7 @@ fn unified_touch_pointer_capture_is_indexed_by_pointer_id() {
         Some(UiNodeId::new(3))
     );
     assert_eq!(surface.focus.captured, Some(UiNodeId::new(3)));
-    assert_eq!(surface.input.captured_pointer_id, Some(second_pointer));
+    assert_pointer_capture(&surface, second_pointer, UiNodeId::new(3));
     assert_touch_notes(&first_cancel, first_pointer);
 
     let second_cancel = dispatch_touch_pointer(
@@ -418,6 +416,6 @@ fn unified_touch_pointer_capture_is_indexed_by_pointer_id() {
     );
     assert_eq!(surface.input.pointer_capture_owner(second_pointer), None);
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
     assert_touch_notes(&second_cancel, second_pointer);
 }

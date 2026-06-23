@@ -8,8 +8,7 @@ use crate::asset::assets::{
     SceneCameraTargetAsset, SceneChromaticAberrationSettingsAsset, SceneColliderAsset,
     SceneColliderShapeAsset, SceneColorGradingSettingsAsset, SceneDirectionalLightAsset,
     SceneDitherSettingsAsset, SceneEntityAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
-    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshLodLevelAsset,
-    SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, ScenePointLightAsset,
+    SceneJointAsset, SceneJointKindAsset, SceneMobilityAsset, ScenePointLightAsset,
     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
     ScenePostProcessVolumeProfileAsset, SceneRectLightAsset, SceneRigidBodyAsset,
     SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
@@ -21,13 +20,14 @@ use crate::asset::project::ProjectManager;
 use crate::asset::AssetReference;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
-    ResourceHandle, ResourceId, ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
+    AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
+    ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 mod camera;
+mod mesh;
 mod physics;
 mod post_process;
 mod references;
@@ -45,22 +45,18 @@ use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, ColliderShape,
-    JointComponent, JointKind, MeshRendererLodLevel, MeshRendererPrimitiveBinding, Mobility,
-    NodeKind, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
-    RigidBodyComponent, RigidBodyType, SpotLight,
+    JointComponent, JointKind, Mobility, NodeKind, PointLight, PostProcessSettingsComponent,
+    PostProcessVolumeComponent, RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
 };
 use crate::scene::ecs::Schedule;
 use camera::{camera_target_from_asset, camera_to_asset, viewport_rect_from_asset};
+use mesh::{mesh_from_asset, mesh_to_asset};
 use physics::{collider_shape_from_asset, collider_shape_to_asset};
 use post_process::{
     post_process_settings_from_asset, post_process_settings_to_asset,
     post_process_volume_from_asset, post_process_volume_to_asset,
 };
-use references::{
-    handle_for_reference, material_handle_for_reference, model_handle_for_reference,
-    reference_for_handle, reference_for_material_handle, reference_for_mesh_handle,
-    reference_for_model_handle,
-};
+use references::{handle_for_reference, reference_for_handle};
 use script::script_bindings_for_record;
 use transform::{transform_from_asset, transform_to_asset};
 
@@ -137,56 +133,7 @@ impl World {
                 NodeKind::Empty
             };
 
-            let mesh = entity.mesh.as_ref().map(|mesh| {
-                let mut renderer = crate::scene::components::MeshRenderer::from_handles(
-                    model_handle_for_reference(project, &mesh.model),
-                    material_handle_for_reference(project, &mesh.material),
-                );
-                renderer.mesh = mesh
-                    .mesh
-                    .as_ref()
-                    .map(|reference| handle_for_reference::<MeshMarker>(project, reference));
-                renderer.render_queue = mesh.render_queue;
-                renderer.material_queue = mesh.material_queue;
-                renderer.order_in_layer = mesh.order_in_layer;
-                renderer.depth_bias = mesh.depth_bias;
-                renderer.morph_weights = mesh.morph_weights.clone();
-                renderer.primitives = mesh
-                    .primitives
-                    .iter()
-                    .map(|primitive| MeshRendererPrimitiveBinding {
-                        mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
-                        material: handle_for_reference::<MaterialMarker>(
-                            project,
-                            &primitive.material,
-                        ),
-                    })
-                    .collect();
-                renderer.lods = mesh
-                    .lods
-                    .iter()
-                    .map(|lod| MeshRendererLodLevel {
-                        min_distance: lod.min_distance,
-                        model: model_handle_for_reference(project, &lod.model),
-                        mesh: lod.mesh.as_ref().map(|reference| {
-                            handle_for_reference::<MeshMarker>(project, reference)
-                        }),
-                        material: material_handle_for_reference(project, &lod.material),
-                        primitives: lod
-                            .primitives
-                            .iter()
-                            .map(|primitive| MeshRendererPrimitiveBinding {
-                                mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
-                                material: handle_for_reference::<MaterialMarker>(
-                                    project,
-                                    &primitive.material,
-                                ),
-                            })
-                            .collect(),
-                    })
-                    .collect();
-                renderer
-            });
+            let mesh = mesh_from_asset(project, entity.mesh.as_ref());
 
             world
                 .insert_node_record(crate::scene::components::NodeRecord {
@@ -417,86 +364,7 @@ impl World {
             .copied()
             .filter_map(|entity| self.node_record(entity))
             .map(|record| {
-                let mesh = record
-                    .mesh
-                    .map(|mesh| {
-                        Ok::<SceneMeshInstanceAsset, SceneProjectError>(SceneMeshInstanceAsset {
-                            model: reference_for_model_handle(project, mesh.model)?,
-                            mesh: mesh
-                                .mesh
-                                .map(|mesh| reference_for_mesh_handle(project, mesh))
-                                .transpose()?,
-                            material: reference_for_material_handle(project, mesh.material)?,
-                            render_queue: mesh.render_queue,
-                            material_queue: mesh.material_queue,
-                            order_in_layer: mesh.order_in_layer,
-                            depth_bias: mesh.depth_bias,
-                            morph_weights: mesh.morph_weights,
-                            primitives: mesh
-                                .primitives
-                                .into_iter()
-                                .map(|primitive| {
-                                    Ok::<SceneMeshPrimitiveBindingAsset, SceneProjectError>(
-                                        SceneMeshPrimitiveBindingAsset {
-                                            mesh: reference_for_mesh_handle(
-                                                project,
-                                                primitive.mesh,
-                                            )?,
-                                            material: reference_for_material_handle(
-                                                project,
-                                                primitive.material,
-                                            )?,
-                                        },
-                                    )
-                                })
-                                .collect::<Result<Vec<_>, _>>()?,
-                            lods: mesh
-                                .lods
-                                .into_iter()
-                                .map(|lod| {
-                                    Ok::<SceneMeshLodLevelAsset, SceneProjectError>(
-                                        SceneMeshLodLevelAsset {
-                                            min_distance: lod.min_distance,
-                                            model: reference_for_model_handle(project, lod.model)?,
-                                            mesh: lod
-                                                .mesh
-                                                .map(|mesh| {
-                                                    reference_for_mesh_handle(project, mesh)
-                                                })
-                                                .transpose()?,
-                                            material: reference_for_material_handle(
-                                                project,
-                                                lod.material,
-                                            )?,
-                                            primitives: lod
-                                                .primitives
-                                                .into_iter()
-                                                .map(|primitive| {
-                                                    Ok::<
-                                                        SceneMeshPrimitiveBindingAsset,
-                                                        SceneProjectError,
-                                                    >(
-                                                        SceneMeshPrimitiveBindingAsset {
-                                                            mesh: reference_for_mesh_handle(
-                                                                project,
-                                                                primitive.mesh,
-                                                            )?,
-                                                            material:
-                                                                reference_for_material_handle(
-                                                                    project,
-                                                                    primitive.material,
-                                                                )?,
-                                                        },
-                                                    )
-                                                })
-                                                .collect::<Result<Vec<_>, _>>()?,
-                                        },
-                                    )
-                                })
-                                .collect::<Result<Vec<_>, _>>()?,
-                        })
-                    })
-                    .transpose()?;
+                let mesh = mesh_to_asset(project, record.mesh)?;
 
                 let script_bindings = script_bindings_for_record(self, record.id)?;
                 let post_process_settings = self

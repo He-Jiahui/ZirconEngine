@@ -3,12 +3,11 @@ use std::ffi::{c_char, CStr};
 use serde::Deserialize;
 use serde_json::json;
 use zircon_plugin_sdk::native::{
-    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginAbiV3,
-    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
-    NativePluginEntryPointV3, NativePluginEntryReportV3, NativePluginHostFunctionTableV3,
-    NativePluginOwnedByteBufferV2, NativePluginSchemaVersionsV3, NativePluginStatic,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginBridgeMethodCallV3,
+    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3,
+    NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
 #[cfg(feature = "abi_unknown_version")]
@@ -34,6 +33,9 @@ const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated 
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3: &[u8] = b"runtime v3 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
 const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
+const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.native_dynamic_fixture\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[systems]]\nid = \"native_dynamic_fixture.runtime_tick\"\nmodule = \"runtime\"\nstage = \"Update\"\norder = 0\nsets = [\"native_dynamic_fixture\"]\naccess = [\"read:scene.time\"]\nbridge_interface = \"native_dynamic_fixture.runtime\"\nbridge_method = \"tick\"\n[[events]]\nnamespace = \"native_dynamic_fixture\"\nname = \"echoed\"\nstable_hash = 0\nschema = \"bytes\"\n\0";
+const RUNTIME_BRIDGE_INTERFACE: &[u8] = b"native_dynamic_fixture.runtime\0";
+const RUNTIME_BRIDGE_METHOD_TICK: &[u8] = b"tick\0";
 const RUNTIME_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.runtime\0";
 const EDITOR_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.editor\0";
 const RUNTIME_HOST_LOG_MESSAGE: &[u8] = b"runtime v3 host log callback reached\0";
@@ -69,107 +71,70 @@ struct NativeAssetImportRequestMetadata {
     source_path: String,
 }
 
-static DESCRIPTOR_V3: NativePluginStatic<NativePluginAbiV3> =
-    NativePluginStatic::new(NativePluginAbiV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
-        plugin_id: PLUGIN_ID.as_ptr().cast(),
-        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-        runtime_entry_name: RUNTIME_ENTRY.as_ptr().cast(),
-        editor_entry_name: EDITOR_ENTRY.as_ptr().cast(),
-        requested_capabilities: REQUESTED_CAPABILITIES.as_ptr().cast(),
-    });
-
-static RUNTIME_BEHAVIOR_V3: NativePluginStatic<NativePluginBehaviorV3> =
-    NativePluginStatic::new(NativePluginBehaviorV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        is_stateless: 0,
-        schema_versions: NativePluginSchemaVersionsV3 {
-            state_schema_version: 3,
-            command_manifest_schema: native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3.as_ptr().cast(),
-            event_manifest_schema: native::NATIVE_EVENT_MANIFEST_SCHEMA_V3.as_ptr().cast(),
-        },
-        command_manifest: RUNTIME_COMMAND_MANIFEST.as_ptr().cast(),
-        event_manifest: RUNTIME_EVENT_MANIFEST.as_ptr().cast(),
+zircon_plugin_sdk::native_dist_plugin_v3! {
+    plugin_id: PLUGIN_ID,
+    package_manifest: PLUGIN_MANIFEST,
+    descriptor_abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
+    runtime_entry: zircon_native_dynamic_fixture_runtime_entry_v3,
+    runtime_entry_name: RUNTIME_ENTRY,
+    editor_entry: zircon_native_dynamic_fixture_editor_entry_v3,
+    editor_entry_name: EDITOR_ENTRY,
+    requested_capabilities: REQUESTED_CAPABILITIES,
+    missing_host_diagnostics: MISSING_HOST_DIAGNOSTICS_V3,
+    runtime: {
+        required_capabilities: ["runtime.plugin.native_dynamic_fixture"],
+        denied_capabilities: ["runtime.plugin.denied_fixture"],
+        negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES,
+        diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3,
+        is_stateless: false,
+        state_schema_version: 3,
+        command_manifest_schema: Some(native::NATIVE_COMMAND_MANIFEST_SCHEMA_V3),
+        event_manifest_schema: Some(native::NATIVE_EVENT_MANIFEST_SCHEMA_V3),
+        registration_manifest_schema: Some(native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
+        command_manifest: Some(RUNTIME_COMMAND_MANIFEST),
+        event_manifest: Some(RUNTIME_EVENT_MANIFEST),
+        registration_manifest: Some(RUNTIME_REGISTRATION_MANIFEST),
         invoke_command: Some(fixture_invoke_command),
         save_state: Some(fixture_save_state),
         restore_state: Some(fixture_restore_state),
         unload: Some(fixture_unload),
-    });
-
-static EDITOR_BEHAVIOR_V3: NativePluginStatic<NativePluginBehaviorV3> =
-    NativePluginStatic::new(NativePluginBehaviorV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        is_stateless: 1,
-        schema_versions: NativePluginSchemaVersionsV3 {
-            state_schema_version: 0,
-            command_manifest_schema: std::ptr::null(),
-            event_manifest_schema: std::ptr::null(),
-        },
-        command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
-        event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
+        bridge_methods: [
+            {
+                interface: RUNTIME_BRIDGE_INTERFACE,
+                method: RUNTIME_BRIDGE_METHOD_TICK,
+                function: fixture_runtime_tick_bridge,
+                user_data: 0,
+            },
+        ],
+        on_host_ready: Some(emit_host_v3_runtime_signals),
+    },
+    editor: {
+        required_capabilities: ["editor.extension.native_dynamic_fixture"],
+        denied_capabilities: [],
+        negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES,
+        diagnostics: EDITOR_DIAGNOSTICS_V3,
+        is_stateless: true,
+        state_schema_version: 0,
+        command_manifest_schema: None,
+        event_manifest_schema: None,
+        registration_manifest_schema: None,
+        command_manifest: Some(EDITOR_COMMAND_MANIFEST),
+        event_manifest: Some(EDITOR_EVENT_MANIFEST),
+        registration_manifest: None,
         invoke_command: Some(fixture_stateless_invoke_command),
         save_state: None,
         restore_state: None,
         unload: Some(fixture_stateless_unload),
-    });
+        bridge_methods: [],
+        on_host_ready: Some(emit_host_v3_editor_signals),
+    },
+}
 
-static RUNTIME_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
-    NativePluginStatic::new(NativePluginEntryReportV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-        diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3
-            .as_ptr()
-            .cast(),
-        negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-        behavior: RUNTIME_BEHAVIOR_V3.as_ptr(),
-        bridge_methods: std::ptr::null(),
-    });
-
-static EDITOR_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
-    NativePluginStatic::new(NativePluginEntryReportV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-        diagnostics: EDITOR_DIAGNOSTICS_V3.as_ptr().cast(),
-        negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-        behavior: EDITOR_BEHAVIOR_V3.as_ptr(),
-        bridge_methods: std::ptr::null(),
-    });
-
-static MISSING_HOST_REPORT_V3: NativePluginStatic<NativePluginEntryReportV3> =
-    NativePluginStatic::new(NativePluginEntryReportV3 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-        package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-        diagnostics: MISSING_HOST_DIAGNOSTICS_V3.as_ptr().cast(),
-        negotiated_capabilities: b"\0".as_ptr().cast(),
-        behavior: std::ptr::null(),
-        bridge_methods: std::ptr::null(),
-    });
-
-static RUNTIME_ENTRY_POINT_V3: NativePluginEntryPointV3 = NativePluginEntryPointV3::new(
-    &RUNTIME_REPORT_V3,
-    &MISSING_HOST_REPORT_V3,
-    &["runtime.plugin.native_dynamic_fixture"],
-    &["runtime.plugin.denied_fixture"],
-    Some(emit_host_v3_runtime_signals),
-);
-
-static EDITOR_ENTRY_POINT_V3: NativePluginEntryPointV3 = NativePluginEntryPointV3::new(
-    &EDITOR_REPORT_V3,
-    &MISSING_HOST_REPORT_V3,
-    &["editor.extension.native_dynamic_fixture"],
-    &[],
-    Some(emit_host_v3_editor_signals),
-);
-
-zircon_plugin_sdk::export_native_plugin_descriptor_v3!(DESCRIPTOR_V3);
-zircon_plugin_sdk::export_native_plugin_entry_v3!(
-    zircon_native_dynamic_fixture_runtime_entry_v3,
-    RUNTIME_ENTRY_POINT_V3
-);
-zircon_plugin_sdk::export_native_plugin_entry_v3!(
-    zircon_native_dynamic_fixture_editor_entry_v3,
-    EDITOR_ENTRY_POINT_V3
-);
+unsafe extern "C" fn fixture_runtime_tick_bridge(
+    _call: NativePluginBridgeMethodCallV3,
+) -> native::ZrStatus {
+    native::ZrStatus::ok()
+}
 
 unsafe extern "C" fn fixture_invoke_command(
     command_name: *const c_char,

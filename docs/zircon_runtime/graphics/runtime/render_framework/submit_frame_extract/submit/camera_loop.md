@@ -1,9 +1,14 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
@@ -22,6 +27,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
+  - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_camera_stack_output_policy.rs
@@ -34,9 +40,14 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera_stack.rs
 implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
@@ -55,6 +66,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
+  - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_camera_stack_output_policy.rs
@@ -68,14 +80,15 @@ plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_marks_stack_and_viewport_output_owners
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::viewport_terminal_camera_target_uses_last_primary_stack_terminal
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::viewport_terminal_camera_target_falls_back_to_last_base_without_primary
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_frame_submissions_project_selected_children_and_terminal_ui
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_flattens_base_then_overlays_for_submit_order
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_extracts_select_each_sequence_descriptor
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_routes_ui_to_last_primary_stack_terminal_only
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_marks_stack_and_viewport_output_owners
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::viewport_terminal_camera_target_uses_last_primary_stack_terminal
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::viewport_terminal_camera_target_falls_back_to_last_base_without_primary
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs::camera_loop_frame_submissions_project_selected_children_and_terminal_ui
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs::submit_camera_loop_frame_streams_selected_children_and_restores_source_fields
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
@@ -97,6 +110,8 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::base_camera_none_clear_with_msaa_clears_scene_color_only
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::overlay_camera_never_clears_scene_color_and_uses_clear_depth_for_depth
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::policy_only_rewrites_scene_first_clear_writes_and_preserves_store
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_key_tracks_texture_target_format_class
+  - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_from_camera_target_retains_resolved_texture_format
   - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs::tests::scene_region_clear_resources_build_for_offscreen_backend
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_defaults_to_full_target_without_camera_rect
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_clamps_camera_rect_to_target
@@ -128,6 +143,7 @@ tests:
   - D:\cargo-targets\zircon-runtime-camera-history-owner-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::runtime::render_framework::viewport_record::history::tests::viewport_record_keeps_histories_per_camera_key --exact --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib viewport_record_keeps_product_reports_per_camera_key --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-camera-products-0620 -- --test-threads=1 --nocapture
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-camera-products-0620 --message-format short --color never
+  - cargo test -p zircon_runtime --lib viewport_render_output_target --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-output-target-format-0623 --message-format short --color never -- --test-threads=1 --nocapture
 doc_type: module-detail
 ---
 
@@ -149,9 +165,9 @@ The loop also computes per-child output ownership. `stack_terminal` is true only
 
 For present submit, `viewport_terminal_camera_target(...)` derives the terminal child target before any rendering begins. `present_frame_extract_with_ui(...)` rejects headless or texture terminal targets for surface present, preflights the bound surface once, and then loops every child. Non-owner children render through `render_frame_with_pipeline(...)` with their own selected-camera history handle and no surface lease; after a successful render they update that camera's history, previous/runtime state, light-grid report, and virtual-geometry debug snapshot slots. Only the viewport-terminal child leases the surface, calls `present_frame_with_pipeline(...)`, records the present submission, and writes shared stats/capture/debug-snapshot products through `owns_shared_viewport_products()`.
 
-For direct runtime-frame submit, `camera_loop_frame_submissions(...)` keeps shader quality, output target, previous motion-vector camera, virtual-geometry debug snapshot, and the caller-provided runtime-frame `scene` snapshot on each selected child frame. It strips UI from non-terminal child frames and leaves it only on the viewport-terminal child. `submit_runtime_frame(...)` then recomputes target size, output target, selected-camera payload, attachment policy, and `ViewportRenderRegion` after submit preflight, renders non-owner children with their own selected-camera history handle, updates their per-camera previous/runtime state plus light-grid/debug snapshot slots, records shared viewport state only for the viewport-terminal child, and uses `owns_shared_viewport_products()` for the shared stats/capture/debug-snapshot writes.
+For direct runtime-frame submit, `camera_loop_frame_submissions(...)` keeps shader quality, output target, previous motion-vector camera, virtual-geometry debug snapshot, and the caller-provided runtime-frame `scene` snapshot on each selected child frame. It strips UI from non-terminal child frames and leaves it only on the viewport-terminal child. `submit_runtime_frame(...)` then recomputes target size, output target, selected-camera payload, attachment policy, and `ViewportRenderRegion` after submit preflight. Texture output targets now carry the texture format label resolved by the same camera-target preflight that feeds the compiled graph key, while writeback and graph import still verify the prepared texture descriptor before GPU execution. Non-owner children render with their own selected-camera history handle, update their per-camera previous/runtime state plus light-grid/debug snapshot slots, record shared viewport state only for the viewport-terminal child, and use `owns_shared_viewport_products()` for the shared stats/capture/debug-snapshot writes.
 
-Each child submit also produces a target-sensitive compiled graph cache key. `CompiledGraphCacheKey` now includes the selected camera target fingerprint, Base/Overlay render type, and viewport-rect presence beside the existing core pipeline, size, HDR, MSAA, particle, compile-option, capability, and shader-quality inputs. That keeps texture/headless/overlay child submits from reusing a graph compiled for a different selected-camera shape.
+Each child submit also produces a target-sensitive compiled graph cache key. `target_resolution.rs` resolves the selected camera target before compilation and hands `compile_pipeline.rs` a `RenderGraphCompileCameraTargetFingerprint`. That resolved descriptor also provides the texture format label stored on `ViewportRenderOutputTarget::Texture`, keeping cache-key format, output-target identity, and later writeback/import planning aligned to one preflight result. `CompiledGraphCacheKey` now includes the selected camera target fingerprint, Base/Overlay render type, and viewport-rect presence beside the existing core pipeline, size, HDR, MSAA, particle, compile-option, capability, and shader-quality inputs. Texture target fingerprints include the texture `ResourceId`, resolved extent, and compact `rgba8unorm_srgb` versus `rgba8unorm` format class, so texture/headless/overlay child submits cannot reuse a graph compiled for a different selected-camera shape.
 
 ## Current Boundaries
 
@@ -172,3 +188,9 @@ The 2026-06-20 focused validation closeout reused `D:\cargo-targets\zircon-runti
 The same 2026-06-20 target directory also validated the UI graph-tail ordering slice. `cargo test -p zircon_runtime --lib pipeline_overlay_order --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-texture-linear-product-0620 --message-format short --color never -- --test-threads=1 --nocapture` passed 2 tests. Direct exact execution of the default Forward+ and Deferred pass-order tests passed 1 test each, and the pluginized legacy Forward+/Deferred pass-order focused Cargo run passed 2 tests after the test plugin post-process fixture stopped declaring `FINAL_COMPOSITED` as an external resource while builtin FXAA reads it as a graph texture.
 
 The follow-up focused WGPU lane passed `cargo test -p zircon_runtime --lib render_product_ui --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-plan-status-current-0620 -- --test-threads=1 --nocapture` with 5 tests. Those tests cover Core2D versus default 3D pass-order semantics, submit stats for `postprocess-overlay-ui`, dynamic-resolution primary-surface and direct-texture UI target sizes, and a dense overlay/UI pixel product. `cargo test -p zircon_runtime --lib dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-plan-status-current-0620 -- --nocapture` passed 1 descriptor regression, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-plan-status-current-0620 --message-format short --color never` passed with the existing warning set.
+
+The 2026-06-23 target-format cache-key follow-up passed scoped `rustfmt --edition 2021 --check` over `compiled_graph_cache.rs`, `pipeline/mod.rs`, and the build-context files, plus static stale/debt scans over the touched pipeline/build-context sources. The later output-target format-label follow-up passed scoped `rustfmt --edition 2021 --check` over the touched output-target/build-context/resource-streamer files, stale constructor/static-debt scans, and scoped `git diff --check` with only line-ending warnings. The focused locked `cargo test -p zircon_runtime --lib compiled_graph_cache ... --target-dir target\codex-compiled-graph-format-0623` command stopped before compilation because the current workspace `Cargo.lock` would need an update under `--locked`; the focused locked `cargo test -p zircon_runtime --lib viewport_render_output_target ... --target-dir target\codex-output-target-format-0623` command entered compilation but timed out after 124s without a test result, and a process audit found no residual cargo/rustc for that target dir. No new Cargo pass is claimed for either 2026-06-23 format slice.
+
+The 2026-06-24 Plan 09 camera-loop test owner split keeps this submit hotpath under the R1.4 file budget without changing selected-camera behavior. `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs` now owns only production loop/streaming helpers plus `#[cfg(test)] mod tests;`, while `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs` owns the former inline Base/Overlay flattening, selected descriptor projection, terminal UI routing, stack/viewport output owner, and viewport-terminal target tests. Structure guard `runtime_15_render_submit_camera_loop_tests_are_child_owner` locks that owner split, moved-test boundaries, docs/status anchors, and the 800-line parent/child budget. Status anchor: `render_plan09_camera_loop_test_owner_split_static_passed_cargo_deferred_active_editor_lane`.
+
+The same 2026-06-24 follow-up finishes the test helper owner split for direct runtime-frame coverage. `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs` keeps sequence/extract helpers and shared fixtures, while `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs` owns `camera_loop_frame_submissions(...)`, frame projection helpers, `CameraLoopFrameSubmission`, and the direct runtime-frame projection tests. The parent no longer defines those test-only helpers. Status anchor: `render_plan09_camera_loop_test_helper_owner_split_static_passed_cargo_deferred_active_editor_lane`.

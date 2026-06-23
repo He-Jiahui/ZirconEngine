@@ -1,3 +1,4 @@
+use crate::core::framework::render::RenderLayerSet;
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Real, Vec2, Vec3};
 
@@ -7,7 +8,7 @@ use super::shadow_settings::LightShadowSettings;
 pub struct RenderDirectionalLightSnapshot {
     pub node_id: EntityId,
     pub light_id: u64,
-    pub layer_mask: u32,
+    pub layer_mask: RenderLayerSet,
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
@@ -18,7 +19,7 @@ pub struct RenderDirectionalLightSnapshot {
 pub struct RenderPointLightSnapshot {
     pub node_id: EntityId,
     pub light_id: u64,
-    pub layer_mask: u32,
+    pub layer_mask: RenderLayerSet,
     pub position: Vec3,
     pub color: Vec3,
     pub intensity: Real,
@@ -30,7 +31,7 @@ pub struct RenderPointLightSnapshot {
 pub struct RenderSpotLightSnapshot {
     pub node_id: EntityId,
     pub light_id: u64,
-    pub layer_mask: u32,
+    pub layer_mask: RenderLayerSet,
     pub position: Vec3,
     pub direction: Vec3,
     pub color: Vec3,
@@ -66,7 +67,7 @@ impl Default for RenderAmbientLightSnapshot {
 pub struct RenderRectLightSnapshot {
     pub node_id: EntityId,
     pub light_id: u64,
-    pub layer_mask: u32,
+    pub layer_mask: RenderLayerSet,
     pub position: Vec3,
     pub direction: Vec3,
     pub color: Vec3,

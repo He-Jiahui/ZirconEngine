@@ -65,14 +65,16 @@ impl TemporalHistoryStore {
 }
 
 struct TemporalHistoryTexture {
-    #[allow(dead_code)]
-    texture: wgpu::Texture,
+    _texture: wgpu::Texture,
     view: wgpu::TextureView,
 }
 
 impl TemporalHistoryTexture {
     fn new(texture: wgpu::Texture, view: wgpu::TextureView) -> Self {
-        Self { texture, view }
+        Self {
+            _texture: texture,
+            view,
+        }
     }
 }
 

@@ -5,6 +5,7 @@ mod bridge_method_abi;
 mod bridge_method_bindings;
 mod candidate_from_manifest;
 mod collect_manifests;
+mod compatibility;
 mod discover;
 mod discover_load_manifest;
 mod dynamic_library_name;
@@ -20,6 +21,7 @@ mod native_plugin_load_manifest;
 mod native_plugin_load_report;
 mod native_plugin_loader;
 mod native_strings;
+mod registration_manifest;
 
 pub use abi_declarations::{
     NativePluginAbiV3, NativePluginBehaviorV3, NativePluginBridgeMethodCallV3,
@@ -49,6 +51,7 @@ pub use native_plugin_live_host::{
     NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
     NativePluginRuntimeHotUpdateReport, NativePluginRuntimePlayModeExitReport,
     NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
+    NativePluginRuntimeRegistrationReplayReport, NativePluginRuntimeRegistrationSystemReplay,
     NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
     NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
 };

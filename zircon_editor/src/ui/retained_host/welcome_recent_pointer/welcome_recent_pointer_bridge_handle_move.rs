@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{
 use super::route_conversion::to_public_route;
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 use super::welcome_recent_pointer_dispatch::WelcomeRecentPointerDispatch;
-use super::welcome_recent_pointer_target::WelcomeRecentPointerTarget;
+use super::welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 
 impl WelcomeRecentPointerBridge {
     pub(crate) fn handle_move(
@@ -14,17 +14,17 @@ impl WelcomeRecentPointerBridge {
     ) -> Result<WelcomeRecentPointerDispatch, String> {
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
         match route.as_ref() {
-            Some(WelcomeRecentPointerTarget::Action {
+            Some(WelcomeRecentPointerRouteIntent::Action {
                 item_index, action, ..
             }) => {
                 self.state.hovered_item_index = Some(*item_index);
                 self.state.hovered_action = Some(*action);
             }
-            Some(WelcomeRecentPointerTarget::Item(item_index)) => {
+            Some(WelcomeRecentPointerRouteIntent::Item(item_index)) => {
                 self.state.hovered_item_index = Some(*item_index);
                 self.state.hovered_action = None;
             }
-            Some(WelcomeRecentPointerTarget::ListSurface) | None => {
+            Some(WelcomeRecentPointerRouteIntent::ListSurface) | None => {
                 self.state.hovered_item_index = None;
                 self.state.hovered_action = None;
             }

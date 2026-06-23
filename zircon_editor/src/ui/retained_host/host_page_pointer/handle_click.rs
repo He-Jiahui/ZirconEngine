@@ -7,7 +7,6 @@ use zircon_runtime_interface::ui::{
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};
 use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_dispatch::HostPagePointerDispatch;
-use super::to_public_route::to_public_route;
 
 impl HostPagePointerBridge {
     pub(crate) fn handle_click(
@@ -31,8 +30,6 @@ impl HostPagePointerBridge {
             self.layout.strip_frame.y + point.y,
         );
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(HostPagePointerDispatch {
-            route: route.map(to_public_route),
-        })
+        Ok(HostPagePointerDispatch { route })
     }
 }

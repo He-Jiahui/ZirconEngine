@@ -1,12 +1,12 @@
 use super::host_menu_pointer_route::HostMenuPointerRoute;
-use super::host_menu_pointer_target::HostMenuPointerTarget;
+use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 
 pub(in crate::ui::retained_host::menu_pointer) fn to_public_route(
-    target: HostMenuPointerTarget,
+    target: HostMenuPointerRouteIntent,
 ) -> HostMenuPointerRoute {
     match target {
-        HostMenuPointerTarget::MenuButton(index) => HostMenuPointerRoute::MenuButton(index),
-        HostMenuPointerTarget::SubmenuBranch {
+        HostMenuPointerRouteIntent::MenuButton(index) => HostMenuPointerRoute::MenuButton(index),
+        HostMenuPointerRouteIntent::SubmenuBranch {
             menu_index,
             item_index,
             ..
@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::menu_pointer) fn to_public_route(
             menu_index,
             item_index,
         },
-        HostMenuPointerTarget::MenuItem {
+        HostMenuPointerRouteIntent::MenuItem {
             menu_index,
             item_index,
             action_id,
@@ -24,9 +24,9 @@ pub(in crate::ui::retained_host::menu_pointer) fn to_public_route(
             item_index,
             action_id,
         },
-        HostMenuPointerTarget::PopupSurface(menu_index) => {
+        HostMenuPointerRouteIntent::PopupSurface(menu_index) => {
             HostMenuPointerRoute::PopupSurface(menu_index)
         }
-        HostMenuPointerTarget::DismissOverlay => HostMenuPointerRoute::DismissOverlay,
+        HostMenuPointerRouteIntent::DismissOverlay => HostMenuPointerRoute::DismissOverlay,
     }
 }

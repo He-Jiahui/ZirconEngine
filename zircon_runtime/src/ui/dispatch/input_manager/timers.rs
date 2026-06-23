@@ -1,14 +1,21 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime_interface::ui::{dispatch::UiInputTimestamp, event_ui::UiNodeId};
+use zircon_runtime_interface::ui::{
+    dispatch::{UiInputTimestamp, UiPointerId, UiPointerSource},
+    event_ui::UiNodeId,
+    surface::UiPointerButton,
+};
 
 const MICROS_PER_MILLI: u64 = 1_000;
+pub const DEFAULT_DOUBLE_CLICK_TIMEOUT_MS: u64 = 500;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiInputTimerState {
     last_tick: Option<UiInputTimestamp>,
     typeahead_expirations: BTreeMap<UiNodeId, UiInputTimestamp>,
     submenu_hover_expirations: BTreeMap<UiNodeId, UiSubmenuHoverTimerExpiration>,
+    tooltip_expirations: BTreeMap<UiNodeId, UiTooltipTimerExpiration>,
+    double_click_candidate: Option<UiDoubleClickTimerCandidate>,
     toast_expirations: BTreeMap<UiNodeId, UiToastTimerExpiration>,
 }
 
@@ -16,6 +23,22 @@ pub struct UiInputTimerState {
 struct UiSubmenuHoverTimerExpiration {
     deadline: UiInputTimestamp,
     option_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct UiTooltipTimerExpiration {
+    deadline: UiInputTimestamp,
+    tooltip_id: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct UiDoubleClickTimerCandidate {
+    deadline: UiInputTimestamp,
+    target: UiNodeId,
+    pointer_id: Option<UiPointerId>,
+    pointer_source: UiPointerSource,
+    button: Option<UiPointerButton>,
+    click_count: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -49,6 +72,18 @@ impl UiInputTimerState {
             .map(|expiration| expiration.option_id.as_str())
     }
 
+    pub fn tooltip_expiration(&self, target: UiNodeId) -> Option<UiInputTimestamp> {
+        self.tooltip_expirations
+            .get(&target)
+            .map(|expiration| expiration.deadline)
+    }
+
+    pub fn tooltip_id(&self, target: UiNodeId) -> Option<&str> {
+        self.tooltip_expirations
+            .get(&target)
+            .map(|expiration| expiration.tooltip_id.as_str())
+    }
+
     pub fn toast_expiration(&self, target: UiNodeId) -> Option<UiInputTimestamp> {
         self.toast_expirations
             .get(&target)
@@ -59,6 +94,24 @@ impl UiInputTimerState {
         self.toast_expirations
             .get(&target)
             .map(|expiration| expiration.toast_id.as_str())
+    }
+
+    pub fn double_click_expiration(&self) -> Option<UiInputTimestamp> {
+        self.double_click_candidate
+            .as_ref()
+            .map(|candidate| candidate.deadline)
+    }
+
+    pub fn double_click_target(&self) -> Option<UiNodeId> {
+        self.double_click_candidate
+            .as_ref()
+            .map(|candidate| candidate.target)
+    }
+
+    pub fn double_click_count(&self) -> Option<u8> {
+        self.double_click_candidate
+            .as_ref()
+            .map(|candidate| candidate.click_count)
     }
 
     pub fn arm_typeahead_expiration(
@@ -93,8 +146,91 @@ impl UiInputTimerState {
         );
     }
 
+    pub fn arm_tooltip_expiration(
+        &mut self,
+        target: UiNodeId,
+        tooltip_id: impl Into<String>,
+        started_at: UiInputTimestamp,
+        delay_ms: u64,
+    ) {
+        let delay_micros = delay_ms.saturating_mul(MICROS_PER_MILLI);
+        let deadline =
+            UiInputTimestamp::from_micros(started_at.monotonic_micros.saturating_add(delay_micros));
+        self.tooltip_expirations.insert(
+            target,
+            UiTooltipTimerExpiration {
+                deadline,
+                tooltip_id: tooltip_id.into(),
+            },
+        );
+    }
+
     pub fn clear_submenu_hover_expiration(&mut self, target: UiNodeId) {
         self.submenu_hover_expirations.remove(&target);
+    }
+
+    pub fn clear_tooltip_expiration(&mut self, target: UiNodeId) {
+        self.tooltip_expirations.remove(&target);
+    }
+
+    pub fn clear_tooltip_expirations(&mut self) {
+        self.tooltip_expirations.clear();
+    }
+
+    pub fn double_click_count_for_release(
+        &self,
+        target: UiNodeId,
+        pointer_id: Option<UiPointerId>,
+        pointer_source: UiPointerSource,
+        button: Option<UiPointerButton>,
+        now: UiInputTimestamp,
+    ) -> u8 {
+        self.double_click_candidate
+            .filter(|candidate| {
+                candidate.deadline >= now
+                    && candidate.target == target
+                    && candidate.pointer_id == pointer_id
+                    && candidate.pointer_source == pointer_source
+                    && candidate.button == button
+            })
+            .map(|candidate| candidate.click_count.saturating_add(1).max(1))
+            .unwrap_or(1)
+    }
+
+    pub fn arm_double_click_candidate(
+        &mut self,
+        target: UiNodeId,
+        pointer_id: Option<UiPointerId>,
+        pointer_source: UiPointerSource,
+        button: Option<UiPointerButton>,
+        click_count: u8,
+        started_at: UiInputTimestamp,
+    ) {
+        let timeout_micros = DEFAULT_DOUBLE_CLICK_TIMEOUT_MS.saturating_mul(MICROS_PER_MILLI);
+        let deadline = UiInputTimestamp::from_micros(
+            started_at.monotonic_micros.saturating_add(timeout_micros),
+        );
+        self.double_click_candidate = Some(UiDoubleClickTimerCandidate {
+            deadline,
+            target,
+            pointer_id,
+            pointer_source,
+            button,
+            click_count: click_count.max(1),
+        });
+    }
+
+    pub fn clear_double_click_candidate(&mut self) {
+        self.double_click_candidate = None;
+    }
+
+    pub fn expire_double_click_candidate(&mut self, now: UiInputTimestamp) {
+        if self
+            .double_click_candidate
+            .is_some_and(|candidate| candidate.deadline <= now)
+        {
+            self.clear_double_click_candidate();
+        }
     }
 
     pub fn arm_toast_expiration(
@@ -146,6 +282,20 @@ impl UiInputTimerState {
             .collect::<Vec<_>>();
         for (target, _) in &expired {
             self.submenu_hover_expirations.remove(target);
+        }
+        expired
+    }
+
+    pub fn drain_expired_tooltips(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
+        let expired = self
+            .tooltip_expirations
+            .iter()
+            .filter_map(|(target, expiration)| {
+                (expiration.deadline <= now).then(|| (*target, expiration.tooltip_id.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (target, _) in &expired {
+            self.tooltip_expirations.remove(target);
         }
         expired
     }

@@ -282,8 +282,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets:",
-                "BTreeMap<UiNodeId, HostMenuPointerTarget>",
+                "route_intents: EditorRouteIntentMap",
             ][..],
         ),
         (
@@ -293,6 +292,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
                 "UiTreeNode::new",
                 "surface.rebuild()",
                 "register_handled_pointer_node",
+                "route_intents.bind_node",
             ][..],
         ),
         (
@@ -300,7 +300,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets: BTreeMap<UiNodeId, HostActivityRailPointerTarget>",
+                "route_intents: EditorRouteIntentMap",
             ][..],
         ),
         (
@@ -317,7 +317,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets: BTreeMap<UiNodeId, HostDrawerHeaderPointerTarget>",
+                "route_intents: EditorRouteIntentMap",
             ][..],
         ),
         (
@@ -327,6 +327,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
                 "UiTreeNode::new",
                 "surface.rebuild()",
                 "register_handled_pointer_node",
+                "route_intents.bind_node",
             ][..],
         ),
         (
@@ -334,8 +335,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets:",
-                "HostDocumentTabPointerTarget",
+                "route_intents: EditorRouteIntentMap",
             ][..],
         ),
         (
@@ -345,6 +345,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
                 "UiTreeNode::new",
                 "surface.rebuild()",
                 "register_handled_pointer_node",
+                "route_intents.bind_node",
             ][..],
         ),
         (
@@ -352,7 +353,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets: BTreeMap<UiNodeId, ViewportToolbarPointerTarget>",
+                "route_intents: EditorRouteIntentMap",
             ][..],
         ),
         (
@@ -362,6 +363,78 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
                 "UiTreeNode::new",
                 "surface.rebuild()",
                 "register_handled_pointer_node",
+                "route_intents.bind_node",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs",
+            &[
+                "surface: UiSurface",
+                "dispatcher: UiPointerDispatcher",
+                "route_intents: EditorRouteIntentMap",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs",
+            &[
+                "UiSurface::new",
+                "UiTreeNode::new",
+                "surface.rebuild()",
+                "register_handled_pointer_node",
+                "route_intents.bind_node",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs",
+            &[
+                "surface: UiSurface",
+                "dispatcher: UiPointerDispatcher",
+                "route_intents: EditorRouteIntentMap",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/detail_pointer/rebuild_surface.rs",
+            &[
+                "UiSurface::new",
+                "UiTreeNode::new",
+                "surface.rebuild()",
+                "route_intents.bind_node",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs",
+            &[
+                "surface: UiSurface",
+                "dispatcher: UiPointerDispatcher",
+                "route_intents: EditorRouteIntentMap",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/host_page_pointer/rebuild_surface.rs",
+            &[
+                "UiSurface::new",
+                "UiTreeNode::new",
+                "surface.rebuild()",
+                "register_handled_pointer_node",
+                "route_intents.bind_node",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs",
+            &[
+                "surface: UiSurface",
+                "dispatcher: UiPointerDispatcher",
+                "route_intents: EditorRouteIntentMap",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs",
+            &[
+                "UiSurface::new",
+                "UiTreeNode::new",
+                "surface.rebuild()",
+                "register_handled_pointer_node",
+                "route_intents.bind_node",
             ][..],
         ),
         (
@@ -369,17 +442,29 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             &[
                 "drag_surface: UiSurface",
                 "drag_dispatcher: UiPointerDispatcher",
+                "drag_route_intents: EditorRouteIntentMap",
                 "resize_surface: UiSurface",
                 "resize_dispatcher: UiPointerDispatcher",
-                ".dispatch_pointer_event(",
+                "resize_route_intents: EditorRouteIntentMap",
+                ".dispatch_input_event(",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs",
+            &[
+                "UiSurfaceFrame",
+                "hit_test_host_surface_frame",
             ][..],
         ),
         (
             "src/ui/retained_host/host_contract/surface_hit_test/template_node.rs",
             &[
-                "UiSurfaceFrame",
-                "hit_test_host_surface_frame",
                 "template_nodes_surface_frame",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/surface.rs",
+            &[
                 "surface.surface_frame()",
             ][..],
         ),

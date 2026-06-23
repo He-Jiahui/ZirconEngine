@@ -6,10 +6,21 @@ fn source(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
+fn sources(relatives: &[&str]) -> String {
+    relatives
+        .iter()
+        .map(|relative| source(relative))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 #[test]
 fn ui_asset_theme_shell_contract_is_rust_owned_and_toml_projected() {
-    let ui_asset = source("src/ui/retained_host/host_contract/data/ui_asset.rs");
-    let callbacks = source("src/ui/retained_host/host_contract/globals.rs");
+    let ui_asset = sources(&[
+        "src/ui/retained_host/host_contract/data/ui_asset.rs",
+        "src/ui/retained_host/host_contract/data/ui_asset/style/theme_source.rs",
+    ]);
+    let callbacks = source("src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs");
     let asset = source("assets/ui/editor/ui_asset_editor.v2.ui.toml");
 
     for required in [

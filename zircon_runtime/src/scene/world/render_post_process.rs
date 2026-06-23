@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    PostProcessVolumeExtract, RenderLayerSet, VolumeComponentOverride, VolumeShapeExtract,
+    PostProcessVolumeExtract, RenderLayerSet, RenderViewExtract, VolumeComponentOverride,
+    VolumeShapeExtract,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::components::{
@@ -13,9 +14,19 @@ pub(super) struct CollectedPostProcessVolumes {
 }
 
 impl World {
+    pub(super) fn collect_post_process_volumes_for_view(
+        &self,
+        view: &RenderViewExtract,
+    ) -> CollectedPostProcessVolumes {
+        self.collect_post_process_volumes(
+            &post_process_volume_layers_for_view(view),
+            view.camera.transform.translation,
+        )
+    }
+
     pub(super) fn collect_post_process_volumes(
         &self,
-        camera_layers: &RenderLayerSet,
+        camera_volume_layers: &RenderLayerSet,
         _camera_position: Vec3,
     ) -> CollectedPostProcessVolumes {
         let mut extracts = Vec::new();
@@ -24,7 +35,7 @@ impl World {
             .iter()
             .filter(|(entity, _)| {
                 self.active_in_hierarchy(**entity) == Some(true)
-                    && self.entity_intersects_camera_layers(**entity, camera_layers)
+                    && self.entity_intersects_camera_layers(**entity, camera_volume_layers)
             })
             .filter(|(_, volume)| volume.active)
         {
@@ -73,6 +84,28 @@ impl World {
         let world_transform = self.world_transform(entity).unwrap_or_default();
         volume_shape_extract_from_collider(world_transform, collider, volume.blend_distance)
     }
+}
+
+fn post_process_volume_layers_for_view(view: &RenderViewExtract) -> RenderLayerSet {
+    let selected_camera = view.selected_camera_descriptor();
+    let selected_layers = selected_camera
+        .map(|camera| camera.volume_mask.clone())
+        .unwrap_or_default();
+    let selected_stack = selected_camera
+        .map(|camera| camera.stack.as_slice())
+        .unwrap_or(&[]);
+
+    view.cameras
+        .iter()
+        .filter(|camera| {
+            camera.entity == view.scene_camera_entity
+                || camera
+                    .entity
+                    .is_some_and(|entity| selected_stack.contains(&entity))
+        })
+        .fold(selected_layers, |layers, camera| {
+            layers.union(&camera.volume_mask)
+        })
 }
 
 fn volume_shape_extract_from_collider(

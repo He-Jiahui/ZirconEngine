@@ -44,7 +44,7 @@ impl PaneSurfaceHostContext<'_> {
     callback_methods!(pane_callbacks, on_welcome_control_changed, invoke_welcome_control_changed, welcome_control_changed, (control_id: SharedString, value: SharedString));
     callback_methods!(pane_callbacks, on_welcome_control_clicked, invoke_welcome_control_clicked, welcome_control_clicked, (control_id: SharedString));
     callback_methods!(pane_callbacks, on_viewport_pointer_event, invoke_viewport_pointer_event, viewport_pointer_event, (kind: i32, button: i32, x: f32, y: f32, delta: f32));
-    callback_methods!(pane_callbacks, on_viewport_toolbar_pointer_clicked, invoke_viewport_toolbar_pointer_clicked, viewport_toolbar_pointer_clicked, (surface_key: SharedString, control_id: SharedString, control_x: f32, control_y: f32, control_width: f32, control_height: f32, point_x: f32, point_y: f32));
+    callback_methods!(pane_callbacks, on_viewport_toolbar_pointer_clicked, invoke_viewport_toolbar_pointer_clicked, viewport_toolbar_pointer_clicked, (surface_key: SharedString, point_x: f32, point_y: f32, width: f32, height: f32));
     callback_methods!(pane_callbacks, on_ui_asset_action, invoke_ui_asset_action, ui_asset_action, (instance_id: SharedString, action_id: SharedString));
     callback_methods!(pane_callbacks, on_ui_asset_detail_event, invoke_ui_asset_detail_event, ui_asset_detail_event, (instance_id: SharedString, detail_id: SharedString, action_id: SharedString, item_index: i32, primary: SharedString, secondary: SharedString));
     callback_methods!(pane_callbacks, on_ui_asset_collection_event, invoke_ui_asset_collection_event, ui_asset_collection_event, (instance_id: SharedString, collection_id: SharedString, event_kind: SharedString, item_index: i32));

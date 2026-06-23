@@ -4,6 +4,7 @@ mod gpu;
 mod graph;
 mod manager_resolution;
 mod optional_features;
+mod package_manifest;
 mod registration;
 mod support;
 mod validation;

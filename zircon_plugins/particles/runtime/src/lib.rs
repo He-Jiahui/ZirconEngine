@@ -1,12 +1,10 @@
-pub const PLUGIN_ID: &str = "particles";
-pub const PARTICLES_FEATURE_NAME: &str = "particle";
-
 mod asset;
 mod capability;
 mod component;
 mod interop;
 mod module;
 mod package;
+mod plugin;
 mod render;
 mod service;
 mod simulation;
@@ -33,6 +31,12 @@ pub use package::{
     attach_particles_manifest_contributions, particle_dependencies, particle_event_catalogs,
     particle_options, PARTICLES_DYNAMIC_EVENT_NAMESPACE,
 };
+pub use plugin::{
+    package_manifest, particle_animation_feature_manifest, particle_gpu_feature_manifest,
+    particle_physics_feature_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, ParticlesRuntimePlugin,
+    PARTICLES_DIST_CRATE_NAME, PARTICLES_DIST_RUNTIME_ENTRY, PARTICLES_FEATURE_NAME, PLUGIN_ID,
+};
 pub use render::{
     build_particle_extract, compile_particle_gpu_layout, compile_particle_gpu_program,
     particle_render_pass_executor_registrations,
@@ -57,156 +61,6 @@ pub use service::{
     ParticleRuntimeDiagnosticSeverity, ParticleRuntimeSnapshot, ParticlesManager,
 };
 pub use simulation::{ParticleSimulationError, ParticleSpriteSnapshot};
-
-#[derive(Clone, Debug)]
-pub struct ParticlesRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
-    manager: ParticlesManager,
-}
-
-impl ParticlesRuntimePlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: runtime_plugin_descriptor(),
-            manager: ParticlesManager::default(),
-        }
-    }
-
-    pub fn manager(&self) -> ParticlesManager {
-        self.manager.clone()
-    }
-}
-
-impl Default for ParticlesRuntimePlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl zircon_runtime::plugin::RuntimePlugin for ParticlesRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
-        &self.descriptor
-    }
-
-    fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
-        attach_particles_manifest_contributions(self.descriptor.package_manifest())
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        let runtime_owner = ParticleGpuRuntimeOwnerHandle::default();
-        registry.register_module(module_descriptor_with_manager(self.manager.clone()))?;
-        registry.register_render_feature(render_feature_descriptor())?;
-        for registration in
-            particle_render_pass_executor_registrations_with_gpu_owner(runtime_owner.clone())
-        {
-            registry.register_render_pass_executor(registration)?;
-        }
-        registry.register_runtime_prepare_collector(
-            particle_runtime_prepare_collector_registration_with_manager_and_owner(
-                self.manager.clone(),
-                runtime_owner,
-            ),
-        )?;
-        for component in particle_component_descriptors() {
-            registry.register_component(component)?;
-        }
-        for option in particle_options() {
-            registry.register_plugin_option(option)?;
-        }
-        for event_catalog in particle_event_catalogs() {
-            registry.register_plugin_event_catalog(event_catalog)?;
-        }
-        Ok(())
-    }
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Particles",
-        zircon_runtime::builtin::RuntimePluginId::Particles,
-        "zircon_plugin_particles_runtime",
-    )
-    .with_category("runtime")
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
-    .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(PARTICLES_RUNTIME_CAPABILITY)
-    .with_capability_status(
-        zircon_runtime::plugin::CapabilityStatusManifest::new(
-            PARTICLES_RUNTIME_CAPABILITY,
-            zircon_runtime::plugin::CapabilityStatus::Partial,
-        )
-        .with_note("Advanced optional VFX capability; not a Bevy default parity blocker."),
-    )
-    .with_optional_feature(particle_physics_feature_manifest())
-    .with_optional_feature(particle_animation_feature_manifest())
-    .with_optional_feature(particle_gpu_feature_manifest())
-    .build()
-}
-
-zircon_plugin_sdk::runtime_plugin_exports!(ParticlesRuntimePlugin);
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
-}
-
-pub fn particle_physics_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
-        "particles.physics",
-        "Physical Particles",
-        PLUGIN_ID,
-    )
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
-        PLUGIN_ID,
-        PARTICLES_RUNTIME_CAPABILITY,
-    ))
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
-        "physics",
-        "runtime.plugin.physics",
-    ))
-    .with_capability("runtime.feature.particles.physics")
-}
-
-pub fn particle_animation_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
-{
-    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
-        "particles.animation_control",
-        "Animation Controlled Particles",
-        PLUGIN_ID,
-    )
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
-        PLUGIN_ID,
-        PARTICLES_RUNTIME_CAPABILITY,
-    ))
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
-        "animation",
-        "runtime.plugin.animation",
-    ))
-    .with_capability("runtime.feature.particles.animation_control")
-}
-
-pub fn particle_gpu_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
-        "particles.gpu_simulation",
-        "GPU Particle Simulation",
-        PLUGIN_ID,
-    )
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
-        PLUGIN_ID,
-        PARTICLES_RUNTIME_CAPABILITY,
-    ))
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
-        "render_graph",
-        "runtime.module.render_graph",
-    ))
-    .with_capability("runtime.feature.particles.gpu_simulation")
-}
 
 #[cfg(test)]
 mod tests;

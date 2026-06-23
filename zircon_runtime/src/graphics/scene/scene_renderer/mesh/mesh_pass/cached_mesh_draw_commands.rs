@@ -139,6 +139,16 @@ impl CachedMeshDrawInvalidation {
 }
 
 impl MeshDrawCommandCacheStats {
+    pub(crate) fn accumulate(&mut self, other: Self) {
+        self.cached_command_hit_count += other.cached_command_hit_count;
+        self.command_rebuild_count += other.command_rebuild_count;
+        self.dynamic_command_count += other.dynamic_command_count;
+        self.cache_miss_count += other.cache_miss_count;
+        self.cache_invalidated_transform_count += other.cache_invalidated_transform_count;
+        self.cache_invalidated_geometry_count += other.cache_invalidated_geometry_count;
+        self.cache_invalidated_material_count += other.cache_invalidated_material_count;
+    }
+
     pub(crate) fn record_invalidation(&mut self, invalidation: CachedMeshDrawInvalidation) {
         if invalidation.transform_changed {
             self.cache_invalidated_transform_count += 1;

@@ -74,28 +74,48 @@ pub(super) fn update_virtual_geometry_stats(
     state.stats.last_virtual_geometry_replaced_page_count =
         virtual_geometry_stats.replaced_page_count();
     let execution_stats = virtual_geometry_execution_stats(context);
-    state.stats.last_virtual_geometry_indirect_draw_count = execution_stats.segment_count;
-    state.stats.last_virtual_geometry_indirect_buffer_count = 0;
-    state.stats.last_virtual_geometry_indirect_args_count = execution_stats.segment_count;
-    state.stats.last_virtual_geometry_indirect_segment_count =
-        virtual_geometry_stats.indirect_segment_count();
-    state.stats.last_virtual_geometry_execution_segment_count = execution_stats.segment_count;
-    state.stats.last_virtual_geometry_execution_page_count = execution_stats.page_count;
+    let prepared_mesh_queue_stats = state.renderer.last_prepared_mesh_queue_stats();
+    state.stats.last_virtual_geometry_indirect_draw_count = prepared_mesh_queue_stats
+        .virtual_geometry_indirect_draw_count
+        .max(prepared_mesh_queue_stats.virtual_geometry_execution_draw_count)
+        .max(execution_stats.segment_count);
+    state.stats.last_virtual_geometry_indirect_buffer_count = prepared_mesh_queue_stats
+        .virtual_geometry_indirect_buffer_count
+        .max(usize::from(
+            virtual_geometry_stats.indirect_segment_count() > 0,
+        ));
+    state.stats.last_virtual_geometry_indirect_args_count = prepared_mesh_queue_stats
+        .virtual_geometry_indirect_args_count
+        .max(execution_stats.segment_count);
+    state.stats.last_virtual_geometry_indirect_segment_count = prepared_mesh_queue_stats
+        .virtual_geometry_indirect_segment_count
+        .max(virtual_geometry_stats.indirect_segment_count());
+    state.stats.last_virtual_geometry_execution_segment_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_segment_count
+        .max(execution_stats.segment_count);
+    state.stats.last_virtual_geometry_execution_page_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_page_count
+        .max(execution_stats.page_count);
     state
         .stats
-        .last_virtual_geometry_execution_resident_segment_count =
-        execution_stats.resident_segment_count;
+        .last_virtual_geometry_execution_resident_segment_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_resident_segment_count
+        .max(execution_stats.resident_segment_count);
     state
         .stats
-        .last_virtual_geometry_execution_pending_segment_count =
-        execution_stats.pending_segment_count;
+        .last_virtual_geometry_execution_pending_segment_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_pending_segment_count
+        .max(execution_stats.pending_segment_count);
     state
         .stats
-        .last_virtual_geometry_execution_missing_segment_count =
-        execution_stats.missing_segment_count;
+        .last_virtual_geometry_execution_missing_segment_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_missing_segment_count
+        .max(execution_stats.missing_segment_count);
     state
         .stats
-        .last_virtual_geometry_execution_repeated_draw_count = execution_stats.repeated_draw_count;
+        .last_virtual_geometry_execution_repeated_draw_count = prepared_mesh_queue_stats
+        .virtual_geometry_execution_repeated_draw_count
+        .max(execution_stats.repeated_draw_count);
     state
         .stats
         .last_virtual_geometry_cluster_selection_input_source = virtual_geometry_extract
@@ -167,22 +187,25 @@ pub(super) fn update_virtual_geometry_stats(
     state
         .stats
         .last_virtual_geometry_node_and_cluster_cull_page_request_count = 0;
+    let has_virtual_geometry_execution =
+        state.stats.last_virtual_geometry_execution_segment_count > 0;
     state.stats.last_virtual_geometry_selected_cluster_source = virtual_geometry_extract
-        .map(|_| selected_cluster_source_for_execution(execution_stats.segment_count > 0))
+        .map(|_| selected_cluster_source_for_execution(has_virtual_geometry_execution))
         .unwrap_or_default();
     state.stats.last_virtual_geometry_selected_cluster_count = execution_stats.cluster_count;
     state.stats.last_virtual_geometry_visbuffer64_source = virtual_geometry_extract
-        .map(|_| visbuffer64_source_for_execution(execution_stats.segment_count > 0))
+        .map(|_| visbuffer64_source_for_execution(has_virtual_geometry_execution))
         .unwrap_or_default();
     state.stats.last_virtual_geometry_visbuffer64_entry_count = execution_stats.cluster_count;
     state
         .stats
         .last_virtual_geometry_hardware_rasterization_source = virtual_geometry_extract
-        .map(|_| hardware_rasterization_source_for_execution(execution_stats.segment_count > 0))
+        .map(|_| hardware_rasterization_source_for_execution(has_virtual_geometry_execution))
         .unwrap_or_default();
     state
         .stats
-        .last_virtual_geometry_hardware_rasterization_record_count = execution_stats.segment_count;
+        .last_virtual_geometry_hardware_rasterization_record_count =
+        state.stats.last_virtual_geometry_execution_segment_count;
 }
 
 pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {

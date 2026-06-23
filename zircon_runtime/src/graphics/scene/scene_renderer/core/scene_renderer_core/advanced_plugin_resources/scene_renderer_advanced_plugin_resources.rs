@@ -27,6 +27,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvance
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct SceneRendererAdvancedPluginResourceCapabilities {
     virtual_geometry: bool,
+    #[cfg(test)]
     hybrid_gi: bool,
 }
 
@@ -45,7 +46,7 @@ impl SceneRendererAdvancedPluginResources {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn register_runtime_prepare_collector(
         &mut self,
         collector: SceneRendererRuntimePrepareCollector,
@@ -65,7 +66,7 @@ impl SceneRendererAdvancedPluginResources {
         self.capabilities.virtual_geometry
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn hybrid_gi_enabled(&self) -> bool {
         self.capabilities.hybrid_gi
     }
@@ -79,6 +80,7 @@ fn advanced_plugin_resource_capabilities(
             render_features,
             RenderFeatureCapabilityRequirement::VirtualGeometry,
         ),
+        #[cfg(test)]
         hybrid_gi: render_features_require(
             render_features,
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
@@ -170,6 +172,11 @@ mod tests {
             &render_features,
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination
         ));
+        let resources = SceneRendererAdvancedPluginResources {
+            capabilities,
+            runtime_prepare_collectors: Vec::new(),
+        };
+        assert!(resources.hybrid_gi_enabled());
         assert_eq!(
             capabilities,
             SceneRendererAdvancedPluginResourceCapabilities {

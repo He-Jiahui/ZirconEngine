@@ -1,0 +1,158 @@
+[asset]
+kind = "page_layout_templates"
+id = "zircon.editor.workbench.page_templates"
+version = 2
+display_name = "Workbench Page Layout Templates"
+
+[[pages]]
+page = "scene"
+default_preset = "authoring"
+center_split = "single_document"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/host/editor_main_frame.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "game"
+default_preset = "focus"
+center_split = "single_document"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "collapsed" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/host/editor_main_frame.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "material"
+default_preset = "authoring"
+center_split = "horizontal_2"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "material_preview"
+default_preset = "review"
+center_split = "single_document"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "inspector"
+default_preset = "review"
+center_split = "single_document"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+center = "res://ui/editor/host/inspector_body.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+
+[[pages]]
+page = "prefab"
+default_preset = "authoring"
+center_split = "single_document"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "ui_designer"
+default_preset = "authoring"
+center_split = "horizontal_2"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "ui_source"
+default_preset = "focus"
+center_split = "single_document"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "collapsed" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "animation_timeline"
+default_preset = "debug"
+center_split = "horizontal_2"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/host/animation_sequence_body.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "animation_graph"
+default_preset = "review"
+center_split = "horizontal_2"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/host/animation_graph_body.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "asset_browser"
+default_preset = "review"
+center_split = "single_document"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "console"
+default_preset = "debug"
+center_split = "single_document"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/host/console_body.v2.ui.toml"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"
+
+[[pages]]
+page = "runtime_diagnostics"
+default_preset = "debug"
+center_split = "horizontal_2"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "pinned" }
+left_top = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+left_bottom = "res://ui/editor/asset_browser.v2.ui.toml"
+center = "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui"
+right_top = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+right_bottom = "res://ui/editor/host/inspector_body.v2.ui.toml"
+bottom = "res://ui/editor/host/console_body.v2.ui.toml"

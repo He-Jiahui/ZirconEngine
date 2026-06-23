@@ -12,7 +12,6 @@ mod host_activity_rail_pointer_item;
 mod host_activity_rail_pointer_layout;
 mod host_activity_rail_pointer_route;
 mod host_activity_rail_pointer_side;
-mod host_activity_rail_pointer_target;
 mod insert_strip;
 mod new;
 mod parse;
@@ -21,7 +20,6 @@ mod register_handled_pointer_node;
 mod root_frame;
 mod strip_button_node_id;
 mod sync;
-mod to_public_route;
 
 #[cfg(test)]
 pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_layout;

@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
-use crate::ui::retained_host::host_contract::surface_hit_test::ViewportToolbarPointerHit;
+use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::super::super::super::super::routing::PanePointerRoute;
@@ -13,7 +13,8 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_viewport_toolbar_but
     pane_host: &PaneSurfaceHostContext<'_>,
     presentation: &HostWindowPresentationData,
     pointer: &PanePointerRoute,
-    hit: &ViewportToolbarPointerHit,
+    surface_key: &SharedString,
+    control_id: Option<&SharedString>,
     state: NativePointerButtonState,
     button: UiPointerButton,
     cleared_text_input_frame: Option<FrameRect>,
@@ -21,10 +22,11 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_viewport_toolbar_but
     if state != NativePointerButtonState::Pressed || button != UiPointerButton::Primary {
         return NativePointerDispatchResult::idle();
     }
-    let control_id = invoke_viewport_toolbar_click(pane_host, pointer, hit);
+    let routed_control_id =
+        invoke_viewport_toolbar_click(pane_host, pointer, surface_key, control_id);
     viewport_toolbar_click_damage_result(
         presentation,
-        control_id.as_str(),
+        routed_control_id.as_str(),
         &pointer.frame,
         cleared_text_input_frame,
     )

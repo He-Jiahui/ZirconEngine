@@ -9,13 +9,10 @@ fn root_viewport_toolbar_pointer_click_uses_projection_fallback_in_real_host() {
 
     pane_surface_host(&harness.root_ui).invoke_viewport_toolbar_pointer_clicked(
         "editor.scene#1".into(),
-        "display.cycle".into(),
-        0.0,
-        0.0,
-        0.0,
-        0.0,
         300.0,
         10.0,
+        1280.0,
+        28.0,
     );
 
     assert_eq!(
@@ -75,13 +72,10 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
 
     pane_surface_host(&harness.root_ui).invoke_viewport_toolbar_pointer_clicked(
         "editor.scene#1".into(),
-        "align.neg_z".into(),
-        0.0,
-        0.0,
-        0.0,
-        0.0,
         point_x,
         point_y,
+        1280.0,
+        28.0,
     );
 
     assert_eq!(

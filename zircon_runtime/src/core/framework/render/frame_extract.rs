@@ -157,6 +157,12 @@ impl RenderViewExtract {
             .expect("render view extract must carry a selected camera descriptor")
     }
 
+    pub fn selected_camera_volume_layers(&self) -> &RenderLayerSet {
+        self.selected_camera_descriptor()
+            .map(|camera| &camera.volume_mask)
+            .expect("render view extract must carry a selected camera descriptor")
+    }
+
     pub fn selected_effective_camera(&self) -> ViewportCameraSnapshot {
         self.selected_camera_descriptor()
             .map(CameraRenderDescriptor::as_effective_camera)
@@ -285,7 +291,7 @@ pub struct StaticMeshBatchExtract {
     pub model: ResourceHandle<ModelMarker>,
     pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
-    pub render_layer_mask: u32,
+    pub render_layer_mask: RenderLayerSet,
     pub mesh_indices: Vec<usize>,
     pub entities: Vec<EntityId>,
 }
@@ -378,12 +384,12 @@ impl GeometryExtract {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct StaticMeshBatchKey {
     model: ResourceId,
     mesh: Option<ResourceId>,
     material: ResourceId,
-    render_layer_mask: u32,
+    render_layers: Vec<u32>,
 }
 
 fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBatchExtract> {
@@ -397,7 +403,7 @@ fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBat
                 model: mesh.model.id(),
                 mesh: mesh.mesh.map(ResourceHandle::id),
                 material: mesh.material.id(),
-                render_layer_mask: mesh.render_layer_mask,
+                render_layers: mesh.render_layer_mask.iter().collect(),
             })
             .or_default()
             .push(mesh_index);
@@ -412,7 +418,7 @@ fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBat
                 model: first_mesh.model,
                 mesh: first_mesh.mesh,
                 material: first_mesh.material,
-                render_layer_mask: first_mesh.render_layer_mask,
+                render_layer_mask: first_mesh.render_layer_mask.clone(),
                 entities: mesh_indices
                     .iter()
                     .map(|mesh_index| meshes[*mesh_index].node_id)
@@ -712,11 +718,11 @@ pub struct RenderParticleGpuFrameExtract {
     pub indirect_draw_args: [u32; 4],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VisibilityRenderableInput {
     pub entity: EntityId,
     pub mobility: Mobility,
-    pub render_layer_mask: u32,
+    pub render_layer_mask: RenderLayerSet,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -762,7 +768,7 @@ impl RenderFrameExtract {
             .map(|mesh| VisibilityRenderableInput {
                 entity: mesh.node_id,
                 mobility: mesh.mobility,
-                render_layer_mask: mesh.render_layer_mask,
+                render_layer_mask: mesh.render_layer_mask.clone(),
             })
             .collect::<Vec<_>>();
         let renderable_entities = renderables
@@ -885,89 +891,4 @@ fn camera_target_size_from_descriptor(camera: Option<&CameraRenderDescriptor>) -
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{RenderCameraTarget, RenderLayerSet, RenderViewportRect};
-    use crate::core::resource::TextureMarker;
-
-    #[test]
-    fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
-        let mut view = RenderViewExtract::from_camera(ViewportCameraSnapshot::default());
-        let mut descriptor =
-            CameraRenderDescriptor::from_camera_payload(Some(7), ViewportCameraSnapshot::default());
-        descriptor.target = RenderCameraTarget::Headless {
-            size: UVec2::new(320, 180),
-        };
-        descriptor.viewport_rect = Some(RenderViewportRect::new(UVec2::ZERO, UVec2::new(320, 160)));
-        descriptor.culling_mask = RenderLayerSet::layer(3);
-        descriptor.volume_mask = RenderLayerSet::layer(4);
-        view.scene_camera_entity = Some(7);
-        view.cameras = vec![descriptor];
-
-        view.apply_target_size(UVec2::new(1280, 720));
-
-        let selected = view
-            .selected_camera_descriptor()
-            .expect("selected scene camera descriptor should remain present");
-        assert!(matches!(
-            selected.target,
-            RenderCameraTarget::Headless {
-                size: UVec2 { x: 320, y: 180 }
-            }
-        ));
-        assert_eq!(selected.culling_mask.to_legacy_mask_lossy(), 1 << 3);
-        assert_eq!(selected.volume_mask.to_legacy_mask_lossy(), 1 << 4);
-        assert!((view.camera.aspect_ratio - 2.0).abs() < 1.0e-4);
-    }
-
-    #[test]
-    fn render_frame_extract_selected_camera_descriptor_replaces_active_selection_only() {
-        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
-            "tests/camera-loop/rt",
-        ));
-        let mut extract = RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(10),
-            RenderSceneSnapshot {
-                scene: RenderSceneGeometryExtract {
-                    camera: ViewportCameraSnapshot::default(),
-                    meshes: Vec::new(),
-                    directional_lights: Vec::new(),
-                    point_lights: Vec::new(),
-                    spot_lights: Vec::new(),
-                    ambient_lights: Vec::new(),
-                    rect_lights: Vec::new(),
-                },
-                overlays: RenderOverlayExtract::default(),
-                preview: PreviewEnvironmentExtract {
-                    lighting_enabled: false,
-                    skybox_enabled: false,
-                    fallback_skybox: FallbackSkyboxKind::None,
-                    clear_color: crate::core::math::Vec4::ZERO,
-                },
-                virtual_geometry_debug: None,
-            },
-        );
-        let mut primary =
-            CameraRenderDescriptor::from_camera_payload(Some(1), ViewportCameraSnapshot::default());
-        primary.render_order = 0;
-        let mut target =
-            CameraRenderDescriptor::from_camera_payload(Some(2), ViewportCameraSnapshot::default());
-        target.render_order = 10;
-        target.target = RenderCameraTarget::Texture(texture);
-        target.culling_mask = RenderLayerSet::layer(4);
-        extract.view = extract.view.with_cameras(vec![primary, target.clone()]);
-
-        let selected = extract.with_selected_camera_descriptor(target.clone());
-
-        assert_eq!(selected.view.scene_camera_entity, Some(2));
-        assert_eq!(selected.view.cameras.len(), 1);
-        assert_eq!(selected.view.selected_camera_target(), &target.target);
-        assert_eq!(
-            selected
-                .view
-                .selected_camera_layers()
-                .to_legacy_mask_lossy(),
-            1 << 4
-        );
-    }
-}
+mod tests;

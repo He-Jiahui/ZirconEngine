@@ -8,9 +8,9 @@ use crate::{
 };
 
 use super::{
-    PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleManifest,
-    PluginOptionManifest, PluginPackageKind,
+    PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
+    PluginFeatureBundleManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
+    PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,6 +68,8 @@ pub struct PluginPackageManifest {
     pub feature_extensions: Vec<PluginFeatureBundleManifest>,
     #[serde(default)]
     pub default_packaging: Vec<ExportPackagingStrategy>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distribution: Option<PluginDistributionManifest>,
 }
 
 fn default_plugin_category() -> String {

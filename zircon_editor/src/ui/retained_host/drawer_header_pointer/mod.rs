@@ -12,17 +12,13 @@ mod host_drawer_header_pointer_item;
 mod host_drawer_header_pointer_layout;
 mod host_drawer_header_pointer_route;
 mod host_drawer_header_pointer_surface;
-mod host_drawer_header_pointer_target;
 mod new;
 mod rebuild_surface;
 mod register_handled_pointer_node;
 mod root_frame;
 mod sync;
-mod to_public_route;
 mod update_measured_frame;
 
-#[cfg(test)]
-pub(crate) use build_host_drawer_header_pointer_layout::build_host_drawer_header_pointer_layout;
 pub(crate) use build_host_drawer_header_pointer_layout::build_host_drawer_header_pointer_layout_with_workbench_layout_frames;
 pub(crate) use host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 pub(crate) use host_drawer_header_pointer_dispatch::HostDrawerHeaderPointerDispatch;

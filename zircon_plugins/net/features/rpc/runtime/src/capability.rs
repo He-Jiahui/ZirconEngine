@@ -1,0 +1,3 @@
+pub use crate::feature::NET_RPC_FEATURE_CAPABILITY;
+
+pub const RUNTIME_CAPABILITIES: &[&str] = &[NET_RPC_FEATURE_CAPABILITY];

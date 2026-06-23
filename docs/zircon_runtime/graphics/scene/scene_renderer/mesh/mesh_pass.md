@@ -4,6 +4,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs
@@ -11,18 +13,36 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/command_sort_input.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/rhi/capabilities.rs
@@ -32,7 +52,9 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
@@ -65,6 +87,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs
@@ -75,19 +99,33 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/transparent.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/shadow.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/command_sort_input.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/rhi/capabilities.rs
@@ -97,7 +135,9 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -127,21 +167,31 @@ plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md
   - docs/plans/zircon_runtime/render/03-gpu-scene-gpu-driven.md
+  - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - user: 2026-06-12 implement wgpu-to-render-pipeline design code
 tests:
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_clusters_opaque_by_pipeline_before_tie_breaker
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_keeps_transparent_depth_before_pipeline
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_ignores_transparent_pipeline_variant
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_draw_command_list_sorts_by_phase_then_sort_key
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_draw_command_list_reports_draw_and_instance_sources
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_draw_command_list_filters_phase_views_without_resorting
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_build_expected_phase_counts_from_batches
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_commands_sort_opaque_by_state_bucket_before_depth
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_commands_sort_transparent_by_depth_before_pipeline_bucket
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_reuse_static_cached_commands_on_second_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_report_static_cache_invalidation_reasons
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_sorts_by_phase_then_sort_key
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_reports_draw_and_instance_sources
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_batch_ref_emits_gpu_scene_instance_command
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_filters_phase_views_without_resorting
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_build_expected_phase_counts_from_batches
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_commands_sort_opaque_by_state_bucket_before_depth
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_commands_sort_transparent_by_depth_before_pipeline_bucket
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_reuse_static_cached_commands_on_second_frame
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_report_static_cache_invalidation_reasons
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs::pending_command_cache_extract_second_frame_full_hit_reports_zero_rebuilds
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs::pending_command_cache_extract_rebuilds_shadow_material_invalidation_before_mesh_draw
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs::runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_rebuild
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_material_revision_invalidates_pre_mesh_cache
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reuse_matching_static_state
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_invalidate_changed_material_revision
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reject_dynamic_transparent_and_indirect_batches
@@ -154,12 +204,21 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_builds_compaction_plan_from_uploaded_args
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_args_snapshot_counts_zeroed_instance_args
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_sources_readback_from_indirect_args_buffer
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::processors_emit_expected_mesh_phases
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::velocity_processor_requires_motion_vector_history_and_previous_transform
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::processors_emit_expected_mesh_phases
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_depth_prepass_filters_transparent
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shader_selection
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_variant
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_counts_pipeline_changes
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_tracked_bind_groups
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_resets_bind_tracking_on_pipeline_change
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_geometry_until_pipeline_changes
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::velocity_processor_requires_velocity_history_and_previous_transform
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_reuses_pass_pipeline_shape_id
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_separates_pass_and_pipeline_shape
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_carry_mesh_pass_command_buffer_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_carry_gpu_scene_counts
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_mesh_pass_command_buffer_counts
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_mesh_draw_replay_counts
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_gpu_scene_counts
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs::prepared_queue_stats_exclude_gpu_skinned_draws_from_direct_batch_candidates
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs::tests::render_gpu_scene_static_scene_second_frame_uploads_zero_bytes
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs::tests::render_gpu_scene_single_moving_entity_uploads_only_its_entry
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_gpu_scene_upload_stats
@@ -179,6 +238,10 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
+  - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_batch_key_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
   - cargo test -p zircon_runtime --lib render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib fallback_mesh_shader --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib shader_declares_gpu_scene_group --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
@@ -195,6 +258,8 @@ tests:
   - cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-md3-sort-input-0617
   - cargo test -p zircon_runtime --lib render_gpu_scene_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib render_product_diagnostics_record_gpu_scene_upload_stats --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan02-static-cache-product-0623 --message-format short --color never render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse -- --test-threads=1 --nocapture (timed out after about 184 seconds with no result; matching target cargo/rustc stopped)
+  - cargo test -p zircon_runtime --lib phase_ordered_meshes_filter_meshes_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-mesh-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
 doc_type: module-detail
 ---
 
@@ -223,6 +288,8 @@ The handle ids are still temporary pointer-derived ids in this slice, but the co
 
 The packed sort key now receives depth, depth bias, render queue, material queue, order-in-layer, UI z-index, and tie-breaker from the same sort profile that ordered the frame phase queue. Fallback paths that do not have a phase queue still derive depth from mesh translation Z and a stable entity tie-breaker, so command creation stays deterministic. Plan 09 still owns the final bit layout and broader camera/renderer ordering policy, but the mesh command path no longer loses the current phase queue metadata before command emission.
 
+`build_mesh_draws/build/phase_ordering.rs` is also the Plan 09 CO-M4 selected-camera layer gate for mesh draw construction. It filters both raw mesh-vector fallback rows and material-adjusted phase-queue entries with `RenderViewExtract::selected_camera_layers().intersects(&mesh.render_layer_mask)`. `RenderMeshSnapshot.render_layer_mask` now carries `RenderLayerSet`, so layer 32+ meshes are retained or rejected by typed set membership instead of by a lossy 32-bit mask. Static mesh batching, frame-history mesh validation, `VisibilityBatchKey`, `FrameVisibility.render_layer_masks`, and `VisibilityRenderableInput` now keep the same typed mask through CPU visibility and mesh participation.
+
 `source_draw_index` remains as an audit/debug bridge, but the built-in WGPU recorders no longer use it for binding or drawing. `partition_mesh_draws.rs` and the old `mesh_draw/render_pass_bindings.rs` draw-binding helper file have been removed from the frame path, and the main mesh pass loops now iterate command slices directly.
 
 ## Static Command Cache
@@ -230,6 +297,20 @@ The packed sort key now receives depth, depth bias, render queue, material queue
 MD-M2 adds `CachedMeshDrawCommands` beside the command list. The cache key is `(entity, draw_ordinal, phase)`, where `entity` comes from `RenderMeshSnapshot::node_id` and `draw_ordinal` is assigned while expanding a snapshot into one or more raster draw slices. `MeshDraw` carries this identity plus `RenderMeshStaticState`, and `MeshDraw::mesh_pass_batch_ref(...)` forwards both into `MeshBatchRef` so command construction can decide cache eligibility without reopening scene extract data.
 
 Cache eligibility is intentionally narrow: the batch must be direct, prepared, non-transparent, static mobility, non-skinned GPU-skinning, and the phase must be one of depth prepass, shadow, opaque, or alpha-mask. Transparent commands are excluded because depth ordering is camera-dependent, and velocity commands are excluded because static objects do not belong in the motion-vector pass. The static-state revisions must also be authoritative: `transform_static == true`, `geometry_revision != 0`, and `material_revision != 0`.
+
+`build_mesh_draws/build/pending_command_cache_plan.rs` now runs the same static eligibility census before pending draws become `MeshDraw` values and before WGPU bind/geometry handles are standardized. It combines `RenderMeshStaticState`, pending queue profile data, material shadow policy, and frame visibility/relevance to report draw candidates plus depth-prepass/shadow/opaque/alpha-mask phase candidates. `BuiltMeshDraws` carries those counts through `CompiledSceneDraws`; `PreparedMeshQueueStats`, `RenderStats`, and product diagnostics expose them as `pending_static_command_cache_*`. These counters are deliberately separate from real `cached_command_hit_count`/`command_rebuild_count`: they prove which work can move below `MeshDraw` construction.
+
+`build_mesh_draws/build/pending_command_cache_extract.rs` is the first real downshift owner for that boundary. After GPUScene sync and before `create_mesh_draw(...)` allocates material bind groups, it checks direct prepared, non-transparent, non-skinned, non-reactive static pending draws whose depth/shadow/opaque/alpha-mask cacheable phases all hit `CachedMeshDrawCommands`. Full-hit draws are removed from the residual `MeshDraw` build list, their cached commands are emitted as prebuilt `MeshPassCommandBuffers`, and source prepared-queue stats remain based on the original pending draw census. Product diagnostics expose the avoided work as `render.mesh.queue.pre_mesh_draw_static_command_cache.skipped_draw_count` and `.skipped_phase_count`; fully visibility-pruned zero-command skips are additionally exposed as `render.mesh.queue.pre_mesh_draw_static_command_cache.visibility_pruned_draw_count`.
+
+`build_mesh_draws/build/pending_command_cache_extract/extract_item.rs` owns the pending draw projection and phase-selection side of that extraction boundary. It builds `PendingMeshCommandCacheExtractItem` from a `PendingMeshDraw`, applies the static/direct/prepared/non-reactive/non-skinned skip eligibility, and derives the frame-visible cacheable phases from queue profile plus visibility/relevance. Keeping this logic out of the root extraction file leaves the root focused on all-or-nothing cache lookup, rebuild dispatch, and result splicing.
+
+`build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs` is the follow-up child owner for misses that are safe before material bind groups exist. It currently rebuilds only opaque `RenderPhase::Shadow` commands as `MeshPassPipelineKind::ShadowDepth`, using the GPUScene instance span already synchronized for the pending draw. The child owner explicitly refuses depth prepass and alpha-mask shadow rebuilds: normal/depth prepass recording and alpha-mask shadow recording both bind standard material handles, so those phases still require either cached commands or the residual `MeshDraw` construction path. Opaque/alpha material phase misses, TAA reactive mask, skinned/GPU-skinning, indirect/VG, and transparent draws intentionally stay on the residual path for now.
+
+The rebuild input is also lazy. `pending_command_cache_extract.rs` does not query the GPUScene span or construct a `MeshBatchRef` when every visible cacheable phase hits, and it also avoids that work for material-bound phase misses that must fall back to residual `MeshDraw` construction. `pending_mesh_command_cache_rebuild_batch_for_phase(...)` is only reached after a miss/invalidated phase is known to be safe for `non_material_rebuild`, which keeps the hot full-hit second-frame path closer to the intended "cached command only" cost model.
+
+`build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs` owns the focused tests for zero-command extraction. The extraction result carries a `visibility_pruned` flag, and `PendingMeshCommandCacheExtractionStats` forwards `visibility_pruned_mesh_draw_count` through `PreparedMeshQueueStats`, `RenderStats`, frame stats updates, and product diagnostics. This keeps visibility/relevance culling evidence separate from command-cache full-hit evidence.
+
+If visibility and relevance prune every cacheable phase for an otherwise eligible static pending draw, extraction now succeeds with an empty command list. This is intentionally different from a material-bound miss: no pass will replay the draw this frame, so there is no reason to build material bind groups or keep the draw for residual command construction. GPUScene sync has already happened before this point, so the entity remains registered for later frames while the current frame skips the `MeshDraw` allocation path.
 
 `RenderMeshStaticState` is contract-level data under `core::framework::render`, with no WGPU handles. World extraction currently marks static transforms from `Mobility::Static`; the renderer fills geometry/material revision signatures from prepared resource revisions exposed by `ResourceStreamer`. The geometry signature includes the source mesh/model id, prepared asset revision, and LOD selection, so changing LOD selection invalidates the command key even if the underlying GPU mesh resource is still the same.
 
@@ -248,6 +329,14 @@ GS-M4 adds the first CPU-side indirect submission planner. `RenderCapabilitySumm
 `scene_renderer::mesh` re-exports `IndexedIndirectArgs` from the mesh module surface so sibling scene-renderer tests and HZB occlusion tests can construct indirect argument rows without importing through the private `build_mesh_draws` subtree. The type remains crate-internal; this only keeps tests and sibling renderer code on the same owner boundary used by `BuiltMeshDraws` and mesh pass execution.
 
 `render_compiled_scene` also passes the frame submission capability summary into `MeshPassCommandBuffers::stats_with_indirect_batches(...)`; `PreparedMeshQueueStats`, `RenderStats.last_indirect_*`, and render diagnostics then report `indirect_batch_count`, `indirect_batched_draw_count`, `indirect_fallback_draw_count`, and `indirect_args_count`.
+
+Virtual geometry now owns an earlier mesh-level indirect data plane before the command-list indirect batcher runs. `build_mesh_draws/build/virtual_geometry_indirect.rs` consumes the frame-owned `RenderVirtualGeometryDebugSnapshot.execution_segments`, expands matching pending mesh draws into one indirect draw per executable VG segment, and builds WGPU buffers for indexed indirect args, submission tokens, authority words, draw refs, and segment records. The resulting plan is per-draw: only expanded VG draws receive an indirect args buffer and byte offset, while ordinary mesh draws in the same frame keep the direct path. `VirtualGeometrySubmissionDetail` carries the same entity/page/submission/cluster truth into `MeshDraw`, so later execution projection and diagnostics do not need to reconstruct VG segment identity from byte offsets alone.
+
+The compiled-scene boundary now consumes that VG indirect data plane instead of retaining unused accessors. `CompiledSceneDraws::virtual_geometry_indirect_stats()` reads the segment count, indexed-args count, and five optional WGPU buffer getters, then projects only counts and buffer-presence evidence into `PreparedMeshVirtualGeometryIndirectStats`. `SceneRendererCore::render_compiled_scene(...)` folds that evidence into `PreparedMeshQueueStats`, and `update_virtual_geometry_stats(...)` prefers the compiled-scene evidence while keeping submission/execution segment counts as fallback. This keeps WGPU buffer ownership renderer-private while making product diagnostics prove that the compiled scene retained the mesh-level indirect resources.
+
+Status anchor: `render_plan02_virtual_geometry_compiled_indirect_evidence_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt and diff-check passed for the compiled evidence slice; focused Cargo/WGPU/RenderDoc evidence remains deferred while other cargo/rustc lanes are active.
+
+Status anchor: `render_plan02_virtual_geometry_mesh_indirect_buffers_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/check, diff-check, and line-count validation passed for the buffer-owner slice; focused Cargo/WGPU/RenderDoc evidence remains deferred while other cargo/rustc lanes are active.
 
 ## Indirect Compaction ABI
 
@@ -304,6 +393,56 @@ GS-M3's first upload refinement keeps full-frame extract submission cheap for st
 `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain` passed on 2026-06-12 after the GS-M4 capability gate, CPU indirect batcher, frame-context capability propagation, indirect stats/diagnostics bridge, and WGPU `multi_draw_indexed_indirect` replay slice; it reports 89 existing warnings. Static scans found no remaining production `ModelUniform`/`model_data` shader resources, group4/group5 mesh pass bindings, `MATERIAL_TEXTURE_BIND_GROUP_SLOT`, `bind_material_textures_if_needed`, or mesh compatibility bind-group references under `scene_renderer`. `rustfmt --edition 2021 --check` passed for the touched Rust files, `git diff --check` returned zero, and a touched-file trailing-whitespace scan returned clean.
 
 The 2026-06-17 MD-M3 sort-input follow-up added `MeshCommandSortInput` and propagated frame phase queue depth/render queue/material queue/order inputs from `build_mesh_draws` into `MeshBatchRef::command(...)`. `cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-md3-sort-input-0617` passed with existing warnings after `rustfmt --edition 2021`, and scoped `git diff --check` was clean except for Git LF-to-CRLF notices. The focused source tests for opaque state-bucket-before-depth and transparent depth-before-bucket semantics were added but not executed in this slice because functional implementation is prioritized and broader testing is deferred.
+
+The 2026-06-23 MD-M3 replay state-dedup follow-up made the replayer's bind-group and geometry state decisions directly testable through `should_bind_raw_group(...)` and `should_bind_geometry(...)`, while the WGPU-facing bind functions still delegate to the same logic. Focused tests now cover pipeline change counting, redundant tracked bind skips, bind tracking reset after pipeline changes, and geometry rebinding after pipeline changes. `rustfmt --edition 2021 --check` and source-anchor scans passed; focused locked `cargo test -p zircon_runtime --lib mesh_draw_command_replayer --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan02-replay-state-dedup-0623` was blocked before compilation because the current `Cargo.lock` would need an update under `--locked`. Status anchor: `render_plan02_replay_state_dedup_focused_tests_static_passed_cargo_lock_blocked`.
+
+The 2026-06-23 processor tests owner split moved processor behavior tests out of `processors/mod.rs` into `processors/tests.rs`, keeping the folder root as a 15-line declaration/re-export surface. The child test owner now covers the existing phase emission, TAA reactive mask, velocity, main-view/shadow-view visibility semantics, and the Plan 02 focused guards for depth-prepass transparent filtering, opaque material-slot preservation for fallback shader replay selection, and shadow non-caster/alpha-mask variant behavior. `runtime_15_mesh_pass_processors_are_folder_backed` guards the root/test split and documentation anchors. Status anchor: `render_plan02_mesh_pass_processor_tests_owner_split_static_passed_cargo_lock_blocked`.
+
+The 2026-06-23 Plan 02 prepared queue tests owner split moved prepared queue statistics tests out of `prepared_queue.rs` into `prepared_queue/tests.rs`, keeping the production owner focused on `PreparedMeshQueueStats`, queue summarization, and stats bridge methods. The child test owner now covers early-z and shadow count policy, repeated-key batch candidate grouping, dynamic velocity readiness, skinned GPU and CPU-morphed stats, LOD stats, mesh-pass command-buffer stats forwarding, replay stats forwarding, and GPUScene stats forwarding. `runtime_15_prepared_mesh_queue_is_folder_backed` guards the parent/test split and documentation anchors. Status anchor: `render_plan02_prepared_queue_tests_owner_split_static_passed_cargo_lock_blocked`.
+
+The 2026-06-23 Plan 02 prepared queue stats bridge owner split moved the cross-subsystem forwarding methods out of `prepared_queue.rs` into `prepared_queue/stats_bridge.rs`. The parent now owns only the queue stats shape and local summarization helpers; `stats_bridge.rs` owns pending command cache plan/extraction counters, mesh pass command buffer/replay counters, and GPUScene upload stat projection into `PreparedMeshQueueStats`. `runtime_15_prepared_mesh_queue_is_folder_backed` and `runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build` guard the child owner and docs anchors. Status anchor: `render_plan02_prepared_queue_stats_bridge_owner_split_static_passed_cargo_timeout_no_result`. Scoped static validation passed; focused locked Cargo timed out after 180 seconds with no result and no matching target cargo/rustc residual, so this slice does not claim Cargo/WGPU/RenderDoc pass evidence.
+
+The 2026-06-23 Plan 02 prepared queue stats bridge tests owner split moved stats forwarding coverage from `prepared_queue/tests.rs` into `prepared_queue/stats_bridge_tests.rs`. The queue behavior test owner now stays at 599 lines and covers queue summarization/batching/skinning behavior only; the 174-line child test owner covers pending command cache plan/extraction, mesh pass command buffer/replay, and GPUScene stats forwarding. Status anchor: `render_plan02_prepared_queue_stats_bridge_tests_owner_split_static_passed_cargo_lock_blocked`. Scoped static validation is recorded in Plan 02; focused locked Cargo was blocked before compilation by the current `Cargo.lock` update requirement, so this slice does not claim Cargo/WGPU/RenderDoc pass evidence.
+
+The 2026-06-23 MD-M2 residual fallback owner split moved pre-MeshDraw extraction fallback reason accounting into `pending_command_cache_extract/residual_fallback.rs`. The root extraction owner now stays focused on extraction flow, cache lookup/store, and pending batch materialization at 294 lines; the new 58-line child owns `PendingMeshCommandCacheResidualReason`, rebuild failure classification, and `residual_*_draw_count` mutation. Status anchor: `render_plan02_residual_fallback_owner_split_static_passed_cargo_lock_blocked`. Scoped static validation is recorded in Plan 02; focused locked Cargo was blocked before compilation by the current `Cargo.lock` update requirement, so this slice does not claim Cargo/WGPU/RenderDoc pass evidence.
+
+The 2026-06-23 MD-M2 pre-MeshDraw second-frame extraction guards follow-up added `pending_command_cache_extract/second_frame_tests.rs`. The focused owner locks full-hit second-frame extraction reuse with `cached_command_hit_count == 3`, `command_rebuild_count == 0`, and no rebuild-batch request, plus the safe shadow-only material revision invalidation path that rebuilds opaque `ShadowDepth` before `create_mesh_draw(...)` and records `cache_invalidated_material_count == 1`. Status anchor: `render_plan02_pre_mesh_draw_second_frame_extract_guards_static_passed_cargo_timeout_no_result`. Scoped validation is recorded in Plan 02; focused locked Cargo timed out after 184 seconds with no result and no matching target cargo/rustc residual, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 pre-MeshDraw material-bound rebuild boundary guard added `runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs`. The guard binds the narrow non-material rebuild policy in `pending_command_cache_extract/non_material_rebuild.rs` to the replay facts that normal prepass, alpha-mask shadow, object velocity, and TAA reactive mask still call `bind_standard_material_if_needed(...)`. Status anchor: `render_plan02_pre_mesh_draw_material_boundary_guard_static_passed_cargo_lock_blocked`. Scoped validation is recorded in Plan 02; focused locked Cargo was blocked before compilation by the current `Cargo.lock` update requirement, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache product stats guard added `graphics/tests/render_product_mesh_cache.rs`. The product-level test submits the same eligible static mesh through `WgpuRenderFramework` twice, proving the first frame reports pending static command-cache candidates and the second frame reports pre-MeshDraw skipped draw/phase work, cache hits, and zero miss/rebuild/residual counters. Status anchor: `render_plan02_static_cache_product_stats_guard_static_passed_cargo_timeout_no_result`. Scoped rustfmt/source-anchor/line-count validation passed; focused locked Cargo timed out after about 184 seconds with no test result, and matching target cargo/rustc processes were stopped, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache material revision product guard extended `graphics/tests/render_product_mesh_cache.rs` with `render_product_static_mesh_material_revision_invalidates_pre_mesh_cache`. The product-level test submits the same eligible static mesh twice, but advances the material resource revision between submits through the same material id/URI and a new `ResourceRecord::with_source_hash(...)`. The second submit must keep pre-MeshDraw skipped draw/phase and cached-hit counters at zero, report a material-bound residual reason, and record material invalidation plus command rebuild without transform or geometry invalidation. Status anchor: `render_plan02_static_cache_material_revision_product_guard_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/source-anchor/line-count validation passed; focused Cargo was deferred because other cargo/rustc lanes were observed active during validation, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache TAA reactive residual product guard extended `graphics/tests/render_product_mesh_cache.rs` with `render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path`. The product-level test registers a static mesh material with `taa_reactive_mask_strength = 1.0`, submits it twice with TAA and temporal history enabled, and locks the boundary between pre-MeshDraw extraction and later command-buffer caching: the draw can remain an ordinary static phase candidate, but reactive material state prevents pre-MeshDraw skipped draw/phase accounting; after residual `MeshDraw` construction, ordinary cached phases may hit while the TAA reactive-mask command remains a per-frame dynamic command. Status anchor: `render_plan02_static_cache_taa_reactive_residual_product_guard_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/source-anchor/line-count validation passed; focused Cargo was deferred because other cargo/rustc lanes were observed active during validation, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache transparent residual product guard extended `graphics/tests/render_product_mesh_cache.rs` with `render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache`. The product-level test registers a Blend material, submits the same static mesh twice through the transparent phase, and locks the non-cacheable transparent contract at the WGPU product boundary: transparent static meshes are not pending static command-cache candidates, cannot be removed before `MeshDraw` construction, and keep a dynamic command so camera-depth sorting can be rebuilt every frame. Status anchor: `render_plan02_static_cache_transparent_residual_product_guard_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/source-anchor/line-count validation passed; focused Cargo was deferred because other cargo/rustc lanes were observed active during validation, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache skinned residual product guard extended `graphics/tests/render_product_mesh_cache.rs` with `render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache`. The product-level test registers a minimal skinned mesh, root skeleton, and pose, submits the direct mesh snapshot twice with `RenderSkeletalPoseExtract`, and locks the non-cacheable skinned/GPU-source contract at the WGPU product boundary: skinned static meshes are not pending static command-cache candidates, cannot be removed before `MeshDraw` construction, and keep a dynamic command path. Status anchor: `render_plan02_static_cache_skinned_residual_product_guard_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/source-anchor/line-count/diff-check validation passed; focused Cargo was deferred because other cargo/rustc lanes were observed active during validation, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 static command cache virtual geometry residual product guard extended `graphics/tests/render_product_mesh_cache.rs` with `render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache`. The product-level test submits an authored virtual-geometry extract plus a dynamic visibility-carrier mesh for the same entity through a pluginized WGPU framework with advanced providers, proving that VG payload and indirect execution draw statistics remain present while pending static command-cache candidate and pre-MeshDraw skipped draw/phase accounting stay zero. Status anchor: `render_plan02_static_cache_virtual_geometry_residual_product_guard_static_passed_cargo_deferred_active_lanes`. Scoped rustfmt/source-anchor/line-count validation passed; focused Cargo was deferred because other cargo/rustc lanes were observed active during validation, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 pending command cache plan diagnostics follow-up added `pending_command_cache_plan.rs` as the pre-MeshDraw static command-cache census owner and threaded its `pending_static_command_cache_*` counts through compiled scene draws, prepared queue stats, render stats, and product diagnostics. `runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build` guards the owner, build hook, diagnostics bridge, and documentation anchors. Status anchor: `render_plan02_pending_command_cache_plan_static_passed_cargo_lock_blocked`. Scoped rustfmt/static/source-anchor/docs-anchor/diff-check passed; focused locked Cargo was blocked before compilation by the current root `Cargo.lock` update requirement, so this slice does not claim Cargo/WGPU/RenderDoc pass evidence.
+
+The 2026-06-23 MD-M2 pre-MeshDraw command cache extraction follow-up added `pending_command_cache_extract.rs` as the full-hit static command-cache downshift owner. It reuses cached commands before `create_mesh_draw(...)` for the narrow direct prepared/non-transparent/non-skinned/non-reactive path, carries source prepared queue stats separately from residual draws, and records skipped work through `pre_mesh_draw_static_command_cache.skipped_*` diagnostics. `runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build` now guards both the census owner and extraction owner. Status anchor: `render_plan02_pre_mesh_draw_command_cache_extraction_static_passed_cargo_lock_blocked`. Scoped validation is recorded in Plan 02; this slice still does not claim WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 pre-MeshDraw opaque shadow cache rebuild follow-up added `pending_command_cache_extract/non_material_rebuild.rs` plus `pending_command_cache_extract/tests.rs`. The extraction path can now rebuild and cache opaque shadow-depth commands before material bind group allocation when all material-bound phases are already cached or invisible. It deliberately does not rebuild depth prepass or alpha-mask shadow commands because those replay paths require standard material binding. Status anchor: `render_plan02_pre_mesh_draw_shadow_cache_rebuild_static_passed_cargo_timeout_no_result`. Scoped validation is recorded in Plan 02; this slice still does not claim WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 lazy pre-MeshDraw rebuild input follow-up added `pending_command_cache_extract/lazy_rebuild_tests.rs` and moved rebuild-batch materialization behind phase-specific miss handling. Full-hit cached draws and material-bound phase misses no longer request GPUScene span or `MeshBatchRef` construction before the residual path decision. Status anchor: `render_plan02_lazy_pre_mesh_draw_rebuild_input_static_passed_cargo_lock_blocked`. Scoped validation is recorded in Plan 02; focused locked lib-test compile was blocked before compilation by the current `Cargo.lock` update requirement, so this slice does not claim Cargo/WGPU/RenderDoc evidence.
+
+The 2026-06-23 MD-M2 visibility-pruned pre-MeshDraw empty extraction follow-up treats fully visibility-pruned eligible static draws as successful zero-command extraction. The later MD-M2 visibility-pruned pre-MeshDraw diagnostics split moved the focused guard into `pending_command_cache_extract/visibility_tests.rs::pending_command_cache_extract_marks_visibility_pruned_static_draw`, which locks that this path leaves cache stats at default, sets the `visibility_pruned` result flag, and does not request rebuild input. Status anchors: `render_plan02_visibility_pruned_pre_mesh_draw_empty_extract_static_passed_cargo_lock_blocked` and `render_plan02_visibility_pruned_pre_mesh_draw_diagnostics_static_passed_cargo_timeout_no_result`. Scoped validation is recorded in Plan 02; focused locked lib-test compile timed out after 180 seconds with no result and left no matching target cargo/rustc residual.
+
+The 2026-06-23 MD-M2 pre-MeshDraw residual fallback diagnostics follow-up records why an otherwise eligible static pending draw still has to fall back to residual `MeshDraw` construction. `pending_command_cache_extract.rs` distinguishes material-bound phase miss/invalidated, missing shadow rebuild input, and rebuild rejection; `fallback_tests.rs` covers those three boundaries. The resulting counters are exposed as `render.mesh.queue.pre_mesh_draw_static_command_cache.residual_*_draw_count`. Status anchor: `render_plan02_pre_mesh_draw_residual_fallback_diagnostics_static_passed_cargo_lock_blocked`. Scoped static validation passed; focused locked Cargo was blocked before compilation by the current `Cargo.lock` update requirement. This is diagnostic-only and does not broaden the safe pre-MeshDraw rebuild set.
+
+The 2026-06-23 MD-M2 pending command cache extract-item owner split added `pending_command_cache_extract/extract_item.rs`. The root extraction owner is back down to 255 lines and delegates pending draw projection, eligibility, and phase selection to the child file. Status anchor: `render_plan02_pending_command_cache_extract_item_owner_split_static_passed_cargo_lock_blocked`. Scoped validation is recorded in Plan 02; focused locked lib-test compile was blocked before compilation by the current `Cargo.lock` update requirement.
+
+The 2026-06-23 Plan 09 CO-M4 mesh typed-mask follow-up keeps mesh selected-camera filtering in `phase_ordering.rs` but upgrades `RenderMeshSnapshot.render_layer_mask` to `RenderLayerSet`. Scoped rustfmt/check, stale legacy-intersection scans, direct bitwise/equality scans, line counts, static debt scans, and diff checks passed. The focused locked Cargo run for `phase_ordered_meshes_filter_meshes_by_selected_camera_layers` stopped before compilation because the current `Cargo.lock` would need an update under `--locked`, so this slice does not claim a Cargo/WGPU pass. Status anchor: `render_plan09_mesh_render_layer_set_snapshot_static_passed_cargo_lock_blocked`.
+
+The 2026-06-23 Plan 09 CO-M4 PrimitiveRelevance typed-layer filter follow-up keeps mesh pass participation on typed relevance data. `PrimitiveRelevance::for_mesh_view(...)` now receives `&RenderLayerSet`; the mesh draw and mesh pass processor fixtures were updated to build relevance with typed layer sets, and visibility batching passes `RenderMeshSnapshot.render_layer_mask` directly. Status anchor: `render_plan09_primitive_relevance_typed_layer_filter_static_passed_cargo_lock_blocked_timeout_no_result`. Scoped rustfmt/check and diff checks passed; the focused `primitive_relevance` Cargo test timed out without pass evidence, and the follow-up locked check was blocked by current `Cargo.lock` drift.
+
+The 2026-06-23 Plan 09 CO-M4 VisibilityBatchKey typed-layer follow-up removes the remaining visibility batch-key layer loss before mesh pass consumption. `VisibilityBatchKey` and `FrameVisibility.render_layer_masks` now carry `RenderLayerSet`, so custom-target view filtering and later mesh participation no longer need to reconstruct typed layers from a 32-bit batch key. Status anchor: `render_plan09_visibility_batch_key_layer_set_static_passed_cargo_lock_blocked`. Scoped rustfmt/check, stale batch-key scans, line counts, and diff checks passed; the focused locked Cargo test and locked check were blocked before compilation by current `Cargo.lock` drift.
+
+The 2026-06-23 Plan 09 CO-M4 VisibilityRenderableInput typed-layer follow-up removes the old visibility input DTO downgrade before mesh pass consumption. `VisibilityRenderableInput.render_layer_mask` now carries `RenderLayerSet`; snapshot/fallback/world visibility builders clone typed mesh and sprite masks, and particle emitter rows use `RenderLayerSet::union(...)`. Status anchor: `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result`. Scoped rustfmt/check, stale visibility-input scans, line counts, and diff checks passed; the focused locked Cargo test timed out after 124 seconds without output or a test binary, while locked check was blocked before compilation by current `Cargo.lock` drift.
 
 The 2026-06-17 MD-M2 cache-diagnostics follow-up added observable command cache miss and invalidation reasons. `cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-md2-cache-diagnostics-0617` passed with existing warnings after `rustfmt --edition 2021`, and scoped `git diff --check` was clean except for Git LF-to-CRLF notices. Focused tests for cache invalidation diagnostics and product diagnostic rows were added in source but not executed in this implementation-first slice.
 

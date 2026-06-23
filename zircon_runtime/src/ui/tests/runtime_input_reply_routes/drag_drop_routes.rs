@@ -122,7 +122,7 @@ fn drag_drop_over_trace_uses_drop_target_path_and_preserves_capture_source() {
 
     assert!(ended.rejected_effects.is_empty());
     assert_eq!(surface.focus.captured, None);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_no_pointer_capture(&surface);
     assert_eq!(
         ended.diagnostics.route_policy,
         UiInputRoutePolicy::PointerCapture

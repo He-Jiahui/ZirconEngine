@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use zircon_editor::ui::retained_host::tab_drag::{
-    resolve_host_drag_target_group, HostDragTargetGroup,
+    resolve_host_drag_target_group_with_workbench_shell_geometry, HostDragTargetGroup,
 };
 use zircon_editor::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
@@ -35,17 +35,19 @@ fn shell_geometry(
 
 #[test]
 fn host_drag_target_route_allows_dragging_into_empty_right_region() {
-    let _geometry = shell_geometry(
-        ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
+    let geometry = shell_geometry(
+        ShellFrame::new(1348.0, 50.0, 92.0, 830.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
         ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_workbench_shell_geometry(
             ShellSizePx::new(1440.0, 900.0),
             true,
             UiPoint::new(1428.0, 240.0),
+            &geometry,
+            &[ShellRegionId::Right],
         ),
         Some(HostDragTargetGroup::Right)
     );
@@ -53,17 +55,19 @@ fn host_drag_target_route_allows_dragging_into_empty_right_region() {
 
 #[test]
 fn host_drag_target_route_allows_dragging_into_empty_bottom_region() {
-    let _geometry = shell_geometry(
+    let geometry = shell_geometry(
         ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_workbench_shell_geometry(
             ShellSizePx::new(1440.0, 900.0),
             true,
             UiPoint::new(720.0, 860.0),
+            &geometry,
+            &[ShellRegionId::Bottom],
         ),
         Some(HostDragTargetGroup::Bottom)
     );
@@ -72,17 +76,19 @@ fn host_drag_target_route_allows_dragging_into_empty_bottom_region() {
 #[test]
 fn host_drag_target_route_prefers_right_target_in_bottom_right_overlap_when_pointer_is_closer_to_right_edge(
 ) {
-    let _geometry = shell_geometry(
-        ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
+    let geometry = shell_geometry(
+        ShellFrame::new(1348.0, 50.0, 92.0, 830.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_workbench_shell_geometry(
             ShellSizePx::new(1440.0, 900.0),
             true,
             UiPoint::new(1428.0, 860.0),
+            &geometry,
+            &[ShellRegionId::Right, ShellRegionId::Bottom],
         ),
         Some(HostDragTargetGroup::Right)
     );
@@ -91,17 +97,19 @@ fn host_drag_target_route_prefers_right_target_in_bottom_right_overlap_when_poin
 #[test]
 fn host_drag_target_route_prefers_bottom_target_in_bottom_right_overlap_when_pointer_is_closer_to_bottom_edge(
 ) {
-    let _geometry = shell_geometry(
-        ShellFrame::new(1348.0, 50.0, 0.0, 666.0),
+    let geometry = shell_geometry(
+        ShellFrame::new(1348.0, 50.0, 92.0, 830.0),
         ShellFrame::new(34.0, 50.0, 1314.0, 666.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 0.0),
+        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_workbench_shell_geometry(
             ShellSizePx::new(1440.0, 900.0),
             true,
             UiPoint::new(1380.0, 860.0),
+            &geometry,
+            &[ShellRegionId::Right, ShellRegionId::Bottom],
         ),
         Some(HostDragTargetGroup::Bottom)
     );

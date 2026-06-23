@@ -3,6 +3,7 @@
 pub mod accessibility;
 pub mod binding;
 pub mod component;
+pub mod design_tokens;
 pub mod dispatch;
 pub mod ecs;
 pub mod event_ui;

@@ -1,5 +1,10 @@
+mod capability;
 mod plugin;
 
+pub use capability::{
+    MODULE_NAME, NATIVE_IMPORTER_CAPABILITY, OPUS_IMPORTER_CAPABILITY, OPUS_IMPORTER_ID,
+    OPUS_IMPORTER_PRIORITY, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+};
 pub use plugin::{
     asset_importer_descriptor, asset_importer_descriptors, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
@@ -7,14 +12,6 @@ pub use plugin::{
     OpusImporterRuntimePlugin,
 };
 
-pub const PLUGIN_ID: &str = "opus_importer";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_opus_importer_runtime";
-pub const MODULE_NAME: &str = "OpusImporterModule";
-pub const OPUS_IMPORTER_ID: &str = "opus_importer.opus";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.opus_importer";
-pub const OPUS_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.audio.opus";
-pub const NATIVE_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.native";
-pub const OPUS_IMPORTER_PRIORITY: i32 = 130;
 pub(crate) const MISSING_BACKEND_DIAGNOSTIC: &str =
     "opus import requires a NativeDynamic libopus backend";
 

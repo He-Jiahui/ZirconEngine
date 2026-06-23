@@ -1,65 +1,37 @@
-use std::collections::BTreeSet;
-
 use super::support::{markdown_table_cells, runtime_subplan_sources};
-
-#[path = "status_output_tables/expected_slices.rs"]
-mod expected_slices;
-#[path = "status_output_tables/expected_status_rows.rs"]
-mod expected_status_rows;
 
 const STATUS_OUTPUT_HEADING: &str = "## 状态与产出记录";
 const STATUS_OUTPUT_HEADER: &str = "| 里程碑 | 切片 | 状态 |";
+const INDEX_STATUS_ROUTING_HEADER: &str = "| 范围 | 记录位置 |";
 
 #[test]
-fn runtime_plan_status_output_tables_cover_index_and_all_subplans() {
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-
-    assert_status_output_table("runtime index", runtime_index);
+fn runtime_plan_status_output_tables_cover_all_subplans() {
     for (filename, source) in runtime_subplan_sources() {
         assert_status_output_table(&filename, &source);
     }
 }
 
 #[test]
-fn runtime_index_status_output_records_recent_cross_plan_slices() {
+fn runtime_index_status_section_routes_to_subplans_without_detail_table() {
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let status_rows = status_output_rows(runtime_index);
-    let expected_status_output_slices =
-        expected_status_rows::expected_status_output_slices().collect::<Vec<_>>();
 
-    let guarded_slices = expected_status_output_slices
-        .iter()
-        .map(|(slice, _)| *slice)
-        .collect::<BTreeSet<_>>();
-    for row in &status_rows {
-        let slice = row[1];
+    assert!(
+        runtime_index.contains(STATUS_OUTPUT_HEADING),
+        "runtime index should keep `{STATUS_OUTPUT_HEADING}` as a routing section"
+    );
+    assert!(
+        runtime_index.contains(INDEX_STATUS_ROUTING_HEADER),
+        "runtime index status section should route readers to subplan status tables"
+    );
+    assert!(
+        !runtime_index.contains(STATUS_OUTPUT_HEADER),
+        "runtime index should not duplicate the slice-level status/output table"
+    );
+    for (filename, _) in runtime_subplan_sources() {
         assert!(
-            guarded_slices.contains(slice),
-            "runtime index status row `{slice}` should be covered by status-output guard expectations"
+            runtime_index.contains(&format!("`{filename}`")),
+            "runtime index status routing should point to `{filename}`"
         );
-    }
-
-    for (slice, required_anchors) in expected_status_output_slices {
-        let row = status_rows
-            .iter()
-            .find(|cells| cells.get(1) == Some(&slice))
-            .unwrap_or_else(|| panic!("runtime index status table should record `{slice}`"));
-        let expected_status = expected_slices::expected_status_for_slice(slice);
-        assert_eq!(
-            row[2], expected_status,
-            "runtime index status row `{slice}` should keep the expected pending-Cargo status"
-        );
-        let expected_date = expected_slices::expected_date_for_slice(slice);
-        assert_eq!(
-            row[3], expected_date,
-            "runtime index status row `{slice}` should keep the slice completion date"
-        );
-        for anchor in required_anchors {
-            assert!(
-                row[4].contains(anchor),
-                "runtime index status row `{slice}` should keep evidence anchor `{anchor}`"
-            );
-        }
     }
 }
 

@@ -11,7 +11,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{
-    build_mesh_pass_command_buffers_cached, prepare_mesh_queue, MeshDrawReplayStatsAccumulator,
+    build_mesh_pass_command_buffers_cached, MeshDrawReplayStatsAccumulator,
     MeshPassIndirectDrawExecutions,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
@@ -90,6 +90,8 @@ impl SceneRendererCore {
             frame,
             runtime_features.virtual_geometry_enabled,
             Some(shadow_frame_plan.light_slots()),
+            &mut self.cached_mesh_draw_commands,
+            frame_generation,
         );
         let _execution_args_buffer = assign_execution_owned_indirect_args(
             device,
@@ -97,14 +99,16 @@ impl SceneRendererCore {
             compiled_scene_draws.draws_mut(),
             runtime_features.deferred_lighting_enabled,
         );
-        let prepared_mesh_queue = prepare_mesh_queue(compiled_scene_draws.draws());
-        let mesh_pass_command_buffers = build_mesh_pass_command_buffers_cached(
+        let mut mesh_pass_command_buffers =
+            compiled_scene_draws.prebuilt_mesh_pass_command_buffers();
+        let residual_mesh_pass_command_buffers = build_mesh_pass_command_buffers_cached(
             compiled_scene_draws.draws(),
             &mut self.mesh_pipelines,
             &mut self.cached_mesh_draw_commands,
             frame_generation,
             frame.shader_quality(),
         );
+        mesh_pass_command_buffers.extend(residual_mesh_pass_command_buffers);
         self.cached_mesh_draw_commands
             .retain_generation(frame_generation);
         self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
@@ -113,12 +117,19 @@ impl SceneRendererCore {
         let mut mesh_pass_indirect_draws =
             MeshPassIndirectDrawExecutions::build(device, capabilities, &mesh_pass_command_buffers);
         mesh_pass_indirect_draws.attach_visible_remap_scene_bind_groups(device, &self.gpu_scene);
-        let prepared_mesh_queue_stats = prepared_mesh_queue
-            .stats()
+        let prepared_mesh_queue_stats = compiled_scene_draws
+            .prepared_mesh_queue_stats()
+            .with_pending_command_cache_plan_stats(
+                compiled_scene_draws.pending_command_cache_plan_stats(),
+            )
+            .with_pending_command_cache_extraction_stats(
+                compiled_scene_draws.pending_command_cache_extraction_stats(),
+            )
             .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats);
         debug_assert_eq!(
             prepared_mesh_queue_stats.draw_count,
             compiled_scene_draws.draws().len()
+                + prepared_mesh_queue_stats.pre_mesh_draw_static_command_cache_skipped_draw_count
         );
         // Draw counts are the extracted source census; command counts are pruned by visibility
         // and per-phase relevance before submission.
@@ -292,6 +303,13 @@ impl SceneRendererCore {
             self.gpu_scene.stats(),
             compiled_scene_draws.gpu_scene_upload_report(),
         );
+        let prepared_mesh_queue_stats = prepared_mesh_queue_stats
+            .with_virtual_geometry_execution_stats(
+                compiled_scene_draws.virtual_geometry_execution_stats(),
+            )
+            .with_virtual_geometry_indirect_stats(
+                compiled_scene_draws.virtual_geometry_indirect_stats(),
+            );
         let outputs = SceneRendererCompiledSceneOutputs::new(
             SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
             graph_execution_record,

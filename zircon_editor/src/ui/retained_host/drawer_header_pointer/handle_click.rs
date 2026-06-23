@@ -4,7 +4,6 @@ use zircon_runtime_interface::ui::{
 
 use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 use super::host_drawer_header_pointer_dispatch::HostDrawerHeaderPointerDispatch;
-use super::to_public_route::to_public_route;
 
 impl HostDrawerHeaderPointerBridge {
     pub(crate) fn handle_click(
@@ -18,8 +17,6 @@ impl HostDrawerHeaderPointerBridge {
         self.update_measured_frame(surface_key, item_index, tab_x, tab_width)?;
         let point = self.global_point(surface_key, point)?;
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(HostDrawerHeaderPointerDispatch {
-            route: route.map(to_public_route),
-        })
+        Ok(HostDrawerHeaderPointerDispatch { route })
     }
 }

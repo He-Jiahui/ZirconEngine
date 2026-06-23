@@ -12,6 +12,7 @@ pub(crate) enum ViewportRenderOutputTarget {
     Texture {
         handle: ResourceHandle<TextureMarker>,
         size: UVec2,
+        format: &'static str,
     },
     Headless {
         size: UVec2,
@@ -19,12 +20,18 @@ pub(crate) enum ViewportRenderOutputTarget {
 }
 
 impl ViewportRenderOutputTarget {
-    pub(crate) fn from_camera_target(target: &RenderCameraTarget, resolved_size: UVec2) -> Self {
+    pub(crate) fn from_camera_target(
+        target: &RenderCameraTarget,
+        resolved_size: UVec2,
+        texture_format: Option<&'static str>,
+    ) -> Self {
         match target {
             RenderCameraTarget::PrimarySurface => Self::PrimarySurface,
             RenderCameraTarget::Texture(handle) => Self::Texture {
                 handle: *handle,
                 size: resolved_size,
+                format: texture_format
+                    .expect("texture camera target must carry a resolved texture format"),
             },
             RenderCameraTarget::Headless { .. } => Self::Headless {
                 size: resolved_size,
@@ -54,26 +61,40 @@ impl ViewportRenderOutputTarget {
         }
     }
 
+    pub(crate) fn texture_format(self) -> Option<&'static str> {
+        match self {
+            Self::Texture { format, .. } => Some(format),
+            Self::PrimarySurface | Self::Headless { .. } => None,
+        }
+    }
+
     pub(crate) fn writeback_plan(
         self,
         target_format: Option<&str>,
     ) -> ViewportTextureWritebackPlan {
-        let Self::Texture { handle, size } = self else {
+        let Self::Texture {
+            handle,
+            size,
+            format,
+        } = self
+        else {
             return ViewportTextureWritebackPlan::not_requested(self.kind());
         };
         let Some(target_format) = target_format else {
-            return ViewportTextureWritebackPlan::pending_descriptor(handle, size);
+            return ViewportTextureWritebackPlan::pending_descriptor(handle, size, format);
         };
-        if target_format
-            .trim()
-            .eq_ignore_ascii_case(FRAMEWORK_OUTPUT_FORMAT_LABEL)
-        {
+        if !format_label_matches(target_format, format) {
+            return ViewportTextureWritebackPlan::blocked_prepared_format_mismatch(
+                handle,
+                size,
+                target_format,
+                format,
+            );
+        }
+        if format_label_matches(format, FRAMEWORK_OUTPUT_FORMAT_LABEL) {
             return ViewportTextureWritebackPlan::ready(handle, size);
         }
-        if target_format
-            .trim()
-            .eq_ignore_ascii_case(LINEAR_OUTPUT_FORMAT_LABEL)
-        {
+        if format_label_matches(format, LINEAR_OUTPUT_FORMAT_LABEL) {
             return ViewportTextureWritebackPlan::ready_for_conversion(handle, size);
         }
         ViewportTextureWritebackPlan::blocked_format(
@@ -88,22 +109,29 @@ impl ViewportRenderOutputTarget {
         self,
         target_format: Option<&str>,
     ) -> ViewportTextureGraphImportPlan {
-        let Self::Texture { handle, size } = self else {
+        let Self::Texture {
+            handle,
+            size,
+            format,
+        } = self
+        else {
             return ViewportTextureGraphImportPlan::not_requested(self.kind());
         };
         let Some(target_format) = target_format else {
-            return ViewportTextureGraphImportPlan::pending_descriptor(handle, size);
+            return ViewportTextureGraphImportPlan::pending_descriptor(handle, size, format);
         };
-        if target_format
-            .trim()
-            .eq_ignore_ascii_case(FRAMEWORK_OUTPUT_FORMAT_LABEL)
-        {
+        if !format_label_matches(target_format, format) {
+            return ViewportTextureGraphImportPlan::blocked_prepared_format_mismatch(
+                handle,
+                size,
+                target_format,
+                format,
+            );
+        }
+        if format_label_matches(format, FRAMEWORK_OUTPUT_FORMAT_LABEL) {
             return ViewportTextureGraphImportPlan::ready_for_direct_import(handle, size);
         }
-        if target_format
-            .trim()
-            .eq_ignore_ascii_case(LINEAR_OUTPUT_FORMAT_LABEL)
-        {
+        if format_label_matches(format, LINEAR_OUTPUT_FORMAT_LABEL) {
             return ViewportTextureGraphImportPlan::requires_conversion_writeback(handle, size);
         }
         ViewportTextureGraphImportPlan::blocked_format(
@@ -122,6 +150,7 @@ pub(crate) struct ViewportTextureWritebackPlan {
     texture: Option<ResourceHandle<TextureMarker>>,
     size: Option<UVec2>,
     target_format: Option<String>,
+    expected_target_format: Option<String>,
     source_format: Option<String>,
 }
 
@@ -133,17 +162,23 @@ impl ViewportTextureWritebackPlan {
             texture: None,
             size: None,
             target_format: None,
+            expected_target_format: None,
             source_format: None,
         }
     }
 
-    fn pending_descriptor(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn pending_descriptor(
+        texture: ResourceHandle<TextureMarker>,
+        size: UVec2,
+        target_format: &'static str,
+    ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureWritebackStatus::PendingTargetDescriptor,
             texture: Some(texture),
             size: Some(size),
-            target_format: None,
+            target_format: Some(target_format.to_string()),
+            expected_target_format: Some(target_format.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -155,6 +190,7 @@ impl ViewportTextureWritebackPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            expected_target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -166,6 +202,24 @@ impl ViewportTextureWritebackPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            expected_target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+        }
+    }
+
+    fn blocked_prepared_format_mismatch(
+        texture: ResourceHandle<TextureMarker>,
+        size: UVec2,
+        target_format: &str,
+        expected_target_format: &'static str,
+    ) -> Self {
+        Self {
+            target_kind: RenderCameraTargetKind::Texture,
+            status: ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch,
+            texture: Some(texture),
+            size: Some(size),
+            target_format: Some(target_format.trim().to_string()),
+            expected_target_format: Some(expected_target_format.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -182,6 +236,7 @@ impl ViewportTextureWritebackPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(target_format.to_string()),
+            expected_target_format: Some(target_format.to_string()),
             source_format: Some(source_format.to_string()),
         }
     }
@@ -209,6 +264,11 @@ impl ViewportTextureWritebackPlan {
     }
 
     #[cfg(test)]
+    pub(crate) fn expected_target_format(&self) -> Option<&str> {
+        self.expected_target_format.as_deref()
+    }
+
+    #[cfg(test)]
     pub(crate) fn source_format(&self) -> Option<&str> {
         self.source_format.as_deref()
     }
@@ -222,6 +282,7 @@ pub(crate) enum ViewportTextureWritebackStatus {
     ReadyForSrgbCopy,
     ReadyForConversion,
     BlockedFormatMismatch,
+    BlockedPreparedFormatMismatch,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -231,6 +292,7 @@ pub(crate) struct ViewportTextureGraphImportPlan {
     texture: Option<ResourceHandle<TextureMarker>>,
     size: Option<UVec2>,
     target_format: Option<String>,
+    expected_target_format: Option<String>,
     source_format: Option<String>,
 }
 
@@ -242,17 +304,23 @@ impl ViewportTextureGraphImportPlan {
             texture: None,
             size: None,
             target_format: None,
+            expected_target_format: None,
             source_format: None,
         }
     }
 
-    fn pending_descriptor(texture: ResourceHandle<TextureMarker>, size: UVec2) -> Self {
+    fn pending_descriptor(
+        texture: ResourceHandle<TextureMarker>,
+        size: UVec2,
+        target_format: &'static str,
+    ) -> Self {
         Self {
             target_kind: RenderCameraTargetKind::Texture,
             status: ViewportTextureGraphImportStatus::PendingTargetDescriptor,
             texture: Some(texture),
             size: Some(size),
-            target_format: None,
+            target_format: Some(target_format.to_string()),
+            expected_target_format: Some(target_format.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -264,6 +332,7 @@ impl ViewportTextureGraphImportPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+            expected_target_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -275,6 +344,24 @@ impl ViewportTextureGraphImportPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            expected_target_format: Some(LINEAR_OUTPUT_FORMAT_LABEL.to_string()),
+            source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
+        }
+    }
+
+    fn blocked_prepared_format_mismatch(
+        texture: ResourceHandle<TextureMarker>,
+        size: UVec2,
+        target_format: &str,
+        expected_target_format: &'static str,
+    ) -> Self {
+        Self {
+            target_kind: RenderCameraTargetKind::Texture,
+            status: ViewportTextureGraphImportStatus::BlockedPreparedFormatMismatch,
+            texture: Some(texture),
+            size: Some(size),
+            target_format: Some(target_format.trim().to_string()),
+            expected_target_format: Some(expected_target_format.to_string()),
             source_format: Some(FRAMEWORK_OUTPUT_FORMAT_LABEL.to_string()),
         }
     }
@@ -291,6 +378,7 @@ impl ViewportTextureGraphImportPlan {
             texture: Some(texture),
             size: Some(size),
             target_format: Some(target_format.to_string()),
+            expected_target_format: Some(target_format.to_string()),
             source_format: Some(source_format.to_string()),
         }
     }
@@ -318,6 +406,11 @@ impl ViewportTextureGraphImportPlan {
     }
 
     #[cfg(test)]
+    pub(crate) fn expected_target_format(&self) -> Option<&str> {
+        self.expected_target_format.as_deref()
+    }
+
+    #[cfg(test)]
     pub(crate) fn source_format(&self) -> Option<&str> {
         self.source_format.as_deref()
     }
@@ -331,6 +424,11 @@ pub(crate) enum ViewportTextureGraphImportStatus {
     ReadyForDirectImport,
     RequiresConversionWriteback,
     BlockedFormatMismatch,
+    BlockedPreparedFormatMismatch,
+}
+
+fn format_label_matches(actual: &str, expected: &str) -> bool {
+    actual.trim().eq_ignore_ascii_case(expected)
 }
 
 #[cfg(test)]
@@ -358,6 +456,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
 
         let plan = target.writeback_plan(None);
@@ -369,7 +468,11 @@ mod tests {
         assert_eq!(plan.texture(), Some(texture));
         assert_eq!(plan.size(), Some(UVec2::new(128, 72)));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
-        assert_eq!(plan.target_format(), None);
+        assert_eq!(plan.target_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -378,6 +481,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
 
         let plan = target.writeback_plan(Some(" RGBA8UNORM_SRGB "));
@@ -390,6 +494,10 @@ mod tests {
         assert_eq!(plan.size(), Some(UVec2::new(128, 72)));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         assert_eq!(plan.target_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -398,6 +506,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
         };
 
         let plan = target.writeback_plan(Some("rgba8unorm"));
@@ -409,6 +518,10 @@ mod tests {
         assert_eq!(plan.texture(), Some(texture));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         assert_eq!(plan.target_format(), Some("rgba8unorm"));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(LINEAR_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -417,6 +530,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: "rgba16float",
         };
 
         let plan = target.writeback_plan(Some("rgba16float"));
@@ -428,6 +542,31 @@ mod tests {
         assert_eq!(plan.texture(), Some(texture));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         assert_eq!(plan.target_format(), Some("rgba16float"));
+        assert_eq!(plan.expected_target_format(), Some("rgba16float"));
+    }
+
+    #[test]
+    fn output_target_writeback_plan_blocks_prepared_format_drift() {
+        let texture = texture_handle("tests/writeback/prepared-format-drift");
+        let target = ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(128, 72),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
+        };
+
+        let plan = target.writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+
+        assert_eq!(
+            plan.status(),
+            ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch
+        );
+        assert_eq!(plan.texture(), Some(texture));
+        assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+        assert_eq!(plan.target_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(LINEAR_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -436,6 +575,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
 
         let plan = target.graph_import_plan(Some("rgba8unorm_srgb"));
@@ -448,6 +588,10 @@ mod tests {
         assert_eq!(plan.size(), Some(UVec2::new(128, 72)));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         assert_eq!(plan.target_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -456,6 +600,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
         };
 
         let plan = target.graph_import_plan(Some("rgba8unorm"));
@@ -467,6 +612,10 @@ mod tests {
         assert_eq!(plan.texture(), Some(texture));
         assert_eq!(plan.source_format(), Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
         assert_eq!(plan.target_format(), Some("rgba8unorm"));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(LINEAR_OUTPUT_FORMAT_LABEL)
+        );
     }
 
     #[test]
@@ -475,6 +624,7 @@ mod tests {
         let target = ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(128, 72),
+            format: "rgba16float",
         };
 
         let plan = target.graph_import_plan(Some("rgba16float"));
@@ -485,6 +635,44 @@ mod tests {
         );
         assert_eq!(plan.texture(), Some(texture));
         assert_eq!(plan.target_format(), Some("rgba16float"));
+        assert_eq!(plan.expected_target_format(), Some("rgba16float"));
+    }
+
+    #[test]
+    fn output_target_graph_import_plan_blocks_prepared_format_drift() {
+        let texture = texture_handle("tests/graph-import/prepared-format-drift");
+        let target = ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(128, 72),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
+        };
+
+        let plan = target.graph_import_plan(Some(LINEAR_OUTPUT_FORMAT_LABEL));
+
+        assert_eq!(
+            plan.status(),
+            ViewportTextureGraphImportStatus::BlockedPreparedFormatMismatch
+        );
+        assert_eq!(plan.texture(), Some(texture));
+        assert_eq!(plan.target_format(), Some(LINEAR_OUTPUT_FORMAT_LABEL));
+        assert_eq!(
+            plan.expected_target_format(),
+            Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)
+        );
+    }
+
+    #[test]
+    fn output_target_from_camera_target_retains_resolved_texture_format() {
+        let texture = texture_handle("tests/output-target/from-camera-target");
+        let target = ViewportRenderOutputTarget::from_camera_target(
+            &RenderCameraTarget::Texture(texture),
+            UVec2::new(96, 54),
+            Some(LINEAR_OUTPUT_FORMAT_LABEL),
+        );
+
+        assert_eq!(target.texture_handle(), Some(texture));
+        assert_eq!(target.size(), Some(UVec2::new(96, 54)));
+        assert_eq!(target.texture_format(), Some(LINEAR_OUTPUT_FORMAT_LABEL));
     }
 
     fn texture_handle(label: &str) -> ResourceHandle<TextureMarker> {

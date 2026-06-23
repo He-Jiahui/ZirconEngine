@@ -7,6 +7,7 @@ use super::super::submission_record_update::SubmissionRecordUpdate;
 use super::record::particle_feedback_stat_snapshot;
 use super::record::update_hybrid_gi_runtime;
 use super::record::update_virtual_geometry_runtime;
+use super::record::virtual_geometry_indirect_segment_count;
 use super::record_history::record_history;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn record_present_submission(
@@ -18,7 +19,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
 ) -> SubmissionRecordUpdate {
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
-    let virtual_geometry_indirect_segment_count = 0;
+    let virtual_geometry_indirect_segment_count = virtual_geometry_indirect_segment_count(context);
     let (previous_handle, history_handle, history_status) =
         record_history(record, context, generation, allocated_history);
     record.store_presented_pipeline(context.compiled_pipeline().clone());

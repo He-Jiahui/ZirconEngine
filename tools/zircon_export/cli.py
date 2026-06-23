@@ -19,6 +19,7 @@ from .compile_host import (
 from .cook_assets import default_cooked_asset_manifest, run_cook_assets
 from .pipeline_report import run_report
 from .platform_bundle import run_platform_bundle
+from .plugin_build import parse_plugin_build_args, run_plugin_build
 from .pipeline_stages import (
     LIBRARY_EMBED_EXECUTION_STAGES,
     pipeline_stages_after_validate as selected_pipeline_stages_after_validate,
@@ -65,7 +66,10 @@ DEFAULT_EXECUTION_STAGES = LIBRARY_EMBED_EXECUTION_STAGES
 DEFAULT_OUT = "zircon-export"
 REPORT_FILE_NAME = "report.json"
 def main(argv: Sequence[str] | None = None) -> int:
-    args = parse_args(argv)
+    argv_list = list(argv) if argv is not None else sys.argv[1:]
+    if len(argv_list) >= 2 and argv_list[0] == "plugin" and argv_list[1] == "build":
+        return run_plugin_build(parse_plugin_build_args(argv_list[2:]))
+    args = parse_args(argv_list)
     if args.resume_from or not args.stage_explicit:
         return run_pipeline(args, args.resume_from or "validate")
     return run_stage(args)

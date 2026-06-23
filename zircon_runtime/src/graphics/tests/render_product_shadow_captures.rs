@@ -5,10 +5,11 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -769,7 +770,7 @@ fn directional_shadow_capture_extract_with_shadow_settings(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 50_200,
                     light_id: 50_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                     direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 0.8,
@@ -835,7 +836,7 @@ fn spot_shadow_pcf_capture_extract(
                 spot_lights: vec![RenderSpotLightSnapshot {
                     node_id: 52_200,
                     light_id: 52_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                     position: Vec3::new(-0.30, -1.85, 2.05),
                     direction: (Vec3::new(-0.65, 0.02, 0.04) - Vec3::new(-0.30, -1.85, 2.05))
                         .normalize(),
@@ -868,7 +869,7 @@ fn multi_spot_shadow_capture_light(index: usize, x: f32) -> RenderSpotLightSnaps
     RenderSpotLightSnapshot {
         node_id: 51_300 + index as u64,
         light_id: 51_400 + index as u64,
-        layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
         position,
         direction: (target - position).normalize(),
         color: Vec3::ONE,
@@ -927,7 +928,7 @@ fn shadow_capture_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 

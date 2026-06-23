@@ -1778,23 +1778,13 @@ fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_bod
         let toolbar_clicks = toolbar_clicks.clone();
         ui.global::<PaneSurfaceHostContext>()
             .on_viewport_toolbar_pointer_clicked(
-                move |surface_key,
-                      control_id,
-                      control_x,
-                      control_y,
-                      control_width,
-                      control_height,
-                      point_x,
-                      point_y| {
+                move |surface_key, point_x, point_y, width, height| {
                     toolbar_clicks.borrow_mut().push((
                         surface_key.to_string(),
-                        control_id.to_string(),
-                        control_x,
-                        control_y,
-                        control_width,
-                        control_height,
                         point_x,
                         point_y,
+                        width,
+                        height,
                     ));
                 },
             );
@@ -1824,13 +1814,10 @@ fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_bod
     let clicks = toolbar_clicks.borrow();
     assert_eq!(clicks.len(), 1);
     assert_eq!(clicks[0].0, "document");
-    assert_eq!(clicks[0].1, "tool.move");
-    assert_eq!(clicks[0].2, tool_frame.x);
-    assert_eq!(clicks[0].3, tool_frame.y);
-    assert_eq!(clicks[0].4, tool_frame.width);
-    assert_eq!(clicks[0].5, tool_frame.height);
-    assert_eq!(clicks[0].6, tool_frame.x + tool_frame.width * 0.5);
-    assert_eq!(clicks[0].7, tool_frame.y + tool_frame.height * 0.5);
+    assert_eq!(clicks[0].1, tool_frame.x + tool_frame.width * 0.5);
+    assert_eq!(clicks[0].2, tool_frame.y + tool_frame.height * 0.5);
+    assert_eq!(clicks[0].3, 620.0);
+    assert_eq!(clicks[0].4, 28.0);
 }
 
 #[test]
@@ -1856,15 +1843,8 @@ fn native_host_viewport_toolbar_only_dispatches_primary_press() {
         let toolbar_clicks = toolbar_clicks.clone();
         ui.global::<PaneSurfaceHostContext>()
             .on_viewport_toolbar_pointer_clicked(
-                move |_surface_key,
-                      control_id,
-                      _control_x,
-                      _control_y,
-                      _control_width,
-                      _control_height,
-                      _point_x,
-                      _point_y| {
-                    toolbar_clicks.borrow_mut().push(control_id.to_string());
+                move |surface_key, _point_x, _point_y, _width, _height| {
+                    toolbar_clicks.borrow_mut().push(surface_key.to_string());
                 },
             );
     }
@@ -1885,7 +1865,7 @@ fn native_host_viewport_toolbar_only_dispatches_primary_press() {
     assert!(!release.request_redraw());
     assert!(!secondary.request_redraw());
     assert!(!middle.request_redraw());
-    assert_eq!(toolbar_clicks.borrow().as_slice(), ["display.cycle"]);
+    assert_eq!(toolbar_clicks.borrow().as_slice(), ["document"]);
 }
 
 #[test]
@@ -1912,20 +1892,10 @@ fn native_host_pointer_click_routes_late_viewport_toolbar_controls() {
         let toolbar_clicks = toolbar_clicks.clone();
         ui.global::<PaneSurfaceHostContext>()
             .on_viewport_toolbar_pointer_clicked(
-                move |_surface_key,
-                      control_id,
-                      control_x,
-                      _control_y,
-                      control_width,
-                      _control_height,
-                      point_x,
-                      _point_y| {
-                    toolbar_clicks.borrow_mut().push((
-                        control_id.to_string(),
-                        control_x,
-                        control_width,
-                        point_x,
-                    ));
+                move |surface_key, point_x, _point_y, width, _height| {
+                    toolbar_clicks
+                        .borrow_mut()
+                        .push((surface_key.to_string(), width, point_x));
                 },
             );
     }
@@ -1954,9 +1924,8 @@ fn native_host_pointer_click_routes_late_viewport_toolbar_controls() {
     assert_eq!(
         toolbar_clicks.borrow().as_slice(),
         [(
-            "frame.selection".to_string(),
-            frame_selection_frame.x,
-            frame_selection_frame.width,
+            "document".to_string(),
+            800.0,
             frame_selection_frame.x + frame_selection_frame.width * 0.5,
         )]
     );

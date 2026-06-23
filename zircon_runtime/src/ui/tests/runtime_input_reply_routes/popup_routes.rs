@@ -3,8 +3,7 @@ use super::*;
 #[test]
 fn popup_dispatch_reply_trace_includes_capture_and_updated_popup_stack() {
     let mut surface = route_surface();
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    capture_pointer_for_test(&mut surface, UiPointerId::new(7), UiNodeId::new(2));
 
     let result = surface.apply_dispatch_reply(
         popup_event(UiPopupInputEventKind::OpenRequested, "menu.file"),
@@ -53,8 +52,7 @@ fn popup_dispatch_reply_trace_includes_capture_and_updated_popup_stack() {
 #[test]
 fn popup_close_reply_uses_open_popup_owner_for_route_trace() {
     let mut surface = route_surface();
-    surface.focus.captured = Some(UiNodeId::new(2));
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    capture_pointer_for_test(&mut surface, UiPointerId::new(7), UiNodeId::new(2));
 
     surface.apply_dispatch_reply(
         popup_event(UiPopupInputEventKind::OpenRequested, "menu.file"),

@@ -5957,11 +5957,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_ai_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
+]
+
+[[package]]
 name = "zircon_plugin_ai_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_animation_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -5996,6 +6010,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_audio_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6033,6 +6048,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_texture_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6069,6 +6085,13 @@ dependencies = [
  "serde_json",
  "toml",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_hybrid_gi_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6116,6 +6139,13 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_navigation_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6249,6 +6279,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_particles_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
+]
+
+[[package]]
 name = "zircon_plugin_particles_editor"
 version = "0.1.0"
 dependencies = [
@@ -6266,6 +6303,13 @@ dependencies = [
  "wgpu",
  "zircon_plugin_sdk",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_physics_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6489,6 +6533,8 @@ dependencies = [
 name = "zircon_plugin_sdk"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "toml",
  "zircon_editor",
  "zircon_runtime",
  "zircon_runtime_interface",
@@ -6509,6 +6555,13 @@ version = "0.1.0"
 dependencies = [
  "naga",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_solari_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6574,6 +6627,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_terrain_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
+]
+
+[[package]]
 name = "zircon_plugin_terrain_editor"
 version = "0.1.0"
 dependencies = [
@@ -6589,6 +6649,13 @@ version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_texture_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]
@@ -6681,6 +6748,13 @@ dependencies = [
  "wgpu",
  "zircon_plugin_sdk",
  "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_zr_vm_language_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_sdk",
 ]
 
 [[package]]

@@ -4,6 +4,7 @@ use super::camera::RenderLayerSet;
 use super::core_pipeline::{CorePipelineKind, RenderPhase};
 use super::material::RenderMaterialAlphaMode;
 
+/// Compact pass-eligibility flags computed after typed render-layer filtering.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct PrimitiveRelevance {
     bits: u32,
@@ -27,12 +28,12 @@ impl PrimitiveRelevance {
     pub fn for_mesh_view(
         camera_layers: &RenderLayerSet,
         pipeline: CorePipelineKind,
-        render_layer_mask: u32,
+        render_layers: &RenderLayerSet,
         mobility: Mobility,
         material_alpha_mode: RenderMaterialAlphaMode,
     ) -> Self {
         let mut relevance = Self::empty();
-        let render_layer_visible = camera_layers.intersects_legacy_mask(render_layer_mask);
+        let render_layer_visible = camera_layers.intersects(render_layers);
         if render_layer_visible {
             relevance = relevance.with(Self::RENDER_LAYER_VISIBLE | Self::MAIN_VIEW);
         }
@@ -114,9 +115,9 @@ impl PrimitiveRelevance {
     pub fn view_visible_for_layers(
         self,
         camera_layers: &RenderLayerSet,
-        render_layer_mask: u32,
+        render_layers: &RenderLayerSet,
     ) -> bool {
-        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+        if !camera_layers.intersects(render_layers) {
             return false;
         }
         self.is_opaque() || self.is_alpha_mask() || self.is_transparent()
@@ -163,7 +164,7 @@ mod tests {
         let dynamic_opaque = PrimitiveRelevance::for_mesh_view(
             &camera_layers,
             CorePipelineKind::Core3d,
-            1 << 2,
+            &RenderLayerSet::layer(2),
             Mobility::Dynamic,
             RenderMaterialAlphaMode::Opaque,
         );
@@ -182,7 +183,7 @@ mod tests {
         let alpha_mask = PrimitiveRelevance::for_mesh_view(
             &camera_layers,
             CorePipelineKind::Core3d,
-            1 << 2,
+            &RenderLayerSet::layer(2),
             Mobility::Static,
             RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
         );
@@ -193,7 +194,7 @@ mod tests {
         let transparent = PrimitiveRelevance::for_mesh_view(
             &camera_layers,
             CorePipelineKind::Core3d,
-            1 << 2,
+            &RenderLayerSet::layer(2),
             Mobility::Dynamic,
             RenderMaterialAlphaMode::Blend,
         );
@@ -210,7 +211,7 @@ mod tests {
         let hidden_alpha_mask = PrimitiveRelevance::for_mesh_view(
             &camera_layers,
             CorePipelineKind::Core3d,
-            1 << 4,
+            &RenderLayerSet::layer(4),
             Mobility::Static,
             RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
         );
@@ -221,5 +222,23 @@ mod tests {
         assert!(!hidden_alpha_mask.depth_prepass());
         assert!(hidden_alpha_mask.shadow_caster());
         assert!(hidden_alpha_mask.is_relevant_to_phase(RenderPhase::Shadow));
+    }
+
+    #[test]
+    fn primitive_relevance_preserves_layers_above_legacy_mask_width() {
+        let camera_layers = RenderLayerSet::layer(40);
+        let render_layers = RenderLayerSet::layer(40);
+        let relevance = PrimitiveRelevance::for_mesh_view(
+            &camera_layers,
+            CorePipelineKind::Core3d,
+            &render_layers,
+            Mobility::Static,
+            RenderMaterialAlphaMode::Opaque,
+        );
+
+        assert!(relevance.render_layer_visible());
+        assert!(relevance.main_view());
+        assert!(relevance.view_visible_for_layers(&camera_layers, &render_layers));
+        assert!(!relevance.view_visible_for_layers(&RenderLayerSet::layer(0), &render_layers));
     }
 }

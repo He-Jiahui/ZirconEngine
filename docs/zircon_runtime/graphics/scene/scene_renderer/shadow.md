@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/view_projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
@@ -88,6 +89,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/view_projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
   - zircon_runtime/src/graphics/visibility/view_context/mod.rs
@@ -204,6 +206,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::contact_shadow_runtime_flag_is_encoded_separately_from_ssao
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_contact_shadow_occlusion_texture
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs::tests::render_shadow_light_slot_assignments_patch_packed_light_contract
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_shadow_plan_view_projection_is_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs::tests::shadow_atlas_view_filter_keeps_only_visible_source_entities
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_shadow_views_for_atlas_light_slots
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::mesh_visibility_states_preserve_shadow_only_casters
@@ -231,7 +234,9 @@ This module is the Plan 05 LS-M3/LS-M4 shadow foundation. The compiled graph dec
 - `shadow/atlas/bindings.rs` fixes the final group1 atlas binding ABI as 8/9/10/11. Forward and deferred lighting bind groups now include only the atlas receiver entries plus light-grid buffers; the old single-shadow receiver bindings are gone.
 - `shadow/atlas/resources.rs` owns the persistent WGPU atlas texture/view, comparison sampler, `shadow_slots` storage buffer, and `shadow_globals` uniform buffer. `SceneRendererCore` creates it and uploads the current `ShadowFramePlan` payload each render.
 - `shadow/cascade.rs` owns CSM split/fade/snapping math and camera frustum slice bounds. The slice-bounds helper is crate-reexported through `graphics::scene` so `ShadowFramePlan` and Plan 04 visibility build the same directional cascade coverage without exposing the private shadow module tree.
-- `shadow/plan.rs` bridges the full viewport frame to atlas allocation, `GpuShadowSlot`/`GpuShadowGlobals` upload payloads, `ShadowAtlasSlotPass` depth-write descriptors, and `GpuLightData.shadow_slot_layer` patching. It derives directional cascade, spot, and point-face view-projection matrices, and tags atlas slot passes with `VisibilityViewKey::ShadowCascade`, `VisibilityViewKey::ShadowPointFace`, or `VisibilityViewKey::ShadowSpot`.
+- `shadow/plan.rs` bridges the full viewport frame to atlas allocation, `GpuShadowSlot`/`GpuShadowGlobals` upload payloads, `ShadowAtlasSlotPass` depth-write descriptors, and `GpuLightData.shadow_slot_layer` patching. It tags atlas slot passes with `VisibilityViewKey::ShadowCascade`, `VisibilityViewKey::ShadowPointFace`, or `VisibilityViewKey::ShadowSpot`, but delegates view-projection matrix construction to the child owner below.
+- `shadow/view_projection.rs` owns directional cascade, spot, and point-face view-projection matrices plus direction fallback, stable up-vector, finite vector, and far-plane sanitizing. Plan 05/09 shadow view-projection owner split (`render_plan05_09_shadow_view_projection_owner_split_static_passed`) added this boundary and `runtime_15_shadow_plan_view_projection_is_child_owner` to keep these helpers from flowing back into `shadow/plan.rs`.
+- Plan 05/F12 shadow cleanup (`render_plan05_shadow_dead_code_suppression_cleanup_static_passed_cargo_deferred_active_lanes`) keeps the shadow root and atlas root declaration-only: `shadow/mod.rs` has no module-level dead-code suppression, `shadow/atlas/mod.rs` exports only live allocator/resource/binding contracts, and `ShadowFramePlan` no longer stores or exposes the unused atlas allocation report after deriving the live slot/pass/light assignment payload.
 - `shadow/slot.rs` owns the GPU POD layout for shadow slots/globals. Buffer ownership exists in `ShadowAtlasResources`, and the forward/deferred group1 bindings now expose those buffers to fragment shaders.
 - `shadow/shaders/zr_shadow.wgsl` owns the shader-side atlas sampling helper. It reads `GpuLightData.shadow_slot_layer`, chooses directional cascades or point faces, projects through `ZrShadowSlot.view_proj`, and selects Low/Medium/High comparison-sampler PCF kernels from the slot quality flags. High keeps nine samples but uses a wider 8-texel radius so product captures can distinguish it from Low on receiver edges.
 - `PostProcessGraphResourceNames::SHADOW_ATLAS` names the graph-visible external atlas resource. The built-in `shadow-atlas` pass writes it as a required external texture, and forward mesh/deferred lighting/deferred transparent mesh declare required texture reads so graph ordering keeps atlas depth production before atlas sampling. `PostProcessGraphResourceNames::SHADOW_MAP` is no longer part of the runtime graph contract.

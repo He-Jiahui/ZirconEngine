@@ -1,147 +1,16 @@
-use std::sync::Arc;
-
-use zircon_runtime::core::runtime::ServiceObject;
-use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
-use zircon_runtime::engine_module::{factory, qualified_name};
-
-pub const PLUGIN_ID: &str = "texture";
-pub const TEXTURE_MODULE_NAME: &str = "TextureModule";
-pub const TEXTURE_MANAGER_NAME: &str = "TextureModule.Manager.TextureManager";
-
 mod capability;
+mod manager;
+mod module;
+mod plugin;
 
 pub use capability::{RUNTIME_CAPABILITIES, TEXTURE_RUNTIME_CAPABILITY};
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TextureImportSummary {
-    pub width: u32,
-    pub height: u32,
-    pub mip_count: u32,
-    pub texel_count: u64,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct DefaultTextureManager;
-
-impl DefaultTextureManager {
-    pub fn summarize_texture(
-        &self,
-        width: u32,
-        height: u32,
-        mip_count: u32,
-    ) -> TextureImportSummary {
-        TextureImportSummary {
-            width,
-            height,
-            mip_count: mip_count.max(1),
-            texel_count: u64::from(width).saturating_mul(u64::from(height)),
-        }
-    }
-}
-
-pub fn module_descriptor() -> ModuleDescriptor {
-    ModuleDescriptor::new(
-        TEXTURE_MODULE_NAME,
-        "Texture import and runtime metadata plugin",
-    )
-    .with_manager(ManagerDescriptor::new(
-        qualified_name(TEXTURE_MODULE_NAME, ServiceKind::Manager, "TextureManager"),
-        StartupMode::Lazy,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(DefaultTextureManager) as ServiceObject)),
-    ))
-}
-
-#[derive(Clone, Debug)]
-pub struct TextureRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
-}
-
-impl TextureRuntimePlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: runtime_plugin_descriptor(),
-        }
-    }
-}
-
-impl zircon_runtime::plugin::RuntimePlugin for TextureRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
-        &self.descriptor
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Texture",
-        zircon_runtime::builtin::RuntimePluginId::Texture,
-        "zircon_plugin_texture_runtime",
-    )
-    .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-    ])
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
-    .with_capability(TEXTURE_RUNTIME_CAPABILITY)
-    .build()
-}
-
-zircon_plugin_sdk::runtime_plugin_exports!(TextureRuntimePlugin);
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
-}
+pub use manager::{DefaultTextureManager, TextureImportSummary};
+pub use module::{module_descriptor, TEXTURE_MANAGER_NAME, TEXTURE_MODULE_NAME};
+pub use plugin::{
+    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, TextureRuntimePlugin, PLUGIN_ID,
+    TEXTURE_DIST_CRATE_NAME, TEXTURE_DIST_RUNTIME_ENTRY,
+};
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::core::CoreRuntime;
-
-    use super::*;
-
-    #[test]
-    fn texture_registration_contributes_runtime_module() {
-        let report = plugin_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == TEXTURE_MODULE_NAME));
-        assert_eq!(
-            report.package_manifest.modules[0].target_modes,
-            vec![
-                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-            ]
-        );
-        assert_eq!(
-            report.package_manifest.maturity,
-            zircon_runtime::plugin::PluginMaturity::Stable
-        );
-    }
-
-    #[test]
-    fn texture_module_resolves_manager_and_summarizes_texture() {
-        let runtime = CoreRuntime::new();
-        runtime.register_module(module_descriptor()).unwrap();
-        runtime.activate_module(TEXTURE_MODULE_NAME).unwrap();
-        let manager = runtime
-            .handle()
-            .resolve_manager::<DefaultTextureManager>(TEXTURE_MANAGER_NAME)
-            .unwrap();
-
-        let summary = manager.summarize_texture(16, 8, 0);
-
-        assert_eq!(summary.mip_count, 1);
-        assert_eq!(summary.texel_count, 128);
-    }
-}
+mod tests;

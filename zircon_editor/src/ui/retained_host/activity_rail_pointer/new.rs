@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
@@ -12,7 +10,7 @@ impl HostActivityRailPointerBridge {
             layout: HostActivityRailPointerLayout::default(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.activity_rail.pointer")),
             dispatcher: UiPointerDispatcher::default(),
-            targets: BTreeMap::new(),
+            route_intents: Default::default(),
         };
         bridge.rebuild_surface();
         bridge

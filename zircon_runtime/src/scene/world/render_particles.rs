@@ -3,6 +3,7 @@ use crate::core::framework::render::{
     RenderParticleSpriteSnapshot,
 };
 use crate::core::math::{Vec2, Vec3, Vec4};
+use crate::scene::components::default_render_layer_mask;
 use crate::scene::EntityId;
 
 use super::World;
@@ -38,6 +39,9 @@ impl World {
             {
                 continue;
             }
+            let render_layer_mask = self
+                .render_layer_mask(entity)
+                .unwrap_or(default_render_layer_mask());
             let mut entity_sprites = Vec::new();
             let mut entity_gpu_bounds = Vec::new();
             let mut has_gpu_frame = false;
@@ -45,7 +49,12 @@ impl World {
                 let Some(value) = self.dynamic_component(entity, component_id) else {
                     continue;
                 };
-                collect_particle_sprites_from_value(entity, value, &mut entity_sprites);
+                collect_particle_sprites_from_value(
+                    entity,
+                    render_layer_mask,
+                    value,
+                    &mut entity_sprites,
+                );
                 if let Some(contribution) = particle_gpu_frame_contribution(value) {
                     has_gpu_frame = true;
                     if let Some(bound) = contribution.bounds {
@@ -58,7 +67,12 @@ impl World {
                 let Some(value) = self.dynamic_component(entity, component_id) else {
                     continue;
                 };
-                collect_world_hud_bar_sprites_from_value(entity, value, &mut entity_sprites);
+                collect_world_hud_bar_sprites_from_value(
+                    entity,
+                    render_layer_mask,
+                    value,
+                    &mut entity_sprites,
+                );
             }
             if entity_sprites.is_empty() && !has_gpu_frame {
                 continue;
@@ -145,6 +159,7 @@ impl ParticleGpuFrameBuilder {
 
 fn collect_particle_sprites_from_value(
     entity: EntityId,
+    render_layer_mask: u32,
     value: &serde_json::Value,
     output: &mut Vec<RenderParticleSpriteSnapshot>,
 ) {
@@ -152,7 +167,7 @@ fn collect_particle_sprites_from_value(
         output.extend(
             entries
                 .iter()
-                .filter_map(|entry| particle_sprite(entity, entry)),
+                .filter_map(|entry| particle_sprite(entity, render_layer_mask, entry)),
         );
         return;
     }
@@ -160,11 +175,11 @@ fn collect_particle_sprites_from_value(
         output.extend(
             entries
                 .iter()
-                .filter_map(|entry| particle_sprite(entity, entry)),
+                .filter_map(|entry| particle_sprite(entity, render_layer_mask, entry)),
         );
         return;
     }
-    if let Some(sprite) = particle_sprite(entity, value) {
+    if let Some(sprite) = particle_sprite(entity, render_layer_mask, value) {
         output.push(sprite);
     }
 }
@@ -220,6 +235,7 @@ fn particle_gpu_bounds(value: &serde_json::Value) -> Option<RenderParticleBounds
 
 fn particle_sprite(
     entity: EntityId,
+    render_layer_mask: u32,
     value: &serde_json::Value,
 ) -> Option<RenderParticleSpriteSnapshot> {
     let position = vec3_field(value, "position")?;
@@ -240,6 +256,7 @@ fn particle_sprite(
         color,
         intensity: f32_field(value, "intensity").unwrap_or(1.0).max(0.0),
         depth_test: true,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(render_layer_mask),
         material: None,
         texture: None,
     })
@@ -247,26 +264,28 @@ fn particle_sprite(
 
 fn collect_world_hud_bar_sprites_from_value(
     entity: EntityId,
+    render_layer_mask: u32,
     value: &serde_json::Value,
     output: &mut Vec<RenderParticleSpriteSnapshot>,
 ) {
     if let Some(entries) = value.get("bars").and_then(serde_json::Value::as_array) {
         for (bar_index, entry) in entries.iter().enumerate() {
-            collect_world_hud_bar_sprites(entity, entry, bar_index, output);
+            collect_world_hud_bar_sprites(entity, render_layer_mask, entry, bar_index, output);
         }
         return;
     }
     if let Some(entries) = value.as_array() {
         for (bar_index, entry) in entries.iter().enumerate() {
-            collect_world_hud_bar_sprites(entity, entry, bar_index, output);
+            collect_world_hud_bar_sprites(entity, render_layer_mask, entry, bar_index, output);
         }
         return;
     }
-    collect_world_hud_bar_sprites(entity, value, 0, output);
+    collect_world_hud_bar_sprites(entity, render_layer_mask, value, 0, output);
 }
 
 fn collect_world_hud_bar_sprites(
     entity: EntityId,
+    render_layer_mask: u32,
     value: &serde_json::Value,
     bar_index: usize,
     output: &mut Vec<RenderParticleSpriteSnapshot>,
@@ -307,6 +326,7 @@ fn collect_world_hud_bar_sprites(
         back_color,
         intensity,
         WORLD_HUD_BACKGROUND_SORT_ORDER,
+        render_layer_mask,
         output,
     );
     if ratio > 0.0 {
@@ -322,6 +342,7 @@ fn collect_world_hud_bar_sprites(
             fill_color,
             intensity,
             WORLD_HUD_FILL_SORT_ORDER,
+            render_layer_mask,
             output,
         );
     }
@@ -337,6 +358,7 @@ fn push_world_hud_bar_quad(
     color: Vec4,
     intensity: f32,
     sort_order: i32,
+    render_layer_mask: u32,
     output: &mut Vec<RenderParticleSpriteSnapshot>,
 ) {
     if color.w <= 0.0 || size <= 0.0 {
@@ -354,6 +376,7 @@ fn push_world_hud_bar_quad(
         color,
         intensity,
         depth_test: false,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(render_layer_mask),
         material: None,
         texture: None,
     });
@@ -473,6 +496,7 @@ mod tests {
 
         collect_world_hud_bar_sprites_from_value(
             42,
+            1 << 4,
             &json!({
                 "position": [0.0, 1.0, 2.0],
                 "ratio": 0.5
@@ -481,6 +505,9 @@ mod tests {
         );
 
         assert_eq!(stable_sprite_keys(&sprites), vec![1, 2]);
+        assert!(sprites
+            .iter()
+            .all(|sprite| sprite.render_layer_mask.to_legacy_mask_lossy() == 1 << 4));
     }
 
     #[test]
@@ -489,6 +516,7 @@ mod tests {
 
         collect_world_hud_bar_sprites_from_value(
             42,
+            u32::MAX,
             &json!({
                 "bars": [
                     { "position": [0.0, 1.0, 2.0], "ratio": 0.5 },
@@ -507,6 +535,7 @@ mod tests {
 
         collect_world_hud_bar_sprites_from_value(
             42,
+            u32::MAX,
             &json!({
                 "position": [0.0, 1.0, 2.0],
                 "ratio": 0.5
@@ -522,6 +551,7 @@ mod tests {
     fn authored_particle_sprites_keep_depth_test_path() {
         let sprite = particle_sprite(
             42,
+            1 << 5,
             &json!({
                 "position": [0.0, 1.0, 2.0],
                 "size": 0.25
@@ -530,6 +560,7 @@ mod tests {
         .expect("valid authored particle sprite");
 
         assert!(sprite.depth_test);
+        assert_eq!(sprite.render_layer_mask, 1 << 5);
     }
 
     #[test]

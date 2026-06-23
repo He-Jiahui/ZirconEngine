@@ -1,0 +1,76 @@
+use super::ExpectedStatusOutputSlice;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
+    (
+        "Runtime 15 M3 test file budget root-layout child split",
+        &[
+            "runtime_15_test_file_budget_root_layout_child_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/mod.rs",
+            "structure_convention/test_file_budget/root_layout.rs",
+            "runtime_15_test_file_budget_guard_is_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 test file budget root-layout status scan child split",
+        &[
+            "runtime_15_test_file_budget_root_layout_status_scan_child_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/root_layout.rs",
+            "structure_convention/test_file_budget/root_layout/status_scan.rs",
+            "runtime_15_test_file_budget_root_layout_status_scan_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M3 historical oversized test roots closeout",
+        &[
+            "runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred",
+            "core/framework/tests.rs",
+            "ui/tests/v2_asset.rs",
+            "runtime_15_historical_oversized_test_roots_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output Runtime 15 row data split",
+        &[
+            "runtime_15_status_output_runtime_15_row_data_split_static_passed_cargo_deferred",
+            "plan_status/status_output_tables/expected_status_row_data.rs",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "runtime_15_status_output_runtime_15_row_data_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M3 production file budget core runtime guard split",
+        &[
+            "runtime_15_production_file_budget_core_runtime_guard_split_static_passed_cargo_deferred",
+            "structure_convention/production_file_budget.rs",
+            "structure_convention/production_file_budget/core_runtime_service_lists.rs",
+            "runtime_15_production_file_budget_core_runtime_guard_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output Runtime 15 M4 row data split",
+        &[
+            "runtime_15_status_output_runtime_15_m4_row_data_split_static_passed_cargo_deferred",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
+            "runtime_15_status_output_runtime_15_m4_row_data_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output expected-slice maps split",
+        &[
+            "runtime_15_status_output_expected_slice_maps_split_static_passed_cargo_deferred",
+            "plan_status/status_output_tables/expected_slices/status.rs",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+            "runtime_15_status_output_expected_slice_maps_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output Runtime 15 M3 row data split",
+        &[
+            "runtime_15_status_output_runtime_15_m3_row_data_split_static_passed_cargo_deferred",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+            "runtime_15_status_output_runtime_15_m3_row_data_is_child_owner",
+        ],
+    ),
+];

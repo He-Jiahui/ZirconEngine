@@ -10,6 +10,7 @@ mod component_json;
 mod components;
 mod manager;
 mod off_mesh_connections;
+mod plugin;
 mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
@@ -19,6 +20,11 @@ pub use capability::{
 };
 pub use components::navigation_component_descriptors;
 pub use manager::{count_navigation_components, default_agent_type, DefaultNavigationManager};
+pub use plugin::{
+    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
+    runtime_plugin_descriptor, NavigationRuntimePlugin, NAVIGATION_DIST_CRATE_NAME,
+    NAVIGATION_DIST_RUNTIME_ENTRY,
+};
 
 pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "NavigationModule";
@@ -44,57 +50,6 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ))) as ServiceObject)
         }),
     ))
-}
-
-#[derive(Clone, Debug)]
-pub struct NavigationRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
-}
-
-impl NavigationRuntimePlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: runtime_plugin_descriptor(),
-        }
-    }
-}
-
-impl Default for NavigationRuntimePlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl zircon_runtime::plugin::RuntimePlugin for NavigationRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
-        &self.descriptor
-    }
-
-    fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
-        let mut manifest = self.descriptor.package_manifest();
-        for descriptor in navigation_component_descriptors() {
-            manifest = manifest.with_component(descriptor);
-        }
-        for option in navigation_plugin_options() {
-            manifest = manifest.with_option(option);
-        }
-        manifest.with_event_catalog(navigation_event_catalog())
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
-        for descriptor in navigation_component_descriptors() {
-            registry.register_component(descriptor)?;
-        }
-        for option in navigation_plugin_options() {
-            registry.register_plugin_option(option)?;
-        }
-        registry.register_plugin_event_catalog(navigation_event_catalog())?;
-        Ok(())
-    }
 }
 
 pub fn navigation_plugin_options() -> Vec<zircon_runtime::plugin::PluginOptionManifest> {
@@ -156,37 +111,6 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
             },
         ],
     }
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Navigation",
-        zircon_runtime::builtin::RuntimePluginId::Navigation,
-        "zircon_plugin_navigation_runtime",
-    )
-    .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(NAVIGATION_RUNTIME_CAPABILITY)
-    .with_capability(NAVIGATION_RECAST_CAPABILITY)
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
-    .with_capability_status(
-        zircon_runtime::plugin::CapabilityStatusManifest::new(
-            NAVIGATION_RUNTIME_CAPABILITY,
-            zircon_runtime::plugin::CapabilityStatus::Partial,
-        )
-        .with_note("Gameplay navmesh/pathfinding is optional; UI navigation parity is separate."),
-    )
-    .build()
-}
-
-zircon_plugin_sdk::runtime_plugin_exports!(NavigationRuntimePlugin);
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

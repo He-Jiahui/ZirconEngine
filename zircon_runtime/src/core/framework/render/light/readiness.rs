@@ -71,7 +71,10 @@ fn ready_rect_light_count(lights: &[RenderRectLightSnapshot]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{RenderAmbientLightSnapshot, RenderRectLightSnapshot};
+    use crate::core::framework::render::{
+        RenderAmbientLightSnapshot, RenderLayerSet, RenderRectLightSnapshot,
+        DEFAULT_RENDER_LAYER_MASK,
+    };
     use crate::core::math::{Vec2, Vec3};
 
     use super::RenderLightReadinessReport;
@@ -125,7 +128,7 @@ mod tests {
         RenderRectLightSnapshot {
             node_id: 1,
             light_id: 1,
-            layer_mask: crate::core::framework::render::DEFAULT_RENDER_LAYER_MASK,
+            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
             position: Vec3::ZERO,
             direction: Vec3::new(0.0, 0.0, -1.0),
             color: Vec3::ONE,

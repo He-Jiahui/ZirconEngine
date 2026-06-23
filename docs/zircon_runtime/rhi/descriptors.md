@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation.rs
+  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
   - zircon_runtime/src/rhi_wgpu/device.rs
   - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
   - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
@@ -24,6 +25,7 @@ implementation_files:
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation.rs
+  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
   - zircon_runtime/src/rhi_wgpu/device.rs
   - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
   - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
@@ -48,6 +50,7 @@ plan_sources:
   - .codex/plans/ZirconEngine WGPU 渲染主链闭环计划.md
   - .codex/plans/Zircon SRPRHI 渲染管线补全计划.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - zircon_runtime/src/rhi/tests/descriptors.rs
   - zircon_runtime/src/rhi/tests/descriptors.rs::texture_descriptors_mark_sparse_reservations_without_losing_virtual_size
@@ -124,6 +127,7 @@ tests:
   - zircon_runtime/src/rhi/tests/texture_copy.rs::wgpu_rhi_texture_copy_region_targets_mip_and_array_layer
   - zircon_runtime/src/rhi/tests/texture_copy.rs::wgpu_rhi_texture_copy_region_targets_cube_face
   - zircon_runtime/src/rhi_wgpu/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_rhi_wgpu_command_validation_state_is_child_owner
   - cargo test -p zircon_runtime --lib --locked rhi --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -191,6 +195,8 @@ Pipeline and command-list tests now live in `rhi/tests/pipeline.rs` and `rhi/tes
 `rhi_wgpu::pipeline_validation` owns shader module, pipeline layout, and pipeline descriptor validation. That module checks stage compatibility and layout/shader handle existence without mixing another responsibility into `rhi_wgpu::device`, which remains the stateful allocator and command executor.
 
 `rhi_wgpu::command_validation` owns command-list submit validation and the headless copy execution path. The split keeps `rhi_wgpu::device` focused on resource allocation, descriptor storage, command-list construction, and fence bookkeeping while command validation grows to cover debug marker/group balancing, compute dispatches, bind group command binding, raster draws, vertex/index buffer binding ranges, and texture-copy execution.
+
+Runtime 15 M4 RHI WGPU command validation render-state owner split is recorded as `runtime_15_rhi_wgpu_command_validation_render_state_split_static_passed_cargo_lock_blocked`. `rhi_wgpu/command_validation.rs` stays the command-list validation/execution owner for `validate_recorded_commands(...)`, `execute_recorded_commands(...)`, debug group, render pass, queue, copy, draw, and dispatch traversal. `rhi_wgpu/command_validation/render_state.rs` now owns `RecordedRenderState`, `CommandResourceLookup`, bind group slot validation, binding range validation, vertex/index/strided draw-range helpers, and pipeline-layout lookup. The structure guard `runtime_15_rhi_wgpu_command_validation_state_is_child_owner` keeps those helpers from returning to the parent and keeps both owners under the 800-line production-file budget.
 
 `rhi_wgpu::render_pass_validation` owns active render-pass attachment validation and pipeline/pass compatibility checks. Keeping that state in its own module prevents `command_validation` from becoming another descriptor catch-all while letting WGPU-style render-pass rules grow toward concrete attachment views, resolves, load/store actions, and depth/stencil operations.
 

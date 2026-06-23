@@ -8,8 +8,17 @@ description = "Optional hybrid global illumination runtime and editor package."
 maturity = "experimental"
 supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_hybrid_gi_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_hybrid_gi_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.hybrid_gi"
@@ -24,6 +33,13 @@ note = "AdvancedRender provider path for hybrid global illumination; default ren
 name = "hybrid_gi.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_hybrid_gi_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
+
+[[modules]]
+name = "hybrid_gi.dist"
+kind = "native"
+crate_name = "zircon_plugin_hybrid_gi_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
 

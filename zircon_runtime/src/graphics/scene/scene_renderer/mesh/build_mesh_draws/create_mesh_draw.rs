@@ -41,13 +41,8 @@ pub(super) fn create_mesh_draw(
     indirect_args_offset: u64,
     virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
 ) -> MeshDraw {
-    let (skinned_joint_palette_buffer, skinned_joint_count) = skinned_joint_palette
-        .map(|uniform| {
-            let joint_count = uniform.joint_count();
-            let buffer = uniform.create_buffer(device);
-            (Some(buffer), joint_count)
-        })
-        .unwrap_or((None, 0));
+    let skinned_joint_palette_buffer =
+        skinned_joint_palette.map(|uniform| uniform.create_buffer(device));
     let previous_skinned_joint_palette_buffer =
         previous_skinned_joint_palette.map(|uniform| uniform.create_buffer(device));
     let gpu_scene_bind_group = (skinned_joint_palette_buffer.is_some()
@@ -100,7 +95,6 @@ pub(super) fn create_mesh_draw(
         skinned,
         skinned_joint_palette_buffer,
         previous_skinned_joint_palette_buffer,
-        skinned_joint_count,
         previous_skinned_gpu_source,
         skinned_gpu_source,
         skinned_gpu_source_uses_cpu_morphed_source,

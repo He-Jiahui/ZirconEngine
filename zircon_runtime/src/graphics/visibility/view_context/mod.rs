@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod build_views;
 
-use crate::core::framework::render::{PrimitiveRelevance, ViewportCameraSnapshot};
+use crate::core::framework::render::{PrimitiveRelevance, RenderLayerSet, ViewportCameraSnapshot};
 use crate::core::framework::scene::EntityId;
 
 use super::declarations::{VisibilityBounds, VisibilityBvhInstance, VisibilityRelevanceEntry};
@@ -12,7 +12,7 @@ pub struct FrameVisibility {
     /// Stable primitive index space for all per-view visible lists in this frame.
     pub entities: Vec<EntityId>,
     pub bounds: Vec<VisibilityBounds>,
-    pub render_layer_masks: Vec<u32>,
+    pub render_layer_masks: Vec<RenderLayerSet>,
     pub relevance: Vec<PrimitiveRelevance>,
     pub relevance_generation: u64,
     pub views: Vec<ViewVisibilityContext>,
@@ -39,7 +39,7 @@ impl FrameVisibility {
             .collect::<Vec<_>>();
         let render_layer_masks = bvh_instances
             .iter()
-            .map(|instance| instance.key.render_layer_mask)
+            .map(|instance| instance.key.render_layer_mask.clone())
             .collect::<Vec<_>>();
         let relevance = bvh_instances
             .iter()

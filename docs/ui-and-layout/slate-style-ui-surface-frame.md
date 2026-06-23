@@ -53,7 +53,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/viewport_toolbar.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
@@ -144,7 +143,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/viewport_toolbar.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
@@ -397,13 +395,13 @@ The M7 live Runtime Diagnostics bridge follows the same authority rule. During p
 
 ## Editor Host Route
 
-The native retained host stores a toolbar `UiSurfaceFrame` in `SceneViewportChromeData`. That frame is built by iterating route-bearing projected controls from the `.ui.toml` host projection in `BuiltinViewportToolbarTemplateBridge`, so button hit rectangles match the component layout. Adding another toolbar button with a projected control id and binding makes it enter the surface frame without adding Rust coordinate rows or a toolbar action list. Root docks and floating-window active panes receive these frames before native pointer routing runs. `host_contract/surface_hit_test` calls the shared `hit_test_surface_frame(...)` helper and maps hit node `control_id` values to the existing toolbar and pane dispatch callbacks.
+The native retained host stores a toolbar `UiSurfaceFrame` in `SceneViewportChromeData`. That frame is built by iterating route-bearing projected controls from the `.ui.toml` host projection in `BuiltinViewportToolbarTemplateBridge`, so button hit rectangles match the component layout. Adding another toolbar button with a projected control id and binding makes it enter the surface frame without adding Rust coordinate rows or a toolbar action list. Root docks and floating-window active panes receive these frames before native pointer routing runs. The viewport-toolbar callback reports only the surface key, local click point, and surface size; `ViewportToolbarPointerBridge::sync_surface_frame(...)` then projects the submitted frame into route-intent-backed runtime nodes before dispatch. Native routing may still read `hit_test_surface_frame(...)` from the submitted frame to preserve the clicked control id for damage, but command routing no longer goes through `host_contract/surface_hit_test`.
 
 Toolbar hit control ids are separated from projected control ids only where the current editor state supplies a parameterized action or an existing semantic alias must be preserved. For example, the projected `SetTool` button maps to the current `tool.move`/`tool.rotate` action key, `FrameSelection` keeps the existing `frame.selection` semantic id, and direct no-argument buttons such as play-mode controls can use their projected control id. This keeps hit geometry owned by layout while preserving the existing viewport command semantics.
 
 Projection control ids now fall back through template bindings instead of re-entering the old toolbar alias table. The legacy pointer-route helpers recognize hit-grid action ids such as `display.cycle`, `snap.translate`, and `frame.selection`; TOML projection ids such as `SetDisplayMode` and `FrameSelection` are resolved by `dispatch_builtin_viewport_toolbar_control(...)` when no legacy route exists. This is the hard-cutover boundary that let the old toolbar alias list be deleted without keeping a compatibility shim.
 
-Some real-host callback paths can still report a zero control rectangle while carrying an already-resolved hit-grid action id. In that case `dispatch_shared_viewport_toolbar_pointer_click(...)` first tries the projected template frame for TOML control ids, then uses the actual click point as a one-pixel active frame for legacy action ids that have no projected control frame. That fallback is not a coordinate table: it exists only so the existing shared `ViewportToolbarPointerBridge` can route the already-known action id through its retained `UiSurface + UiPointerDispatcher` path instead of failing before dispatch. Projection ids with no legacy route still go through template bindings.
+Some test and projection fallback paths can still carry an already-resolved hit-grid action id. In that case `dispatch_shared_viewport_toolbar_pointer_click(...)` first tries the projected template frame for TOML control ids, then uses the actual click point as a one-pixel active frame for legacy action ids that have no projected control frame. That fallback is not a coordinate table: it exists only so the shared `ViewportToolbarPointerBridge` can route an already-known action id through its retained `UiSurface + UiPointerDispatcher` path instead of failing before dispatch. Real native callbacks use the point-based surface-frame sync path.
 
 Native template-node hit testing also routes through `PaneData.body_surface_frame`, which is built during host presentation conversion from projected template node frames. This keeps pane controls on the same arranged/render/hit model as toolbar controls: native pointer dispatch queries a submitted frame rather than rebuilding a local coordinate model at click time.
 

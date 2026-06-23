@@ -174,6 +174,9 @@ fn output_target_graph_import_report(
         ViewportTextureGraphImportStatus::BlockedFormatMismatch => {
             RenderCameraTargetGraphImportReport::blocked_format_mismatch(size)
         }
+        ViewportTextureGraphImportStatus::BlockedPreparedFormatMismatch => {
+            RenderCameraTargetGraphImportReport::blocked_format_mismatch(size)
+        }
     }
 }
 
@@ -232,7 +235,10 @@ mod tests {
     };
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::{ViewportRenderFrame, ViewportRenderOutputTarget};
+    use crate::graphics::types::{
+        ViewportRenderFrame, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+        LINEAR_OUTPUT_FORMAT_LABEL,
+    };
     use crate::scene::World;
 
     use super::{
@@ -367,6 +373,7 @@ mod tests {
         .with_output_target(ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(64, 64),
+            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         });
 
         let report = output_target_graph_import_report(
@@ -400,6 +407,7 @@ mod tests {
         .with_output_target(ViewportRenderOutputTarget::Texture {
             handle: texture,
             size: UVec2::new(64, 64),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
         });
 
         let report = output_target_graph_import_report(

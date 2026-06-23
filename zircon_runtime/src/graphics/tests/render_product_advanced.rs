@@ -5,7 +5,7 @@ use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
     AdvancedRenderFeature, CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract,
     RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderLayerSet,
     RenderMeshSnapshot, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderStats, RenderViewportDescriptor, RenderVirtualGeometryCluster,
     RenderVirtualGeometryExtract, RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
@@ -543,6 +543,6 @@ fn hzb_occlusion_mesh(
         tint,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }

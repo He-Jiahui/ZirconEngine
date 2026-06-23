@@ -11,7 +11,6 @@ pub(in crate::graphics::scene::scene_renderer::sprite) struct PreparedSpriteDraw
     sprite_count: usize,
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct PreparedSpriteQueueStats {
     pub(crate) draw_batch_count: usize,

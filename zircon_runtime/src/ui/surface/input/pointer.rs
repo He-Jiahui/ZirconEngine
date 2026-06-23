@@ -39,8 +39,6 @@ pub(super) fn dispatch_pointer_input(
             surface
                 .input
                 .set_pointer_capture_for_id(pointer_id, captured_by);
-        } else {
-            surface.input.captured_pointer_id = None;
         }
     }
     if routed_result.diagnostics.capture_released {
@@ -151,28 +149,22 @@ fn dispatch_pointer_event_for_metadata(
     metadata: &zircon_runtime_interface::ui::dispatch::UiInputEventMetadata,
     event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
 ) -> Result<zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult, UiTreeError> {
-    if let Some(owner) = metadata
+    let incoming_capture = metadata
         .pointer_id
-        .and_then(|pointer_id| surface.input.activate_pointer_capture_for_id(pointer_id))
-    {
+        .and_then(|pointer_id| surface.input.activate_pointer_capture_for_id(pointer_id));
+    if let Some(owner) = incoming_capture {
         surface.focus.captured = Some(owner);
     }
     let previous_pointer_captures = surface.input.pointer_captures.clone();
     let event_kind = event.kind;
-    let mismatched_capture = surface
-        .input
-        .captured_pointer_id
-        .zip(metadata.pointer_id)
-        .filter(|(captured, incoming)| captured != incoming);
     let bypass_captor = matches!(
         event_kind,
         UiPointerEventKind::Move | UiPointerEventKind::Up | UiPointerEventKind::Cancel
-    ) && mismatched_capture.is_some();
+    ) && metadata.pointer_id.is_some()
+        && incoming_capture.is_none()
+        && surface.input.active_pointer_capture().is_some();
     let previous_capture = bypass_captor.then_some(surface.focus.captured).flatten();
     let previous_pressed = bypass_captor.then_some(surface.focus.pressed).flatten();
-    let previous_pointer_id = bypass_captor
-        .then_some(surface.input.captured_pointer_id)
-        .flatten();
     if bypass_captor {
         surface.focus.captured = None;
         surface.focus.pressed = None;
@@ -193,11 +185,6 @@ fn dispatch_pointer_event_for_metadata(
         {
             surface.focus.captured = Some(previous_capture);
         }
-        if let Some(previous_pointer_id) =
-            previous_pointer_id.filter(|_| surface.input.captured_pointer_id.is_none())
-        {
-            surface.input.captured_pointer_id = Some(previous_pointer_id);
-        }
     }
     if let Some(previous_pressed) = previous_pressed.filter(|_| surface.focus.pressed.is_none()) {
         surface.focus.pressed = Some(previous_pressed);
@@ -207,11 +194,11 @@ fn dispatch_pointer_event_for_metadata(
         UiPointerEventKind::Up | UiPointerEventKind::Cancel
     ) {
         if let Some(pointer_id) = metadata.pointer_id {
-            for (captured_pointer_id, capture) in previous_pointer_captures {
-                if captured_pointer_id != pointer_id {
+            for (retained_pointer_id, capture) in previous_pointer_captures {
+                if retained_pointer_id != pointer_id {
                     surface
                         .input
-                        .restore_pointer_capture(captured_pointer_id, capture);
+                        .restore_pointer_capture(retained_pointer_id, capture);
                 }
             }
         }

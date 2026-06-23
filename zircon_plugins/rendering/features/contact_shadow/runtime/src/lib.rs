@@ -10,8 +10,16 @@ use zircon_runtime::render_graph::{
     RenderGraphResourceAccessKind, RenderGraphResourceKind,
 };
 
+mod capability;
+mod plugin;
+
+pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
+pub use plugin::{
+    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
+    RenderingContactShadowRuntimeFeature,
+};
+
 pub const FEATURE_ID: &str = "rendering.contact_shadow";
-pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.contact_shadow";
 pub const FEATURE_NAME: &str = "contact_shadow";
 pub const PASS_NAME: &str = "contact-shadow";
 pub const EXECUTOR_ID: &str = "lighting.contact-shadow";
@@ -21,40 +29,6 @@ const CONTACT_SHADOW_SHADER_SOURCE: &str = include_str!("contact_shadow.wgsl");
 
 #[cfg(test)]
 mod wgpu_product_tests;
-
-#[derive(Clone, Debug)]
-pub struct RenderingContactShadowRuntimeFeature;
-
-impl zircon_runtime::plugin::RuntimePluginFeature for RenderingContactShadowRuntimeFeature {
-    fn manifest(&self) -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-        feature_manifest()
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_render_feature(render_feature_descriptor())?;
-        registry.register_render_pass_executor(render_pass_executor_registration())
-    }
-}
-
-pub fn runtime_plugin_feature() -> RenderingContactShadowRuntimeFeature {
-    RenderingContactShadowRuntimeFeature
-}
-
-pub fn plugin_feature_registration(
-) -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(
-        &runtime_plugin_feature(),
-    )
-}
-
-pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_plugin_rendering_runtime::feature_manifest(
-        zircon_plugin_rendering_runtime::RenderingFeatureKind::ContactShadow,
-    )
-}
 
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(

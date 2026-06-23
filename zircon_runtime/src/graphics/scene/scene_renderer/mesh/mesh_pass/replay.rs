@@ -162,11 +162,10 @@ impl MeshDrawCommandReplayer {
         command: &'pass MeshDrawCommand,
     ) {
         let geometry_id = command.geometry_bind_key();
-        if self.last_geometry == Some(geometry_id) {
+        if !self.should_bind_geometry(geometry_id) {
             return;
         }
         command.bind_geometry_buffers(pass);
-        self.last_geometry = Some(geometry_id);
     }
 
     pub(crate) fn draw_indexed<'pass>(
@@ -282,16 +281,32 @@ impl MeshDrawCommandReplayer {
         id: u64,
         bind_group: &'pass wgpu::BindGroup,
     ) {
-        let slot_index = slot as usize;
-        if slot_index < self.last_bind_ids.len() && self.last_bind_ids[slot_index] == Some(id) {
-            self.stats.bind_skip_count += 1;
+        if !self.should_bind_raw_group(slot, id) {
             return;
         }
 
         pass.set_bind_group(slot, bind_group, &[]);
+    }
+
+    fn should_bind_raw_group(&mut self, slot: u32, id: u64) -> bool {
+        let slot_index = slot as usize;
+        if slot_index < self.last_bind_ids.len() && self.last_bind_ids[slot_index] == Some(id) {
+            self.stats.bind_skip_count += 1;
+            return false;
+        }
+
         if slot_index < self.last_bind_ids.len() {
             self.last_bind_ids[slot_index] = Some(id);
         }
+        true
+    }
+
+    fn should_bind_geometry(&mut self, geometry_id: (u64, u64)) -> bool {
+        if self.last_geometry == Some(geometry_id) {
+            return false;
+        }
+        self.last_geometry = Some(geometry_id);
+        true
     }
 }
 
@@ -314,6 +329,64 @@ mod tests {
         replayer.invalidate_state_after_external_pipeline();
 
         assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, variant));
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_counts_pipeline_changes() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let base_variant = MeshPipelineVariantId::new(1);
+        let shadow_variant = MeshPipelineVariantId::new(2);
+
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, base_variant));
+        assert!(!replayer.should_set_pipeline(MeshPassPipelineKind::Base, base_variant));
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::ShadowDepth, shadow_variant));
+
+        assert_eq!(replayer.stats().draw_call_count, 0);
+        assert_eq!(replayer.stats().state_change_count, 2);
+        assert_eq!(replayer.stats().bind_skip_count, 0);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_skips_redundant_tracked_bind_groups() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+
+        assert!(replayer.should_bind_raw_group(2, 10));
+        assert!(!replayer.should_bind_raw_group(2, 10));
+        assert!(replayer.should_bind_raw_group(2, 11));
+        assert!(replayer.should_bind_raw_group(6, 10));
+        assert!(replayer.should_bind_raw_group(6, 10));
+
+        assert_eq!(replayer.stats().bind_skip_count, 1);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_resets_bind_tracking_on_pipeline_change() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let base_variant = MeshPipelineVariantId::new(1);
+        let shadow_variant = MeshPipelineVariantId::new(2);
+
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, base_variant));
+        assert!(replayer.should_bind_raw_group(2, 10));
+        assert!(!replayer.should_bind_raw_group(2, 10));
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::ShadowDepth, shadow_variant));
+        assert!(replayer.should_bind_raw_group(2, 10));
+
+        assert_eq!(replayer.stats().state_change_count, 2);
+        assert_eq!(replayer.stats().bind_skip_count, 1);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_skips_redundant_geometry_until_pipeline_changes() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let base_variant = MeshPipelineVariantId::new(1);
+        let shadow_variant = MeshPipelineVariantId::new(2);
+
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, base_variant));
+        assert!(replayer.should_bind_geometry((10, 20)));
+        assert!(!replayer.should_bind_geometry((10, 20)));
+        assert!(replayer.should_bind_geometry((10, 21)));
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::ShadowDepth, shadow_variant));
+        assert!(replayer.should_bind_geometry((10, 21)));
     }
 
     #[test]

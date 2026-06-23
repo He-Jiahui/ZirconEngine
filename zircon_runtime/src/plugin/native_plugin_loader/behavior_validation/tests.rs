@@ -6,6 +6,7 @@ use super::super::abi_declarations::{
 use super::super::behavior_calls::NativePluginBehavior;
 use super::schema::{
     ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3, ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3,
+    ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
 };
 use super::{NativePluginBehaviorHealth, NativePluginBehaviorValidationReport};
 
@@ -19,6 +20,7 @@ fn clean_v3_stateful_behavior_reports_no_diagnostics() {
     assert_eq!(report.state_schema_version, Some(3));
     assert!(report.has_command_manifest);
     assert!(report.has_event_manifest);
+    assert!(report.has_registration_manifest);
     assert!(report.has_invoke_command);
     assert!(report.has_save_state);
     assert!(report.has_restore_state);
@@ -32,8 +34,10 @@ fn stateless_editor_behavior_may_omit_state_callbacks() {
         state_schema_version: 0,
         command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3.to_string()),
         event_manifest_schema: Some(ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3.to_string()),
+        registration_manifest_schema: None,
         command_manifest: Some("command=open;payload=bytes".to_string()),
         event_manifest: Some("event=opened".to_string()),
+        registration_manifest: None,
         invoke_command: Some(noop_invoke_command),
         save_state: None,
         restore_state: None,
@@ -72,6 +76,20 @@ fn malformed_event_schema_marks_behavior_invalid() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("event_manifest_schema is unsupported")));
+}
+
+#[test]
+fn malformed_registration_schema_marks_behavior_invalid() {
+    let report = validate(NativePluginBehavior {
+        registration_manifest_schema: Some("zircon.native.registration-manifest/99".to_string()),
+        ..runtime_behavior()
+    });
+
+    assert_eq!(report.health, NativePluginBehaviorHealth::Invalid);
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("registration_manifest_schema is unsupported")));
 }
 
 #[test]
@@ -169,8 +187,14 @@ fn runtime_behavior() -> NativePluginBehavior {
         state_schema_version: 3,
         command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3.to_string()),
         event_manifest_schema: Some(ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3.to_string()),
+        registration_manifest_schema: Some(
+            ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3.to_string(),
+        ),
         command_manifest: Some("command=echo;payload=bytes".to_string()),
         event_manifest: Some("event=echoed;payload=bytes".to_string()),
+        registration_manifest: Some(
+            "schema = \"zircon.native.registration-manifest/3\"".to_string(),
+        ),
         invoke_command: Some(noop_invoke_command),
         save_state: Some(noop_save_state),
         restore_state: Some(noop_restore_state),

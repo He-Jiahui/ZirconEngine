@@ -6,4 +6,5 @@ license.workspace = true
 description = "Texture asset importer runtime plugin package for Zircon."
 
 [dependencies]
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { path = "../../../../zircon_runtime", default-features = false }

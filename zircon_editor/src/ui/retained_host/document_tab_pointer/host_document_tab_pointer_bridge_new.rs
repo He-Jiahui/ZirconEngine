@@ -13,7 +13,7 @@ impl HostDocumentTabPointerBridge {
             measured_frames: Default::default(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.document_tab.pointer")),
             dispatcher: UiPointerDispatcher::default(),
-            targets: Default::default(),
+            route_intents: Default::default(),
         };
         bridge.rebuild_surface();
         bridge

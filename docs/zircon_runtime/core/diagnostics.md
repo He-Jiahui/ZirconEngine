@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
@@ -79,6 +80,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
@@ -142,6 +144,7 @@ plan_sources:
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render
   - user: 2026-06-17 bind HZB executor-owned external buffers for render plan 01
   - user: 2026-05-16 continue Bevy-style runtime Time diagnostics integration
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
   - docs/zircon_runtime/graphics/render-product-submit.md
@@ -159,6 +162,7 @@ tests:
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::history_copy_report_counts_copied_slots_from_slot_flags
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_conversion_writeback_marker
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_render_stats_graph_execution_resources_are_child_owner
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_readiness
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
@@ -272,6 +276,8 @@ Transient allocation byte diagnostics are planning evidence, not allocator owner
 Compiled graph cache diagnostics are submission compile evidence, not GPU execution evidence. `CompiledGraphCache` lives on `RenderFrameworkState`; `compile_submission_pipeline(...)` records hit, miss, eviction, and live-entry counts while reusing `Arc<CompiledRenderPipeline>` for stable pipeline revision/options/capability/frame fingerprints. The cache lookup also reports per-call hit/miss status internally so debug builds can re-check `extract_compile_fingerprint(...)` on hit without adding another diagnostic row. `update_base_stats(...)` copies the aggregate counters into `RenderStats.last_graph_compiled_cache_*`, and `DiagnosticStore` mirrors them as `render.graph.compiled_cache.hit_count`, `miss_count`, `eviction_count`, and `entry_count`.
 
 Graph execution resource diagnostics are binding-count evidence, not renderer object exposure. `RenderGraphExecutionResources::resource_report()` counts texture views, external texture views, renderer-owned dense transient textures, buffers, and total bound resources after frame target import, optional history import, and transient materialization. `RenderGraphExecutionRecord` carries that neutral `RenderGraphExecutionResourceReport` into `RenderStats.last_graph_execution_resource_report`, and `DiagnosticStore` mirrors it as `render.graph.execution.texture_view_count`, `external_texture_view_count`, `owned_texture_count`, `buffer_count`, and `bound_resource_count`. These rows prove the frame registry had concrete bindings available for graph executors; they do not expose WGPU handles, allocator residency, sparse page tables, or pass timing.
+
+Runtime 15 M4 core runtime render-stats graph execution-resources owner split is recorded as `runtime_15_render_stats_graph_execution_resources_owner_split_static_passed_cargo_timeout_no_result`. `core/runtime/diagnostics/render_stats_store/graph.rs` remains the graph diagnostics dispatcher and keeps coverage, stage, materialization, alias, profile, and post-process graph rows, while `core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs` now owns the execution resource binding-count rows plus transient-pool creation/reuse/retained/budget/eviction rows. The structure guard `runtime_15_render_stats_graph_execution_resources_are_child_owner` keeps those resource rows out of the parent and keeps both owners under the 800-line production-file budget.
 
 Graph materialization diagnostics are live-lifetime completeness evidence. `RenderGraphExecutionResources::validate_materialized_graph_resources(...)` compares compiled graph lifetimes against the execution resource table after transient materialization and before executor dispatch. Typed texture and buffer misses are hard execution errors; sparse texture reservations are counted without dense backing; external lifetimes are counted as required/bound/missing report rows and carry a `RenderGraphExternalResourceBinding` that decides whether a miss is report-only or fatal. Required external misses fail the submit before diagnostics publish a successful-frame row, while report-only externals continue to expose imported frame-target/history evidence without making those resources mandatory. The same audit rejects logical texture or buffer bindings already present in the execution table when their names are absent from the compiled live lifetime set, so culled frame/history/plugin/fallback resources cannot survive as stale pre-bound rows. HZB occlusion now binds its required executor-owned external buffers before this audit, so its phase-local indirect/compaction/replay/stats names can contribute bound external evidence instead of only missing rows. `RenderStats.last_graph_materialization_report` mirrors required, bound, missing, missing typed, texture, buffer, external, stale binding, and sparse reservation counts under `render.graph.materialization.*` when validation succeeds.
 

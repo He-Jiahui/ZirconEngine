@@ -1,6 +1,6 @@
 use crate::{
-    plugin_registration, NET_AUTHORING_VIEW_ID, NET_DIAGNOSTICS_VIEW_ID, NET_DRAWER_ID,
-    NET_LISTENER_CONFIG_OPERATION, NET_REPLICATION_SCHEMA_ASSET_KIND,
+    plugin_registration, NET_AUTHORING_CAPABILITY, NET_AUTHORING_VIEW_ID, NET_DIAGNOSTICS_VIEW_ID,
+    NET_DRAWER_ID, NET_LISTENER_CONFIG_OPERATION, NET_REPLICATION_SCHEMA_ASSET_KIND,
     NET_REPLICATION_SCHEMA_CREATE_OPERATION, NET_REPLICATION_SCHEMA_PALETTE_ID,
     NET_REPLICATION_SCHEMA_TEMPLATE_ID, NET_ROUTE_CONFIG_OPERATION, NET_TEMPLATE_ID,
 };
@@ -12,7 +12,7 @@ fn net_editor_plugin_contributes_authoring_extensions() {
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
     assert!(registration
         .capabilities
-        .contains(&"editor.extension.net_authoring".to_string()));
+        .contains(&NET_AUTHORING_CAPABILITY.to_string()));
     assert!(registration
         .extensions
         .views()

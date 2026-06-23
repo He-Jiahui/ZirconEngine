@@ -2,8 +2,13 @@ pub const PLUGIN_ID: &str = "rendering";
 pub const RENDERING_MODULE_NAME: &str = "RenderingPluginModule";
 
 mod capability;
+mod plugin;
 
 pub use capability::{RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
+pub use plugin::{
+    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
+    runtime_plugin_descriptor, RenderingRuntimePlugin,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderingFeatureKind {
@@ -87,58 +92,11 @@ impl RenderingFeatureKind {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct RenderingRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
-}
-
-impl RenderingRuntimePlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: runtime_plugin_descriptor(),
-        }
-    }
-}
-
-impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
-        &self.descriptor
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
-}
-
 pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
     zircon_runtime::core::ModuleDescriptor::new(
         RENDERING_MODULE_NAME,
         "Rendering umbrella plugin and feature owner",
     )
-}
-
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    let mut builder = zircon_runtime::plugin::RuntimePluginDescriptor::builder(
-        PLUGIN_ID,
-        "Rendering",
-        zircon_runtime::builtin::RuntimePluginId::Rendering,
-        "zircon_plugin_rendering_runtime",
-    )
-    .with_category("rendering")
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
-    .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
-    ])
-    .with_capability(RENDERING_RUNTIME_CAPABILITY);
-
-    for feature in RENDERING_FEATURES {
-        builder = builder.with_optional_feature(feature_manifest(*feature));
-    }
-    builder.build()
 }
 
 pub fn feature_manifest(
@@ -190,12 +148,6 @@ pub fn feature_manifest(
     }
 
     manifest
-}
-
-zircon_plugin_sdk::runtime_plugin_exports!(RenderingRuntimePlugin);
-
-pub fn runtime_capabilities() -> &'static [&'static str] {
-    RUNTIME_CAPABILITIES
 }
 
 #[cfg(test)]

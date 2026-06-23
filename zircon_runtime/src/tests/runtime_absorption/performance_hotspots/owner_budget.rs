@@ -160,8 +160,23 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
         "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_anchor_inventory.py"
     );
     let performance_guard = include_str!("../performance_hotspots.rs");
+    let artifact_render_diagnostics_guard = include_str!("artifact_render_diagnostics_splits.rs");
+    let hotspot_inventory_guard = include_str!("hotspot_inventory.rs");
     let owner_budget_guard = include_str!("owner_budget.rs");
+    let scene_project_splits_guard = include_str!("scene_project_splits.rs");
+    let submit_context_guard = include_str!("submit_context.rs");
+    let submit_error_paths_guard = include_str!("submit_error_paths.rs");
     let cargo_gate_guard = include_str!("../plan_status/cargo_gates/early.rs");
+    let performance_guard_sources = [
+        performance_guard,
+        artifact_render_diagnostics_guard,
+        hotspot_inventory_guard,
+        owner_budget_guard,
+        scene_project_splits_guard,
+        submit_context_guard,
+        submit_error_paths_guard,
+        cargo_gate_guard,
+    ];
 
     for guard_anchor in [
         "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
@@ -176,16 +191,16 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
         "AnimationSceneFrameDiagnostics",
     ] {
         assert!(
-            performance_guard.contains(guard_anchor)
-                || owner_budget_guard.contains(guard_anchor)
-                || cargo_gate_guard.contains(guard_anchor),
+            performance_guard_sources
+                .iter()
+                .any(|source| source.contains(guard_anchor)),
             "Runtime 07 guard anchor `{guard_anchor}` should stay visible to performance_hotpath_boundary"
         );
     }
 
     for source_inventory_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 46",
-        "EXPECTED_TEST_FILE_COUNT = 6",
+        "EXPECTED_TEST_FILE_COUNT = 11",
     ] {
         assert!(
             audit_source_inventory.contains(source_inventory_anchor),
@@ -229,7 +244,7 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
         for expected_anchor in [
             "performance_hotpath_boundary",
             "expected_source_file_count = 46",
-            "expected_test_file_count = 6",
+            "expected_test_file_count = 11",
             "frame_span_anchor_count = 9",
             "query_counter_anchor_count = 32",
             "change_counter_anchor_count = 13",
@@ -260,6 +275,198 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
             );
         }
     }
+}
+
+#[test]
+fn runtime_15_runtime_07_performance_hotspots_guard_is_folder_backed() {
+    fn assert_contains_all(label: &str, source: &str, anchors: &[&str]) {
+        for anchor in anchors {
+            assert!(
+                source.contains(anchor),
+                "{label} should retain Runtime 15 performance-hotspot guard anchor `{anchor}`"
+            );
+        }
+    }
+
+    let parent = include_str!("../performance_hotspots.rs");
+    let artifact_render_diagnostics = include_str!("artifact_render_diagnostics_splits.rs");
+    let hotspot_inventory = include_str!("hotspot_inventory.rs");
+    let owner_budget = include_str!("owner_budget.rs");
+    let scene_project_splits = include_str!("scene_project_splits.rs");
+    let submit_context = include_str!("submit_context.rs");
+    let submit_error_paths = include_str!("submit_error_paths.rs");
+    let source_inventory = include_str!(
+        "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py"
+    );
+    let runtime_07_plan = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+    );
+    let runtime_15_plan = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    );
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings =
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention =
+        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let module_doc =
+        include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let hotspot_doc =
+        include_str!("../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
+    let status_rows =
+        include_str!("../plan_status/status_output_tables/expected_status_row_data.rs");
+    let status_slice =
+        include_str!("../plan_status/status_output_tables/expected_slices/status.rs");
+    let date_slice = include_str!("../plan_status/status_output_tables/expected_slices/date.rs");
+
+    assert_contains_all(
+        "performance_hotspots parent",
+        parent,
+        &[
+            "mod artifact_render_diagnostics_splits;",
+            "mod hotspot_inventory;",
+            "mod owner_budget;",
+            "mod scene_project_splits;",
+            "mod submit_context;",
+            "mod submit_error_paths;",
+        ],
+    );
+
+    for moved_guard in [
+        "fn runtime_07_submit_context_shares_large_extract_payloads",
+        "fn runtime_07_submit_paths_return_errors_for_checked_viewport_records",
+        "fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
+        "fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner",
+        "fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners",
+        "fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner",
+        "fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed",
+        "fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed",
+    ] {
+        assert!(
+            !parent.contains(moved_guard),
+            "performance_hotspots.rs should mount child owners instead of defining `{moved_guard}`"
+        );
+    }
+
+    assert_contains_all(
+        "submit context child",
+        submit_context,
+        &["fn runtime_07_submit_context_shares_large_extract_payloads"],
+    );
+    assert_contains_all(
+        "submit error paths child",
+        submit_error_paths,
+        &["fn runtime_07_submit_paths_return_errors_for_checked_viewport_records"],
+    );
+    assert_contains_all(
+        "hotspot inventory child",
+        hotspot_inventory,
+        &["fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2"],
+    );
+    assert_contains_all(
+        "scene/project split child",
+        scene_project_splits,
+        &[
+            "fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner",
+            "fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners",
+            "fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner",
+        ],
+    );
+    assert_contains_all(
+        "artifact/render diagnostics split child",
+        artifact_render_diagnostics,
+        &[
+            "fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed",
+            "fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed",
+        ],
+    );
+
+    for (path, source) in [
+        ("tests/runtime_absorption/performance_hotspots.rs", parent),
+        (
+            "tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits.rs",
+            artifact_render_diagnostics,
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/hotspot_inventory.rs",
+            hotspot_inventory,
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/owner_budget.rs",
+            owner_budget,
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/scene_project_splits.rs",
+            scene_project_splits,
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/submit_context.rs",
+            submit_context,
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/submit_error_paths.rs",
+            submit_error_paths,
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+
+    assert_contains_all(
+        "performance hotpath source inventory",
+        source_inventory,
+        &[
+            "EXPECTED_TEST_FILE_COUNT = 11",
+            "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context.rs",
+            "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory.rs",
+            "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits.rs",
+        ],
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("Runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("status-output row data", status_rows),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 Runtime 07 performance hotspot guard folder split",
+                "runtime_15_runtime_07_performance_hotspots_guard_folder_split_static_passed_cargo_timeout_no_result",
+                "tests/runtime_absorption/performance_hotspots.rs",
+                "tests/runtime_absorption/performance_hotspots/submit_context.rs",
+                "runtime_15_runtime_07_performance_hotspots_guard_is_folder_backed",
+            ],
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 07 plan", runtime_07_plan),
+        ("Runtime index", runtime_index),
+        ("hotspot inventory doc", hotspot_doc),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "expected_test_file_count = 11",
+                "performance_hotspots/{submit_context,hotspot_inventory,scene_project_splits,artifact_render_diagnostics_splits}.rs",
+            ],
+        );
+    }
+
+    assert_contains_all(
+        "status-output slices",
+        &format!("{status_slice}\n{date_slice}"),
+        &["runtime_15_runtime_07_performance_hotspots_guard_folder_split_static_passed_cargo_timeout_no_result", "2026-06-23"],
+    );
 }
 
 #[test]

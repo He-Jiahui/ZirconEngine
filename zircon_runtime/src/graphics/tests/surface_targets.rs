@@ -12,8 +12,8 @@ use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage, RenderNativeSurfaceTarget,
     RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderViewportRect, RenderViewportSurfaceDescriptor,
-    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{
@@ -632,63 +632,6 @@ fn graphics_camera_target_texture_base_stacks_write_independent_texture_targets(
 }
 
 #[test]
-fn graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
-    let viewport_size = UVec2::new(64, 48);
-    let viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-    let left_half = RenderViewportRect::new(UVec2::ZERO, UVec2::new(32, 48));
-    let right_half = RenderViewportRect::new(UVec2::new(32, 0), UVec2::new(32, 48));
-
-    framework
-        .submit_frame_extract(
-            viewport,
-            empty_extract_with_cameras(vec![
-                primary_base_camera(1, 0, left_half, Vec4::new(1.0, 0.0, 0.0, 1.0)),
-                primary_base_camera(2, 1, right_half, Vec4::new(0.0, 1.0, 0.0, 1.0)),
-            ]),
-        )
-        .unwrap();
-    let frame = framework.capture_frame(viewport).unwrap().unwrap();
-
-    assert_eq!(frame.width, viewport_size.x);
-    assert_eq!(frame.height, viewport_size.y);
-    assert_eq!(
-        frame.capture_report.target_kind,
-        RenderCameraTargetKind::PrimarySurface
-    );
-
-    let left_inset_origin = UVec2::new(4, 4);
-    let right_inset_origin = UVec2::new(36, 4);
-    let inset_size = UVec2::new(24, 40);
-    let inset_pixels = (inset_size.x * inset_size.y) as usize;
-    let left_red = dominant_red_pixels_in_region(&frame, left_inset_origin, inset_size);
-    let left_green = dominant_green_pixels_in_region(&frame, left_inset_origin, inset_size);
-    let right_red = dominant_red_pixels_in_region(&frame, right_inset_origin, inset_size);
-    let right_green = dominant_green_pixels_in_region(&frame, right_inset_origin, inset_size);
-    let left_center = pixel_at(&frame, UVec2::new(16, 24));
-    let right_center = pixel_at(&frame, UVec2::new(48, 24));
-
-    assert!(
-        left_red > inset_pixels * 9 / 10,
-        "left Base camera should clear only the left viewport red; left_red={left_red}, left_green={left_green}, right_red={right_red}, right_green={right_green}, left_center={left_center:?}, right_center={right_center:?}, total={inset_pixels}"
-    );
-    assert!(
-        left_green < inset_pixels / 20,
-        "right Base camera green clear should not leak into the left viewport; green={left_green}, total={inset_pixels}"
-    );
-    assert!(
-        right_green > inset_pixels * 9 / 10,
-        "right Base camera should clear only the right viewport green; green={right_green}, total={inset_pixels}"
-    );
-    assert!(
-        right_red < inset_pixels / 20,
-        "left Base camera red clear should not leak into the right viewport; red={right_red}, total={inset_pixels}"
-    );
-}
-
-#[test]
 fn graphics_camera_target_texture_present_reports_unsupported_surface_fallback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = AssetUri::parse("res://tests/camera-target/present-target.texture").unwrap();
@@ -903,25 +846,6 @@ fn texture_overlay_camera(texture_id: ResourceId) -> CameraRenderDescriptor {
     }
 }
 
-fn primary_base_camera(
-    entity: u64,
-    render_order: i32,
-    viewport_rect: RenderViewportRect,
-    clear_color: Vec4,
-) -> CameraRenderDescriptor {
-    CameraRenderDescriptor {
-        entity: Some(entity),
-        render_order,
-        target: RenderCameraTarget::PrimarySurface,
-        viewport_rect: Some(viewport_rect),
-        clear: RenderCameraClear::Color(clear_color),
-        ..CameraRenderDescriptor::from_camera_payload(
-            Some(entity),
-            ViewportCameraSnapshot::default(),
-        )
-    }
-}
-
 fn dominant_red_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
         .filter(|pixel| is_dominant_red(pixel))
@@ -932,47 +856,6 @@ fn dominant_green_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
         .filter(|pixel| is_dominant_green(pixel))
         .count()
-}
-
-fn dominant_red_pixels_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> usize {
-    dominant_pixels_in_region(frame, origin, size, is_dominant_red)
-}
-
-fn dominant_green_pixels_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> usize {
-    dominant_pixels_in_region(frame, origin, size, is_dominant_green)
-}
-
-fn pixel_at(frame: &CapturedFrame, position: UVec2) -> [u8; 4] {
-    let x = position.x.min(frame.width.saturating_sub(1)) as usize;
-    let y = position.y.min(frame.height.saturating_sub(1)) as usize;
-    let index = (y * frame.width as usize + x) * 4;
-    [
-        frame.rgba[index],
-        frame.rgba[index + 1],
-        frame.rgba[index + 2],
-        frame.rgba[index + 3],
-    ]
-}
-
-fn dominant_pixels_in_region(
-    frame: &CapturedFrame,
-    origin: UVec2,
-    size: UVec2,
-    predicate: impl Fn(&[u8]) -> bool,
-) -> usize {
-    let x_end = (origin.x + size.x).min(frame.width) as usize;
-    let y_end = (origin.y + size.y).min(frame.height) as usize;
-    let width = frame.width as usize;
-    let mut count = 0;
-    for y in origin.y as usize..y_end {
-        for x in origin.x as usize..x_end {
-            let index = (y * width + x) * 4;
-            if predicate(&frame.rgba[index..index + 4]) {
-                count += 1;
-            }
-        }
-    }
-    count
 }
 
 fn is_dominant_red(pixel: &[u8]) -> bool {

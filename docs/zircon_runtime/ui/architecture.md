@@ -16,8 +16,16 @@ related_code:
   - zircon_runtime/src/ui/layout/pass/layout_tree.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/layout/pass/arrange.rs
+  - zircon_runtime/src/ui/layout/pass/arrange/grid_masonry.rs
   - zircon_runtime/src/ui/layout/pass/responsive_mui.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/routing_diagnostics.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/arrangement.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/fallback_policy.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/grid_slots.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_taffy_layout_pass.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime/src/ui/tree/node/scroll.rs
   - zircon_runtime/src/ui/tests/scroll_virtualization.rs
@@ -35,7 +43,161 @@ related_code:
   - zircon_runtime/src/ui/surface/render
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - zircon_runtime/src/ui/v2/style.rs
+  - zircon_runtime/src/ui/v2/style/runtime_state.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/slot_contract.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs
+  - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/ui/template/asset/document/validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_v2_style.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_style_apply.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_document.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
+  - zircon_runtime/src/ui/accessibility/extract/state.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
+  - zircon_runtime/src/ui/tests/accessibility.rs
+  - zircon_runtime/src/ui/tests/accessibility/extraction.rs
+  - zircon_runtime/src/ui/tests/accessibility/naming_relations.rs
+  - zircon_runtime/src/ui/tests/accessibility/focus_diagnostics.rs
+  - zircon_runtime/src/ui/tests/accessibility/description_references.rs
+  - zircon_runtime/src/ui/tests/accessibility/activation_actions.rs
+  - zircon_runtime/src/ui/tests/accessibility/value_actions.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/event_routing/pointer_state.rs
+  - zircon_runtime/src/ui/tests/event_routing/component_events.rs
+  - zircon_runtime/src/ui/tests/event_routing/dispatch_effects.rs
+  - zircon_runtime/src/ui/tests/event_routing/shared_input.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_event_routing.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/rebuild_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/incremental_layout.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/render_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/mutation_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/material_layout.rs
+  - zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs
+  - zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs
+  - zircon_runtime/src/ui/tests/material_layout/field_values.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
+  - zircon_runtime/src/ui/v2/style.rs
+  - zircon_runtime/src/ui/v2/style/runtime_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_v2_style.rs
+  - zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs
+  - zircon_runtime/src/ui/tests/material_layout/constraints_children.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_material_layout.rs
+  - zircon_runtime/src/ui/tests/template.rs
+  - zircon_runtime/src/ui/tests/template/loader_instance_validation.rs
+  - zircon_runtime/src/ui/tests/template/interaction_bindings.rs
+  - zircon_runtime/src/ui/tests/template/surface_containers.rs
+  - zircon_runtime/src/ui/tests/template/slot_contracts.rs
+  - zircon_runtime/src/ui/tests/template/layout_compute.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/slot_contract.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
+  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs
+  - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/ui/template/asset/document/validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_style_apply.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_document.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_template.rs
+  - zircon_runtime/src/ui/tests/component_catalog.rs
+  - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
+  - zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs
+  - zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/retained_events.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/collection_mutation.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/reference_sources.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/interaction_numeric.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/action_selection.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/menu_navigation.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/text_inputs.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/numeric_controls.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state_keyboard.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/planned_layers.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/editor_components.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_surface_overlay.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x_runtime.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/folder_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_material_foundation.rs
+  - zircon_runtime/src/ui/tests/boundary.rs
+  - zircon_runtime/src/ui/tests/boundary/template_namespace.rs
+  - zircon_runtime/src/ui/tests/boundary/layout_tree_surface.rs
+  - zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs
+  - zircon_runtime/src/ui/tests/boundary/asset_fixture_projection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_boundary.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/arranged_authority.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_flex.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_wrap_grid.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/zircon_fallback.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_frame_authority.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/route_trace_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/semantic_actions.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/timers_disabled.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/directional.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/drag_reorder.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/virtualization.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/pointer_window_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/keyboard_gamepad_routes.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_event_abi.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/lifecycle.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/metrics_dirty.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_input_pump.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/basic_editing.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/selection_navigation.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/word_shortcuts.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/clipboard_newline.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/text_ime.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_widget_text_input_keyboard.rs
+  - zircon_runtime/src/ui/tests/focus_navigation.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/focus_state.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/property_mutation.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/tab_directional.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/modal_popup.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_focus_navigation.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/window_timer.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/route_order.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/route_matrix.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/touch_pointer.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/input_method.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/owner_validation.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/high_precision_dispatch.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/drag_drop.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/popup_tooltip.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/route_trace.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_ownership.rs
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/pipeline.rs
@@ -79,8 +241,135 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
+  - zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
+  - zircon_runtime/src/ui/accessibility/extract/state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
+  - zircon_runtime/src/ui/tests/accessibility.rs
+  - zircon_runtime/src/ui/tests/accessibility/extraction.rs
+  - zircon_runtime/src/ui/tests/accessibility/naming_relations.rs
+  - zircon_runtime/src/ui/tests/accessibility/focus_diagnostics.rs
+  - zircon_runtime/src/ui/tests/accessibility/description_references.rs
+  - zircon_runtime/src/ui/tests/accessibility/activation_actions.rs
+  - zircon_runtime/src/ui/tests/accessibility/value_actions.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/event_routing/pointer_state.rs
+  - zircon_runtime/src/ui/tests/event_routing/component_events.rs
+  - zircon_runtime/src/ui/tests/event_routing/dispatch_effects.rs
+  - zircon_runtime/src/ui/tests/event_routing/shared_input.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_event_routing.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/rebuild_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/incremental_layout.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/render_domains.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains/mutation_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/material_layout.rs
+  - zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs
+  - zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs
+  - zircon_runtime/src/ui/tests/material_layout/field_values.rs
+  - zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs
+  - zircon_runtime/src/ui/tests/material_layout/constraints_children.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_material_layout.rs
+  - zircon_runtime/src/ui/tests/template.rs
+  - zircon_runtime/src/ui/tests/template/loader_instance_validation.rs
+  - zircon_runtime/src/ui/tests/template/interaction_bindings.rs
+  - zircon_runtime/src/ui/tests/template/surface_containers.rs
+  - zircon_runtime/src/ui/tests/template/slot_contracts.rs
+  - zircon_runtime/src/ui/tests/template/layout_compute.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_template.rs
+  - zircon_runtime/src/ui/tests/component_catalog.rs
+  - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
+  - zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs
+  - zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/retained_events.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/collection_mutation.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/reference_sources.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/interaction_numeric.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/action_selection.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/menu_navigation.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/text_inputs.rs
+  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/numeric_controls.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state_keyboard.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/planned_layers.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/editor_components.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_surface_overlay.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x_runtime.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/folder_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_material_foundation.rs
+  - zircon_runtime/src/ui/tests/boundary.rs
+  - zircon_runtime/src/ui/tests/boundary/template_namespace.rs
+  - zircon_runtime/src/ui/tests/boundary/layout_tree_surface.rs
+  - zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs
+  - zircon_runtime/src/ui/tests/boundary/asset_fixture_projection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_boundary.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/arranged_authority.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_flex.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_wrap_grid.rs
+  - zircon_runtime/src/ui/tests/surface_frame_authority/zircon_fallback.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_frame_authority.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/route_trace_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/semantic_actions.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/timers_disabled.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/directional.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/drag_reorder.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/virtualization.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/pointer_window_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/keyboard_gamepad_routes.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_event_abi.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/lifecycle.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_window_input_pump/metrics_dirty.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_input_pump.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/basic_editing.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/selection_navigation.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/word_shortcuts.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/clipboard_newline.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_keyboard/text_ime.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_widget_text_input_keyboard.rs
+  - zircon_runtime/src/ui/tests/focus_navigation.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/focus_state.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/property_mutation.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/tab_directional.rs
+  - zircon_runtime/src/ui/tests/focus_navigation/modal_popup.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_focus_navigation.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/window_timer.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/route_order.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/route_matrix.rs
+  - zircon_runtime/src/ui/tests/runtime_input_manager/touch_pointer.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/input_method.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/owner_validation.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/high_precision_dispatch.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/drag_drop.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/popup_tooltip.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership/route_trace.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_ownership.rs
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/scroll.rs
@@ -89,8 +378,16 @@ implementation_files:
   - zircon_runtime/src/ui/layout/pass/layout_tree.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/layout/pass/arrange.rs
+  - zircon_runtime/src/ui/layout/pass/arrange/grid_masonry.rs
   - zircon_runtime/src/ui/layout/pass/responsive_mui.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/routing_diagnostics.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/arrangement.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/fallback_policy.rs
+  - zircon_runtime/src/ui/tests/taffy_layout_pass/grid_slots.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_taffy_layout_pass.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
@@ -137,6 +434,16 @@ tests:
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_property_visibility_flag_rename_reduces_ui_surface_debt
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_responsive_mui_visibility_flag_rename_reduces_ui_layout_debt
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt
+  - zircon_runtime::tests::runtime_absorption::structure_convention::production_file_budget::ui_accessibility_extract::runtime_15_ui_accessibility_extract_state_is_child_owner
+  - zircon_runtime::tests::runtime_absorption::structure_convention::production_file_budget::ui_component_catalog_editor_showcase::runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_accessibility::runtime_15_ui_accessibility_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_event_routing::runtime_15_ui_event_routing_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_surface_dirty_domains::runtime_15_ui_surface_dirty_domains_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_material_layout::runtime_15_ui_material_layout_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_template::runtime_15_ui_template_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_surface_frame_authority::runtime_15_ui_surface_frame_authority_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_runtime_input_reply_routes::runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::ui_runtime_input_reply_routes::runtime_15_ui_runtime_input_reply_route_children_are_folder_backed
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_layout_engine_backend_name_cutover_reduces_ui_layout_debt
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_debt
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_taffy_layout_pass_order_uses_bridge_authority
@@ -221,7 +528,7 @@ Runtime 10 M2.1 removes the remaining runtime-local UI contract duplicates inste
 
 No M0 blocker-level owner inversion was found in the scanned module graph. The remaining work is not "unknown ownership"; it is explicit cleanup of debt-bearing areas:
 
-1. UI legacy naming and migration terms: production UI source now contains no `legacy` scan hits after Runtime 09 M1.2 cutovers. `runtime_09_m1_2_navigation_legacy_reply_renamed_static_passed_cargo_pending` removed the navigation reply variable from this bucket by renaming the local route reply to `routed_reply`; `runtime_09_m1_2_pointer_legacy_reply_renamed_static_passed_cargo_pending` removed the pointer reply local naming debt by using `routed_result`; `runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending` removed the pointer capture fallback API wording debt by using `has_pointer_capture_or_unindexed_fallback_for_owner`; `runtime_09_m1_2_table_row_label_fallback_renamed_static_passed_cargo_pending` removed the render table row-label fallback wording debt by using `split_row_label_table_text`; `runtime_09_m1_2_template_component_name_fallback_renamed_static_passed_cargo_pending` removed the template interaction inference wording debt by using `component_name_interaction_fallback`; `runtime_09_m1_2_property_visibility_flag_renamed_static_passed_cargo_pending` removed the property mutation visibility-transition wording debt by using `state_visible_flag`; `runtime_09_m1_2_responsive_mui_visibility_flag_renamed_static_passed_cargo_pending` removed the responsive MUI visibility DTO wording debt by using the same `state_visible_flag` semantic name; `runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pending` removed the accessibility open-state fallback wording debt by using `fallback_properties`; `runtime_09_m1_2_layout_engine_backend_name_cutover_static_passed_cargo_pending` removed the layout-engine public backend wording debt by hard-cutting to `UiLayoutEngineBackend::Zircon`, `UiLayoutEngineCapability::zircon()`, and `zircon_selected_count`; `runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending` removed the final surface default interaction fallback wording debt by using `fallback_properties` in `default_open_boolean_value(...)`.
+1. UI legacy naming and migration terms: production UI source now contains no `legacy` scan hits after Runtime 09 M1.2 cutovers. `runtime_09_m1_2_navigation_legacy_reply_renamed_static_passed_cargo_pending` removed the navigation reply variable from this bucket by renaming the local route reply to `routed_reply`; `runtime_09_m1_2_pointer_legacy_reply_renamed_static_passed_cargo_pending` removed the pointer reply local naming debt by using `routed_result`; `runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending` removed the pointer capture fallback API wording debt, and Editor UI 01.M4.S1 now requires indexed ownership through `has_pointer_capture_for_owner`; `runtime_09_m1_2_table_row_label_fallback_renamed_static_passed_cargo_pending` removed the render table row-label fallback wording debt by using `split_row_label_table_text`; `runtime_09_m1_2_template_component_name_fallback_renamed_static_passed_cargo_pending` removed the template interaction inference wording debt by using `component_name_interaction_fallback`; `runtime_09_m1_2_property_visibility_flag_renamed_static_passed_cargo_pending` removed the property mutation visibility-transition wording debt by using `state_visible_flag`; `runtime_09_m1_2_responsive_mui_visibility_flag_renamed_static_passed_cargo_pending` removed the responsive MUI visibility DTO wording debt by using the same `state_visible_flag` semantic name; `runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pending` removed the accessibility open-state fallback wording debt by using `fallback_properties`; `runtime_09_m1_2_layout_engine_backend_name_cutover_static_passed_cargo_pending` removed the layout-engine public backend wording debt by hard-cutting to `UiLayoutEngineBackend::Zircon`, `UiLayoutEngineCapability::zircon()`, and `zircon_selected_count`; `runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending` removed the final surface default interaction fallback wording debt by using `fallback_properties` in `default_open_boolean_value(...)`.
 2. Taffy backend exposure: 9 production files currently mention `taffy`. `runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending` hardens the intended owner shape: `taffy_bridge/compute.rs` owns Taffy tree construction and `compute_layout`, `pass/taffy_arrange.rs` owns eligibility/fallback/recursive arrange only, and `style_mapping.rs` remains `runtime_09_m2_1_style_mapping_remains_taffy_dto_adapter`.
 3. Virtualization and scroll cache invalidation: `runtime_09_m2_2_virtualization_scroll_boundary_static_passed_cargo_pending` records `UiScrollVirtualizationPlan` as the layout-owned authority for scroll offset, viewport/content extent, and visible-range invalidation. Tree scrolling and layout arrange consume that planner; render, hit grid, and editor code do not compute virtual windows.
 4. Template generation and migration: `runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending` records `UiTemplateRuntimePipeline`, `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES`, `UiTemplateRuntimePipelineError`, template failure-path anchors, and the binary DTO generated policy. Old recursive template paths still coexist with v2 runtime paths as migration/test surfaces.
@@ -258,11 +565,11 @@ The direct pointer route helpers now name the dispatch result as `routed_result`
 
 `runtime_09_pointer_legacy_reply_rename_reduces_ui_input_debt` keeps both files from reintroducing `legacy` wording while the remaining Runtime 09 M1.2 legacy bucket is handled file by file.
 
-## M1.2 Pointer Capture Fallback Naming
+## M1.2 Pointer Capture Naming
 
 runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending
 
-The high-precision pointer effect path now calls `has_pointer_capture_or_unindexed_fallback_for_owner` in `surface/input/effect/focus_pointer.rs`, backed by `surface/input/state/pointer_capture.rs`. The behavior is unchanged: indexed pointer captures are preferred, and the unindexed fallback marker remains available for older single-pointer capture state while `surface.focus.captured` still identifies the owner.
+The high-precision pointer effect path now calls `has_pointer_capture_for_owner` in `surface/input/effect/focus_pointer.rs`, backed by the per-pointer capture map in `surface/input/state/pointer_capture.rs`. Editor UI 01.M4.S1 removed the unindexed single-pointer fallback state, so high-precision pointer mode requires an explicit `UiPointerId -> UiNodeId` capture entry for the same owner while `surface.focus.captured` remains the focused capture owner snapshot.
 
 `runtime_09_pointer_capture_fallback_rename_reduces_ui_input_debt` keeps the old `has_legacy_or_indexed_pointer_capture_for_owner` wording from returning while the remaining Runtime 09 M1.2 legacy bucket is handled file by file.
 
@@ -305,6 +612,334 @@ runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pe
 The accessibility snapshot extractor now names the retained/component-state open-state compatibility list `fallback_properties` in `accessibility/extract.rs`. The behavior is unchanged: authored `open_property` remains authoritative, then the same component-state property is read, then retained/component-state alternatives `expanded`, `popup_open`, and `open` are checked before true runtime expanded/popup flags.
 
 `runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt` keeps the old `legacy_properties` and `legacy_property` helper wording from returning while the remaining Runtime 09 M1.2 legacy bucket is handled file by file.
+
+## Runtime 15 M3 UI accessibility test folder split
+
+runtime_15_ui_accessibility_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps the production accessibility owner unchanged in `ui/accessibility/extract.rs` and only splits the oversized test owner. `ui/tests/accessibility.rs` now owns shared fixtures, helper construction, and child module mounting; behavior tests live in `ui/tests/accessibility/extraction.rs`, `ui/tests/accessibility/naming_relations.rs`, `ui/tests/accessibility/focus_diagnostics.rs`, `ui/tests/accessibility/description_references.rs`, `ui/tests/accessibility/activation_actions.rs`, and `ui/tests/accessibility/value_actions.rs`.
+
+`runtime_15_ui_accessibility_tests_are_folder_backed` locks the parent/child layout, prevents representative extraction/value-action tests from moving back into the parent, preserves all 49 accessibility tests, and keeps every UI accessibility test owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI accessibility widget actions test folder split
+
+runtime_15_ui_accessibility_widget_actions_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production accessibility action dispatch unchanged and only splits the oversized widget-action test owner. `ui/tests/accessibility_widget_actions.rs` now owns shared surface fixtures, dispatch helpers, binding report assertions, and child module mounting; disclosure tests live in `ui/tests/accessibility_widget_actions/disclosure_actions.rs`, popup tests live in `ui/tests/accessibility_widget_actions/popup_actions.rs`, and tooltip/menu fallback tests live in `ui/tests/accessibility_widget_actions/tooltip_menu.rs`.
+
+`runtime_15_ui_accessibility_widget_actions_tests_are_folder_backed` locks the parent/child layout, prevents representative disclosure/popup/tooltip-menu tests from moving back into the parent, preserves all 11 accessibility widget-action tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI layout slots test folder split
+
+runtime_15_ui_layout_slots_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production slot layout unchanged and only splits the oversized layout-slot test owner. `ui/tests/layout_slots.rs` now owns shared constraints, pointer node fixtures, render/hit frame lookup helpers, and child module mounting; linear and free slot tests live in `ui/tests/layout_slots/linear_free.rs`, overlay and scroll surface-frame tests live in `ui/tests/layout_slots/overlay_scroll.rs`, and flow/grid/masonry tests live in `ui/tests/layout_slots/flow_grid_masonry.rs`.
+
+`runtime_15_ui_layout_slots_tests_are_folder_backed` locks the parent/child layout, prevents representative linear/free, overlay/scroll, and flow/grid/masonry tests from moving back into the parent, preserves all 10 layout-slot tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI surface-frame authority test folder split
+
+runtime_15_ui_surface_frame_authority_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production surface-frame authority unchanged and only splits the oversized surface-frame authority test owner. `ui/tests/surface_frame_authority.rs` now owns shared constants, surface/button/layout fixtures, Taffy/Grid/SizeBox construction helpers, and child module mounting; arranged/focus authority tests live in `ui/tests/surface_frame_authority/arranged_authority.rs`, Taffy flex tests live in `ui/tests/surface_frame_authority/taffy_flex.rs`, wrap/grid tests live in `ui/tests/surface_frame_authority/taffy_wrap_grid.rs`, and Zircon SizeBox fallback coverage lives in `ui/tests/surface_frame_authority/zircon_fallback.rs`.
+
+`runtime_15_ui_surface_frame_authority_tests_are_folder_backed` locks the parent/child layout, prevents representative arranged/focus, Taffy flex, wrap/grid, and Zircon fallback tests from moving back into the parent, preserves all 9 surface-frame authority tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI surface dirty domains test folder split
+
+runtime_15_ui_surface_dirty_domains_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production dirty-domain rebuild behavior unchanged and only splits the oversized dirty-domain test owner. `ui/tests/surface_dirty_domains.rs` now owns shared surface fixtures, dirty flag helpers, layout route assertions, keyboard event fixtures, fixed constraints, and child module mounting; rebuild phase tests live in `ui/tests/surface_dirty_domains/rebuild_domains.rs`, incremental layout route tests live in `ui/tests/surface_dirty_domains/incremental_layout.rs`, render-only invalidation tests live in `ui/tests/surface_dirty_domains/render_domains.rs`, and route state mutation tests live in `ui/tests/surface_dirty_domains/mutation_state.rs`.
+
+`runtime_15_ui_surface_dirty_domains_tests_are_folder_backed` locks the parent/child layout, prevents representative rebuild, incremental layout, render-only, and mutation/state tests from moving back into the parent, preserves all 13 dirty-domain tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI material layout test folder split
+
+runtime_15_ui_material_layout_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production Material measurement unchanged and only splits the oversized material-layout test owner. `ui/tests/material_layout.rs` now owns shared Material leaf measurement, render command, intrinsic constraint helpers, and child module mounting; button/icon tests live in `ui/tests/material_layout/button_icon_metrics.rs`, row/label tests live in `ui/tests/material_layout/row_label_metrics.rs`, field value tests live in `ui/tests/material_layout/field_values.rs`, asset/icon role tests live in `ui/tests/material_layout/asset_icon_roles.rs`, and authored constraint/child-content tests live in `ui/tests/material_layout/constraints_children.rs`.
+
+`runtime_15_ui_material_layout_tests_are_folder_backed` locks the parent/child layout, prevents representative button/icon, row/label, field value, asset/icon role, and constraints/children tests from moving back into the parent, preserves all 23 material-layout tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI template test folder split
+
+runtime_15_ui_template_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production template loading and surface projection unchanged and only splits the oversized template test owner. `ui/tests/template.rs` now owns shared template TOML fixtures, tree/root helpers, and child module mounting; loader/instance validation tests live in `ui/tests/template/loader_instance_validation.rs`, interaction binding tests live in `ui/tests/template/interaction_bindings.rs`, surface/container projection tests live in `ui/tests/template/surface_containers.rs`, slot contract tests live in `ui/tests/template/slot_contracts.rs`, and layout compute coverage lives in `ui/tests/template/layout_compute.rs`.
+
+`runtime_15_ui_template_tests_are_folder_backed` locks the parent/child layout, prevents representative loader, interaction, surface, slot, and layout compute tests from moving back into the parent, preserves all 22 template tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI component catalog test folder split
+
+runtime_15_ui_component_catalog_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production component descriptors and registry behavior unchanged and only splits the oversized component catalog test owner. `ui/tests/component_catalog.rs` now owns child module mounting plus shared descriptor, registry, schema, category, and drag-source helpers; V1 catalog inventory coverage lives in `ui/tests/component_catalog/catalog_inventory.rs`, descriptor tier/schema validation lives in `ui/tests/component_catalog/descriptor_contracts.rs`, and host-capability, palette view, and registry revision coverage lives in `ui/tests/component_catalog/registry_queries.rs`.
+
+`runtime_15_ui_component_catalog_tests_are_folder_backed` locks the parent/child layout, prevents representative catalog, descriptor, registry query, and revision tests from moving back into the parent, preserves all 7 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI boundary test folder split
+
+runtime_15_ui_boundary_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps the production UI namespace and asset fixture boundaries unchanged and only splits the oversized boundary test owner. `ui/tests/boundary.rs` now owns shared file-system and path helpers plus child module mounting; template namespace coverage lives in `ui/tests/boundary/template_namespace.rs`, layout/tree/surface/dispatch namespace coverage lives in `ui/tests/boundary/layout_tree_surface.rs`, binding/event/root structural coverage lives in `ui/tests/boundary/binding_event_roots.rs`, and runtime UI asset fixture plus v2 projection checks live in `ui/tests/boundary/asset_fixture_projection.rs`.
+
+`runtime_15_ui_boundary_tests_are_folder_backed` locks the parent/child layout, prevents representative template, layout, surface, binding, event, asset fixture, and v2 projection tests from moving back into the parent, preserves all 32 migrated parent tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI component state test folder split
+
+runtime_15_ui_component_catalog_component_state_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production component state mutation behavior unchanged and only splits the oversized component-state test parent. `ui/tests/component_catalog/component_state.rs` now owns only shared imports and child module mounting; retained number/dropdown/drop event tests live in `ui/tests/component_catalog/component_state/retained_events.rs`, array/map mutation tests live in `ui/tests/component_catalog/component_state/collection_mutation.rs`, reference source serialization and drop behavior live in `ui/tests/component_catalog/component_state/reference_sources.rs`, and transient interaction plus numeric/range clamp coverage lives in `ui/tests/component_catalog/component_state/interaction_numeric.rs`.
+
+`runtime_15_ui_component_catalog_component_state_tests_are_folder_backed` locks the parent/child layout, prevents representative retained, collection, reference source, interaction, and numeric tests from moving back into the parent, preserves all 18 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI component state keyboard test folder split
+
+runtime_15_ui_component_catalog_component_state_keyboard_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production keyboard component-state behavior unchanged and only splits the oversized keyboard test owner. `ui/tests/component_catalog/component_state/keyboard.rs` now owns only shared imports, `menu_option`, and child module mounting; action selection coverage lives in `ui/tests/component_catalog/component_state/keyboard/action_selection.rs`, menu/tree/table navigation and prefix typing coverage lives in `ui/tests/component_catalog/component_state/keyboard/menu_navigation.rs`, text-input edit coverage lives in `ui/tests/component_catalog/component_state/keyboard/text_inputs.rs`, and numeric/range control coverage lives in `ui/tests/component_catalog/component_state/keyboard/numeric_controls.rs`.
+
+`runtime_15_ui_component_catalog_component_state_keyboard_tests_are_folder_backed` locks the parent/child layout, prevents representative action, menu navigation, text input, and numeric/range tests from moving back into the parent, preserves all 14 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M4 UI component state-reducer keyboard menu submenu owner split
+
+runtime_15_ui_component_state_reducer_keyboard_menu_submenu_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps menu focus-control detection, keyboard text typeahead, search query/filter state, search option flattening, recursive filtering, and filtered option visibility in `ui/component/state_reducer/keyboard/menu.rs` while splitting submenu state transitions into `ui/component/state_reducer/keyboard/menu/submenu.rs`. The child owner now owns submenu focus-loop checks, hover-pending state, open/close state writes, active parent index updates, invalid submenu pruning, submenu target lookup, and submenu string state writes.
+
+`runtime_15_ui_component_state_reducer_keyboard_menu_submenu_is_child_owner` locks the parent/child layout, prevents submenu constants and state-machine helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M4 UI component state-reducer tree view editing owner split
+
+runtime_15_ui_component_state_reducer_tree_view_editing_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps tree-view identity, keyboard expand/collapse, toggle expanded, select option, multi/single selection, range selection, ordered/expanded/selected node id helpers, and disabled-option checks in `ui/component/state_reducer/tree_view.rs` while splitting rename/editing state transitions into `ui/component/state_reducer/tree_view/editing.rs`. The child owner now owns begin/cancel/commit rename, editing property fallback, editing state clearing, rename payload writes, tree node label lookup, and edit text validation.
+
+`runtime_15_ui_component_state_reducer_tree_view_editing_is_child_owner` locks the parent/child layout, prevents editing constants and rename state-machine helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M3 UI Material foundation test folder split
+
+runtime_15_ui_component_catalog_material_foundation_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production Material component descriptors unchanged and only splits the oversized Material foundation test parent. `ui/tests/component_catalog/material_foundation/mod.rs` now owns only Material foundation module mounting plus shared schema helpers; planned catalog inventory and common MUI customization checks live in `ui/tests/component_catalog/material_foundation/planned_layers.rs`, editor descriptor contract checks live in `ui/tests/component_catalog/material_foundation/editor_components.rs`, MUI surface/overlay/feedback checks live in `ui/tests/component_catalog/material_foundation/mui_surface_overlay.rs`, MUI X/runtime visibility checks live in `ui/tests/component_catalog/material_foundation/mui_x_runtime.rs`, and the existing catalog folder-shape guard lives in `ui/tests/component_catalog/material_foundation/folder_structure.rs`.
+
+`runtime_15_ui_component_catalog_material_foundation_tests_are_folder_backed` locks the parent/child layout, prevents representative planned-layer, editor, surface/overlay, MUI X, and folder-structure tests from moving back into the parent, preserves the split Material foundation coverage, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI asset test folder split
+
+runtime_15_ui_asset_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production UI asset loading, migration, and component schema compilation unchanged and only splits the oversized `ui/tests/asset.rs` parent. The parent now owns shared imported widget/style/layout fixtures and child module mounting; stable stylesheet/rule id coverage lives in `ui/tests/asset/style_rule_ids.rs`; style write API and reorder coverage lives in `ui/tests/asset/style_write_apis.rs`; loader validation coverage lives in `ui/tests/asset/loader_validation.rs`; imported widget/reference compiler coverage lives in `ui/tests/asset/document_compiler.rs`; source/flat fixture migration coverage lives in `ui/tests/asset/fixture_migration.rs`; and runtime component schema coverage lives in `ui/tests/asset/component_schema.rs`.
+
+`runtime_15_ui_asset_tests_are_folder_backed` locks the parent/child layout, prevents representative style id/write API, loader validation, document compiler, fixture migration, and component schema tests from moving back into the parent, preserves all 32 moved tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI asset MUI X web style test folder split
+
+runtime_15_ui_asset_mui_web_mui_x_style_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production MUI X style loading and retained template compilation unchanged and only splits the oversized MUI X asset-style test parent. `ui/tests/asset_mui_web_mui_x_style.rs` now owns the shared MUI X style/layout fixture, module mounting, and find/attr/class helpers; DataGrid coverage lives in `ui/tests/asset_mui_web_mui_x_style/data_grid.rs`; TreeView coverage lives in `ui/tests/asset_mui_web_mui_x_style/tree_view.rs`; Date/Time Picker coverage lives in `ui/tests/asset_mui_web_mui_x_style/date_time_pickers.rs`; chart and gauge coverage lives in `ui/tests/asset_mui_web_mui_x_style/charts.rs`; and Agent Chat coverage lives in `ui/tests/asset_mui_web_mui_x_style/agent_chat.rs`.
+
+`runtime_15_ui_asset_mui_web_mui_x_style_tests_are_folder_backed` locks the parent/child layout, prevents representative DataGrid, TreeView, picker, chart/gauge, and Agent Chat tests from moving back into the parent, preserves the split component-family coverage, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI asset MUI web style test folder split
+
+runtime_15_ui_asset_mui_web_style_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production MUI web style loading and compilation unchanged and only splits the oversized asset-style test parent. `ui/tests/asset_mui_web_style.rs` now owns the shared MUI web style TOML fixture, module mounting, and common attr/class assertion helpers; state, sx, readonly, and icon utility coverage lives in `ui/tests/asset_mui_web_style/state_icons.rs`; slot props and native customization alias coverage lives in `ui/tests/asset_mui_web_style/slots_native.rs`; Alert/Snackbar/Skeleton coverage lives in `ui/tests/asset_mui_web_style/feedback.rs`; Paper/Card/AppBar coverage lives in `ui/tests/asset_mui_web_style/surface.rs`; and data-display selector coverage lives in `ui/tests/asset_mui_web_style/data_display.rs`.
+
+`runtime_15_ui_asset_mui_web_style_tests_are_folder_backed` locks the parent/child layout, prevents representative state/icon, slot/native, feedback, surface, and data-display tests from moving back into the parent, preserves all 9 moved tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI taffy layout pass test folder split
+
+runtime_15_ui_taffy_layout_pass_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production Taffy layout bridge and UI layout pass behavior unchanged and only splits the oversized `ui/tests/taffy_layout_pass.rs` parent. The parent now owns shared layout/tree helpers, template metadata helpers, fallback assertion helpers, and child module mounting; route-report and fallback reason aggregation coverage lives in `ui/tests/taffy_layout_pass/routing_diagnostics.rs`; native linear/wrap/grid arrangement plus template measurement coverage lives in `ui/tests/taffy_layout_pass/arrangement.rs`; linear and wrap slot padding/sizing coverage lives in `ui/tests/taffy_layout_pass/linear_slots.rs`; unsupported policy and Zircon fallback coverage lives in `ui/tests/taffy_layout_pass/fallback_policy.rs`; and grid slot placement/span/alignment coverage lives in `ui/tests/taffy_layout_pass/grid_slots.rs`.
+
+`runtime_15_ui_taffy_layout_pass_tests_are_folder_backed` locks the parent/child layout, prevents representative routing, arrangement, linear-slot, fallback-policy, and grid-slot tests from moving back into the parent, preserves all 35 moved tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI runtime window input pump test folder split
+
+runtime_15_ui_runtime_window_input_pump_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production window input pump behavior unchanged and only splits the oversized runtime window input pump test owner. `ui/tests/runtime_window_input_pump.rs` now owns shared surface fixtures, dispatch helpers, window metadata helpers, popup/tooltip helpers, and child module mounting; lifecycle coverage lives in `ui/tests/runtime_window_input_pump/lifecycle.rs`, pointer hover/cancel/touch coverage lives in `ui/tests/runtime_window_input_pump/pointer_routes.rs`, and metrics plus dirty-domain coverage lives in `ui/tests/runtime_window_input_pump/metrics_dirty.rs`.
+
+`runtime_15_ui_runtime_window_input_pump_tests_are_folder_backed` locks the parent/child layout, prevents representative lifecycle, pointer route, and metrics/dirty-domain tests from moving back into the parent, preserves all 14 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI runtime window event ABI child folder split
+
+runtime_15_ui_runtime_window_event_abi_children_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production runtime window event ABI routing unchanged and only splits the oversized ABI test child owner. `ui/tests/runtime_ui_window_event_routes/abi.rs` now owns only child module mounting; runtime event batch and adapter error coverage lives in `ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs`, pointer/wheel/hover/cursor/touch route coverage lives in `ui/tests/runtime_ui_window_event_routes/abi/pointer_window_routes.rs`, and keyboard/gamepad route coverage lives in `ui/tests/runtime_ui_window_event_routes/abi/keyboard_gamepad_routes.rs`.
+
+`runtime_15_ui_runtime_window_event_abi_children_are_folder_backed` locks the parent/child layout, prevents representative batch/adapter, pointer/window, and keyboard/gamepad tests from moving back into the parent, preserves all 13 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI widget text input keyboard test folder split
+
+runtime_15_ui_widget_text_input_keyboard_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production text input dispatch, selection, clipboard, newline, and IME behavior unchanged and only splits the oversized keyboard text-input test owner. `ui/tests/widget_text_input_keyboard.rs` now owns shared dispatch/text/IME/surface fixtures plus child module mounting; basic edit, read-only, grapheme, and delete coverage lives in `ui/tests/widget_text_input_keyboard/basic_editing.rs`; caret movement and selection navigation coverage lives in `ui/tests/widget_text_input_keyboard/selection_navigation.rs`; word movement/deletion/select-all and escape coverage lives in `ui/tests/widget_text_input_keyboard/word_shortcuts.rs`; clipboard plus newline coverage lives in `ui/tests/widget_text_input_keyboard/clipboard_newline.rs`; and text/IME composition coverage lives in `ui/tests/widget_text_input_keyboard/text_ime.rs`.
+
+`runtime_15_ui_widget_text_input_keyboard_tests_are_folder_backed` locks the parent/child layout, prevents representative basic editing, selection/navigation, word shortcut, clipboard/newline, and text/IME tests from moving back into the parent, preserves all 52 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI focus navigation test folder split
+
+runtime_15_ui_focus_navigation_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production focus, navigation, modal, popup, text, and IME routing behavior unchanged and only splits the oversized focus-navigation test owner. `ui/tests/focus_navigation.rs` now owns shared focus/modal/popup/navigation fixtures plus child module mounting; focus state and focused input route coverage lives in `ui/tests/focus_navigation/focus_state.rs`; focusable contract and property mutation coverage lives in `ui/tests/focus_navigation/property_mutation.rs`; tab and directional navigation coverage lives in `ui/tests/focus_navigation/tab_directional.rs`; and modal/popup focus trap coverage lives in `ui/tests/focus_navigation/modal_popup.rs`.
+
+`runtime_15_ui_focus_navigation_tests_are_folder_backed` locks the parent/child layout, prevents representative focus state, property mutation, tab/directional navigation, and modal/popup tests from moving back into the parent, preserves all 16 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M4 UI template style slot-contract owner split
+
+runtime_15_ui_template_style_slot_contract_owner_split_static_passed_cargo_timeout_no_result
+
+Runtime 15 M4 keeps style plan construction, selector path matching, rule merge order, MUI `sx` precedence, component root class dispatch, selector states, and shared attribute helpers unchanged while splitting slot contract application into a child owner. `ui/template/asset/compiler/style_apply.rs` now owns the style application pipeline and class-dispatch surface; `ui/template/asset/compiler/style_apply/slot_contract.rs` owns root/child slot props merge, slot component/class projection, Skeleton child metadata routing, and owner slot utility class routing across layout, form, selection, collection, MUI X, surface, and navigation families.
+
+`runtime_15_ui_template_style_slot_contract_is_child_owner` locks the parent/child layout, prevents representative slot-contract helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence; the focused core-min Cargo check timed out after 120 seconds with no result and is not counted as passing.
+
+## Runtime 15 M4 UI v2 style runtime-state owner split
+
+runtime_15_ui_v2_style_runtime_state_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps UI v2 style resolver/index entry points, style rule collection, token/theme resolution, selector path DTOs, and selector matching unchanged while splitting runtime-state projection into a child owner. `ui/v2/style.rs` now owns `UiV2StyleResolver`, `UiV2RuntimeStyleIndex`, rule merge/token resolution, selector path construction, and selector matching; `ui/v2/style/runtime_state.rs` owns static/runtime pseudo-state extraction, resolved painter state aliases, retained runtime-state attribute projection, dirty-delta classification, and dirty flag merging.
+
+`runtime_15_ui_v2_style_runtime_state_is_child_owner` locks the parent/child layout, prevents representative runtime-state helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo remains deferred because external cargo/rustc lanes were already active during the slice.
+
+## Runtime 15 M4 UI accessibility extract state owner split
+
+runtime_15_ui_accessibility_extract_state_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps accessibility snapshot traversal, relation-target pruning, name/description resolution, role inference, child filtering, action defaults, bounds, visibility, reference parsing, and diagnostic construction in `ui/accessibility/extract.rs` while splitting state projection into `ui/accessibility/extract/state.rs`. The child owner now owns expanded/open, disabled, selected, pressed, checked, value text, text-selection, component-state conversion, TOML attribute conversion, and byte-offset clamping helpers.
+
+`runtime_15_ui_accessibility_extract_state_is_child_owner` locks the parent/child layout, prevents representative state-projection helpers and `UiValue` conversion from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone implementation cadence.
+
+## Runtime 15 M4 UI component catalog editor-showcase helper owner split
+
+runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result
+
+Runtime 15 M4 keeps the editor showcase registry, descriptor list, descriptor assembly entry point, and representative component catalog coverage in `ui/component/catalog/editor_showcase.rs` while splitting reusable descriptor construction into `ui/component/catalog/editor_showcase/helpers.rs`. The child owner now owns base descriptor setup, layout-role/default-template projection, palette metadata, fallback policy, option/slot/value prop schema builders, and TOML layout helper construction.
+
+`runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner` locks the parent/child layout, prevents descriptor helper and palette/fallback construction from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; focused Cargo timed out after 305 seconds with no diagnostic result and is not counted as passing.
+
+## Runtime 15 M4 UI surface event-routing owner split
+
+runtime_15_ui_surface_event_routing_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps `UiSurface` state, runtime-state style entry points, frame/debug snapshots, property mutation, reflector snapshots, and focus-path queries in `ui/surface/surface.rs` while splitting event flow into two folder-backed child owners. `ui/surface/surface/event_routing.rs` now owns pointer capture/release, input/window dispatch adapters, pointer route construction, pointer dispatch side effects, navigation routing, and activation-phase derivation. `ui/surface/surface/pointer_component_events.rs` owns route-derived hovered/pressed/focused component-state dirtying, component event reports, focus event reports, and requested damage frames.
+
+`runtime_15_ui_surface_event_routing_is_child_owner` locks the parent/child layout, prevents event-routing helpers and pointer component event/report generation from moving back into the parent, keeps all three production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+
+## Runtime 15 M4 UI surface property mutation metadata dirty owner split
+
+runtime_15_ui_surface_property_mutation_metadata_dirty_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps property mutation request/report construction, the `mutate_tree_property(...)` entry point, visibility/input/state mutation, binding report construction, template attribute sync, visibility/input value parsing, and state dirty marking in `ui/surface/property_mutation.rs` while splitting metadata dirty-domain classification into a child owner. `ui/surface/property_mutation/metadata_dirty.rs` now owns metadata attribute dirty classification, render and virtualized dirty helpers, MUI overlay/feedback/transition/customization predicates, virtualized range predicates, and layout metadata predicates.
+
+`runtime_15_ui_surface_property_mutation_metadata_dirty_is_child_owner` locks the parent/child layout, prevents metadata dirty helpers from moving back into the parent, and keeps both production owners under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred while external cargo/rustc lanes remain active.
+## Runtime 15 M4 UI surface render feedback command/color owner split
+
+runtime_15_ui_surface_render_feedback_command_color_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps feedback component-kind detection, Alert/AlertTitle/Tooltip/Toast command layout, metadata text/icon/size extraction, border/radius parsing, and public render entry points in `ui/surface/render/feedback.rs` while splitting reusable color and primitive-command construction into child owners. `ui/surface/render/feedback/colors.rs` now owns AlertTone, feedback color constants, visual-state-aware alert/tooltip/toast color selection, and style override fallback. `ui/surface/render/feedback/commands.rs` owns quad/text/icon `UiRenderCommand` DTO construction. `ui/surface/render/feedback/state.rs` continues to own painter family state resolution.
+
+`runtime_15_ui_surface_render_feedback_commands_are_child_owners` locks the parent/child layout, prevents color constants, color helpers, and primitive command constructors from moving back into the parent, keeps all four feedback render owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M4 UI surface default-interactions keyboard/timer owner split
+
+runtime_15_ui_surface_default_interactions_keyboard_timer_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps pointer default-action routing, button/toggle/disclosure helpers, shared binding report construction, widget behavior predicates, and component event token matching in `ui/surface/surface/default_interactions.rs` while splitting keyboard and timer semantics into two child owners. `ui/surface/surface/default_interactions/keyboard.rs` now owns keyboard-triggered default component actions, semantic keyboard actions/text, keyboard behavior eligibility, and semantic action/event-kind mapping. `ui/surface/surface/default_interactions/timers.rs` owns typeahead timeout, submenu hover delay, tooltip timer derivation, menu-role detection, tooltip id extraction, and timer-expired component event report construction.
+
+`runtime_15_ui_surface_default_interactions_keyboard_timers_are_child_owners` locks the parent/child layout, prevents keyboard and timer helpers from moving back into the parent, keeps all three production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M4 UI surface table column helper owner split
+
+runtime_15_ui_surface_table_column_helper_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps table pointer routing, column resize/sort event flow, row selection dispatch, virtual scroll dispatch, table mutation, and shared owner predicates in `ui/surface/surface/default_interactions/table/mod.rs` while splitting reusable column helpers into `ui/surface/surface/default_interactions/table/columns.rs`. The child owner now owns column resize/sort metadata classification, column field/width/min-width lookup, sort direction/model helpers, row sort comparison, column matching, and resize drag-token encoding/decoding.
+
+`runtime_15_ui_surface_table_column_helpers_are_child_owner` locks the parent/child layout, prevents column helper constants and helper functions from moving back into the parent, keeps `mod.rs`, `columns.rs`, `selection.rs`, and `virtualization.rs` under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo is deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M4 UI template document validation owner split
+
+runtime_15_ui_template_document_validation_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps `UiAssetDocumentRuntimeExt`, style rule/sheet mutation semantics, node traversal order, child mount lookup, parent lookup, and tree mutation APIs unchanged while splitting document validation into a child owner. `ui/template/asset/document.rs` now owns the runtime extension trait implementation and tree/style mutation entry points; `ui/template/asset/document/validation.rs` owns node id authority checks, duplicate subtree validation, stylesheet/style-rule id checks, and selector parse validation.
+
+`runtime_15_ui_template_document_validation_is_child_owner` locks the parent/child layout, prevents representative validation helpers and `UiSelector::parse` from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M4 UI template MUI X DataGrid class owner split
+
+runtime_15_ui_template_mui_x_data_grid_class_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps template style application order, selector matching, slot-props projection, generic MUI class suppression, and non-DataGrid MUI X component classes unchanged while splitting the oversized MUI X class owner. `ui/template/asset/compiler/style_apply/mui_x_classes.rs` now owns component-family dispatch plus MaterialTreeView, Date/Time Pickers, Charts, AgentChat, and Chat component class routing; `ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs` owns DataGrid root utility classes and DataGrid slot utility class projection for column headers, rows, cells, toolbar/footer, and overlay slots.
+
+`runtime_15_ui_template_mui_x_data_grid_classes_are_child_owner` locks the parent/child layout, prevents representative DataGrid helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M4 UI text layout engine visual-order owner split
+
+runtime_15_ui_text_layout_engine_visual_order_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps text measurement, wrapping, ellipsis, alignment, direction resolution, and resolved text DTO behavior unchanged and only splits the oversized production text layout owner. `ui/text/layout_engine.rs` now owns the public crate-internal layout entry points, source-run wrapping, ellipsis fragment construction, direction resolution, and test-module mount; `ui/text/layout_engine/visual_order.rs` owns the low-fidelity BiDi visual-order scaffold, visual token/cluster/fragment types, neutral-direction assignment, and visual fragment coalescing.
+
+`runtime_15_ui_text_layout_engine_visual_order_is_child_owner` locks the parent/child layout, prevents representative visual-order helpers from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and preserves the existing test owner mounted from `layout_engine/tests.rs`. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M4 UI layout arrange grid/masonry owner split
+
+runtime_15_ui_layout_arrange_grid_masonry_owner_split_static_passed_cargo_deferred
+
+Runtime 15 M4 keeps layout arrange entry points, Taffy fallback routing, non-grid Zircon fallback families, scroll virtualization window planning, wrap content sizing, and subtree hiding unchanged while splitting GridBox and MasonryBox fallback arrangement into a child owner. `ui/layout/pass/arrange.rs` now owns the arrange dispatcher plus Free/Canvas/Container/Overlay, SizeBox, BlockBox, linear, ScrollableBox, and WrapBox flow; `ui/layout/pass/arrange/grid_masonry.rs` owns GridBox placement, dimension and cell-frame helpers, MasonryBox column selection and content-size computation, masonry child outer-height lookup, and grid/masonry recursive child arrangement.
+
+`runtime_15_ui_layout_arrange_grid_masonry_is_child_owner` locks the parent/child layout, prevents grid and masonry helpers from moving back into the parent, and keeps both production owners under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred while external cargo/rustc lanes remain active.
+
+## Runtime 15 M3 UI runtime input manager test folder split
+
+runtime_15_ui_runtime_input_manager_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production input manager routing, timer, pointer, touch, popup, and focus behavior unchanged and only splits the oversized runtime input manager test owner. `ui/tests/runtime_input_manager.rs` now owns shared route matrix, double-click, popup, input metadata, pointer/touch/keyboard/popup event, and window metadata fixtures plus child module mounting; window batch and tick coverage lives in `ui/tests/runtime_input_manager/window_timer.rs`; route order and policy naming coverage lives in `ui/tests/runtime_input_manager/route_order.rs`; capture, popup stack, preview, focus path, and default-action route matrix coverage lives in `ui/tests/runtime_input_manager/route_matrix.rs`; and double-click, touch synthesis/cancel, and multi-pointer capture isolation coverage lives in `ui/tests/runtime_input_manager/touch_pointer.rs`.
+
+`runtime_15_ui_runtime_input_manager_tests_are_folder_backed` locks the parent/child layout, prevents representative window/timer, route-order, route-matrix, double-click/touch, and multi-pointer tests from moving back into the parent, preserves all 15 migrated parent tests, and keeps every owner touched by this split under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI runtime input ownership test folder split
+
+runtime_15_ui_runtime_input_ownership_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production input ownership, pointer capture, high-precision dispatch, drag/drop, popup, tooltip, and input-method behavior unchanged and only splits the oversized runtime input ownership test owner. `ui/tests/runtime_input_ownership.rs` now owns shared pointer capture, input event, drag/drop, popup/tooltip, and input-method fixtures plus child module mounting; input-method ownership coverage lives in `ui/tests/runtime_input_ownership/input_method.rs`; hidden/disabled owner validation coverage lives in `ui/tests/runtime_input_ownership/owner_validation.rs`; high-precision dispatch and reply-step coverage lives in `ui/tests/runtime_input_ownership/high_precision_dispatch.rs`; drag/drop lifecycle coverage lives in `ui/tests/runtime_input_ownership/drag_drop.rs`; popup/tooltip transient input coverage lives in `ui/tests/runtime_input_ownership/popup_tooltip.rs`; and route trace plus analog suppression coverage lives in `ui/tests/runtime_input_ownership/route_trace.rs`.
+
+`runtime_15_ui_runtime_input_ownership_tests_are_folder_backed` locks the parent/child layout, prevents representative input-method, owner validation, high-precision dispatch, drag/drop, popup/tooltip, and route-trace tests from moving back into the parent, preserves all 16 migrated parent tests, keeps every owner touched by this split under the Runtime 15 file budget, and preserves the per-pointer capture API assertions. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI event routing test folder split
+
+runtime_15_ui_event_routing_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps the production UI dispatch and surface routing owners unchanged and only splits the oversized event-routing test owner. `ui/tests/event_routing.rs` now owns shared fixtures, helper construction, and child module mounting; behavior tests live in `ui/tests/event_routing/pointer_state.rs`, `ui/tests/event_routing/component_events.rs`, `ui/tests/event_routing/dispatch_effects.rs`, and `ui/tests/event_routing/shared_input.rs`.
+
+`runtime_15_ui_event_routing_tests_are_folder_backed` locks the parent/child layout, prevents representative pointer/component/dispatch/shared-input tests from moving back into the parent, preserves all 27 event-routing tests, and keeps every UI event-routing test owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI runtime input reply routes test folder split
+
+runtime_15_ui_runtime_input_reply_routes_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production input reply routing unchanged and only splits the oversized runtime input reply route parent test owner. `ui/tests/runtime_input_reply_routes.rs` now owns shared fixtures, input event helpers, and child module mounting; the parent-owned tests moved into `ui/tests/runtime_input_reply_routes/route_trace_routes.rs`, `ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs`, and `ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs`.
+
+`runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed` locks the parent/child layout, prevents representative route-trace/pointer-bubble/focus-text/accessibility tests from moving back into the parent, preserves all 13 moved parent tests, and keeps the parent plus the three new child owners under the Runtime 15 file budget. Existing `keyboard_navigation_routes.rs` and `tree_view_pointer_routes.rs` remain separate oversized child-owner work. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI runtime input reply route child folder split
+
+runtime_15_ui_runtime_input_reply_route_children_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production input reply routing unchanged and splits only the oversized reply-route child test owners. `ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs` now owns keyboard navigation shared fixtures plus child module mounting; focus path, semantic action route, timers-disabled, and directional navigation tests live in `keyboard_navigation_routes/focus_path.rs`, `keyboard_navigation_routes/semantic_actions.rs`, `keyboard_navigation_routes/timers_disabled.rs`, and `keyboard_navigation_routes/directional.rs`. `ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs` now owns tree-view shared fixtures plus child module mounting; selection, drag/reorder, and virtualization tests live in `tree_view_pointer_routes/selection.rs`, `tree_view_pointer_routes/drag_reorder.rs`, and `tree_view_pointer_routes/virtualization.rs`.
+
+`runtime_15_ui_runtime_input_reply_route_children_are_folder_backed` locks the two child-parent layouts, prevents representative keyboard/tree tests from moving back into their parent files, preserves all 15 keyboard-navigation tests and all 9 tree-view pointer tests, and keeps both parents plus all seven new child owners under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 15 M3 UI architecture test folder split
+
+runtime_15_ui_architecture_tests_folder_split_static_passed_cargo_deferred
+
+Runtime 15 M3 keeps production UI architecture code unchanged and splits only the oversized Runtime 09 absorption guard owner. `tests/runtime_absorption/ui_architecture.rs` now owns shared repository-scan helpers and child module mounting; architecture-boundary guards live in `tests/runtime_absorption/ui_architecture/architecture_boundaries.rs`, legacy/debt rename guards live in `tests/runtime_absorption/ui_architecture/legacy_renames.rs`, and the mirror-doc audit guard lives in `tests/runtime_absorption/ui_architecture/mirror_docs.rs`.
+
+`runtime_15_ui_architecture_tests_are_folder_backed` locks the parent/child layout, prevents representative architecture/legacy/mirror tests from moving back into the parent, preserves all 18 Runtime 09 UI architecture absorption guards, and keeps the parent plus all three child owners under the Runtime 15 file budget. `ui_architecture_boundary.py` also reads the three child guard sources so the existing Runtime 09 mirror audit remains aware of the folder-backed layout. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
 
 ## M1.2 Layout Engine Backend Name Cutover
 

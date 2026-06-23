@@ -460,7 +460,7 @@ fn render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers() {
 
     assert_eq!(extract.particles.emitters, vec![visible]);
     assert_eq!(extract.particles.sprites.len(), 1);
-    let sprite = extract.particles.sprites[0];
+    let sprite = &extract.particles.sprites[0];
     assert_eq!(sprite.entity, visible);
     assert_eq!(sprite.position, Vec3::new(1.0, 2.0, 3.0));
     assert_eq!(sprite.size, 0.45);
@@ -919,7 +919,7 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            extract.view.selected_camera_layers(),
+            extract.view.selected_camera_volume_layers(),
         )
         .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom.intensity, 0.75);
@@ -968,7 +968,7 @@ fn inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract() {
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            extract.view.selected_camera_layers(),
+            extract.view.selected_camera_volume_layers(),
         )
         .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom, RenderBloomSettings::default());

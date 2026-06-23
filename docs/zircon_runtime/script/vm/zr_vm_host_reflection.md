@@ -255,6 +255,8 @@ The proc-macro crate is a separate workspace member because Rust procedural macr
 
 The macro crate is split by code-generation responsibility. `lib.rs` contains only the Rust-required proc-macro entry points and module declarations. `args.rs` owns attribute argument parsing, `attrs.rs` owns `#[zircon_script]` parsing and item discovery, `derive_type.rs` emits `ZirconScriptType` descriptors, `function.rs` emits host function descriptors and callbacks, `module.rs` emits host module descriptors and registration functions, `tokens.rs` owns shared token helpers, and `tests.rs` covers unsupported input plus descriptor metadata generation. Runtime validation remains in `HostExportRegistry`; the macro crate only rejects Rust shapes that cannot be represented correctly as host descriptors.
 
+Runtime 15 F12 script reflection macro fixture dead-code cleanup keeps the runtime-side macro descriptor fixtures from hiding unused fields behind `#[allow(dead_code)]`. `script/vm/tests/reflection_docs.rs` now constructs and reads the TestVec3 fields, exercises `TestEnum::A` with `matches!`, and reads the nested Point fixture through `macro_math::point_fixture_x()` while still validating the emitted `ZirconScriptType` and `zircon_host_module` descriptors. Status: `runtime_15_script_reflection_macro_fixture_dead_code_cleanup_static_passed_cargo_deferred`; guard: `runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code`.
+
 ## Registry Behavior
 
 `HostExportRegistry` validates a module before it becomes visible:

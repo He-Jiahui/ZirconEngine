@@ -1,10 +1,11 @@
 use zircon_runtime_interface::ui::{
-    event_ui::{UiNodeId, UiStateFlags},
+    event_ui::{UiNodeId, UiRouteId, UiStateFlags},
     layout::UiFrame,
 };
 
 use super::constants::{
-    CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, TAB_MIN_WIDTH, TAB_NODE_ID_BASE,
+    CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, DOCUMENT_TAB_ROUTE_ID_BASE, TAB_MIN_WIDTH,
+    TAB_NODE_ID_BASE,
 };
 use super::{
     host_document_tab_pointer_layout::HostDocumentTabPointerLayout,
@@ -23,6 +24,22 @@ pub(in crate::ui::retained_host::document_tab_pointer) fn close_node_id(
     item_index: usize,
 ) -> UiNodeId {
     UiNodeId::new(CLOSE_NODE_ID_BASE + surface_index as u64 * 100 + item_index as u64)
+}
+
+pub(in crate::ui::retained_host::document_tab_pointer) fn tab_route_id(
+    surface_index: usize,
+    item_index: usize,
+) -> UiRouteId {
+    UiRouteId::new(DOCUMENT_TAB_ROUTE_ID_BASE + surface_index as u64 * 1_000 + item_index as u64)
+}
+
+pub(in crate::ui::retained_host::document_tab_pointer) fn close_route_id(
+    surface_index: usize,
+    item_index: usize,
+) -> UiRouteId {
+    UiRouteId::new(
+        DOCUMENT_TAB_ROUTE_ID_BASE + 500 + surface_index as u64 * 1_000 + item_index as u64,
+    )
 }
 
 pub(in crate::ui::retained_host::document_tab_pointer) fn tab_min_width(

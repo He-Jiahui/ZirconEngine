@@ -1,11 +1,11 @@
 use super::welcome_recent_pointer_route::WelcomeRecentPointerRoute;
-use super::welcome_recent_pointer_target::WelcomeRecentPointerTarget;
+use super::welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 
 pub(in crate::ui::retained_host::welcome_recent_pointer) fn to_public_route(
-    target: WelcomeRecentPointerTarget,
+    target: WelcomeRecentPointerRouteIntent,
 ) -> WelcomeRecentPointerRoute {
     match target {
-        WelcomeRecentPointerTarget::Action {
+        WelcomeRecentPointerRouteIntent::Action {
             item_index,
             action,
             path,
@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::welcome_recent_pointer) fn to_public_route(
             action,
             path,
         },
-        WelcomeRecentPointerTarget::Item(_) | WelcomeRecentPointerTarget::ListSurface => {
+        WelcomeRecentPointerRouteIntent::Item(_) | WelcomeRecentPointerRouteIntent::ListSurface => {
             WelcomeRecentPointerRoute::ListSurface
         }
     }

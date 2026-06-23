@@ -1,3 +1,4 @@
+mod capability;
 mod plugin;
 mod subassets;
 #[cfg(test)]
@@ -19,17 +20,14 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 
+pub use capability::{
+    IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, GltfImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "gltf_importer";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_gltf_importer_runtime";
-pub const MODULE_NAME: &str = "GltfImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.gltf_importer";
-pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.model.gltf";
 
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     validate_external_gltf_buffers(context)?;

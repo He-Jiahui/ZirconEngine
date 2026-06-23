@@ -14,7 +14,7 @@ pub(super) fn build_v2_preview_host(
     preview_size: UiSize,
     imports: &UiAssetV2CompilerImports,
 ) -> Result<Option<UiAssetPreviewHost>, UiAssetEditorSessionError> {
-    if matches!(document.asset.kind, UiV2AssetKind::Style) {
+    if is_v2_style_import_kind(document.asset.kind) {
         return Ok(None);
     }
 
@@ -31,10 +31,15 @@ pub(super) fn ensure_v2_asset_kind(
     expected: UiV2AssetKind,
     actual: UiV2AssetKind,
 ) -> Result<(), UiAssetEditorSessionError> {
-    if expected != actual {
+    let matches_style_import = expected == UiV2AssetKind::Style && is_v2_style_import_kind(actual);
+    if expected != actual && !matches_style_import {
         return Err(UiAssetEditorSessionError::UnexpectedV2Kind { expected, actual });
     }
     Ok(())
+}
+
+fn is_v2_style_import_kind(kind: UiV2AssetKind) -> bool {
+    matches!(kind, UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens)
 }
 
 fn v2_document_and_prototype_store(

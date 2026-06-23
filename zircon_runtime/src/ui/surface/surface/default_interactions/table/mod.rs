@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
@@ -11,48 +11,12 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
 
+mod columns;
 mod selection;
 mod virtualization;
 
-const TABLE_COLUMN_RESIZE_DRAG_PREFIX: &str = "table_column_resize";
-const DEFAULT_MIN_COLUMN_WIDTH: f64 = 40.0;
 const TABLE_OWNER_COMPONENTS: [&str; 2] = ["Table", "DataGrid"];
 const TABLE_OWNER_ROLES: [&str; 3] = ["table", "data-grid", "mui-x-data-grid"];
-const TABLE_COLUMN_RESIZE_HANDLE_COMPONENTS: [&str; 4] = [
-    "TableColumnResizeHandle",
-    "DataGridColumnResizeHandle",
-    "TableResizeHandle",
-    "ColumnResizeHandle",
-];
-const TABLE_COLUMN_RESIZE_HANDLE_ROLES: [&str; 3] = [
-    "table-column-resize-handle",
-    "data-grid-column-resize-handle",
-    "column-resize-handle",
-];
-const TABLE_COLUMN_SORT_HEADER_COMPONENTS: [&str; 6] = [
-    "TableColumnHeader",
-    "TableSortHeader",
-    "TableHeaderCell",
-    "DataGridColumnHeader",
-    "DataGridSortHeader",
-    "ColumnHeader",
-];
-const TABLE_COLUMN_SORT_HEADER_ROLES: [&str; 4] = [
-    "table-column-header",
-    "table-sort-header",
-    "data-grid-column-header",
-    "column-header",
-];
-const TABLE_COLUMN_FIELD_PROPERTIES: [&str; 8] = [
-    "field",
-    "column",
-    "column_id",
-    "columnId",
-    "id",
-    "key",
-    "name",
-    "property",
-];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::surface::surface) struct UiDefaultTablePointerActionReport {
@@ -138,7 +102,7 @@ impl UiSurface {
         let drag = self.input.begin_pointer_drag_with_property(
             start.owner_id,
             route.point,
-            Some(encode_table_column_resize_drag(
+            Some(columns::encode_table_column_resize_drag(
                 start.start_width,
                 start.min_width,
                 &start.field,
@@ -174,7 +138,7 @@ impl UiSurface {
         let Some(token) = self
             .input
             .pointer_drag_property(owner_id)
-            .and_then(decode_table_column_resize_drag)
+            .and_then(columns::decode_table_column_resize_drag)
         else {
             return Ok(UiDefaultTablePointerActionReport::default());
         };
@@ -219,7 +183,7 @@ impl UiSurface {
         let Some(token) = self
             .input
             .pointer_drag_property(owner_id)
-            .and_then(decode_table_column_resize_drag)
+            .and_then(columns::decode_table_column_resize_drag)
         else {
             return Ok(UiDefaultTablePointerActionReport::default());
         };
@@ -280,7 +244,7 @@ impl UiSurface {
             let metadata = self.template_metadata(sort.owner_id)?;
             (
                 is_data_grid_owner(metadata) || metadata.attributes.contains_key("sortModel"),
-                table_uses_client_sorting(metadata),
+                columns::table_uses_client_sorting(metadata),
             )
         };
 
@@ -347,7 +311,7 @@ impl UiSurface {
             self.tree
                 .node(*node_id)
                 .and_then(|node| node.template_metadata.as_ref())
-                .is_some_and(is_table_column_sort_header)
+                .is_some_and(columns::is_table_column_sort_header)
         }) else {
             return Ok(None);
         };
@@ -358,7 +322,7 @@ impl UiSurface {
         else {
             return Ok(None);
         };
-        let Some(field) = table_column_field(header_metadata) else {
+        let Some(field) = columns::table_column_field(header_metadata) else {
             return Ok(None);
         };
         let Some(owner_id) = route.bubbled.iter().copied().find(|node_id| {
@@ -378,14 +342,14 @@ impl UiSurface {
             return Ok(None);
         };
         if !self.widget_interaction_enabled(owner_id, owner, owner_metadata)
-            || table_sorting_disabled(owner_metadata)
-            || table_column_sorting_disabled(header_metadata, owner_metadata, &field)
+            || columns::table_sorting_disabled(owner_metadata)
+            || columns::table_column_sorting_disabled(header_metadata, owner_metadata, &field)
         {
             return Ok(None);
         }
         Ok(Some(UiDefaultTableSortHeader {
             owner_id,
-            direction: next_table_sort_direction(owner_metadata, &field),
+            direction: columns::next_table_sort_direction(owner_metadata, &field),
             field,
         }))
     }
@@ -398,7 +362,7 @@ impl UiSurface {
             self.tree
                 .node(*node_id)
                 .and_then(|node| node.template_metadata.as_ref())
-                .is_some_and(|metadata| is_table_column_resize_handle(metadata))
+                .is_some_and(columns::is_table_column_resize_handle)
         }) else {
             return Ok(None);
         };
@@ -409,7 +373,7 @@ impl UiSurface {
         else {
             return Ok(None);
         };
-        let Some(field) = table_column_field(handle_metadata) else {
+        let Some(field) = columns::table_column_field(handle_metadata) else {
             return Ok(None);
         };
         let Some(owner_id) = route.bubbled.iter().copied().find(|node_id| {
@@ -429,14 +393,14 @@ impl UiSurface {
             return Ok(None);
         };
         if !self.widget_interaction_enabled(owner_id, owner, owner_metadata)
-            || table_column_resize_disabled(owner_metadata)
+            || columns::table_column_resize_disabled(owner_metadata)
         {
             return Ok(None);
         }
-        let Some(start_width) = table_column_width(owner_metadata, &field) else {
+        let Some(start_width) = columns::table_column_width(owner_metadata, &field) else {
             return Ok(None);
         };
-        let min_width = table_min_column_width(owner_metadata, &field);
+        let min_width = columns::table_min_column_width(owner_metadata, &field);
         Ok(Some(UiDefaultTableColumnResizeStart {
             owner_id,
             field,
@@ -457,7 +421,7 @@ impl UiSurface {
         let previous_width = self
             .template_metadata(owner_id)
             .ok()
-            .and_then(|metadata| table_column_width(metadata, field))
+            .and_then(|metadata| columns::table_column_width(metadata, field))
             .unwrap_or(width);
         let mut changed = false;
         changed |=
@@ -474,7 +438,7 @@ impl UiSurface {
             UiEventKind::Change,
             UiComponentEvent::ValueChanged {
                 property: "column_width".to_string(),
-                value: column_width_payload(field, width),
+                value: columns::column_width_payload(field, width),
             },
             reason,
         )?;
@@ -532,7 +496,7 @@ impl UiSurface {
             let UiValue::Map(values) = column else {
                 continue;
             };
-            if table_column_matches(values, field) {
+            if columns::table_column_matches(values, field) {
                 values.insert("width".to_string(), UiValue::Float(width));
                 found = true;
                 break;
@@ -593,7 +557,7 @@ impl UiSurface {
             let UiValue::Map(values) = column else {
                 continue;
             };
-            let next_direction = if table_column_matches(values, field) {
+            let next_direction = if columns::table_column_matches(values, field) {
                 found = true;
                 direction
             } else {
@@ -636,7 +600,7 @@ impl UiSurface {
             return Ok(false);
         };
 
-        rows.sort_by(|left, right| compare_table_row_value(left, right, field));
+        rows.sort_by(|left, right| columns::compare_table_row_value(left, right, field));
         if direction == "desc" {
             rows.reverse();
         }
@@ -664,8 +628,8 @@ impl UiSurface {
 
 pub(super) fn is_default_table_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
     is_table_owner(metadata)
-        || is_table_column_resize_handle(metadata)
-        || is_table_column_sort_header(metadata)
+        || columns::is_table_column_resize_handle(metadata)
+        || columns::is_table_column_sort_header(metadata)
         || selection::is_table_row(metadata)
 }
 
@@ -676,242 +640,6 @@ fn is_table_owner(metadata: &UiTemplateNodeMetadata) -> bool {
 
 fn is_data_grid_owner(metadata: &UiTemplateNodeMetadata) -> bool {
     metadata.component == "DataGrid" || role_is_one_of(metadata, &["data-grid", "mui-x-data-grid"])
-}
-
-fn is_table_column_resize_handle(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_COLUMN_RESIZE_HANDLE_COMPONENTS.contains(&metadata.component.as_str())
-        || role_is_one_of(metadata, &TABLE_COLUMN_RESIZE_HANDLE_ROLES)
-}
-
-fn is_table_column_sort_header(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_COLUMN_SORT_HEADER_COMPONENTS.contains(&metadata.component.as_str())
-        || role_is_one_of(metadata, &TABLE_COLUMN_SORT_HEADER_ROLES)
-}
-
-fn table_column_resize_disabled(metadata: &UiTemplateNodeMetadata) -> bool {
-    bool_attribute(metadata, "disableColumnResize")
-        || bool_attribute(metadata, "disable_column_resize")
-        || explicit_false_attribute(metadata, "column_resizing")
-        || explicit_false_attribute(metadata, "columnResizing")
-        || explicit_false_attribute(metadata, "resizable_columns")
-        || explicit_false_attribute(metadata, "resizableColumns")
-}
-
-fn table_sorting_disabled(metadata: &UiTemplateNodeMetadata) -> bool {
-    bool_attribute(metadata, "disableColumnSorting")
-        || bool_attribute(metadata, "disable_column_sorting")
-        || explicit_false_attribute(metadata, "sorting")
-        || explicit_false_attribute(metadata, "column_sorting")
-        || explicit_false_attribute(metadata, "columnSorting")
-        || explicit_false_attribute(metadata, "sortable_columns")
-        || explicit_false_attribute(metadata, "sortableColumns")
-}
-
-fn table_column_sorting_disabled(
-    header_metadata: &UiTemplateNodeMetadata,
-    owner_metadata: &UiTemplateNodeMetadata,
-    field: &str,
-) -> bool {
-    explicit_false_attribute(header_metadata, "sortable")
-        || explicit_false_attribute(header_metadata, "column_sorting")
-        || explicit_false_attribute(header_metadata, "columnSorting")
-        || owner_metadata
-            .attributes
-            .get("columns")
-            .and_then(toml::Value::as_array)
-            .and_then(|columns| {
-                columns.iter().find_map(|column| {
-                    let column = column.as_table()?;
-                    toml_column_matches(column, field)
-                        .then(|| column.get("sortable").and_then(toml::Value::as_bool))?
-                })
-            })
-            == Some(false)
-}
-
-fn table_column_field(metadata: &UiTemplateNodeMetadata) -> Option<String> {
-    TABLE_COLUMN_FIELD_PROPERTIES
-        .iter()
-        .find_map(|property| string_attribute(metadata, property))
-        .filter(|field| !field.is_empty())
-}
-
-fn table_column_width(metadata: &UiTemplateNodeMetadata, field: &str) -> Option<f64> {
-    metadata
-        .attributes
-        .get("column_widths")
-        .and_then(toml::Value::as_table)
-        .and_then(|widths| widths.get(field))
-        .and_then(toml_number)
-        .or_else(|| {
-            metadata
-                .attributes
-                .get("columns")
-                .and_then(toml::Value::as_array)
-                .and_then(|columns| {
-                    columns.iter().find_map(|column| {
-                        let column = column.as_table()?;
-                        if toml_column_matches(column, field) {
-                            column.get("width").and_then(toml_number)
-                        } else {
-                            None
-                        }
-                    })
-                })
-        })
-}
-
-fn next_table_sort_direction(metadata: &UiTemplateNodeMetadata, field: &str) -> &'static str {
-    if table_sort_column(metadata).as_deref() != Some(field) {
-        return "asc";
-    }
-    match table_sort_direction(metadata) {
-        Some("asc") => "desc",
-        Some("desc") => "asc",
-        _ => "asc",
-    }
-}
-
-fn table_sort_column(metadata: &UiTemplateNodeMetadata) -> Option<String> {
-    string_attribute(metadata, "sort_column")
-        .or_else(|| string_attribute(metadata, "sortField"))
-        .or_else(|| string_attribute(metadata, "sort_field"))
-        .or_else(|| {
-            metadata
-                .attributes
-                .get("sortModel")
-                .and_then(toml::Value::as_array)
-                .and_then(|entries| entries.first())
-                .and_then(toml::Value::as_table)
-                .and_then(|entry| entry.get("field"))
-                .and_then(toml::Value::as_str)
-                .map(str::to_string)
-        })
-}
-
-fn table_sort_direction(metadata: &UiTemplateNodeMetadata) -> Option<&'static str> {
-    string_attribute(metadata, "sort_direction")
-        .or_else(|| string_attribute(metadata, "sortDirection"))
-        .and_then(|direction| normalize_sort_direction(&direction))
-        .or_else(|| {
-            metadata
-                .attributes
-                .get("sortModel")
-                .and_then(toml::Value::as_array)
-                .and_then(|entries| entries.first())
-                .and_then(toml::Value::as_table)
-                .and_then(|entry| entry.get("sort"))
-                .and_then(toml::Value::as_str)
-                .and_then(normalize_sort_direction)
-        })
-}
-
-fn normalize_sort_direction(value: &str) -> Option<&'static str> {
-    match value {
-        "asc" | "ascending" => Some("asc"),
-        "desc" | "descending" => Some("desc"),
-        "none" | "" => Some("none"),
-        _ => None,
-    }
-}
-
-fn table_uses_client_sorting(metadata: &UiTemplateNodeMetadata) -> bool {
-    !matches!(
-        string_attribute(metadata, "sortingMode").as_deref(),
-        Some("server")
-    )
-}
-
-fn compare_table_row_value(left: &UiValue, right: &UiValue, field: &str) -> Ordering {
-    let left = table_row_field(left, field);
-    let right = table_row_field(right, field);
-    match (
-        left.and_then(UiValue::as_f64),
-        right.and_then(UiValue::as_f64),
-    ) {
-        (Some(left), Some(right)) => left.partial_cmp(&right).unwrap_or(Ordering::Equal),
-        _ => left
-            .map(UiValue::display_text)
-            .unwrap_or_default()
-            .cmp(&right.map(UiValue::display_text).unwrap_or_default()),
-    }
-}
-
-fn table_row_field<'a>(row: &'a UiValue, field: &str) -> Option<&'a UiValue> {
-    match row {
-        UiValue::Map(values) => values.get(field),
-        _ => None,
-    }
-}
-
-fn table_min_column_width(metadata: &UiTemplateNodeMetadata, field: &str) -> f64 {
-    metadata
-        .attributes
-        .get("columns")
-        .and_then(toml::Value::as_array)
-        .and_then(|columns| {
-            columns.iter().find_map(|column| {
-                let column = column.as_table()?;
-                if toml_column_matches(column, field) {
-                    column.get("minWidth").and_then(toml_number)
-                } else {
-                    None
-                }
-            })
-        })
-        .or_else(|| {
-            metadata
-                .attributes
-                .get("min_column_width")
-                .and_then(toml_number)
-        })
-        .or_else(|| {
-            metadata
-                .attributes
-                .get("minColumnWidth")
-                .and_then(toml_number)
-        })
-        .unwrap_or(DEFAULT_MIN_COLUMN_WIDTH)
-}
-
-fn table_column_matches(column: &BTreeMap<String, UiValue>, field: &str) -> bool {
-    TABLE_COLUMN_FIELD_PROPERTIES.iter().any(|property| {
-        matches!(
-            column.get(*property),
-            Some(UiValue::String(value) | UiValue::Enum(value)) if value == field
-        )
-    })
-}
-
-fn toml_column_matches(column: &toml::map::Map<String, toml::Value>, field: &str) -> bool {
-    TABLE_COLUMN_FIELD_PROPERTIES
-        .iter()
-        .any(|property| matches!(column.get(*property).and_then(toml::Value::as_str), Some(value) if value == field))
-}
-
-fn column_width_payload(field: &str, width: f64) -> UiValue {
-    UiValue::Map(BTreeMap::from([
-        ("field".to_string(), UiValue::String(field.to_string())),
-        ("width".to_string(), UiValue::Float(width)),
-    ]))
-}
-
-fn encode_table_column_resize_drag(start_width: f64, min_width: f64, field: &str) -> String {
-    format!("{TABLE_COLUMN_RESIZE_DRAG_PREFIX}:{start_width}:{min_width}:{field}")
-}
-
-fn decode_table_column_resize_drag(value: &str) -> Option<UiTableColumnResizeDragToken> {
-    let rest = value.strip_prefix(TABLE_COLUMN_RESIZE_DRAG_PREFIX)?;
-    let rest = rest.strip_prefix(':')?;
-    let mut parts = rest.splitn(3, ':');
-    let start_width = parts.next()?.parse::<f64>().ok()?;
-    let min_width = parts.next()?.parse::<f64>().ok()?;
-    let field = parts.next()?.to_string();
-    Some(UiTableColumnResizeDragToken {
-        field,
-        start_width,
-        min_width,
-    })
 }
 
 fn role_is_one_of(metadata: &UiTemplateNodeMetadata, roles: &[&str]) -> bool {

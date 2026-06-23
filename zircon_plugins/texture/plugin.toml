@@ -9,7 +9,16 @@ maturity = "stable"
 supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.texture"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_texture_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_texture_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.texture"
@@ -28,3 +37,10 @@ kind = "editor"
 crate_name = "zircon_plugin_texture_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.texture_authoring"]
+
+[[modules]]
+name = "texture.dist"
+kind = "native"
+crate_name = "zircon_plugin_texture_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.texture"]

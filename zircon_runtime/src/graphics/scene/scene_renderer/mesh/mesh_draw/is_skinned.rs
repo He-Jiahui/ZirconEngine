@@ -24,9 +24,4 @@ impl MeshDraw {
     pub(crate) fn uses_skinned_gpu_skinning(&self) -> bool {
         self.skinned_gpu_skinning_enabled
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn skinned_joint_count(&self) -> u32 {
-        self.skinned_joint_count
-    }
 }

@@ -8047,6 +8047,7 @@ dependencies = [
 name = "zircon_plugin_ai_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8075,6 +8076,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8093,6 +8095,7 @@ dependencies = [
  "serde",
  "serde_json",
  "zircon_plugin_navigation_recast",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8104,6 +8107,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8113,6 +8117,7 @@ version = "0.1.0"
 dependencies = [
  "naga",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8120,6 +8125,7 @@ dependencies = [
 name = "zircon_plugin_physics_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8127,6 +8133,7 @@ dependencies = [
 name = "zircon_plugin_rendering_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8134,6 +8141,8 @@ dependencies = [
 name = "zircon_plugin_sdk"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "toml 1.1.2+spec-1.1.0",
  "zircon_editor",
  "zircon_runtime",
  "zircon_runtime_interface",
@@ -8143,6 +8152,7 @@ dependencies = [
 name = "zircon_plugin_solari_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8175,6 +8185,7 @@ dependencies = [
 name = "zircon_plugin_texture_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8185,6 +8196,7 @@ dependencies = [
  "bytemuck",
  "pollster",
  "wgpu",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8192,6 +8204,7 @@ dependencies = [
 name = "zircon_plugin_zr_vm_language_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 

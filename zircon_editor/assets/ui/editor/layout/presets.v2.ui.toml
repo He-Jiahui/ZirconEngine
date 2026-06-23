@@ -1,0 +1,28 @@
+[asset]
+kind = "layout_presets"
+id = "zircon.editor.workbench.presets"
+version = 2
+display_name = "Workbench Layout Presets"
+
+[[presets]]
+name = "authoring"
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+size_overrides = { "--left-drawer-width" = 332.0, "--right-drawer-width" = 404.0, "--bottom-output-height" = 228.0 }
+center_split = "single_document"
+
+[[presets]]
+name = "review"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+size_overrides = { "--left-drawer-width" = 332.0, "--right-drawer-width" = 404.0, "--bottom-output-height" = 228.0 }
+center_split = "single_document"
+
+[[presets]]
+name = "focus"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "collapsed" }
+center_split = "single_document"
+
+[[presets]]
+name = "debug"
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "collapsed", right_bottom = "collapsed", bottom = "pinned" }
+size_overrides = { "--bottom-output-height" = 320.0 }
+center_split = "horizontal_2"

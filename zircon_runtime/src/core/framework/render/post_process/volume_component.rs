@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderExposureMode, RenderExposureSettings,
 };
-use crate::core::math::{Real, Vec3};
+use crate::core::math::Vec3;
 
 use super::effect_stack_settings::{
     RenderBlurSettings, RenderChromaticAberrationSettings, RenderColorLookupSettings,
@@ -12,8 +12,15 @@ use super::effect_stack_settings::{
 };
 use super::resolved_stack::RenderResolvedPostProcessSettings;
 
-pub type VolumeParamInterpFn =
-    fn(from: VolumeParamValue, to: VolumeParamValue, weight: Real) -> VolumeParamValue;
+mod params;
+
+pub use self::params::{
+    interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, VolumeParamInterpFn,
+    VolumeParamSchema, VolumeParamType, VolumeParamValue,
+};
+
+use self::params::{enum_param, float_param, uint_param, vec3_param};
+
 pub type VolumeComponentReadFn =
     fn(settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue>;
 pub type VolumeComponentApplyFn = fn(
@@ -21,121 +28,6 @@ pub type VolumeComponentApplyFn = fn(
     component_id: &'static str,
     values: &[VolumeParamValue],
 ) -> Result<(), VolumeComponentApplyError>;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum VolumeParamType {
-    Float,
-    Vec3,
-    Bool,
-    Uint,
-    Enum,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum VolumeParamValue {
-    Float(Real),
-    Vec3(Vec3),
-    Bool(bool),
-    Uint(u32),
-    Enum(u32),
-}
-
-impl VolumeParamValue {
-    pub const fn param_type(self) -> VolumeParamType {
-        match self {
-            Self::Float(_) => VolumeParamType::Float,
-            Self::Vec3(_) => VolumeParamType::Vec3,
-            Self::Bool(_) => VolumeParamType::Bool,
-            Self::Uint(_) => VolumeParamType::Uint,
-            Self::Enum(_) => VolumeParamType::Enum,
-        }
-    }
-
-    fn float(
-        self,
-        component_id: &'static str,
-        param_name: &'static str,
-    ) -> Result<Real, VolumeComponentApplyError> {
-        match self {
-            Self::Float(value) => Ok(value),
-            other => Err(type_mismatch(
-                component_id,
-                param_name,
-                VolumeParamType::Float,
-                other,
-            )),
-        }
-    }
-
-    fn vec3(
-        self,
-        component_id: &'static str,
-        param_name: &'static str,
-    ) -> Result<Vec3, VolumeComponentApplyError> {
-        match self {
-            Self::Vec3(value) => Ok(value),
-            other => Err(type_mismatch(
-                component_id,
-                param_name,
-                VolumeParamType::Vec3,
-                other,
-            )),
-        }
-    }
-
-    fn uint(
-        self,
-        component_id: &'static str,
-        param_name: &'static str,
-    ) -> Result<u32, VolumeComponentApplyError> {
-        match self {
-            Self::Uint(value) => Ok(value),
-            other => Err(type_mismatch(
-                component_id,
-                param_name,
-                VolumeParamType::Uint,
-                other,
-            )),
-        }
-    }
-
-    fn enum_id(
-        self,
-        component_id: &'static str,
-        param_name: &'static str,
-    ) -> Result<u32, VolumeComponentApplyError> {
-        match self {
-            Self::Enum(value) => Ok(value),
-            other => Err(type_mismatch(
-                component_id,
-                param_name,
-                VolumeParamType::Enum,
-                other,
-            )),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct VolumeParamSchema {
-    pub name: &'static str,
-    pub default: VolumeParamValue,
-    pub interp: VolumeParamInterpFn,
-}
-
-impl VolumeParamSchema {
-    pub const fn new(
-        name: &'static str,
-        default: VolumeParamValue,
-        interp: VolumeParamInterpFn,
-    ) -> Self {
-        Self {
-            name,
-            default,
-            interp,
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct VolumeComponentDescriptor {
@@ -363,64 +255,6 @@ const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 
     ),
     VolumeComponentDescriptor::new("post.blur", &BLUR_PARAMS, read_blur, apply_blur),
 ];
-
-pub fn interp_float_lerp(
-    from: VolumeParamValue,
-    to: VolumeParamValue,
-    weight: Real,
-) -> VolumeParamValue {
-    match (from, to) {
-        (VolumeParamValue::Float(from), VolumeParamValue::Float(to)) => {
-            VolumeParamValue::Float(lerp(from, to, weight))
-        }
-        _ => interp_discrete(from, to, weight),
-    }
-}
-
-pub fn interp_vec3_lerp(
-    from: VolumeParamValue,
-    to: VolumeParamValue,
-    weight: Real,
-) -> VolumeParamValue {
-    match (from, to) {
-        (VolumeParamValue::Vec3(from), VolumeParamValue::Vec3(to)) => {
-            VolumeParamValue::Vec3(from + (to - from) * weight)
-        }
-        _ => interp_discrete(from, to, weight),
-    }
-}
-
-pub fn interp_discrete(
-    from: VolumeParamValue,
-    to: VolumeParamValue,
-    weight: Real,
-) -> VolumeParamValue {
-    if weight >= 0.5 {
-        to
-    } else {
-        from
-    }
-}
-
-pub fn interp_bool(from: VolumeParamValue, to: VolumeParamValue, weight: Real) -> VolumeParamValue {
-    interp_discrete(from, to, weight)
-}
-
-const fn float_param(name: &'static str, default: Real) -> VolumeParamSchema {
-    VolumeParamSchema::new(name, VolumeParamValue::Float(default), interp_float_lerp)
-}
-
-const fn vec3_param(name: &'static str, default: Vec3) -> VolumeParamSchema {
-    VolumeParamSchema::new(name, VolumeParamValue::Vec3(default), interp_vec3_lerp)
-}
-
-const fn uint_param(name: &'static str, default: u32) -> VolumeParamSchema {
-    VolumeParamSchema::new(name, VolumeParamValue::Uint(default), interp_discrete)
-}
-
-const fn enum_param(name: &'static str, default: u32) -> VolumeParamSchema {
-    VolumeParamSchema::new(name, VolumeParamValue::Enum(default), interp_discrete)
-}
 
 fn read_bloom(settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue> {
     vec![
@@ -804,222 +638,5 @@ fn color_lookup_layout_ids(layout: RenderColorLookupTextureLayout) -> (u32, u32)
     }
 }
 
-fn lerp(from: Real, to: Real, weight: Real) -> Real {
-    from + (to - from) * weight
-}
-
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{
-        RenderBloomSettings, RenderColorGradingSettings, RenderExposureMode,
-        RenderExposureSettings, RenderPostProcessEffectStackSettings,
-    };
-    use crate::core::math::Vec3;
-
-    use super::super::resolved_stack::RenderResolvedPostProcessSettings;
-    use super::{
-        interp_discrete, interp_float_lerp, interp_vec3_lerp, VolumeComponentApplyError,
-        VolumeComponentDescriptor, VolumeParamSchema, VolumeParamType, VolumeParamValue,
-        BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
-    };
-
-    const TEST_PARAMS: [VolumeParamSchema; 1] = [VolumeParamSchema::new(
-        "value",
-        VolumeParamValue::Float(0.0),
-        interp_float_lerp,
-    )];
-
-    fn read_test_value(_settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue> {
-        vec![VolumeParamValue::Float(0.0)]
-    }
-
-    fn apply_test_value(
-        _settings: &mut RenderResolvedPostProcessSettings,
-        component_id: &'static str,
-        values: &[VolumeParamValue],
-    ) -> Result<(), VolumeComponentApplyError> {
-        values[0].float(component_id, "value")?;
-        Ok(())
-    }
-
-    #[test]
-    fn render_volume_param_interp_blends_float_vec3_and_discrete_values() {
-        assert_eq!(
-            interp_float_lerp(
-                VolumeParamValue::Float(1.0),
-                VolumeParamValue::Float(5.0),
-                0.25
-            ),
-            VolumeParamValue::Float(2.0)
-        );
-        assert_eq!(
-            interp_vec3_lerp(
-                VolumeParamValue::Vec3(Vec3::ZERO),
-                VolumeParamValue::Vec3(Vec3::new(2.0, 4.0, 6.0)),
-                0.5
-            ),
-            VolumeParamValue::Vec3(Vec3::new(1.0, 2.0, 3.0))
-        );
-        assert_eq!(
-            interp_discrete(VolumeParamValue::Enum(1), VolumeParamValue::Enum(2), 0.49),
-            VolumeParamValue::Enum(1)
-        );
-        assert_eq!(
-            interp_discrete(VolumeParamValue::Enum(1), VolumeParamValue::Enum(2), 0.5),
-            VolumeParamValue::Enum(2)
-        );
-    }
-
-    #[test]
-    fn render_volume_component_descriptor_applies_defaults_to_resolved_stack() {
-        let mut settings = RenderResolvedPostProcessSettings::new(
-            RenderBloomSettings {
-                intensity: 9.0,
-                ..Default::default()
-            },
-            RenderExposureSettings {
-                mode: RenderExposureMode::Histogram,
-                compensation_ev: 2.0,
-                ..Default::default()
-            },
-            RenderColorGradingSettings {
-                exposure: 2.0,
-                ..Default::default()
-            },
-            RenderPostProcessEffectStackSettings::default(),
-        );
-
-        for descriptor in BUILTIN_POST_PROCESS_VOLUME_COMPONENTS {
-            descriptor.apply_defaults(&mut settings).unwrap();
-        }
-
-        assert_eq!(settings.bloom, RenderBloomSettings::default());
-        assert_eq!(settings.exposure, RenderExposureSettings::default());
-        assert_eq!(
-            settings.color_grading,
-            RenderColorGradingSettings::default()
-        );
-        assert_eq!(
-            settings.effect_stack,
-            RenderPostProcessEffectStackSettings::default()
-        );
-    }
-
-    #[test]
-    fn render_volume_component_descriptor_applies_authored_values() {
-        let mut settings = RenderResolvedPostProcessSettings::new(
-            RenderBloomSettings::default(),
-            RenderExposureSettings::default(),
-            RenderColorGradingSettings::default(),
-            RenderPostProcessEffectStackSettings::default(),
-        );
-        let descriptor = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
-            .iter()
-            .find(|descriptor| descriptor.component_id == "post.vignette")
-            .copied()
-            .unwrap();
-
-        descriptor
-            .apply_values(
-                &mut settings,
-                &[
-                    VolumeParamValue::Float(0.25),
-                    VolumeParamValue::Float(0.75),
-                    VolumeParamValue::Float(0.9),
-                ],
-            )
-            .unwrap();
-
-        assert_eq!(settings.effect_stack.vignette.intensity, 0.25);
-        assert_eq!(settings.effect_stack.vignette.smoothness, 0.75);
-        assert_eq!(settings.effect_stack.vignette.roundness, 0.9);
-    }
-
-    #[test]
-    fn render_volume_component_descriptor_applies_exposure_values() {
-        let mut settings = RenderResolvedPostProcessSettings::new(
-            RenderBloomSettings::default(),
-            RenderExposureSettings::default(),
-            RenderColorGradingSettings::default(),
-            RenderPostProcessEffectStackSettings::default(),
-        );
-        let descriptor = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
-            .iter()
-            .find(|descriptor| descriptor.component_id == "post.exposure")
-            .copied()
-            .unwrap();
-
-        descriptor
-            .apply_values(
-                &mut settings,
-                &[
-                    VolumeParamValue::Enum(1),
-                    VolumeParamValue::Float(7.0),
-                    VolumeParamValue::Float(1.5),
-                    VolumeParamValue::Float(-6.0),
-                    VolumeParamValue::Float(10.0),
-                    VolumeParamValue::Float(0.2),
-                    VolumeParamValue::Float(0.8),
-                    VolumeParamValue::Float(2.0),
-                    VolumeParamValue::Float(0.5),
-                ],
-            )
-            .unwrap();
-
-        assert_eq!(settings.exposure.mode, RenderExposureMode::Histogram);
-        assert_eq!(settings.exposure.manual_ev100, 7.0);
-        assert_eq!(settings.exposure.compensation_ev, 1.5);
-        assert_eq!(settings.exposure.render_histogram_range(), (-6.0, 10.0));
-        assert_eq!(settings.exposure.render_filter_range(), (0.2, 0.8));
-        assert_eq!(settings.exposure.render_speed_brighten(), 2.0);
-        assert_eq!(settings.exposure.render_speed_darken(), 0.5);
-        assert_eq!(
-            descriptor.read_values(&settings),
-            vec![
-                VolumeParamValue::Enum(1),
-                VolumeParamValue::Float(7.0),
-                VolumeParamValue::Float(1.5),
-                VolumeParamValue::Float(-6.0),
-                VolumeParamValue::Float(10.0),
-                VolumeParamValue::Float(0.2),
-                VolumeParamValue::Float(0.8),
-                VolumeParamValue::Float(2.0),
-                VolumeParamValue::Float(0.5),
-            ]
-        );
-    }
-
-    #[test]
-    fn render_volume_component_descriptor_rejects_bad_value_shape() {
-        let descriptor = VolumeComponentDescriptor::new(
-            "post.test",
-            &TEST_PARAMS,
-            read_test_value,
-            apply_test_value,
-        );
-        let mut settings = RenderResolvedPostProcessSettings::new(
-            RenderBloomSettings::default(),
-            RenderExposureSettings::default(),
-            RenderColorGradingSettings::default(),
-            RenderPostProcessEffectStackSettings::default(),
-        );
-
-        assert_eq!(
-            descriptor.apply_values(&mut settings, &[]),
-            Err(VolumeComponentApplyError::ParamCountMismatch {
-                component_id: "post.test",
-                expected: 1,
-                actual: 0,
-            })
-        );
-        assert_eq!(
-            descriptor.apply_values(&mut settings, &[VolumeParamValue::Uint(1)]),
-            Err(VolumeComponentApplyError::ParamTypeMismatch {
-                component_id: "post.test",
-                param_name: "value",
-                expected: VolumeParamType::Float,
-                actual: VolumeParamType::Uint,
-            })
-        );
-    }
-}
+mod tests;

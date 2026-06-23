@@ -10,17 +10,13 @@ use zircon_plugin_editor_support::{
 };
 use zircon_plugin_particles_runtime::PARTICLE_SYSTEM_COMPONENT_TYPE;
 
-pub const PARTICLES_AUTHORING_CAPABILITY: &str = "editor.extension.particles_authoring";
-pub const PARTICLES_AUTHORING_VIEW_ID: &str = "particles.authoring";
-pub const PARTICLES_PREVIEW_VIEW_ID: &str = "particles.preview";
-pub const PARTICLES_DRAWER_ID: &str = "particles.drawer";
-pub const PARTICLES_TEMPLATE_ID: &str = "particles.authoring";
-pub const PARTICLES_PREVIEW_TEMPLATE_ID: &str = "particles.preview";
-pub const PARTICLES_COMPONENT_DRAWER_ID: &str = "particles.Component.ParticleSystem.drawer";
-pub const PARTICLES_SYSTEM_ASSET_KIND: &str = "particles.system";
-pub const PARTICLES_CPU_SPRITE_TEMPLATE_ID: &str = "particles.template.cpu_sprite";
-pub const PARTICLES_CPU_SPRITE_TEMPLATE_DOCUMENT: &str =
-    "plugins://particles/templates/cpu_sprite_system.toml";
+use crate::capability::PARTICLES_AUTHORING_CAPABILITY;
+use crate::extension_ids::{
+    PARTICLES_AUTHORING_VIEW_ID, PARTICLES_COMPONENT_DRAWER_ID,
+    PARTICLES_CPU_SPRITE_TEMPLATE_DOCUMENT, PARTICLES_CPU_SPRITE_TEMPLATE_ID, PARTICLES_DRAWER_ID,
+    PARTICLES_PREVIEW_TEMPLATE_ID, PARTICLES_PREVIEW_VIEW_ID, PARTICLES_SYSTEM_ASSET_KIND,
+    PARTICLES_TEMPLATE_ID,
+};
 
 pub(crate) fn register_particles_authoring_extensions(
     registry: &mut EditorExtensionRegistry,

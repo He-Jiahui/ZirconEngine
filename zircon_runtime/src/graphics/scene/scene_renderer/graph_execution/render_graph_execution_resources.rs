@@ -134,7 +134,6 @@ impl RenderGraphExecutionResources {
             .and_then(|backing| self.owned_textures.get(backing))
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture_desc(
         &self,
         name: &str,

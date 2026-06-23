@@ -1,7 +1,8 @@
 use crate::{
-    module_descriptor, plugin_registration, register_zr_vm_backend,
+    module_descriptor, package_manifest, plugin_registration, register_zr_vm_backend,
     ZrVmLanguageBackendRegistration, ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME,
-    ZR_VM_LANGUAGE_MODULE_NAME, ZR_VM_PROJECT_BACKEND_SELECTOR,
+    ZR_VM_LANGUAGE_DIST_CRATE_NAME, ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY, ZR_VM_LANGUAGE_MODULE_NAME,
+    ZR_VM_PROJECT_BACKEND_SELECTOR,
 };
 
 #[test]
@@ -48,6 +49,41 @@ fn zr_vm_language_registration_reports_backend_capability() {
                     && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
             }));
     }
+}
+
+#[test]
+fn zr_vm_language_package_manifest_declares_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.modules.iter().any(|module| {
+        module.name == "zr_vm_language.dist"
+            && module.kind == zircon_runtime::plugin::PluginModuleKind::Native
+            && module.crate_name == ZR_VM_LANGUAGE_DIST_CRATE_NAME
+    }));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("zr_vm_language package manifest declares distribution");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, ZR_VM_LANGUAGE_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(
+        distribution.runtime_entry,
+        ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY
+    );
 }
 
 #[test]

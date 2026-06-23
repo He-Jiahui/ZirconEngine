@@ -1,0 +1,195 @@
+use super::*;
+
+#[test]
+fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
+    let parent = read_runtime_src("scene/tests/ecs_schedule.rs");
+    let conflict_graph = read_runtime_src("scene/tests/ecs_schedule/conflict_graph.rs");
+    let fixed_update = read_runtime_src("scene/tests/ecs_schedule/fixed_update.rs");
+    let parallel_executor = read_runtime_src("scene/tests/ecs_schedule/parallel_executor.rs");
+    let render_extract = read_runtime_src("scene/tests/ecs_schedule/render_extract.rs");
+    let resources_events = read_runtime_src("scene/tests/ecs_schedule/resources_events.rs");
+    let schedule_plan = read_runtime_src("scene/tests/ecs_schedule/schedule_plan.rs");
+    let world_driver = read_runtime_src("scene/tests/ecs_schedule/world_driver.rs");
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+    );
+
+    assert_contains_all(
+        "scene ECS schedule parent test module mounts",
+        &parent,
+        &[
+            "mod conflict_graph;",
+            "mod fixed_update;",
+            "mod parallel_executor;",
+            "mod render_extract;",
+            "mod resources_events;",
+            "mod schedule_plan;",
+            "mod world_driver;",
+        ],
+    );
+    assert_eq!(
+        parent.matches("#[test]").count(),
+        0,
+        "scene/tests/ecs_schedule.rs should mount child owners instead of keeping executable tests"
+    );
+
+    for moved_test in [
+        "fn resource_store_keeps_resources_by_concrete_type",
+        "fn event_payload_profile_marks_large_payloads_for_arc_indirection",
+        "fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems",
+        "fn schedule_maintains_executor_stage_plan_after_registration_and_load",
+        "fn world_mutations_mark_derived_state_dirty_until_post_update_systems_flush",
+        "fn canonical_render_frame_extract_populates_scene_sections_directly",
+        "fn inactive_render_camera_extracts_no_scene_renderables",
+        "fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run",
+        "fn world_driver_runs_runtime_scene_systems_in_schedule_order",
+    ] {
+        assert!(
+            !parent.contains(moved_test),
+            "scene/tests/ecs_schedule.rs should mount child test owners instead of defining {moved_test}"
+        );
+    }
+
+    assert_contains_all(
+        "resources/events child owns ECS resource and event contracts",
+        &resources_events,
+        &[
+            "use super::*;",
+            "fn resource_store_keeps_resources_by_concrete_type",
+            "fn event_store_tracks_each_event_type_independently",
+            "fn dormant_subscription_connects_on_plugin_activate",
+            "fn event_payload_profile_marks_large_payloads_for_arc_indirection",
+        ],
+    );
+    assert_contains_all(
+        "schedule plan child owns stage and registration contracts",
+        &schedule_plan,
+        &[
+            "use super::*;",
+            "fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems",
+            "fn stage_plan_orders_by_constraints_then_order",
+            "fn schedule_maintains_executor_stage_plan_after_registration_and_load",
+            "fn native_system_registration_reports_missing_required_resources",
+        ],
+    );
+    assert_contains_all(
+        "render extract child owns derived-state and camera extraction contracts",
+        &render_extract,
+        &[
+            "use super::*;",
+            "fn world_mutations_mark_derived_state_dirty_until_post_update_systems_flush",
+            "fn canonical_render_frame_extract_populates_scene_sections_directly",
+            "fn render_extract_projects_scene_camera_component_product_fields",
+            "fn inactive_render_camera_extracts_no_scene_renderables",
+        ],
+    );
+    assert_contains_all(
+        "world driver child owns hook and runtime scene system ordering contracts",
+        &world_driver,
+        &[
+            "use super::*;",
+            "fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run",
+            "fn world_driver_runs_native_render_extract_system_before_render_extract_hooks",
+            "fn world_driver_orders_native_systems_with_plugin_hooks",
+            "fn world_driver_runs_runtime_scene_systems_in_schedule_order",
+        ],
+    );
+
+    let migrated_test_count = [
+        resources_events.as_str(),
+        schedule_plan.as_str(),
+        render_extract.as_str(),
+        world_driver.as_str(),
+    ]
+    .iter()
+    .map(|source| source.matches("#[test]").count())
+    .sum::<usize>();
+    assert_eq!(
+        migrated_test_count, 37,
+        "new scene ECS schedule child owners should preserve the 37 tests moved out of the parent"
+    );
+    let schedule_family_test_count = [
+        conflict_graph.as_str(),
+        fixed_update.as_str(),
+        parallel_executor.as_str(),
+        render_extract.as_str(),
+        resources_events.as_str(),
+        schedule_plan.as_str(),
+        world_driver.as_str(),
+    ]
+    .iter()
+    .map(|source| source.matches("#[test]").count())
+    .sum::<usize>();
+    assert_eq!(
+        schedule_family_test_count, 57,
+        "scene ECS schedule folder should retain the full 57-test family"
+    );
+
+    for (path, source) in [
+        ("scene/tests/ecs_schedule.rs", parent.as_str()),
+        (
+            "scene/tests/ecs_schedule/conflict_graph.rs",
+            conflict_graph.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/fixed_update.rs",
+            fixed_update.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/parallel_executor.rs",
+            parallel_executor.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/render_extract.rs",
+            render_extract.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/resources_events.rs",
+            resources_events.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/schedule_plan.rs",
+            schedule_plan.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/world_driver.rs",
+            world_driver.as_str(),
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("ECS doc", ecs_doc.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 scene ECS schedule test folder split",
+                "runtime_15_scene_ecs_schedule_tests_folder_split_static_passed_cargo_deferred",
+                "scene/tests/ecs_schedule.rs",
+                "scene/tests/ecs_schedule/resources_events.rs",
+                "scene/tests/ecs_schedule/render_extract.rs",
+                "runtime_15_scene_ecs_schedule_tests_are_folder_backed",
+            ],
+        );
+    }
+}

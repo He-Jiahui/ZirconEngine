@@ -3,12 +3,14 @@ related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/prelude.rs
   - zircon_plugins/plugin_sdk/src/runtime_exports.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/plugin_sdk/src/manifest/defaults.rs
+  - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/tests.rs
@@ -47,8 +49,14 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
+  - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/schema.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
@@ -59,12 +67,14 @@ implementation_files:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/prelude.rs
   - zircon_plugins/plugin_sdk/src/runtime_exports.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/plugin_sdk/src/manifest/defaults.rs
+  - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/tests.rs
@@ -140,6 +150,16 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk -p zircon_plugin_ai_runtime -p zircon_plugin_animation_runtime -p zircon_plugin_hybrid_gi_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_net_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_physics_runtime -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_rendering_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_tilemap_2d_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_zr_vm_language_runtime --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-d12-export-macro-0623 --message-format short --color never: passed 2026-06-23 and refreshed zircon_plugins/Cargo.lock for remaining first-party runtime SDK dependencies
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk -p zircon_plugin_ai_runtime -p zircon_plugin_animation_runtime -p zircon_plugin_hybrid_gi_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_net_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_physics_runtime -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_rendering_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_tilemap_2d_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_zr_vm_language_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-d12-export-macro-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime and large-plugin warning noise
   - cargo metadata --manifest-path zircon_plugins/Cargo.toml --format-version 1 --no-deps --locked: passed 2026-06-23
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/dispatch/mod.rs zircon_plugins/first_party_runtime_catalog/src/lib.rs zircon_plugins/plugin_sdk/src/editor.rs zircon_plugins/plugin_sdk/src/lib.rs zircon_plugins/plugin_sdk/src/prelude.rs zircon_plugins/plugin_sdk/src/manifest/mod.rs zircon_plugins/plugin_sdk/src/manifest/tests.rs zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: capability_conformance.m4_t2_builder_mirror_gate_status=sdk-builder-mirror-clean, sdk_builder_mirror_violations=0 on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m4-capability-test-nodebug-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warnings
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m4-capability-test-nodebug-0623 --message-format short --color never feature_bundle_builder_projects_capability_to_feature_and_modules -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --features editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-editor-sdk-m2-0622 --message-format short --color never: passed 2026-06-23 after zircon_runtime::ui::dispatch façade exported route policy helpers
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --features editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-editor-sdk-m2-0622 --message-format short --color never editor_declaration_mirrors_runtime_manifest_and_keeps_editor_capabilities -- --test-threads=1 --nocapture: timed out after 900s on 2026-06-23, not counted as passing
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-m2-registration-0623 --message-format short --color never: passed 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-m2-registration-0623 --message-format short --color never native_dynamic_registration_manifest_round_trips -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native dist_plugin_one_file_export_compiles --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-sdk: 1 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-fixture: passed 2026-06-23
 doc_type: module-detail
 ---
 
@@ -159,8 +179,19 @@ Ownership stays split as follows:
 - `zircon_plugin_sdk::registration` owns runtime registration builders that hide plugin module owner-token sequencing for module and runtime scene system registration.
 - `zircon_plugin_sdk::runtime_plugin_exports!` owns the standard runtime export helper functions for trait-backed runtime plugins.
 - `zircon_plugin_sdk::editor` owns editor authoring declaration helpers and the `authoring_plugin!` macro for editor plugin boilerplate.
-- `zircon_plugin_sdk::native` owns the author-facing native ABI v3 declarations, callback helpers, SDK-owned byte buffers, entry capability checks, and export macros. Its feature only depends on `zircon_runtime_interface`, not the full runtime crate.
+- `zircon_plugin_sdk::native` owns the author-facing native ABI v3 declarations, callback helpers, SDK-owned byte buffers, entry capability checks, export macros, and registration manifest TOML DTOs. Its feature depends on `zircon_runtime_interface`, `serde`, and `toml`, not the full runtime crate.
+- `zircon_plugin_sdk::dist` owns one-file native distribution macros that project crate-local manifest/callback declarations into ABI v3 descriptor, runtime/editor entries, bridge method tables, and symbol exports.
 - `zircon_plugin_sdk::test` owns runtime test fixture construction for plugin integration tests. It consumes public runtime/catalog APIs and does not bypass `CoreRuntime` lifecycle registration.
+
+## Native ABI
+
+The `native` feature exports ABI v3 structures and helpers for dist plugins. Plugins 13 M2/T1 adds registration manifest support to this owner:
+
+- `NativePluginSchemaVersionsV3::registration_manifest_schema` advertises the schema id for registration declarations.
+- `NativePluginBehaviorV3::registration_manifest` carries the ABI-safe TOML text for module, system, resource, event, extension, and capability declarations.
+- `NativePluginRegistrationManifestV3` plus `registration_manifest_v3_to_toml(...)`, `registration_manifest_v3_from_toml(...)`, and `registration_manifest_v3_schema_is_current(...)` provide the SDK round-trip surface.
+
+The current schema id is `zircon.native.registration-manifest/3`. `native_dynamic_fixture` publishes a runtime registration manifest through this path; Plugins 13 M2/T2 added system bridge replay on the runtime host side, and Plugins 13 M2/T3 moved the fixture's one-file cdylib exports to `zircon_plugin_sdk::dist`.
 
 ## Manifest Builders
 
@@ -174,6 +205,8 @@ The builder then accepts category, description, maturity, target modes, capabili
 
 `PluginModuleBuilder` standardizes module naming for `runtime`, `editor`, `native`, and `vm` modules. The editor module builder defaults to `RuntimeTargetMode::EditorHost`, while other module kinds stay explicit so future guard work can verify target-mode intent per plugin.
 
+`PluginFeatureBundleBuilder` standardizes optional feature bundles. It declares feature dependencies, capabilities, runtime modules, editor modules, target modes, enabled-by-default status, and default packaging from one owner. The helper methods `with_runtime_capability_module(...)` and `with_editor_capability_module(...)` project the same feature capability into `PluginFeatureBundleManifest` and the generated `PluginModuleManifest`, so feature-level capability strings do not drift between manifest sections.
+
 The first consumer is `zircon_plugin_sdk_examples_editor`. Its `plugin.rs` now uses `authoring_plugin!` to build the base package manifest and generate the primary editor plugin implementation. The generated `EditorPlugin` implementation still lets `zircon_editor::EditorPlugin::package_manifest(...)` attach the editor module so module ownership stays with the editor plugin descriptor.
 
 ## Editor Authoring Macro
@@ -181,7 +214,9 @@ The first consumer is `zircon_plugin_sdk_examples_editor`. Its `plugin.rs` now u
 The `editor` feature adds `zircon_plugin_sdk::editor`:
 
 - `EditorPluginDeclaration` keeps descriptor, base manifest, capability list, asset/content roots, maturity, and registration projection in one authoring object.
+- `EditorPluginDeclaration::mirrors_runtime(...)` and `mirrors_runtime_manifest(...)` let an editor plugin explicitly mirror a runtime package manifest while preserving editor-specific capabilities and roots; `mirrored_runtime_package_id()` exposes the linked runtime id for guards and tests.
 - `authoring_plugin!` generates the common editor plugin struct, `Default`/`new`, descriptor access, package manifest projection, capability extraction, registration report helper, and `EditorPlugin::register_editor_extensions` forwarding.
+- `authoring_plugin!` accepts `mirrors_runtime: ...` for editor/runtime capability symmetry declarations.
 - `zircon_plugins/Cargo.toml` now defines `[workspace.dependencies]` for core path dependencies, and `plugin_sdk_examples/editor` consumes `zircon_editor`, `zircon_plugin_sdk`, and `zircon_runtime` through `workspace = true`.
 - `plugin_structure_audits::skeleton` checks the blessed sample for workspace dependency inheritance and reports `sample_workspace_dependency_status = sample-workspace-deps-clean`.
 
@@ -196,8 +231,9 @@ The `native` feature is intentionally lightweight:
 - `NativePluginEntryPointV3` centralizes required/denied capability selection and optional host-ready callbacks.
 - `owned_bytes(...)`, `free_owned_bytes_v2(...)`, `bytes_from_slice(...)`, `callback_status(...)`, and `catch_native_callback_panic(...)` centralize owner-token memory and panic-boundary boilerplate.
 - `export_native_plugin_descriptor_v3!` and `export_native_plugin_entry_v3!` export ABI symbols without hand-writing `#[no_mangle]` functions. `native_command_plugin_v3!` is the simple stateless command-plugin macro for future one-file native authors.
+- `zircon_plugin_sdk::dist::{native_dist_plugin_v3!, native_dist_runtime_plugin_v3!}` generate descriptor/static report/behavior/schema/manifest/bridge-method tables and entry exports from a crate-local declaration. `dist_plugin_one_file_export_compiles` covers descriptor export, runtime entry gating, registration manifest pointer, and bridge table emission.
 
-`zircon_plugin_native_dynamic_fixture_native` now depends on `zircon_plugin_sdk` with `default-features = false, features = ["native"]`. Its source keeps fixture-specific command handling, state save/restore, asset import, and host diagnostics, but no longer defines local ABI structs, owner-token free logic, panic hook handling, capability-list parsing, or native export functions.
+`zircon_plugin_native_dynamic_fixture_native` now depends on `zircon_plugin_sdk` with `default-features = false, features = ["native"]`. Its source keeps fixture-specific command handling, state save/restore, asset import, bridge tick callback, and host diagnostics, but no longer defines local ABI structs, owner-token free logic, panic hook handling, capability-list parsing, descriptor/report statics, bridge method table statics, or native export functions by hand.
 
 ## Runtime Declaration
 
@@ -259,13 +295,16 @@ Completed in this area:
 - M2/T1 builder baseline for package, module, and runtime declaration builders.
 - M2/T2 first skeleton sample using `zircon_plugin_sdk_examples_editor`, with `plugins_12_crate_skeleton_conformance` keeping that sample clean.
 - M2/T3 native ABI helper feature and macros, with `native_dynamic_fixture` consuming SDK-owned ABI helpers.
+- Plugins 13 M2/T1 native registration manifest schema/DTO round-trip for dist registration declarations.
 - M2/T4 editor `authoring_plugin!` macro and first workspace dependency inheritance guard/sample.
 - M2/T5 `plugin_sdk::test::TestRuntime::builder()` fixture with SDK self-tests covering module activation and level ticking.
 - M3/T1 importer family and split importer registration entry cutover, with trait-backed reports and descriptor-derived selections.
 - M3/T2 runtime registration builder plus animation runtime representative migration.
 - M3/D12 `runtime_plugin_exports!` macro plus first-party trait-backed runtime helper rollout across ai, animation, hybrid_gi, navigation, net, particles, physics, prefab_tools, rendering, solari, terrain, texture, tilemap_2d, virtual_geometry, and zr_vm_language.
+- M4/T2 SDK guard for `PluginFeatureBundleBuilder` and editor `mirrors_runtime(...)`, with `m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`.
+- M5 RuntimePluginId open string-newtype convergence; plugin ids can now carry valid external keys without adding engine core enum variants.
 
 Still open:
 
-- M4 capability four-source convergence and editor/runtime symmetry guards.
-- M5 `RuntimePluginId` open/custom id convergence.
+- M4/M5 broader capability rollout across sound/importer/editor plugins beyond the SDK guard.
+- M5 touch-it-conform-it replacement of remaining local long-test fixtures with `plugin_sdk::test`.

@@ -11,6 +11,7 @@ mod hot_update_application;
 mod keys;
 mod lifecycle;
 mod loading;
+mod registration_replay;
 mod reports;
 mod runtime_behavior;
 
@@ -35,7 +36,8 @@ pub use reports::{
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
     NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeHotUpdateReport,
     NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
-    NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimePluginState, NativePluginRuntimeRegistrationReplayReport,
+    NativePluginRuntimeRegistrationSystemReplay, NativePluginRuntimeStateRestoreReport,
     NativePluginRuntimeStateSnapshot, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
     NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
 };

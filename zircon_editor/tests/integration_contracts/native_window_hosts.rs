@@ -2,7 +2,7 @@ use std::fs;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_editor::ui::host::{EditorManager, NativeWindowHostState};
+use zircon_editor::ui::host::EditorManager;
 use zircon_editor::ui::workbench::autolayout::ShellFrame;
 use zircon_editor::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout, WorkbenchLayout,
@@ -17,6 +17,7 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
 fn env_lock() -> &'static Mutex<()> {
     static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -71,13 +72,18 @@ fn reattaching_last_detached_view_clears_native_window_host_record() {
     let layout = manager.current_layout();
     assert_eq!(layout.floating_windows.len(), 1);
     let window_id = layout.floating_windows[0].window_id.clone();
-    assert_eq!(
-        manager.native_window_hosts(),
-        vec![NativeWindowHostState {
-            window_id: window_id.clone(),
-            handle: None,
-            bounds: [0.0, 0.0, 0.0, 0.0],
-        }]
+    let native_window_hosts = manager.native_window_hosts();
+    assert_eq!(native_window_hosts.len(), 1);
+    let native_window_host = &native_window_hosts[0];
+    assert_eq!(native_window_host.window_id, window_id);
+    assert_eq!(native_window_host.handle, None);
+    assert_eq!(native_window_host.bounds, [0.0, 0.0, 0.0, 0.0]);
+    assert!(
+        native_window_host
+            .surface_tree_id
+            .0
+            .starts_with("zircon.editor.native_window."),
+        "floating native windows must expose an owned runtime surface tree id"
     );
 
     let reattached = manager
@@ -136,13 +142,15 @@ fn applying_workspace_with_floating_window_syncs_native_window_bounds() {
         .apply_project_workspace(Some(workspace))
         .expect("apply floating workspace");
 
+    let native_window_hosts = manager.native_window_hosts();
+    assert_eq!(native_window_hosts.len(), 1);
+    let native_window_host = &native_window_hosts[0];
+    assert_eq!(native_window_host.window_id, window_id);
+    assert_eq!(native_window_host.handle, None);
+    assert_eq!(native_window_host.bounds, [120.0, 80.0, 640.0, 480.0]);
     assert_eq!(
-        manager.native_window_hosts(),
-        vec![NativeWindowHostState {
-            window_id,
-            handle: None,
-            bounds: [120.0, 80.0, 640.0, 480.0],
-        }]
+        native_window_host.surface_tree_id,
+        UiTreeId::new("zircon.editor.native_window.window:restored")
     );
 
     std::env::remove_var("ZIRCON_EDITOR_CONFIG_PATH");

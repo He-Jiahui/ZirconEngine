@@ -12,7 +12,7 @@ pub(crate) fn visibility_entries(extract: &RenderFrameExtract) -> Vec<Visibility
         .map(|mesh| VisibilityRenderableInput {
             entity: mesh.node_id,
             mobility: mesh.mobility,
-            render_layer_mask: mesh.render_layer_mask,
+            render_layer_mask: mesh.render_layer_mask.clone(),
         })
         .collect()
 }

@@ -1,8 +1,8 @@
 use crate::ui::workbench::autolayout::ShellFrame;
 
 use super::super::{
-    ActivityDrawerMode, DocumentNode, FloatingWindowLayout, LayoutCommand, LayoutDiff,
-    LayoutManager, SplitPlacement, TabStackLayout, WorkbenchLayout,
+    ActivityDrawerMode, DocumentNode, FloatingWindowLayout, LayoutCommand, LayoutCommandError,
+    LayoutDiff, LayoutManager, SplitPlacement, TabStackLayout, WorkbenchLayout,
 };
 
 impl LayoutManager {
@@ -10,7 +10,7 @@ impl LayoutManager {
         &self,
         layout: &mut WorkbenchLayout,
         cmd: LayoutCommand,
-    ) -> Result<LayoutDiff, String> {
+    ) -> Result<LayoutDiff, LayoutCommandError> {
         let result = match cmd {
             LayoutCommand::OpenView {
                 instance_id,
@@ -79,7 +79,10 @@ impl LayoutManager {
                 self.detach_instance(layout, &new_instance);
                 let node = self
                     .workspace_node_mut(layout, &workspace, &path)
-                    .ok_or_else(|| format!("missing workspace path for {:?}", workspace))?;
+                    .ok_or_else(|| LayoutCommandError::MissingWorkspacePath {
+                        workspace: workspace.clone(),
+                        path: path.clone(),
+                    })?;
                 let previous = node.clone();
                 let inserted = DocumentNode::Tabs(TabStackLayout {
                     tabs: vec![new_instance.clone()],
@@ -104,13 +107,16 @@ impl LayoutManager {
             } => {
                 let node = self
                     .workspace_node_mut(layout, &workspace, &path)
-                    .ok_or_else(|| format!("missing split path for {:?}", workspace))?;
+                    .ok_or_else(|| LayoutCommandError::MissingSplitPath {
+                        workspace: workspace.clone(),
+                        path: path.clone(),
+                    })?;
                 let DocumentNode::SplitNode {
                     ratio: current_ratio,
                     ..
                 } = node
                 else {
-                    return Err("target path is not a split node".to_string());
+                    return Err(LayoutCommandError::TargetPathIsNotSplitNode { workspace, path });
                 };
                 *current_ratio = ratio.clamp(0.1, 0.9);
                 Ok(LayoutDiff { changed: true })
@@ -120,7 +126,7 @@ impl LayoutManager {
                 let drawer = layout
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
-                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 drawer.mode = mode;
                 if mode == ActivityDrawerMode::Collapsed {
                     drawer.tab_stack.active_tab = None;
@@ -134,7 +140,7 @@ impl LayoutManager {
                 let drawer = layout
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
-                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 drawer.extent = extent;
                 Ok(LayoutDiff { changed: true })
             }
@@ -143,7 +149,7 @@ impl LayoutManager {
                 let drawer = layout
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
-                    .ok_or_else(|| format!("missing drawer {:?}", slot))?;
+                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 if drawer.tab_stack.tabs.contains(&instance_id) {
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
                     drawer.active_view = Some(instance_id);
@@ -152,7 +158,7 @@ impl LayoutManager {
                     }
                     Ok(LayoutDiff { changed: true })
                 } else {
-                    Err("drawer does not contain target tab".to_string())
+                    Err(LayoutCommandError::DrawerMissingTab { slot, instance_id })
                 }
             }
             LayoutCommand::ActivateMainPage { page_id } => {

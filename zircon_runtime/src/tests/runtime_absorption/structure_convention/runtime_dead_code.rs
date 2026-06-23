@@ -232,6 +232,56 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
 }
 
 #[test]
+fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code() {
+    let reflection_docs = read_runtime_src("script/vm/tests/reflection_docs.rs");
+    let vm_tests_doc = read_repo("docs/zircon_runtime/script/vm/tests.md");
+    let host_reflection_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+
+    assert!(
+        !reflection_docs.contains("#[allow(dead_code)]"),
+        "reflection_docs macro fixtures should be exercised by test assertions instead of dead-code suppression"
+    );
+    assert_contains_all(
+        "script reflection macro fixture live reads",
+        &reflection_docs,
+        &[
+            "let test_vec3 = TestVec3",
+            "test_vec3.x + test_vec3.y + test_vec3.z",
+            "matches!(TestEnum::A, TestEnum::A)",
+            "pub fn point_fixture_x() -> f64",
+            "Point { x: 3.5 }.x",
+            "macro_math::point_fixture_x()",
+        ],
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("script VM tests doc", vm_tests_doc.as_str()),
+        ("host reflection doc", host_reflection_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 F12 script reflection macro fixture dead-code cleanup",
+                "runtime_15_script_reflection_macro_fixture_dead_code_cleanup_static_passed_cargo_deferred",
+                "runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code",
+            ],
+        );
+    }
+}
+
+#[test]
 fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child =
@@ -243,7 +293,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
     );
 
     assert_contains_all(
@@ -259,6 +309,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
         "fn runtime_15_runtime_ui_dead_code_surface_is_test_support",
         "fn runtime_15_runtime_owned_dead_code_suppression_cleanup",
         "fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code",
+        "fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code",
     ] {
         assert!(
             !parent.contains(moved_guard),

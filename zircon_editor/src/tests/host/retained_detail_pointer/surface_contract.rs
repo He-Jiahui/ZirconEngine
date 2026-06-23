@@ -5,8 +5,22 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
+    let globals = [
+        "src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs",
+        "src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n");
+    let pointer_layout = [
+        "src/ui/retained_host/app/pointer_layout/hierarchy.rs",
+        "src/ui/retained_host/app/pointer_layout/detail_scrolls.rs",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n");
 
     for required in [
         "set_hierarchy_scroll_px",
@@ -32,6 +46,26 @@ fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
         assert!(
             pointer_layout.contains(required),
             "pointer layout missing `{required}`"
+        );
+    }
+}
+
+#[test]
+fn detail_scroll_pointer_bridge_uses_route_intent_only() {
+    let bridge = source("src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs");
+    let rebuild = source("src/ui/retained_host/detail_pointer/rebuild_surface.rs");
+    let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
+
+    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
+    assert!(rebuild.contains("EditorRouteIntent::Detail"));
+    assert!(rebuild.contains("route_intents.bind_node"));
+    assert!(scroll.contains("detail_route_for_pointer_dispatch"));
+    for forbidden in ["map_route", "handled_by", "route.target"] {
+        assert!(
+            !bridge.contains(forbidden)
+                && !rebuild.contains(forbidden)
+                && !scroll.contains(forbidden),
+            "detail scroll pointer bridge should not keep old route marker `{forbidden}`"
         );
     }
 }

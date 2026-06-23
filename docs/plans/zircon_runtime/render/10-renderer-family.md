@@ -386,6 +386,7 @@ pub(crate) enum BatchRejectReason {
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | RF-M1/M2 部分完成,RF-M3/RF-M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 10 Renderer Family 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：LOD Group、custom renderer registry、RendererCommon 基座；验收缺口：需要 LOD cross-fade、renderer registry 消费端和 batching reason diagnostics |
 | 2026-06-15 | RF-M1 RendererCommon baseline | 部分完成: extract 字段和若干公共语义存在,统一 renderer 基座未落地 | Mesh/sprite/particle extract 已能提供 layer、source entity、material、shadow/velocity 相关字段;计划 03/04/05/06 已在 GPUScene、visibility、shadow 和 velocity 中消费这些字段。 | 计划 03/04/05/06 状态表分别记录 source entity、GPUScene instance source、shadow caster filtering、particle/mesh velocity 相关证据。 | 建立 `RendererCommon` 组件/DTO,把 layer、sorting、material override、shadow、motion flags 收束到单一基座。 |
 | 2026-06-15 | RF-M2 batching policy execution | 部分完成: GPUScene/indirect 机制存在,renderer 级策略未定稿 | 计划 03 GS-M4 已有 indirect batcher、multi-draw replay 与 diagnostics;但本计划定义的 static/dynamic/instancing 策略组件面仍未落地。 | 计划 03 GS-M4 状态表记录 indirect stats、WGPU replay 与 `cargo check` 证据。 | 补 renderer batching policy、batching reason diagnostics 和 material/renderer override。 |
 | 2026-06-15 | RF-M3 LOD Group | 未启动: 仍停留在计划描述 | 当前只具备距离阈值式 LOD 描述,无屏占比、过渡或 LOD Group 资产。 | 本文件 `现状与差距` 明确 LOD 仅为距离阈值选 mesh。 | 实施 LODGroup asset、screen-size evaluation、cross-fade 与 renderer stats。 |

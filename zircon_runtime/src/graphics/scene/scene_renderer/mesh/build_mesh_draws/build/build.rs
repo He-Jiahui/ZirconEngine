@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use crate::core::framework::render::{
-    build_mesh_phase_queue, render_mesh_stable_instance_key, GeometryPhaseInput, MeshPhaseInput,
-    PrimitiveRelevance, RenderMeshSnapshot, RenderPhaseMeshSource, RenderPhaseQueue,
-    RenderQueueValue,
+    render_mesh_stable_instance_key, PrimitiveRelevance, RenderMeshSnapshot,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::math::RenderVec4;
@@ -19,19 +18,37 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::primitives::render_vec4_or;
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
-use super::super::super::mesh_draw::{MeshCommandSortInput, MeshDraw, MeshDrawGeometrySource};
+use super::super::super::mesh_draw::{
+    MaterialTextureSet, MeshDraw, MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
+};
+use super::super::super::mesh_pass::MeshPassCommandBuffers;
+use super::super::super::prepared_queue::{
+    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
+};
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
+use super::pending_command_cache_extract::{
+    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
+    PendingMeshCommandCacheExtractionStats,
+};
+use super::pending_command_cache_plan::{
+    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
+    PendingMeshCommandCacheVisibility,
+};
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
+use super::phase_ordering::phase_ordered_meshes;
 use super::previous_skinned_palette::{
     previous_skinned_gpu_state_for_gpu_scene_entry, skinned_gpu_source_state_for_pending_draw,
     skinned_joint_palette_state_for_pending_draw,
 };
+use super::virtual_geometry_indirect::build_virtual_geometry_indirect_draw_plan;
 
 pub(crate) struct BuiltMeshDraws {
     draws: Vec<MeshDraw>,
+    prepared_mesh_queue_stats: PreparedMeshQueueStats,
+    prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers,
     gpu_scene_upload_report: GpuSceneUploadReport,
     indirect_segment_count: u32,
     indirect_args_count: u32,
@@ -40,11 +57,21 @@ pub(crate) struct BuiltMeshDraws {
     indirect_authority_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     indirect_draw_ref_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    pending_command_cache_plan_stats: PendingMeshCommandCachePlanStats,
+    pending_command_cache_extraction_stats: PendingMeshCommandCacheExtractionStats,
 }
 
 impl BuiltMeshDraws {
     pub(crate) fn into_draws(self) -> Vec<MeshDraw> {
         self.draws
+    }
+
+    pub(crate) fn prepared_mesh_queue_stats(&self) -> PreparedMeshQueueStats {
+        self.prepared_mesh_queue_stats
+    }
+
+    pub(crate) fn prebuilt_mesh_pass_command_buffers(&self) -> MeshPassCommandBuffers {
+        self.prebuilt_mesh_pass_command_buffers.clone()
     }
 
     pub(crate) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
@@ -78,6 +105,16 @@ impl BuiltMeshDraws {
     pub(crate) fn indirect_segment_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_segment_buffer.clone()
     }
+
+    pub(crate) fn pending_command_cache_plan_stats(&self) -> PendingMeshCommandCachePlanStats {
+        self.pending_command_cache_plan_stats
+    }
+
+    pub(crate) fn pending_command_cache_extraction_stats(
+        &self,
+    ) -> PendingMeshCommandCacheExtractionStats {
+        self.pending_command_cache_extraction_stats
+    }
 }
 
 pub(crate) fn build_mesh_draws(
@@ -90,6 +127,7 @@ pub(crate) fn build_mesh_draws(
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
+    command_cache_extraction: Option<PendingMeshCommandCacheExtractionContext<'_>>,
 ) -> BuiltMeshDraws {
     let build_context = build_mesh_draw_build_context(frame, virtual_geometry_enabled);
     let mut pending_draws = Vec::new();
@@ -103,6 +141,12 @@ pub(crate) fn build_mesh_draws(
             mesh_instance.command_sort_input,
         );
     }
+    let indirect_plan = build_virtual_geometry_indirect_draw_plan(
+        device,
+        frame,
+        virtual_geometry_enabled,
+        &mut pending_draws,
+    );
     let mut packed_lights =
         pack_lighting_extract(&frame.extract.lighting, frame.preview().lighting_enabled);
     if let Some(shadow_light_slots) = shadow_light_slots {
@@ -113,30 +157,71 @@ pub(crate) fn build_mesh_draws(
     let (gpu_scene_upload_report, gpu_scene_entries) =
         sync_gpu_scene_pending_draws(device, queue, gpu_scene, &mut pending_draws);
     let visibility_states = mesh_visibility_states(frame);
-    let indirect_segment_count = 0;
-    let indirect_args_count = 0;
-    let indirect_draw_ref_buffer = None;
-    let indirect_submission_buffer = None;
-    let indirect_authority_buffer = None;
-    let indirect_segment_buffer = None;
-    let indirect_args_offsets = Vec::new();
-    let pending_draw_draw_ref_indices = Vec::new();
-    let pending_draw_submission_tokens = Vec::new();
-    let pending_draw_submission_details = Vec::new();
-    let shared_indirect_args_buffer = None;
-    let indirect_args_buffer = None;
+    let pending_command_cache_plan_stats =
+        summarize_pending_mesh_command_cache_plan(&pending_draws, |entity| {
+            visibility_states
+                .get(&entity)
+                .copied()
+                .map(PendingMeshCommandCacheVisibility::from)
+        });
+    let prepared_mesh_queue_stats =
+        prepared_mesh_queue_stats_for_pending_draws(&pending_draws, &gpu_scene_entries);
+    let indirect_segment_count = indirect_plan.segment_count;
+    let indirect_args_count = indirect_plan.args_count;
+    let indirect_draw_ref_buffer = indirect_plan.draw_ref_buffer;
+    let indirect_submission_buffer = indirect_plan.submission_buffer;
+    let indirect_authority_buffer = indirect_plan.authority_buffer;
+    let indirect_segment_buffer = indirect_plan.segment_buffer;
+    let indirect_args_offsets = indirect_plan.args_offsets;
+    let indirect_args_buffers = indirect_plan.args_buffers;
+    let pending_draw_draw_ref_indices = indirect_plan.draw_ref_indices;
+    let pending_draw_submission_tokens = indirect_plan.submission_tokens;
+    let pending_draw_submission_details = indirect_plan.submission_details;
+    let indirect_args_buffer = indirect_plan.args_buffer;
     let indirect_args_stride = std::mem::size_of::<IndexedIndirectArgs>() as u64;
 
     let pending_draws = pending_draws.into_iter().map(Some).collect::<Vec<_>>();
+    let (pending_draws, prebuilt_mesh_pass_command_buffers, pending_command_cache_extraction_stats) =
+        if let Some(command_cache_extraction) = command_cache_extraction {
+            let extraction = extract_pending_static_mesh_command_cache_hits(
+                pending_draws,
+                |entity| {
+                    visibility_states
+                        .get(&entity)
+                        .copied()
+                        .map(PendingMeshCommandCacheVisibility::from)
+                },
+                |entity, draw_ordinal| {
+                    gpu_scene_entries
+                        .get(&render_mesh_stable_instance_key(entity, draw_ordinal))
+                        .map(|entry| (entry.entry.first_instance_index, entry.entry.instance_count))
+                },
+                command_cache_extraction,
+            );
+            (
+                extraction.pending_draws,
+                extraction.command_buffers,
+                extraction.stats,
+            )
+        } else {
+            (
+                pending_draws,
+                MeshPassCommandBuffers::default(),
+                PendingMeshCommandCacheExtractionStats::default(),
+            )
+        };
     let mut ordered_pending_draws = Vec::new();
     ordered_pending_draws.extend(pending_draws.into_iter().enumerate().filter_map(
         |(index, pending_draw)| {
             let pending_draw = pending_draw?;
+            let indirect_args_offset = indirect_args_offsets
+                .get(index)
+                .copied()
+                .flatten()
+                .unwrap_or((index as u64) * indirect_args_stride);
             Some((
-                indirect_args_offsets
-                    .get(index)
-                    .copied()
-                    .unwrap_or((index as u64) * indirect_args_stride),
+                indirect_args_offset,
+                indirect_args_buffers.get(index).cloned().flatten(),
                 index,
                 pending_draw_submission_details
                     .get(index)
@@ -145,9 +230,9 @@ pub(crate) fn build_mesh_draws(
                     .or_else(|| {
                         submission_detail_from_draw_ref(
                             pending_draw.indirect_draw_ref,
-                            pending_draw_submission_tokens.get(index).copied(),
-                            pending_draw_draw_ref_indices.get(index).copied(),
-                            indirect_args_offsets.get(index).copied(),
+                            pending_draw_submission_tokens.get(index).copied().flatten(),
+                            pending_draw_draw_ref_indices.get(index).copied().flatten(),
+                            Some(indirect_args_offset),
                             indirect_args_stride,
                         )
                     }),
@@ -159,7 +244,13 @@ pub(crate) fn build_mesh_draws(
         draws: ordered_pending_draws
             .into_iter()
             .map(
-                |(indirect_args_offset, original_index, submission_detail, pending_draw)| {
+                |(
+                    indirect_args_offset,
+                    draw_indirect_args_buffer,
+                    original_index,
+                    submission_detail,
+                    pending_draw,
+                )| {
                     let synced_gpu_scene_entry = gpu_scene_entries
                         .get(&render_mesh_stable_instance_key(
                             pending_draw.source_entity,
@@ -263,13 +354,19 @@ pub(crate) fn build_mesh_draws(
                         skinned_gpu_skinning_enabled,
                         pending_draw.first_index,
                         pending_draw.draw_index_count,
-                        shared_indirect_args_buffer.clone(),
+                        draw_indirect_args_buffer,
                         indirect_args_offset,
                         submission_detail.or_else(|| {
                             submission_detail_from_draw_ref(
                                 pending_draw.indirect_draw_ref,
-                                pending_draw_submission_tokens.get(original_index).copied(),
-                                pending_draw_draw_ref_indices.get(original_index).copied(),
+                                pending_draw_submission_tokens
+                                    .get(original_index)
+                                    .copied()
+                                    .flatten(),
+                                pending_draw_draw_ref_indices
+                                    .get(original_index)
+                                    .copied()
+                                    .flatten(),
                                 Some(indirect_args_offset),
                                 indirect_args_stride,
                             )
@@ -293,6 +390,8 @@ pub(crate) fn build_mesh_draws(
                 },
             )
             .collect(),
+        prepared_mesh_queue_stats,
+        prebuilt_mesh_pass_command_buffers,
         gpu_scene_upload_report,
         indirect_segment_count,
         indirect_args_count,
@@ -301,6 +400,8 @@ pub(crate) fn build_mesh_draws(
         indirect_authority_buffer,
         indirect_draw_ref_buffer,
         indirect_segment_buffer,
+        pending_command_cache_plan_stats,
+        pending_command_cache_extraction_stats,
     }
 }
 
@@ -309,6 +410,148 @@ struct MeshVisibilityState {
     relevance: PrimitiveRelevance,
     main_view_visible: bool,
     shadow_view_visible: bool,
+}
+
+impl From<MeshVisibilityState> for PendingMeshCommandCacheVisibility {
+    fn from(visibility: MeshVisibilityState) -> Self {
+        Self::new(
+            visibility.relevance,
+            visibility.main_view_visible,
+            visibility.shadow_view_visible,
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct PendingPreparedMeshBatchKey {
+    geometry_source: MeshDrawGeometrySource,
+    mesh: usize,
+    base_color_texture: usize,
+    normal_texture: usize,
+    metallic_roughness_texture: usize,
+    occlusion_texture: usize,
+    emissive_texture: usize,
+    material_uniform: usize,
+    standard_material_uniform: usize,
+    pipeline_key: crate::graphics::scene::resources::PipelineKey,
+    first_index: u32,
+    draw_index_count: u32,
+}
+
+fn prepared_mesh_queue_stats_for_pending_draws(
+    pending_draws: &[super::pending_mesh_draw::PendingMeshDraw],
+    gpu_scene_entries: &HashMap<u64, SyncedGpuSceneEntry>,
+) -> PreparedMeshQueueStats {
+    summarize_prepared_mesh_queue_items(pending_draws.iter().map(|pending_draw| {
+        let skinned_gpu_skinning_enabled = pending_draw.pipeline_key.uses_fallback_shader()
+            && pending_draw.resolved_skinned_gpu_source.is_some();
+        let has_previous_velocity_transform = gpu_scene_entries
+            .get(&render_mesh_stable_instance_key(
+                pending_draw.source_entity,
+                pending_draw.source_draw_ordinal,
+            ))
+            .map(|entry| {
+                entry.has_previous_velocity_transform
+                    && (!skinned_gpu_skinning_enabled
+                        || pending_draw.previous_skinned_joint_palette.is_some())
+            })
+            .unwrap_or(false);
+        let geometry_source =
+            pending_mesh_draw_geometry_source(pending_draw, skinned_gpu_skinning_enabled);
+        let queue_profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::from_pipeline_flags(
+                pending_draw.pipeline_key.is_transparent(),
+                pending_draw.pipeline_key.is_alpha_mask(),
+            ),
+            geometry_source,
+            pending_draw.mobility,
+            false,
+            skinned_gpu_skinning_enabled,
+            pending_draw.mesh_lod.is_some(),
+        );
+        (
+            queue_profile,
+            pending_draw.cast_shadows && queue_profile.phase().casts_shadow(),
+            has_previous_velocity_transform,
+            pending_draw.skinned,
+            pending_draw.skinned_joint_palette.is_some(),
+            skinned_gpu_skinning_enabled && pending_draw.previous_skinned_joint_palette.is_some(),
+            pending_draw.skinned_gpu_source.is_some(),
+            pending_draw
+                .skinned_gpu_source
+                .as_ref()
+                .is_some_and(PendingSkinnedGpuSource::uses_cpu_morphed_source),
+            skinned_gpu_skinning_enabled,
+            pending_mesh_draw_batch_key(pending_draw, geometry_source),
+        )
+    }))
+}
+
+fn pending_mesh_draw_geometry_source(
+    pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
+    skinned_gpu_skinning_enabled: bool,
+) -> MeshDrawGeometrySource {
+    match &pending_draw.mesh {
+        PendingMeshGeometry::Prepared(_) => MeshDrawGeometrySource::Prepared,
+        PendingMeshGeometry::Dynamic(_) if skinned_gpu_skinning_enabled => pending_draw
+            .skinned_gpu_source
+            .as_ref()
+            .map(skinned_gpu_source_geometry_source)
+            .unwrap_or(MeshDrawGeometrySource::Dynamic),
+        PendingMeshGeometry::Dynamic(_) => MeshDrawGeometrySource::Dynamic,
+    }
+}
+
+fn pending_mesh_draw_batch_key(
+    pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
+    geometry_source: MeshDrawGeometrySource,
+) -> PendingPreparedMeshBatchKey {
+    PendingPreparedMeshBatchKey {
+        geometry_source,
+        mesh: pending_mesh_identity(pending_draw),
+        base_color_texture: material_texture_identity(
+            &pending_draw.material_textures,
+            |textures| &textures.base_color,
+        ),
+        normal_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+            &textures.normal
+        }),
+        metallic_roughness_texture: material_texture_identity(
+            &pending_draw.material_textures,
+            |textures| &textures.metallic_roughness,
+        ),
+        occlusion_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+            &textures.occlusion
+        }),
+        emissive_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+            &textures.emissive
+        }),
+        material_uniform: Arc::as_ptr(&pending_draw.material_uniform) as usize,
+        standard_material_uniform: Arc::as_ptr(&pending_draw.standard_material_uniform) as usize,
+        pipeline_key: pending_draw.pipeline_key.clone(),
+        first_index: pending_draw.first_index,
+        draw_index_count: pending_draw.draw_index_count,
+    }
+}
+
+fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
+    if let Some(mesh) = pending_draw.resolved_skinned_gpu_source.as_ref() {
+        return Arc::as_ptr(mesh) as usize;
+    }
+    match &pending_draw.mesh {
+        PendingMeshGeometry::Prepared(mesh) => Arc::as_ptr(mesh) as usize,
+        PendingMeshGeometry::Dynamic(_) => {
+            (pending_draw.source_entity as usize).wrapping_mul(31)
+                ^ pending_draw.source_draw_ordinal as usize
+        }
+    }
+}
+
+fn material_texture_identity(
+    textures: &MaterialTextureSet,
+    select: impl FnOnce(&MaterialTextureSet) -> &super::super::super::mesh_draw::MaterialTextureBinding,
+) -> usize {
+    select(textures).identity()
 }
 
 fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<EntityId, MeshVisibilityState> {
@@ -578,191 +821,6 @@ fn skinned_gpu_source_geometry_source(source: &PendingSkinnedGpuSource) -> MeshD
     }
 }
 
-#[derive(Clone, Copy)]
-struct PhaseOrderedMeshSnapshot<'a> {
-    snapshot: &'a RenderMeshSnapshot,
-    command_sort_input: MeshCommandSortInput,
-}
-
-fn phase_ordered_meshes<'a>(
-    frame: &'a ViewportRenderFrame,
-    streamer: &ResourceStreamer,
-) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
-    phase_ordered_meshes_with_material_offsets(frame, |mesh| material_sort_offsets(streamer, mesh))
-}
-
-fn phase_ordered_meshes_with_material_offsets<'a>(
-    frame: &'a ViewportRenderFrame,
-    material_sort_offsets: impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
-) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
-    let phase_queue = &frame.extract.geometry.phase_queue;
-    if phase_queue.items.is_empty() {
-        return frame
-            .meshes()
-            .iter()
-            .map(|mesh| PhaseOrderedMeshSnapshot {
-                snapshot: mesh,
-                command_sort_input: MeshCommandSortInput::new(
-                    mesh.transform.translation.z,
-                    mesh.node_id,
-                ),
-            })
-            .collect();
-    }
-
-    let material_adjusted_phase_queue =
-        material_adjusted_phase_queue(frame, &material_sort_offsets)
-            .unwrap_or_else(|| frame.extract.geometry.phase_queue.clone());
-    meshes_from_phase_queue(
-        frame,
-        &material_adjusted_phase_queue,
-        &material_sort_offsets,
-    )
-}
-
-fn meshes_from_phase_queue<'a>(
-    frame: &'a ViewportRenderFrame,
-    phase_queue: &RenderPhaseQueue,
-    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
-) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
-    phase_queue
-        .items
-        .iter()
-        .filter_map(|item| match item.mesh_source {
-            RenderPhaseMeshSource::MeshIndex(index) => {
-                let snapshot = frame.meshes().get(index)?;
-                let command_sort_input =
-                    command_sort_input_for_mesh_index(frame, index, material_sort_offsets)
-                        .unwrap_or_else(|| {
-                            MeshCommandSortInput::new(
-                                snapshot.transform.translation.z,
-                                snapshot.node_id,
-                            )
-                        });
-                Some(PhaseOrderedMeshSnapshot {
-                    snapshot,
-                    command_sort_input,
-                })
-            }
-            RenderPhaseMeshSource::SpriteIndex(_) => None,
-        })
-        .collect()
-}
-
-fn command_sort_input_for_mesh_index(
-    frame: &ViewportRenderFrame,
-    mesh_index: usize,
-    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
-) -> Option<MeshCommandSortInput> {
-    let input = frame
-        .extract
-        .geometry
-        .phase_inputs
-        .iter()
-        .find(|input| input.mesh_index == mesh_index)?;
-    let mesh = frame.meshes().get(mesh_index)?;
-    let offsets = material_sort_offsets(mesh);
-    Some(MeshCommandSortInput {
-        depth: input.depth,
-        depth_bias: input.depth_bias + offsets.depth_bias,
-        queue: material_adjusted_queue(
-            &input.material_alpha_mode,
-            input.render_queue,
-            input.material_queue,
-            offsets,
-        ),
-        camera_order: 0,
-        sorting_layer: 0,
-        order_in_layer: input.order_in_layer,
-        y_sort: None,
-        ui_z_index: input.ui_z_index,
-        tie_breaker: input.entity,
-    })
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct MaterialPhaseSortOffsets {
-    queue: Option<RenderQueueValue>,
-    render_queue: i32,
-    material_queue: i32,
-    depth_bias: f32,
-}
-
-fn material_sort_offsets(
-    streamer: &ResourceStreamer,
-    mesh: &RenderMeshSnapshot,
-) -> MaterialPhaseSortOffsets {
-    streamer
-        .material(&mesh.material.id())
-        .map(|material| MaterialPhaseSortOffsets {
-            queue: material.render_queue_value,
-            render_queue: material.render_queue,
-            material_queue: material.material_queue,
-            depth_bias: material.depth_bias,
-        })
-        .unwrap_or_default()
-}
-
-fn material_adjusted_phase_queue(
-    frame: &ViewportRenderFrame,
-    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
-) -> Option<RenderPhaseQueue> {
-    let phase_inputs = frame.extract.geometry.phase_inputs.as_slice();
-    (!phase_inputs.is_empty()).then(|| {
-        build_mesh_phase_queue(
-            frame.extract.view.core_pipeline,
-            phase_inputs.iter().map(|input| {
-                let offsets = frame
-                    .meshes()
-                    .get(input.mesh_index)
-                    .map(|mesh| material_sort_offsets(mesh))
-                    .unwrap_or_default();
-                mesh_phase_input_with_material_offsets(input, offsets)
-            }),
-        )
-    })
-}
-
-fn mesh_phase_input_with_material_offsets(
-    input: &GeometryPhaseInput,
-    offsets: MaterialPhaseSortOffsets,
-) -> MeshPhaseInput {
-    MeshPhaseInput {
-        entity: input.entity,
-        mesh_index: input.mesh_index,
-        queue: material_adjusted_queue(
-            &input.material_alpha_mode,
-            input.render_queue,
-            input.material_queue,
-            offsets,
-        ),
-        depth: input.depth,
-        depth_bias: input.depth_bias + offsets.depth_bias,
-        camera_order: 0,
-        sorting_layer: 0,
-        order_in_layer: input.order_in_layer,
-        y_sort: None,
-        ui_z_index: input.ui_z_index,
-    }
-}
-
-fn material_adjusted_queue(
-    alpha_mode: &crate::core::framework::render::RenderMaterialAlphaMode,
-    input_render_queue: i32,
-    input_material_queue: i32,
-    offsets: MaterialPhaseSortOffsets,
-) -> RenderQueueValue {
-    let queue = if let Some(queue) = offsets.queue {
-        queue.with_material_offset_i32(input_render_queue)
-    } else {
-        RenderQueueValue::from_authored_queue(
-            alpha_mode,
-            input_render_queue.saturating_add(offsets.render_queue),
-        )
-    };
-    queue.with_material_offset_i32(input_material_queue.saturating_add(offsets.material_queue))
-}
-
 fn submission_detail_from_draw_ref(
     draw_ref: Option<super::pending_mesh_draw::VirtualGeometryIndirectDrawRef>,
     submission_token: Option<u32>,
@@ -808,126 +866,19 @@ fn submission_detail_from_draw_ref(
 
 #[cfg(test)]
 mod tests {
-    use super::{phase_ordered_meshes_with_material_offsets, MaterialPhaseSortOffsets};
     use crate::core::framework::render::{
-        CorePipelineKind, FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput,
-        PreviewEnvironmentExtract, PrimitiveRelevance, RenderFrameExtract, RenderLayerSet,
-        RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+        CorePipelineKind, FallbackSkyboxKind, PreviewEnvironmentExtract, PrimitiveRelevance,
+        RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
         ViewportCameraSnapshot,
     };
     use crate::core::framework::scene::Mobility;
-    use crate::core::math::{Transform, UVec2, Vec4};
-    use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+    use crate::core::math::{UVec2, Vec4};
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
     use crate::graphics::ViewportRenderFrame;
-
-    #[test]
-    fn phase_ordered_meshes_follow_extract_phase_queue_instead_of_mesh_vector_order() {
-        let mut extract = RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(9),
-            RenderSceneSnapshot {
-                scene: RenderSceneGeometryExtract {
-                    camera: ViewportCameraSnapshot::default(),
-                    meshes: vec![test_mesh(30), test_mesh(10), test_mesh(20)],
-                    directional_lights: Vec::new(),
-                    point_lights: Vec::new(),
-                    spot_lights: Vec::new(),
-                    ambient_lights: Vec::new(),
-                    rect_lights: Vec::new(),
-                },
-                overlays: RenderOverlayExtract::default(),
-                preview: PreviewEnvironmentExtract {
-                    lighting_enabled: false,
-                    skybox_enabled: false,
-                    fallback_skybox: FallbackSkyboxKind::None,
-                    clear_color: Vec4::ZERO,
-                },
-                virtual_geometry_debug: None,
-            },
-        );
-        extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
-            extract.view.core_pipeline,
-            extract.geometry.meshes.clone(),
-            vec![
-                GeometryPhaseInput::new(30, 0, RenderMaterialAlphaMode::Blend, 3.0),
-                GeometryPhaseInput::new(10, 1, RenderMaterialAlphaMode::Opaque, 1.0),
-                GeometryPhaseInput::new(20, 2, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, 2.0),
-            ],
-        );
-        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
-
-        assert_eq!(
-            phase_ordered_meshes_with_material_offsets(&frame, |_| {
-                MaterialPhaseSortOffsets::default()
-            })
-            .into_iter()
-            .map(|mesh| mesh.snapshot.node_id)
-            .collect::<Vec<_>>(),
-            vec![10, 20, 30]
-        );
-    }
-
-    #[test]
-    fn phase_ordered_meshes_apply_material_sort_offsets_to_extract_phase_queue() {
-        let mut extract = RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(10),
-            RenderSceneSnapshot {
-                scene: RenderSceneGeometryExtract {
-                    camera: ViewportCameraSnapshot::default(),
-                    meshes: vec![test_mesh(10), test_mesh(20), test_mesh(30)],
-                    directional_lights: Vec::new(),
-                    point_lights: Vec::new(),
-                    spot_lights: Vec::new(),
-                    ambient_lights: Vec::new(),
-                    rect_lights: Vec::new(),
-                },
-                overlays: RenderOverlayExtract::default(),
-                preview: PreviewEnvironmentExtract {
-                    lighting_enabled: false,
-                    skybox_enabled: false,
-                    fallback_skybox: FallbackSkyboxKind::None,
-                    clear_color: Vec4::ZERO,
-                },
-                virtual_geometry_debug: None,
-            },
-        );
-        extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
-            extract.view.core_pipeline,
-            extract.geometry.meshes.clone(),
-            vec![
-                GeometryPhaseInput::new(10, 0, RenderMaterialAlphaMode::Opaque, 1.0),
-                GeometryPhaseInput::new(20, 1, RenderMaterialAlphaMode::Opaque, 2.0),
-                GeometryPhaseInput::new(30, 2, RenderMaterialAlphaMode::Opaque, 3.0),
-            ],
-        );
-        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
-
-        assert_eq!(
-            phase_ordered_meshes_with_material_offsets(&frame, |mesh| match mesh.node_id {
-                20 => MaterialPhaseSortOffsets {
-                    queue: None,
-                    render_queue: -5,
-                    material_queue: 0,
-                    depth_bias: 0.0,
-                },
-                30 => MaterialPhaseSortOffsets {
-                    queue: None,
-                    render_queue: 0,
-                    material_queue: -3,
-                    depth_bias: -2.5,
-                },
-                _ => MaterialPhaseSortOffsets::default(),
-            })
-            .into_iter()
-            .map(|mesh| mesh.snapshot.node_id)
-            .collect::<Vec<_>>(),
-            vec![20, 30, 10]
-        );
-    }
 
     #[test]
     fn mesh_visibility_states_preserve_shadow_only_casters() {
@@ -968,7 +919,10 @@ mod tests {
                     radius: 1.0,
                 },
             ],
-            render_layer_masks: vec![u32::MAX, u32::MAX],
+            render_layer_masks: vec![
+                RenderLayerSet::from_legacy_mask(u32::MAX),
+                RenderLayerSet::from_legacy_mask(u32::MAX),
+            ],
             relevance: vec![opaque_shadow_relevance(), opaque_shadow_relevance()],
             relevance_generation: 0,
             views: vec![
@@ -1002,33 +956,11 @@ mod tests {
         assert!(shadow_only_caster.relevance.shadow_caster());
     }
 
-    fn test_mesh(node_id: u64) -> RenderMeshSnapshot {
-        RenderMeshSnapshot {
-            node_id,
-            stable_instance_key: node_id << 16,
-            transform_revision: 0,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
-                "builtin://test-model/{node_id}"
-            ))),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                &format!("builtin://test-material/{node_id}"),
-            )),
-            mesh_lod: None,
-            morph_weights: Vec::new(),
-            tint: Vec4::ONE,
-            mobility: Mobility::Dynamic,
-            static_state: Default::default(),
-            render_layer_mask: u32::MAX,
-        }
-    }
-
     fn opaque_shadow_relevance() -> PrimitiveRelevance {
         PrimitiveRelevance::for_mesh_view(
             &RenderLayerSet::layer(0),
             CorePipelineKind::Core3d,
-            1,
+            &RenderLayerSet::layer(0),
             Mobility::Static,
             RenderMaterialAlphaMode::Opaque,
         )

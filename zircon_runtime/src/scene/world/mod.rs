@@ -22,6 +22,7 @@ mod records;
 mod render;
 mod render_particles;
 mod render_post_process;
+mod render_visibility;
 mod schedule;
 mod typed_api;
 mod world;

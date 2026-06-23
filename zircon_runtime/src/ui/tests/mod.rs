@@ -69,6 +69,7 @@ mod render_segmented_controls;
 mod render_selection_controls;
 mod render_sliders;
 mod render_text_fields;
+mod runtime_dispatch_effect_matrix;
 mod runtime_drag_drop_component_state;
 mod runtime_input_manager;
 mod runtime_input_ownership;

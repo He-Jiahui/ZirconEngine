@@ -1,9 +1,6 @@
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
-    component::{
-        UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiComponentState,
-        UiValue,
-    },
+    component::{UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue},
     dispatch::{UiComponentEventReport, UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     surface::{UiPointerActivationPhase, UiPointerRoute},
@@ -16,11 +13,13 @@ use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
 
 use super::UiSurface;
 
+mod keyboard;
 mod popup;
 mod radio;
 mod range;
 mod scrollbar;
 mod table;
+mod timers;
 mod toast_timer;
 mod tree_view;
 mod tree_view_reparent;
@@ -28,9 +27,6 @@ mod tree_view_support;
 mod tree_view_virtualization;
 
 pub(super) use range::{range_navigation_action, UiDefaultRangeNavigationAction};
-
-const DEFAULT_TYPEAHEAD_TIMEOUT_MS: u64 = 500;
-const DEFAULT_SUBMENU_HOVER_DELAY_MS: u64 = 300;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct UiDefaultRangePointerActionReport {
@@ -186,235 +182,6 @@ impl UiSurface {
             self.apply_default_menu_item_popup_close_pointer(node_id, events, binding_reports)?;
         }
         Ok(true)
-    }
-
-    pub(crate) fn apply_default_keyboard_component_action(
-        &mut self,
-        node_id: UiNodeId,
-    ) -> Result<UiDefaultKeyboardActionReport, UiTreeError> {
-        let Some(behavior) = self.default_keyboard_behavior(node_id)? else {
-            return Ok(UiDefaultKeyboardActionReport::default());
-        };
-
-        match behavior {
-            UiWidgetBehavior::Button | UiWidgetBehavior::MenuItem => {
-                let mut binding_reports = Vec::new();
-                let event = UiComponentEvent::Commit {
-                    property: "activated".to_string(),
-                    value: UiValue::Bool(true),
-                };
-                let component_events = self.component_event_reports_for_bindings(
-                    node_id,
-                    UiEventKind::Click,
-                    event,
-                    false,
-                )?;
-                let component_events = if behavior == UiWidgetBehavior::MenuItem {
-                    self.with_default_menu_item_popup_close_reports(
-                        node_id,
-                        component_events,
-                        &mut binding_reports,
-                    )?
-                } else {
-                    component_events
-                };
-                Ok(UiDefaultKeyboardActionReport {
-                    handled: !component_events.is_empty(),
-                    component_events,
-                    binding_reports,
-                })
-            }
-            UiWidgetBehavior::Toggle => {
-                let Some(next_checked) = self.default_toggle_next_checked(node_id)? else {
-                    return Ok(UiDefaultKeyboardActionReport::default());
-                };
-                let property = self.default_toggle_checked_property(node_id)?;
-                let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
-                    node_id,
-                    property.clone(),
-                    UiValue::Bool(next_checked),
-                ))?;
-                if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
-                    return Ok(UiDefaultKeyboardActionReport::default());
-                }
-                let binding_reports = vec![report.binding];
-                let event = UiComponentEvent::ValueChanged {
-                    property,
-                    value: UiValue::Bool(next_checked),
-                };
-                let component_events = self.component_event_reports_for_bindings(
-                    node_id,
-                    UiEventKind::Change,
-                    event,
-                    true,
-                )?;
-                Ok(UiDefaultKeyboardActionReport {
-                    handled: true,
-                    component_events,
-                    binding_reports,
-                })
-            }
-            UiWidgetBehavior::Radio => self.apply_default_radio_keyboard_action(node_id),
-            UiWidgetBehavior::Disclosure => {
-                let Some(next_expanded) = self.default_expanded_next(node_id)? else {
-                    return Ok(UiDefaultKeyboardActionReport::default());
-                };
-                let property = self.default_open_property(node_id, "expanded")?;
-                let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
-                    node_id,
-                    property,
-                    UiValue::Bool(next_expanded),
-                ))?;
-                if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
-                    return Ok(UiDefaultKeyboardActionReport::default());
-                }
-                let binding_reports = vec![report.binding];
-                let event = UiComponentEvent::ToggleExpanded {
-                    expanded: next_expanded,
-                };
-                let component_events = self.component_event_reports_for_bindings(
-                    node_id,
-                    UiEventKind::Toggle,
-                    event,
-                    true,
-                )?;
-                Ok(UiDefaultKeyboardActionReport {
-                    handled: true,
-                    component_events,
-                    binding_reports,
-                })
-            }
-            UiWidgetBehavior::Popup => self.apply_default_popup_keyboard_action(node_id),
-            UiWidgetBehavior::Auto
-            | UiWidgetBehavior::Passive
-            | UiWidgetBehavior::RadioGroup
-            | UiWidgetBehavior::Range
-            | UiWidgetBehavior::Scrollbar
-            | UiWidgetBehavior::ScrollbarThumb
-            | UiWidgetBehavior::TextInput => Ok(UiDefaultKeyboardActionReport::default()),
-        }
-    }
-
-    pub(crate) fn apply_default_semantic_keyboard_component_action(
-        &mut self,
-        node_id: UiNodeId,
-        action: UiComponentKeyboardAction,
-    ) -> Result<UiDefaultKeyboardActionReport, UiTreeError> {
-        let Some(behavior) = self.default_keyboard_behavior(node_id)? else {
-            return Ok(UiDefaultKeyboardActionReport::default());
-        };
-        let action = semantic_keyboard_action_for_behavior(action, behavior);
-        let event = UiComponentEvent::KeyboardAction { action };
-        let mut component_events = Vec::new();
-        for event_kind in semantic_keyboard_event_kinds(action) {
-            component_events.extend(self.component_event_reports_for_bindings(
-                node_id,
-                *event_kind,
-                event.clone(),
-                true,
-            )?);
-        }
-        Ok(UiDefaultKeyboardActionReport {
-            handled: !component_events.is_empty(),
-            component_events,
-            binding_reports: Vec::new(),
-        })
-    }
-
-    pub(crate) fn apply_default_semantic_keyboard_component_text(
-        &mut self,
-        node_id: UiNodeId,
-        text: &str,
-    ) -> Result<UiDefaultKeyboardActionReport, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(UiDefaultKeyboardActionReport::default());
-        };
-        if !self.widget_interaction_enabled(node_id, node, metadata) {
-            return Ok(UiDefaultKeyboardActionReport::default());
-        }
-
-        let event = UiComponentEvent::KeyboardText {
-            text: text.to_string(),
-        };
-        let component_events =
-            self.component_event_reports_for_bindings(node_id, UiEventKind::Change, event, true)?;
-        Ok(UiDefaultKeyboardActionReport {
-            handled: !component_events.is_empty(),
-            component_events,
-            binding_reports: Vec::new(),
-        })
-    }
-
-    pub(crate) fn typeahead_timeout_ms_for_component_node(&self, node_id: UiNodeId) -> Option<u64> {
-        let node = self.tree.node(node_id)?;
-        let metadata = node.template_metadata.as_ref()?;
-        if !is_menu_component(metadata) || !self.widget_interaction_enabled(node_id, node, metadata)
-        {
-            return None;
-        }
-        Some(
-            u64_attribute_value(&metadata.attributes, "typeahead_timeout_ms")
-                .unwrap_or(DEFAULT_TYPEAHEAD_TIMEOUT_MS),
-        )
-    }
-
-    pub(crate) fn submenu_hover_delay_ms_for_component_node(
-        &self,
-        node_id: UiNodeId,
-    ) -> Option<u64> {
-        let node = self.tree.node(node_id)?;
-        let metadata = node.template_metadata.as_ref()?;
-        if !is_menu_component(metadata) || !self.widget_interaction_enabled(node_id, node, metadata)
-        {
-            return None;
-        }
-        Some(
-            u64_attribute_value(&metadata.attributes, "submenu_hover_delay_ms")
-                .unwrap_or(DEFAULT_SUBMENU_HOVER_DELAY_MS),
-        )
-    }
-
-    pub(crate) fn apply_default_typeahead_expired_component_event(
-        &self,
-        node_id: UiNodeId,
-    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
-        if self
-            .typeahead_timeout_ms_for_component_node(node_id)
-            .is_none()
-        {
-            return Ok(Vec::new());
-        }
-        self.component_event_reports_for_bindings(
-            node_id,
-            UiEventKind::Change,
-            UiComponentEvent::TypeaheadExpired,
-            true,
-        )
-    }
-
-    pub(crate) fn apply_default_submenu_hover_ready_component_event(
-        &self,
-        node_id: UiNodeId,
-    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
-        if self
-            .submenu_hover_delay_ms_for_component_node(node_id)
-            .is_none()
-        {
-            return Ok(Vec::new());
-        }
-        self.component_event_reports_for_bindings(
-            node_id,
-            UiEventKind::Change,
-            UiComponentEvent::ValueChanged {
-                property: "submenu_hover_ready".to_string(),
-                value: UiValue::Bool(true),
-            },
-            true,
-        )
     }
 
     fn apply_default_expanded_component_action(
@@ -584,23 +351,6 @@ impl UiSurface {
         Ok(widget_checked_property(metadata).to_string())
     }
 
-    fn default_keyboard_behavior(
-        &self,
-        node_id: UiNodeId,
-    ) -> Result<Option<UiWidgetBehavior>, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(None);
-        };
-        if !self.widget_interaction_enabled(node_id, node, metadata) {
-            return Ok(None);
-        }
-        Ok(Some(widget_behavior(metadata)))
-    }
-
     fn default_open_property(
         &self,
         node_id: UiNodeId,
@@ -740,28 +490,6 @@ fn is_default_scrollbar_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
     )
 }
 
-fn is_menu_component(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(
-        metadata.component.as_str(),
-        "Menu"
-            | "MenuList"
-            | "PopupMenu"
-            | "MenuPopup"
-            | "ContextMenu"
-            | "ContextActionMenu"
-            | "DropdownPopup"
-    ) || metadata
-        .attributes
-        .get("role")
-        .and_then(toml::Value::as_str)
-        .is_some_and(|role| {
-            matches!(
-                role,
-                "menu" | "menu-list" | "context-menu" | "dropdown-popup"
-            )
-        })
-}
-
 fn widget_behavior(metadata: &UiTemplateNodeMetadata) -> UiWidgetBehavior {
     metadata.widget.resolved_behavior(&metadata.component)
 }
@@ -781,59 +509,11 @@ fn widget_open_property<'a>(
     metadata.widget.open_property.as_deref().unwrap_or(fallback)
 }
 
-fn semantic_keyboard_action_for_behavior(
-    action: UiComponentKeyboardAction,
-    behavior: UiWidgetBehavior,
-) -> UiComponentKeyboardAction {
-    if !matches!(
-        behavior,
-        UiWidgetBehavior::Range | UiWidgetBehavior::Scrollbar | UiWidgetBehavior::ScrollbarThumb
-    ) {
-        return action;
-    }
-
-    match action {
-        UiComponentKeyboardAction::Next => UiComponentKeyboardAction::Increment,
-        UiComponentKeyboardAction::Previous => UiComponentKeyboardAction::Decrement,
-        _ => action,
-    }
-}
-
-fn semantic_keyboard_event_kinds(action: UiComponentKeyboardAction) -> &'static [UiEventKind] {
-    match action {
-        UiComponentKeyboardAction::Activate | UiComponentKeyboardAction::Cancel => &[
-            UiEventKind::Click,
-            UiEventKind::Change,
-            UiEventKind::Toggle,
-            UiEventKind::Submit,
-        ],
-        UiComponentKeyboardAction::Next
-        | UiComponentKeyboardAction::Previous
-        | UiComponentKeyboardAction::First
-        | UiComponentKeyboardAction::Last
-        | UiComponentKeyboardAction::Increment
-        | UiComponentKeyboardAction::Decrement
-        | UiComponentKeyboardAction::LargeIncrement
-        | UiComponentKeyboardAction::LargeDecrement
-        | UiComponentKeyboardAction::BeginEdit => &[UiEventKind::Change],
-    }
-}
-
 fn bool_attribute_value(
     values: &std::collections::BTreeMap<String, toml::Value>,
     key: &str,
 ) -> Option<bool> {
     values.get(key).and_then(toml::Value::as_bool)
-}
-
-fn u64_attribute_value(
-    values: &std::collections::BTreeMap<String, toml::Value>,
-    key: &str,
-) -> Option<u64> {
-    values
-        .get(key)
-        .and_then(toml::Value::as_integer)
-        .map(|value| value.max(0) as u64)
 }
 
 fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {

@@ -4,7 +4,11 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 
-use crate::{plugin_registration, NAVIGATION_EVENT_NAMESPACE, NAVIGATION_MODULE_NAME};
+use crate::{
+    package_manifest, plugin_registration, NAVIGATION_DIST_CRATE_NAME,
+    NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_EVENT_NAMESPACE, NAVIGATION_MODULE_NAME,
+    RUNTIME_CAPABILITIES,
+};
 
 #[test]
 fn navigation_registration_contributes_runtime_module_and_components() {
@@ -106,4 +110,53 @@ fn navigation_registration_contributes_runtime_module_and_components() {
                         "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
                     )
         }));
+}
+
+#[test]
+fn navigation_package_manifest_declares_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("navigation distribution manifest");
+    assert_eq!(distribution.forms, vec!["dist".to_string()]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, NAVIGATION_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(distribution.runtime_entry, NAVIGATION_DIST_RUNTIME_ENTRY);
+
+    let native_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "navigation.dist")
+        .expect("navigation native dist module");
+    assert_eq!(
+        native_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert_eq!(native_module.crate_name, NAVIGATION_DIST_CRATE_NAME);
+    assert_eq!(
+        native_module.target_modes,
+        vec![
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    for capability in RUNTIME_CAPABILITIES {
+        assert!(native_module.capabilities.contains(&capability.to_string()));
+    }
 }

@@ -19,10 +19,10 @@ fn workbench_window_uses_componentized_workbench_layout() {
 
     for marker in [
         "editor_workbench_strict.v2.ui.toml",
-        "res://ui/editor/components/workbench_component_drawer.zui#WorkbenchComponentDrawer",
-        "res://ui/editor/components/workbench_main_band.zui#WorkbenchMainBand",
-        "res://ui/editor/components/workbench_status_bar.zui#WorkbenchStatusBar",
-        "res://ui/editor/components/workbench_top_toolbar.zui#WorkbenchTopToolbar",
+        "res://ui/editor/components/workbench/shell/workbench_component_drawer.zui#WorkbenchComponentDrawer",
+        "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
+        "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
+        "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui#WorkbenchTopToolbar",
         "component = \"WorkbenchTopToolbar\"",
         "component = \"WorkbenchMainBand\"",
         "component = \"WorkbenchComponentDrawer\"",
@@ -46,16 +46,6 @@ fn workbench_window_uses_componentized_workbench_layout() {
         "component = \"TreeRow\"",
         "component = \"ListRow\"",
         "component = \"ContextActionMenu\"",
-        "res://ui/editor/components/workbench_button.zui#WorkbenchButton",
-        "res://ui/editor/components/workbench_checkbox.zui#WorkbenchCheckbox",
-        "res://ui/editor/components/workbench_dropdown.zui#WorkbenchDropdown",
-        "res://ui/editor/components/workbench_field.zui#WorkbenchField",
-        "res://ui/editor/components/workbench_icon_button.zui#WorkbenchIconButton",
-        "res://ui/editor/components/workbench_popup_menu.zui#WorkbenchPopupMenu",
-        "res://ui/editor/components/workbench_segmented_control.zui#WorkbenchSegmentedControl",
-        "res://ui/editor/components/workbench_slider.zui#WorkbenchSlider",
-        "res://ui/editor/components/workbench_table_row.zui#WorkbenchTableRow",
-        "res://ui/editor/components/workbench_tree_row.zui#WorkbenchTreeRow",
     ] {
         assert!(
             !source.contains(forbidden),

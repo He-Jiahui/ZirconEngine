@@ -51,6 +51,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_culling_layers_without_legacy_loss
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_volume_layers_without_legacy_loss
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs::tests::viewport_record_keeps_motion_vector_camera_per_camera_key
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs::tests::viewport_record_keeps_particle_previous_sprites_per_camera_key
@@ -76,6 +78,8 @@ doc_type: module-detail
 ## Camera Key
 
 `ViewportCameraHistoryKey::from_camera(...)` derives the internal map key from the selected `CameraRenderDescriptor`. The key includes the scene entity, `render_order`, Base/Overlay render type, target ordering key, and viewport rect, including depth range bits. It intentionally does not use the transient `ViewportCameraSnapshot` alone because Plan 09 moved target, viewport, render type, and ordering ownership onto `CameraRenderDescriptor`.
+
+The key also includes the selected descriptor's culling and volume layer sets. These fields decide which visibility/static-index, previous motion-vector camera, particle previous sprites, runtime states, product reports, and temporal history slot a child camera consults before the deeper `FrameHistoryValidationKey` compatibility check runs. The private `ViewportCameraHistoryLayerKey` stores the typed layer list from `RenderLayerSet::iter()` rather than a lossy `u32` mask, so layer 32+ cameras do not collapse onto empty or legacy-equivalent keys.
 
 The key is internal to `graphics::runtime::render_framework`. Submit context construction derives it from the selected descriptor through `camera_history_key_for_extract(...)`, and falls back to a synthetic descriptor only for malformed or transitional extracts that lack a selected descriptor. The normal camera loop always projects a single selected descriptor into each child extract first.
 
@@ -111,9 +115,15 @@ and virtual-geometry debug snapshots by selected camera. Final custom-target com
 unified sort key coverage, broader UI/scene overlay RenderDoc/product evidence, and editor authoring
 controls remain follow-up Plan 09 CO-M2 work.
 
+Plan 06 status `render_plan06_temporal_history_texture_lifetime_owner_suppression_coremin_passed`
+keeps the selected-camera temporal color-history slot contract unchanged: the TAA store owns the
+underlying `wgpu::Texture` as `_texture` only to keep its paired history `TextureView` alive, while
+runtime consumers still sample/write through `TemporalHistoryStore::previous_view()` and
+`current_view()`.
+
 ## Validation
 
-The module has unit coverage for key separation across same-entity split viewport regions and Base versus Overlay slots, plus record-level tests proving two camera keys keep distinct frame history handles, static-index values, previous motion-vector cameras, particle previous sprites, Hybrid GI runtimes, and Virtual Geometry runtimes. The production crate passed:
+The module has unit coverage for key separation across same-entity split viewport regions, Base versus Overlay slots, culling layer masks, and volume layer masks, plus record-level tests proving two camera keys keep distinct frame history handles, static-index values, previous motion-vector cameras, particle previous sprites, Hybrid GI runtimes, and Virtual Geometry runtimes. The production crate passed:
 
 ```powershell
 cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-history-owner-0619 --message-format short --color never
@@ -125,3 +135,5 @@ cargo check -p zircon_runtime --lib --no-default-features --features core-min --
 The filtered lib-test Cargo wrapper for `camera_history` exposed stale test-only helper paths and `ViewportFrameHistory::new(...)` fixtures after the signature change; those helpers were fixed. The wrapper later timed out during the shared lib-test compile, but it produced `D:\cargo-targets\zircon-runtime-camera-history-owner-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe`. Direct binary execution passed the `camera_history` filter with 4 tests and the exact `viewport_record_keeps_histories_per_camera_key` test with 1 test.
 
 For the per-camera previous-state expansion, the filtered lib-test wrapper first exposed and fixed a moved-value issue in the new `motion_vector_camera.rs` test. A subsequent `cargo test -p zircon_runtime --lib viewport_record_keeps --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-prev-state-0620 --message-format short --color never -- --test-threads=1 --nocapture` run exceeded the tool window and did not leave a runnable lib-test binary, so no test pass is claimed for that wrapper yet. `cargo check -p zircon_runtime --lib --tests ...` remains blocked by unrelated stale `RenderMeshSnapshot` fixture fields in `zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs`.
+
+For Plan 09 CO-M4 selected-camera layer-key convergence, `camera_history_key.rs` now carries the culling and volume masks in the history slot key. Scoped `rustfmt --edition 2021`, `rustfmt --edition 2021 --check`, static debt scans, line-count scan, and `git diff --check` passed for the touched file. The focused locked Cargo guard `camera_history_key_distinguishes_culling_layers_without_legacy_loss` was blocked before compilation because the current workspace `Cargo.lock` would need an update while `--locked` was passed, so no new Cargo pass is claimed for this slice. Status anchor: `render_plan09_history_key_layer_masks_static_passed_cargo_lock_blocked`.

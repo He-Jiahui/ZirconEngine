@@ -8,8 +8,17 @@ description = "Experimental realtime raytraced lighting runtime provider contrac
 maturity = "experimental"
 supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_solari_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_solari_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.solari"
@@ -24,5 +33,12 @@ note = "Solari realtime raytraced lighting pass executor is not implemented yet"
 name = "solari.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_solari_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]
+
+[[modules]]
+name = "solari.dist"
+kind = "native"
+crate_name = "zircon_plugin_solari_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]

@@ -550,7 +550,7 @@ fn production_v2_ui_toml_assets_are_view_or_style_roots_only() {
 
             match document.asset.kind {
                 UiV2AssetKind::View => view_assets += 1,
-                UiV2AssetKind::Style => style_assets += 1,
+                UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => style_assets += 1,
                 UiV2AssetKind::Component => offenders.push(format!(
                     "{} declares component kind; production component assets must use .zui",
                     path.display()
@@ -661,7 +661,7 @@ fn production_v2_style_imports_resolve_to_style_assets() {
                     UiV2AssetLoader::load_toml_str(&style_source).unwrap_or_else(|error| {
                         panic!("parse style `{}`: {error}", style_path.display())
                     });
-                if style_document.asset.kind != UiV2AssetKind::Style {
+                if !is_style_import_kind(style_document.asset.kind) {
                     offenders.push(format!(
                         "{} imports style `{}` but `{}` declares {:?}",
                         path.display(),
@@ -782,7 +782,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
                     UiV2AssetLoader::load_toml_str(&style_source).unwrap_or_else(|error| {
                         panic!("parse style `{}`: {error}", style_path.display())
                     });
-                if style_document.asset.kind != UiV2AssetKind::Style {
+                if !is_style_import_kind(style_document.asset.kind) {
                     offenders.push(format!(
                         "{} imports style `{}` but `{}` declares {:?}",
                         path.display(),
@@ -1058,4 +1058,8 @@ fn builtin_template_registry_does_not_register_zui_component_assets() {
         offenders.is_empty(),
         ".zui files are component prototypes imported by v2 view/style documents, not directly registered builtin template documents: {offenders:#?}"
     );
+}
+
+fn is_style_import_kind(kind: UiV2AssetKind) -> bool {
+    matches!(kind, UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens)
 }

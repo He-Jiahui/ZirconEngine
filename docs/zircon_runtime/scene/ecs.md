@@ -145,6 +145,7 @@ related_code:
   - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/performance_diagnostics.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/entries/physics.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -153,7 +154,9 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/read.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
+  - zircon_runtime/src/scene/world/property_access/write/physics.rs
   - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/mesh.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/scene/world/project_io/physics.rs
   - zircon_runtime/src/scene/world/project_io/post_process.rs
@@ -192,6 +195,37 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_source_inventory.py
+  - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/resources_events.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/render_extract.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
+  - zircon_runtime/src/scene/tests/ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/commands.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/events.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/query_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
+  - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
+  - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
+  - zircon_runtime/src/scene/tests/ecs_query/cache_helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
 implementation_files:
@@ -338,6 +372,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/performance_diagnostics.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/entries/physics.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -347,6 +382,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/mesh.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -373,6 +409,29 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/commands.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/events.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/query_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
+  - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
+  - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
+  - zircon_runtime/src/scene/tests/ecs_query/cache_helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
@@ -453,13 +512,53 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/resources_events.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/render_extract.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
   - zircon_runtime/src/scene/tests/derived_state.rs
+  - zircon_runtime/src/scene/tests/derived_state/spawn_paths.rs
+  - zircon_runtime/src/scene/tests/derived_state/hierarchy_rebuild.rs
+  - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+  - zircon_runtime/src/scene/tests/derived_state/runtime_freshness.rs
+  - zircon_runtime/src/scene/tests/derived_state/hierarchy_behavior.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_derived_state.rs
   - zircon_runtime/src/scene/tests/ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/commands.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/events.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/query_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
+  - zircon_runtime/src/scene/tests/ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
+  - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
+  - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
+  - zircon_runtime/src/scene/tests/ecs_query/cache_helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
+  - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/address_routing.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/fixed_lights_name.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/fixed_registry.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/fixed_render_physics.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/fixed_transform_active.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation/value_conversion.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
@@ -467,7 +566,15 @@ tests:
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
+  - zircon_runtime/src/scene/tests/component_structure/component_registry.rs
+  - zircon_runtime/src/scene/tests/component_structure/component_storage_dispatch.rs
+  - zircon_runtime/src/scene/tests/component_structure/component_storage_indexing.rs
+  - zircon_runtime/src/scene/tests/component_structure/dynamic_scene_owner_tree.rs
+  - zircon_runtime/src/scene/tests/component_structure/project_serialization.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs
+  - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_component_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_reflect_foundation.rs
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_filters_lights_by_camera_layers
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_extract
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m01-ecs-schedule-foundation/validation-evidence.md
@@ -1232,7 +1339,7 @@ Runtime 07 M1.1 adds `EcsFramePerformanceDiagnostics` as the ECS-side frame aggr
 
 `system_state_records_change_detection_stats_into_world_frame_diagnostics` is the change-detection collection anchor. Cached QueryState reads call `QueryFilter::matches_component_locations_with_stats(...)` for `Added<T>` and `Changed<T>`, iterator drop paths and cached read helpers merge `ChangeDetectionScanStats` back into `QueryState`, and `SystemParam::record_performance_diagnostics(...)` drains `take_unreported_change_detection_stats()` into the world frame aggregate after the system run. Cached iterators keep their diagnostics sink as `NonNull<QueryState<D, F>>`, so the cached slice borrow still governs validity while read-only, non-cached iterators used by `QueryState::single` do not gain a spurious state-reference lifetime. This keeps scanned mark and changed/added match counts tied to real system execution instead of requiring manual diagnostics writes from callers.
 
-The 2026-06-20 `performance_hotpath_boundary` structural mirror keeps the ECS-side Runtime 07 evidence synchronized with the same guard. Current static output reports `expected_source_file_count = 46`, `expected_test_file_count = 6`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = migration-debt-present`, `large_file_hotspot_count = 30`, `large_file_migration_debt_count = 5`, `large_file_owner_class_count = 5`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` keeps this ECS mirror aligned with Runtime 07, the runtime index, the hotspot inventory, dynamic-session docs, runtime-interface convergence, and the M0 review, including the QueryState cache owner split, animation scene hook count rows from `AnimationSceneFrameDiagnostics`, the profiling counter hotspot export `counter_hotspots.json`, the render product diagnostics owner split `render_product_diagnostics_owner_split_static_passed_cargo_deferred`, and the navigation runtime owner split. The new extract-cache evidence remains dynamic-session owned through `RuntimeFrameExtractCache` and the `extract.cache_hits` / `extract.cache_misses` counters; ECS only mirrors the boundary count. This does not claim the pending `extract` / `ecs_query` / profiling / FPS Cargo lane.
+The 2026-06-20 `performance_hotpath_boundary` structural mirror keeps the ECS-side Runtime 07 evidence synchronized with the same guard. Current static output reports `expected_source_file_count = 46`, `expected_test_file_count = 11`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = migration-debt-present`, `large_file_hotspot_count = 30`, `large_file_migration_debt_count = 5`, `large_file_owner_class_count = 5`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` keeps this ECS mirror aligned with Runtime 07, the runtime index, the hotspot inventory, dynamic-session docs, runtime-interface convergence, and the M0 review, including the QueryState cache owner split, animation scene hook count rows from `AnimationSceneFrameDiagnostics`, the profiling counter hotspot export `counter_hotspots.json`, the render product diagnostics owner split `render_product_diagnostics_owner_split_static_passed_cargo_deferred`, and the navigation runtime owner split. The new extract-cache evidence remains dynamic-session owned through `RuntimeFrameExtractCache` and the `extract.cache_hits` / `extract.cache_misses` counters; ECS only mirrors the boundary count. This does not claim the pending `extract` / `ecs_query` / profiling / FPS Cargo lane.
 
 ## Derived State Systems
 
@@ -1723,3 +1830,23 @@ Fresh 2026-06-22 Runtime 08 F5 typed-error evidence: F5 world typed mutation err
 Fresh 2026-06-22 Runtime 08 F5 dynamic component typed-error evidence: `SceneError` now carries reflection source errors plus dynamic component registry, plugin unload, property path/write/object, descriptor, and editability variants. `ComponentTypeRegistry::register(...)` and the `World` dynamic component mutation family (`register_component_type`, `set_dynamic_component`, `remove_dynamic_component`, `ensure_plugin_components_can_unload`, and `set_dynamic_component_property`) return `SceneResult` and no longer stringify errors inside the world owner. `DynamicSceneError::WorldMutation` now wraps `SceneError`, so descriptor installation, node insertion, and plugin-owned component writes in `DynamicScene::spawn_into` preserve their typed source through `?`. Existing string contracts remain explicit at the property write, reflection, plugin registry, and script-host boundaries. Behavior anchors `dynamic_component_mutation_errors_report_scene_error_variants` and `dynamic_scene_world_mutation_preserves_scene_error_source` cover the new source-preserving paths; `review_f5_dynamic_component_errors_preserve_scene_error_sources` keeps source, docs, and status anchors synchronized. Status anchor: `dynamic_component_typed_errors_coremin_check_passed`; broader Runtime 08 ECS behavior gates remain pending.
 
 Fresh 2026-06-20 Runtime 08 entity Cargo probe evidence: `cargo test -p zircon_runtime --lib entity --locked --no-default-features --features core-min --jobs 1 --target-dir D:\cargo-targets\zircon-runtime08-component-storage-private-0620 --message-format short --color never -- --test-threads=1 --nocapture` exceeded the 1200s tool window with no test result. Residual cargo/rustc processes in that target dir were stopped. This is recorded only as a no-result validation probe and does not promote Runtime 08 entity/observer/command/messages/change_tick/ecs behavior gates.
+
+Fresh 2026-06-23 Runtime 15 M3 ECS schedule test folder split evidence: `scene/tests/ecs_schedule.rs` is now a 32-line module parent that only imports shared test fixtures and mounts `conflict_graph`, `fixed_update`, `parallel_executor`, `resources_events`, `schedule_plan`, `render_extract`, and `world_driver`. The 37 tests previously owned by the parent moved into the four new folder-backed owners: resource/event store contracts in `resources_events.rs`, schedule/stage/native-registration contracts in `schedule_plan.rs`, derived-state and prepared render-extract contracts in `render_extract.rs`, and WorldDriver hook/runtime-system ordering contracts in `world_driver.rs`. Existing `conflict_graph.rs`, `fixed_update.rs`, and `parallel_executor.rs` remain the owners for conflict graph, fixed-loop, and parallel-executor behavior. The full `ecs_schedule/` family still contains 57 tests, all owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_ecs_schedule.rs::runtime_15_scene_ecs_schedule_tests_are_folder_backed` pins the folder-backed layout plus docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene ECS systems test folder split evidence (`Runtime 15 M3 scene ECS systems test folder split` / `runtime_15_scene_ecs_systems_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/ecs_systems.rs` is now a 53-line module parent that keeps only shared ECS test fixtures and mounts `commands`, `state_params`, `events`, `run_window_filters`, `query_helpers`, and `removal_local`. The 24 tests previously owned by the parent moved into those six folder-backed owners: command queue contracts in `commands.rs`, SystemState/ParamSet/query-mutation contracts in `state_params.rs`, reader/writer event contracts in `events.rs`, Added/Changed run-window cache contracts in `run_window_filters.rs`, many/single query helper contracts in `query_helpers.rs`, and removed-component/local-state contracts in `removal_local.rs`. All owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_ecs_systems.rs::runtime_15_scene_ecs_systems_tests_are_folder_backed` pins the folder-backed layout plus docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene ECS query test folder split evidence (`Runtime 15 M3 scene ECS query test folder split` / `runtime_15_scene_ecs_query_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/ecs_query.rs` is now a 60-line module parent that keeps only shared query fixtures and mounts `read_items`, `mutation_access`, `fixed_ticks`, `iter_many`, and `cache_helpers`. The 19 tests previously owned by the parent moved into those five folder-backed owners: query data reads in `read_items.rs`, mutable query and access diagnostics in `mutation_access.rs`, fixed component and change tick contracts in `fixed_ticks.rs`, targeted iter-many run-window contracts in `iter_many.rs`, and cache rebuild/count/get/direct-location/archetype helper contracts in `cache_helpers.rs`. All owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_ecs_query.rs::runtime_15_scene_ecs_query_tests_are_folder_backed` pins the folder-backed layout plus docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene ECS query structure test folder split evidence (`Runtime 15 M3 scene ECS query structure test folder split` / `runtime_15_scene_ecs_query_structure_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/ecs_query_structure.rs` is now a 33-line module parent that keeps only shared path/source helpers, QueryState structure constants, and mounts `query_state_layout`, `mutable_iterators`, `cached_iterators`, `cache_rebuild`, `archetype_access`, and `combinations`. The 11 structure guards previously owned by the parent moved into those six folder-backed owners: QueryState folder/cache-vector contracts in `query_state_layout.rs`, borrowed mutable iterator contracts in `mutable_iterators.rs`, cached read iterator contracts in `cached_iterators.rs`, cache reserve and hot-path contracts in `cache_rebuild.rs`, sorted archetype index and boolean conflict contracts in `archetype_access.rs`, and cached combination iterator contracts in `combinations.rs`. All owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_ecs_query_structure.rs::runtime_15_scene_ecs_query_structure_tests_are_folder_backed` pins the folder-backed layout plus docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene derived-state test folder split evidence (`Runtime 15 M3 scene derived-state test folder split` / `runtime_15_scene_derived_state_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/derived_state.rs` is now a 68-line module parent that keeps shared imports, `LARGE_HIERARCHY_NODE_COUNT`, the shared node-record/world/source helpers, and mounts `spawn_paths`, `hierarchy_rebuild`, `projected_reads`, `runtime_freshness`, and `hierarchy_behavior`. The 23 tests previously owned by the parent moved into those five folder-backed owners: spawn-node source guards in `spawn_paths.rs`, traversal/rebuild/stage-plan guards in `hierarchy_rebuild.rs`, direct projection and retained-cache guards in `projected_reads.rs`, pending-system/render-extract/property freshness behavior in `runtime_freshness.rs`, and imported-record/cycle/active hierarchy/mobility behavior in `hierarchy_behavior.rs`. All owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_derived_state.rs::runtime_15_scene_derived_state_tests_are_folder_backed` pins the folder-backed layout plus docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene component-structure test folder split evidence (`Runtime 15 M3 scene component-structure test folder split` / `runtime_15_scene_component_structure_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/component_structure.rs` is now a 9-line module parent that keeps only the shared authoring-boundary import and mounts `component_registry`, `component_storage_dispatch`, `component_storage_indexing`, `dynamic_scene_owner_tree`, `project_serialization`, `runtime_08_owner_tree`, and `runtime_world_domains`. The original parent-owned tests moved into six new folder-backed owners while existing Runtime 08 owner-tree coverage remains in `runtime_08_owner_tree.rs`: registry lookup guards in `component_registry.rs`, component storage dispatch/result-vector guards in `component_storage_dispatch.rs`, table/sparse storage indexing guards in `component_storage_indexing.rs`, dynamic-scene owner-tree guards in `dynamic_scene_owner_tree.rs`, authoring serialization guard in `project_serialization.rs`, and runtime-domain/inspection/LateUpdate guards in `runtime_world_domains.rs`. The component-structure family now has 23 tests, all owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_component_structure.rs::runtime_15_scene_component_structure_tests_are_folder_backed` pins `scene/tests/component_structure.rs`, `scene/tests/component_structure/component_storage_indexing.rs`, `scene/tests/component_structure/dynamic_scene_owner_tree.rs`, and docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M3 scene ECS reflect foundation test folder split evidence (`Runtime 15 M3 scene ECS reflect foundation test folder split` / `runtime_15_scene_ecs_reflect_foundation_tests_folder_split_static_passed_cargo_deferred`): `scene/tests/ecs_reflect/foundation.rs` is now a 158-line parent that keeps shared imports, registration/address helpers, dummy component/resource adapters, and child module mounts. Its 20 tests moved into seven folder-backed owners: TypeRegistry and runtime-registration coverage in `registry.rs`, scene/reflected/json conversion coverage in `value_conversion.rs`, component/resource address routing in `address_routing.rs`, fixed registration coverage in `fixed_registry.rs`, light/name reflection coverage in `fixed_lights_name.rs`, ActiveSelf/LocalTransform coverage in `fixed_transform_active.rs`, and RenderLayerMask/RigidBody/error coverage in `fixed_render_physics.rs`. All owners stay below the Runtime 15 800-line test-file budget, and `structure_convention/test_file_budget/scene_ecs_reflect_foundation.rs::runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed` pins `scene/tests/ecs_reflect/foundation.rs`, `scene/tests/ecs_reflect/foundation/value_conversion.rs`, `scene/tests/ecs_reflect/foundation/fixed_render_physics.rs`, and docs/status anchors. Static validation covered rustfmt, migrated-test-count scan, line-budget scan, docs/status anchor scan, and moved-test parent scan. Cargo is deferred under implementation-slice cadence and is not claimed as passing.
+
+Fresh 2026-06-23 Runtime 15 M4 scene world property-access physics write owner split evidence (`Runtime 15 M4 scene world property-access physics write owner split` / `runtime_15_scene_world_property_access_physics_owner_split_static_passed_cargo_timeout_no_result`): `scene/world/property_access/write.rs` is now a 593-line parent that keeps `World::set_property(...)` dispatch, transform, camera, mesh, light, animation, and dynamic component write routing. The rigid body, collider, and joint property write branches moved into the 357-line child owner `scene/world/property_access/write/physics.rs`, including physics value parsing, collider shape replacement, material override, axis lock, cache dirtying, and the rigid-body dynamic fallback. `structure_convention/production_file_budget/scene_world_property_access.rs::runtime_15_scene_world_property_access_physics_writes_are_child_owner` pins the parent/child layout, moved physics helpers, line budget, and Runtime 15/status/module docs anchors. Static validation covered rustfmt, line-budget scan, moved-owner scan, docs/status anchor scan, and scoped diff hygiene. Focused locked core Cargo exceeded 120 seconds with no result, so no Cargo pass is claimed.
+
+Fresh 2026-06-23 Runtime 15 M4 scene world property-access physics entry owner split evidence (`Runtime 15 M4 scene world property-access physics entry owner split` / `runtime_15_scene_world_property_access_physics_entries_owner_split_static_passed_cargo_lock_blocked`): `scene/world/property_access/entries.rs` is now a 602-line parent that keeps property entry traversal, name/hierarchy/transform/camera/mesh/light/animation non-physics projection, dynamic JSON projection, literal matching, and capacity routing. The rigid body, collider, and joint property entry projection moved into the 281-line child owner `scene/world/property_access/entries/physics.rs`, including collider shape/material rows, constraint rows, joint limit rows, and the physics capacity hint. `structure_convention/production_file_budget/scene_world_property_access.rs::runtime_15_scene_world_property_access_physics_entries_are_child_owner` pins the parent/child layout, moved physics entry helpers, line budget, and Runtime 15/status/module docs anchors. Static validation covered rustfmt, line-budget scan, moved-owner scan, docs/status anchor scan, and scoped diff hygiene. Focused locked core Cargo was blocked before compilation by current `Cargo.lock`/`Cargo.toml` drift, so no Cargo pass is claimed.
+
+Fresh 2026-06-23 Runtime 15 M4 scene world project I/O mesh owner split evidence (`Runtime 15 M4 scene world project I/O mesh owner split` / `runtime_15_scene_world_project_io_mesh_owner_split_static_passed_cargo_timeout_no_result`): `scene/world/project_io.rs` is now a 667-line parent that keeps scene asset load/save entry, entity traversal, non-mesh component projection, project document normalization, and default-node repair. The mesh scene-asset/runtime renderer projection moved into the 130-line child owner `scene/world/project_io/mesh.rs`, including `SceneMeshInstanceAsset`, `MeshRenderer`, LOD rows, primitive bindings, and model/mesh/material handle/reference mapping. `structure_convention/production_file_budget/scene_world_project_io.rs::runtime_15_scene_world_project_io_mesh_is_child_owner` pins the parent/child layout, moved mesh projection helpers, line budget, and Runtime 15/status/module docs anchors. Static validation covered rustfmt, line-budget scan, moved-owner scan, docs/status anchor scan, and scoped diff hygiene. Focused locked core Cargo exceeded 120 seconds with no result and left no matching target-dir cargo/rustc processes, so no Cargo pass is claimed.

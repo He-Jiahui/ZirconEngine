@@ -4,8 +4,16 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+mod capability;
+mod plugin;
+
+pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
+pub use plugin::{
+    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
+    RenderingDecalsRuntimeFeature,
+};
+
 pub const FEATURE_ID: &str = "rendering.decals";
-pub const EDITOR_CAPABILITY: &str = "editor.feature.rendering.decals";
 pub const FEATURE_NAME: &str = "decals";
 pub const EXECUTOR_ID: &str = "decals.projector-composite";
 pub const DECAL_PROJECTOR_COMPONENT_TYPE: &str = "rendering.Component.DecalProjector";
@@ -33,41 +41,6 @@ impl Default for DecalProjectorDescriptor {
             atlas_region: "default".to_string(),
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct RenderingDecalsRuntimeFeature;
-
-impl zircon_runtime::plugin::RuntimePluginFeature for RenderingDecalsRuntimeFeature {
-    fn manifest(&self) -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-        feature_manifest()
-    }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_component(decal_projector_component_descriptor())?;
-        registry.register_render_feature(render_feature_descriptor())?;
-        registry.register_render_pass_executor(render_pass_executor_registration())
-    }
-}
-
-pub fn runtime_plugin_feature() -> RenderingDecalsRuntimeFeature {
-    RenderingDecalsRuntimeFeature
-}
-
-pub fn plugin_feature_registration(
-) -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(
-        &runtime_plugin_feature(),
-    )
-}
-
-pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_plugin_rendering_runtime::feature_manifest(
-        zircon_plugin_rendering_runtime::RenderingFeatureKind::Decals,
-    )
 }
 
 pub fn decal_projector_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {

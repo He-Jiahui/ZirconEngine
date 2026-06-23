@@ -14,8 +14,10 @@ pub(super) struct NativePluginBehavior {
     pub(super) state_schema_version: u32,
     pub(super) command_manifest_schema: Option<String>,
     pub(super) event_manifest_schema: Option<String>,
+    pub(super) registration_manifest_schema: Option<String>,
     pub(super) command_manifest: Option<String>,
     pub(super) event_manifest: Option<String>,
+    pub(super) registration_manifest: Option<String>,
     pub(super) invoke_command: Option<NativePluginInvokeCommandFnV2>,
     pub(super) save_state: Option<NativePluginSaveStateFnV2>,
     pub(super) restore_state: Option<NativePluginRestoreStateFnV2>,
@@ -46,8 +48,12 @@ impl NativePluginBehavior {
             event_manifest_schema: read_optional_c_string(
                 abi.schema_versions.event_manifest_schema,
             ),
+            registration_manifest_schema: read_optional_c_string(
+                abi.schema_versions.registration_manifest_schema,
+            ),
             command_manifest: read_optional_c_string(abi.command_manifest),
             event_manifest: read_optional_c_string(abi.event_manifest),
+            registration_manifest: read_optional_c_string(abi.registration_manifest),
             invoke_command: abi.invoke_command,
             save_state: abi.save_state,
             restore_state: abi.restore_state,

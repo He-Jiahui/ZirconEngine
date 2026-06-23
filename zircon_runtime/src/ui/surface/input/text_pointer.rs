@@ -85,7 +85,9 @@ pub(super) fn dispatch_pointer_text_edit(
 
     if matches!(route.kind, UiPointerEventKind::Down) {
         surface.capture_pointer(target).ok()?;
-        surface.input.captured_pointer_id = pointer.metadata.pointer_id;
+        if let Some(pointer_id) = pointer.metadata.pointer_id {
+            surface.input.set_pointer_capture_for_id(pointer_id, target);
+        }
     }
     let drag = match route.kind {
         UiPointerEventKind::Down if primary_press => {
@@ -244,10 +246,10 @@ fn text_pointer_capture_matches(
     if surface.focus.captured != Some(target) {
         return false;
     }
-    match surface.input.captured_pointer_id {
-        Some(pointer_id) => Some(pointer_id) == pointer.metadata.pointer_id,
-        None => true,
-    }
+    pointer
+        .metadata
+        .pointer_id
+        .is_some_and(|pointer_id| surface.input.pointer_capture_owner(pointer_id) == Some(target))
 }
 
 fn text_pointer_source_offset(

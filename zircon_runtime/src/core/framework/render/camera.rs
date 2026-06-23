@@ -228,7 +228,7 @@ impl RenderViewportRect {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RenderLayerSet {
     #[serde(default)]
     blocks: Vec<u64>,

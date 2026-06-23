@@ -48,11 +48,15 @@ pub(crate) fn build_sprite_vertices(
     } else {
         phase_items
     };
+    let camera_layers = frame.extract.view.selected_camera_layers();
 
     sprite_indices
         .into_iter()
         .filter_map(|index| frame.sprites().get(index).map(|sprite| (index, sprite)))
         .filter_map(|(index, sprite)| {
+            if !camera_layers.intersects(&sprite.render_layer_mask) {
+                return None;
+            }
             if !sprite.color.is_finite() || sprite.color.w <= f32::EPSILON {
                 return None;
             }
@@ -468,12 +472,16 @@ fn valid_positive_size(size: Vec2) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderMaterialAlphaMode, RenderSpriteAnchor, RenderSpriteAtlasRegion,
-        RenderSpriteImageMode, RenderSpriteScalingMode, RenderSpriteSliceBorder,
-        RenderSpriteSliceScaleMode, RenderSpriteSlicer,
+        CameraRenderDescriptor, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+        RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteAnchor,
+        RenderSpriteAtlasRegion, RenderSpriteImageMode, RenderSpriteScalingMode,
+        RenderSpriteSliceBorder, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
+        RenderWorldSnapshotHandle, SpriteExtract, ViewportCameraSnapshot,
     };
-    use crate::core::math::{Transform, Vec4};
+    use crate::core::math::{Transform, UVec2, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+    use crate::graphics::types::ViewportRenderFrame;
 
     use super::*;
 
@@ -482,6 +490,30 @@ mod tests {
         let source = include_str!("build_sprite_vertices.rs");
 
         assert!(source.contains("RenderPassStage::Transparent3d => RenderPhase::Transparent3d"));
+    }
+
+    #[test]
+    fn build_sprite_vertices_filters_sprites_by_selected_camera_layers() {
+        let mut hidden = test_sprite(RenderSpriteImageMode::Stretch);
+        hidden.entity = 1;
+        hidden.render_layer_mask = RenderLayerSet::layer(1);
+        let mut visible = test_sprite(RenderSpriteImageMode::Stretch);
+        visible.entity = 2;
+        visible.render_layer_mask = RenderLayerSet::layer(40);
+
+        let mut camera = ViewportCameraSnapshot::default();
+        camera.projection_mode = ProjectionMode::Orthographic;
+        let mut descriptor = CameraRenderDescriptor::from_camera_payload(Some(7), camera.clone());
+        descriptor.culling_mask = RenderLayerSet::layer(40);
+        let mut extract = empty_sprite_extract(camera, vec![hidden, visible]);
+        extract.select_camera_descriptor(descriptor);
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let vertices = build_sprite_vertices(&frame, RenderPassStage::Transparent2d);
+
+        assert_eq!(vertices.len(), 1);
+        assert_eq!(vertices[0].0, 1);
+        assert_eq!(vertices[0].1.len(), 6);
     }
 
     #[test]
@@ -631,8 +663,39 @@ mod tests {
             image_mode,
             color: Vec4::ONE,
             z_order: 0,
-            render_layer_mask: u32::MAX,
+            render_layer_mask: RenderLayerSet::from_layers(0..u32::BITS),
             material_alpha_mode: RenderMaterialAlphaMode::Blend,
         }
+    }
+
+    fn empty_sprite_extract(
+        camera: ViewportCameraSnapshot,
+        sprites: Vec<crate::core::framework::render::RenderSpriteSnapshot>,
+    ) -> RenderFrameExtract {
+        let core_pipeline = camera.core_pipeline_kind();
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(71),
+            RenderSceneSnapshot {
+                scene: RenderSceneGeometryExtract {
+                    camera,
+                    meshes: Vec::new(),
+                    directional_lights: Vec::new(),
+                    point_lights: Vec::new(),
+                    spot_lights: Vec::new(),
+                    ambient_lights: Vec::new(),
+                    rect_lights: Vec::new(),
+                },
+                overlays: RenderOverlayExtract::default(),
+                preview: PreviewEnvironmentExtract {
+                    lighting_enabled: false,
+                    skybox_enabled: false,
+                    fallback_skybox: FallbackSkyboxKind::None,
+                    clear_color: Vec4::ZERO,
+                },
+                virtual_geometry_debug: None,
+            },
+        );
+        extract.sprites = SpriteExtract::from_sprites(core_pipeline, sprites);
+        extract
     }
 }

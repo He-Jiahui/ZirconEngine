@@ -14,6 +14,10 @@ related_code:
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/tests/host_exports.rs
+  - zircon_runtime/src/script/vm/tests/plugin_runtime.rs
+  - zircon_runtime/src/script/vm/tests/module_surface.rs
+  - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
   - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
@@ -36,6 +40,10 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/tests/host_exports.rs
+  - zircon_runtime/src/script/vm/tests/plugin_runtime.rs
+  - zircon_runtime/src/script/vm/tests/module_surface.rs
+  - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
   - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs

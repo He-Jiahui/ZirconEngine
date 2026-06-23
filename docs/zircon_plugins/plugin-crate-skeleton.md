@@ -11,30 +11,169 @@ related_code:
   - tools/plugin_structure_audits/skeleton.py
   - tools/audit_plugin_structure.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/animation/runtime/Cargo.toml
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/capability.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/capability.rs
   - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
   - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/src/lib.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/solari/runtime/src/lib.rs
+  - zircon_plugins/solari/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/lib.rs
+  - zircon_plugins/native_window_hosting/editor/src/capability.rs
+  - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
+  - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/tests.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
+  - zircon_plugins/prefab_tools/runtime/src/lib.rs
+  - zircon_plugins/prefab_tools/runtime/src/capability.rs
+  - zircon_plugins/prefab_tools/runtime/src/plugin.rs
+  - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/authoring.rs
+  - zircon_plugins/prefab_tools/editor/src/capability.rs
+  - zircon_plugins/prefab_tools/editor/src/extension_ids.rs
+  - zircon_plugins/prefab_tools/editor/src/plugin.rs
+  - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/runtime/src/lib.rs
+  - zircon_plugins/terrain/runtime/src/capability.rs
+  - zircon_plugins/terrain/runtime/src/plugin.rs
+  - zircon_plugins/terrain/runtime/src/tests.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/authoring.rs
+  - zircon_plugins/terrain/editor/src/capability.rs
+  - zircon_plugins/terrain/editor/src/extension_ids.rs
+  - zircon_plugins/terrain/editor/src/plugin.rs
+  - zircon_plugins/terrain/editor/src/tests.rs
+  - zircon_plugins/tilemap_2d/runtime/src/lib.rs
+  - zircon_plugins/tilemap_2d/runtime/src/capability.rs
+  - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
+  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - zircon_plugins/tilemap_2d/editor/src/capability.rs
+  - zircon_plugins/tilemap_2d/editor/src/extension_ids.rs
+  - zircon_plugins/tilemap_2d/editor/src/plugin.rs
+  - zircon_plugins/tilemap_2d/editor/src/tests.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/capability.rs
+  - zircon_plugins/particles/runtime/src/plugin.rs
+  - zircon_plugins/particles/runtime/src/simulation/cpu.rs
+  - zircon_plugins/particles/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/particles/editor/src/capability.rs
+  - zircon_plugins/particles/editor/src/extension_ids.rs
+  - zircon_plugins/particles/editor/src/plugin.rs
+  - zircon_plugins/particles/editor/src/tests.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/capability.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/physics/editor/src/capability.rs
+  - zircon_plugins/physics/editor/src/extension_ids.rs
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/capability.rs
+  - zircon_plugins/texture/runtime/src/manager.rs
+  - zircon_plugins/texture/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/plugin.rs
+  - zircon_plugins/texture/runtime/src/tests.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/capability.rs
+  - zircon_plugins/texture/editor/src/extension_ids.rs
+  - zircon_plugins/texture/editor/src/plugin.rs
+  - zircon_plugins/texture/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/capability.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/capability.rs
+  - zircon_plugins/sound/editor/src/extension_ids.rs
+  - zircon_plugins/sound/editor/src/plugin.rs
+  - zircon_plugins/sound/editor/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/capability.rs
+  - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
+  - zircon_plugins/timeline_sequence/editor/src/plugin.rs
+  - zircon_plugins/timeline_sequence/editor/src/tests.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/capability.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/capability.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/capability.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/capability.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
   - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/capability.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/capability.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
@@ -49,30 +188,169 @@ implementation_files:
   - tools/plugin_structure_audits/skeleton.py
   - tools/audit_plugin_structure.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/animation/runtime/Cargo.toml
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/capability.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/capability.rs
   - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
   - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/src/lib.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/solari/runtime/src/lib.rs
+  - zircon_plugins/solari/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/lib.rs
+  - zircon_plugins/native_window_hosting/editor/src/capability.rs
+  - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
+  - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/tests.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
+  - zircon_plugins/prefab_tools/runtime/src/lib.rs
+  - zircon_plugins/prefab_tools/runtime/src/capability.rs
+  - zircon_plugins/prefab_tools/runtime/src/plugin.rs
+  - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/authoring.rs
+  - zircon_plugins/prefab_tools/editor/src/capability.rs
+  - zircon_plugins/prefab_tools/editor/src/extension_ids.rs
+  - zircon_plugins/prefab_tools/editor/src/plugin.rs
+  - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/runtime/src/lib.rs
+  - zircon_plugins/terrain/runtime/src/capability.rs
+  - zircon_plugins/terrain/runtime/src/plugin.rs
+  - zircon_plugins/terrain/runtime/src/tests.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/authoring.rs
+  - zircon_plugins/terrain/editor/src/capability.rs
+  - zircon_plugins/terrain/editor/src/extension_ids.rs
+  - zircon_plugins/terrain/editor/src/plugin.rs
+  - zircon_plugins/terrain/editor/src/tests.rs
+  - zircon_plugins/tilemap_2d/runtime/src/lib.rs
+  - zircon_plugins/tilemap_2d/runtime/src/capability.rs
+  - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
+  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - zircon_plugins/tilemap_2d/editor/src/capability.rs
+  - zircon_plugins/tilemap_2d/editor/src/extension_ids.rs
+  - zircon_plugins/tilemap_2d/editor/src/plugin.rs
+  - zircon_plugins/tilemap_2d/editor/src/tests.rs
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/capability.rs
+  - zircon_plugins/particles/runtime/src/plugin.rs
+  - zircon_plugins/particles/runtime/src/simulation/cpu.rs
+  - zircon_plugins/particles/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/particles/editor/src/capability.rs
+  - zircon_plugins/particles/editor/src/extension_ids.rs
+  - zircon_plugins/particles/editor/src/plugin.rs
+  - zircon_plugins/particles/editor/src/tests.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/capability.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/physics/editor/src/capability.rs
+  - zircon_plugins/physics/editor/src/extension_ids.rs
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/capability.rs
+  - zircon_plugins/texture/runtime/src/manager.rs
+  - zircon_plugins/texture/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/plugin.rs
+  - zircon_plugins/texture/runtime/src/tests.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/capability.rs
+  - zircon_plugins/texture/editor/src/extension_ids.rs
+  - zircon_plugins/texture/editor/src/plugin.rs
+  - zircon_plugins/texture/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/capability.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/capability.rs
+  - zircon_plugins/sound/editor/src/extension_ids.rs
+  - zircon_plugins/sound/editor/src/plugin.rs
+  - zircon_plugins/sound/editor/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/capability.rs
+  - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
+  - zircon_plugins/timeline_sequence/editor/src/plugin.rs
+  - zircon_plugins/timeline_sequence/editor/src/tests.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/capability.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/capability.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/capability.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/capability.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
   - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/capability.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/capability.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
@@ -100,6 +378,38 @@ tests:
   - rustfmt --edition 2021 --check split importer lib/plugin files plus zircon_runtime builtin plugin id/loader: passed 2026-06-23
   - python tools/audit_plugin_structure.py --json: registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean, split_importer_free_function_registration_sites=0, split_importer_registration_owner_files=0, m3_importer_gate_status=importer-single-entry-clean on 2026-06-23
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime -p zircon_plugin_obj_importer_runtime -p zircon_plugin_texture_importer_runtime -p zircon_plugin_audio_importer_runtime -p zircon_plugin_opus_importer_runtime -p zircon_plugin_shader_wgsl_importer_runtime -p zircon_plugin_ui_document_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-split-importer-m3-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warnings
+  - rustfmt --edition 2021 --check importer runtime lib.rs/capability.rs set for audio/gltf/obj/opus/shader_wgsl/texture/ui_document and asset_importers/data/model/shader: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=25 and plugin_skeleton_gate.migration_debt_count=25 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p each of zircon_plugin_audio_importer_runtime, zircon_plugin_gltf_importer_runtime, zircon_plugin_obj_importer_runtime, zircon_plugin_opus_importer_runtime, zircon_plugin_shader_wgsl_importer_runtime, zircon_plugin_texture_importer_runtime, zircon_plugin_ui_document_importer_runtime, zircon_plugin_asset_importer_data_runtime, zircon_plugin_asset_importer_model_runtime, zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-skeleton-split-importers-check --message-format short --color never: each package exit=0 on 2026-06-23 with existing warning noise
+  - rustfmt --edition 2021 --check runtime-only skeleton owner files for ai, asset_importers/audio, asset_importers/texture, solari, zr_vm_language: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=20 and plugin_skeleton_gate.migration_debt_count=20 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_runtime -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_zr_vm_language_runtime --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never: passed 2026-06-23 and refreshed zircon_plugins/Cargo.lock
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_runtime -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_zr_vm_language_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never: passed 2026-06-23 with existing warning noise
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never package_declares_ -- --test-threads=1 --nocapture: timed out after 904s on 2026-06-23 with no test result; residual cargo/rustc processes for this target-dir were stopped; not counted as passing
+  - python -m py_compile tools/plugin_structure_audits/capability.py tools/audit_plugin_structure.py: passed 2026-06-23 after plugin.rs owner re-export handling
+  - rustfmt --edition 2021 --check editor-only skeleton owner files for native_window_hosting, runtime_diagnostics, ui_asset_authoring: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=17, plugin_skeleton_gate.migration_debt_count=17, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_window_hosting_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-editor-small-skeleton-check --message-format short --color never: blocked by unrelated zircon_editor retained-host compile drift before target packages; not counted as passing
+  - rustfmt --edition 2021 authoring runtime/editor skeleton owner files for prefab_tools, terrain, tilemap_2d: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=14, plugin_skeleton_gate.migration_debt_count=14, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_tilemap_2d_runtime --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-m5-authoring-runtime-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warning noise
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_editor -p zircon_plugin_terrain_editor -p zircon_plugin_tilemap_2d_editor --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-m5-authoring-editor-0623 --message-format short --color never: timed out twice while building dependencies; no final output captured, not counted as passing
+  - rustfmt --edition 2021 particles/physics/texture runtime/editor skeleton owner files plus zircon_plugins/particles/runtime/src/simulation/cpu.rs: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=11, plugin_skeleton_gate.migration_debt_count=11, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check -p zircon_plugin_particles_runtime --offline; cargo check -p zircon_plugin_physics_runtime --offline; cargo check -p zircon_plugin_texture_runtime --offline: passed 2026-06-23 with existing warning noise
+  - cargo check --manifest-path zircon_plugins\particles\editor\Cargo.toml --offline; cargo check --manifest-path zircon_plugins\physics\editor\Cargo.toml --offline --target-dir target\codex-plugin-validation; cargo check --manifest-path zircon_plugins\texture\editor\Cargo.toml --offline --target-dir target\codex-plugin-validation: passed 2026-06-23 with existing warning noise
+  - rustfmt --edition 2021 zircon_plugins\editor_build_export_desktop\editor\src\lib.rs zircon_plugins\editor_build_export_desktop\editor\src\capability.rs zircon_plugins\editor_build_export_desktop\editor\src\extension_ids.rs zircon_plugins\editor_build_export_desktop\editor\src\plugin.rs zircon_plugins\editor_build_export_desktop\editor\src\tests.rs zircon_plugins\editor_build_export_desktop\editor\src\export_wizard.rs: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=10, plugin_skeleton_gate.migration_debt_count=10, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\editor_build_export_desktop\editor\Cargo.toml --all-targets --offline --target-dir target\codex-plugin-validation --message-format short --color never: passed 2026-06-23 with existing runtime/editor warning noise
+  - rustfmt --edition 2021 sound runtime/editor skeleton owner files for main crate plus ray_traced_convolution_reverb and timeline_animation_track feature crates: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=9, plugin_skeleton_gate.migration_debt_count=9, capability_conformance.capability_source_mismatches=0 on 2026-06-23 after sound owner rollout
+  - cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never: blocked before target sound crate by unrelated zircon_runtime render compile drift; not counted as passing
+  - rustfmt --edition 2021 --check zircon_plugins\timeline_sequence\editor\src\lib.rs zircon_plugins\timeline_sequence\editor\src\capability.rs zircon_plugins\timeline_sequence\editor\src\extension_ids.rs zircon_plugins\timeline_sequence\editor\src\plugin.rs zircon_plugins\timeline_sequence\editor\src\tests.rs: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=8, plugin_skeleton_gate.migration_debt_count=8, capability_conformance.capability_source_mismatches=0 on 2026-06-23 after timeline_sequence owner rollout
+  - cargo check --manifest-path zircon_plugins\timeline_sequence\editor\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never: blocked before target timeline_sequence crate by unrelated zircon_runtime render compile drift; not counted as passing
+  - python tools\audit_plugin_structure.py --json: plugin_skeleton_gate.m2_gate_status=sample-clean-migration-debt-clear, skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, skeleton_conformance.migration_debt_roots=[], capability_conformance.capability_source_mismatches=0, capability_conformance.missing_capability_owner_files=0, capability_conformance.missing_runtime_capability_exports=0 on 2026-06-23 after final owner rollout
+  - rustfmt --edition 2021 --check on 139 touched owner/façade files under animation, animation_graph, hybrid_gi, material_editor, navigation, net, rendering, timeline_sequence, and virtual_geometry: passed 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --offline --locked --target-dir target\codex-plugin-validation --message-format short --color never: passed 2026-06-23 after final owner rollout and `hybrid_gi` RenderLayerSet mask alignment, with existing warning noise
 doc_type: module-detail
 status: in_progress
 ---
@@ -108,7 +418,7 @@ status: in_progress
 
 > 唯一插件 crate 目录骨架，由 [Plugins 12](../plans/zircon_plugins/12-plugin-dx-and-structure-framework.md) 落地、[引擎结构规范 §6.1](../plans/engine-code-structure-convention.md) 定义。新插件 day 1 即用此骨架；存量插件 touch-it-conform-it 迁入。
 >
-> 状态：in_progress（骨架定稿；Plugins 12 M2/T1 `plugin_sdk` builder baseline、M2/T2 首个样例/符合度 guard、M2/T3 native SDK helper、M2/T4 editor authoring macro/workspace dependency inheritance、M2/T5 test runtime fixture、M3/T2 runtime registration builder + animation 代表迁移、M3/T1 `asset_importers/*` family 与 split importers 自由注册函数清零已落地；capability 单源 / 存量插件迁移债仍 pending）
+> 状态：in_progress（骨架定稿；Plugins 12 M2/T1 `plugin_sdk` builder baseline、M2/T2 首个样例/符合度 guard、M2/T3 native SDK helper、M2/T4 editor authoring macro/workspace dependency inheritance、M2/T5 test runtime fixture、M3/T2 runtime registration builder + animation 代表迁移、M3/T1 `asset_importers/*` family 与 split importers 自由注册函数清零、M5/T2 D6 `RuntimePluginId` string-newtype 已落地；Plugins 13 M2/T3 `plugin_sdk::dist` 一文件 cdylib 导出 helper 已落地；M5/T1 importer capability-owner、runtime-only skeleton owner、editor-only skeleton owner、authoring runtime/editor skeleton owner、particles/physics/texture skeleton owner、editor_build_export_desktop skeleton owner、sound runtime/editor feature skeleton owner、timeline_sequence editor skeleton owner 与最终 8 根 owner rollout 已把迁移债从 35 降至 0；`migration_debt_roots = []`）
 
 ## 1. 目录骨架
 
@@ -145,7 +455,19 @@ status: in_progress
 
 ## 3. 导入器类插件
 
-`backend/` 即 importer 实现；`plugin.rs` 的 `register` 同时 `register_module` + 注册 importer descriptor。M3/T1 已把 `asset_importers/{data,model,shader}` 和 root-level split importers 收编到 `RuntimePlugin` trait 入口并删除/避免 `registration.rs` 自由函数分离写法；`asset_importers/audio` 与 `asset_importers/texture` 仍是 declaration-only 迁移债，但不再是公开注册自由函数 owner。
+`backend/` 即 importer 实现；`plugin.rs` 的 `register` 同时 `register_module` + 注册 importer descriptor。M3/T1 已把 `asset_importers/{data,model,shader}` 和 root-level split importers 收编到 `RuntimePlugin` trait 入口并删除/避免 `registration.rs` 自由函数分离写法；M5/T1 importer capability-owner 子切片已进一步把 `audio_importer`、`gltf_importer`、`obj_importer`、`opus_importer`、`shader_wgsl_importer`、`texture_importer`、`ui_document_importer` 与 `asset_importers/{data,model,shader}` 的 capability 常量迁入各自 `runtime/src/capability.rs`。M5/T1 runtime-only skeleton owner 子切片又把 `asset_importers/audio` 与 `asset_importers/texture` 从 declaration-only `package_manifest()` 收口为 trait-backed `plugin.rs` owner；它们仍只声明 importer manifest，不伪造尚不存在的真实导入函数注册。
+
+Editor-only 插件同样遵守薄 `lib.rs`：M5/T1 editor-only skeleton owner 子切片已把 `native_window_hosting`、`runtime_diagnostics` 与 `ui_asset_authoring` 迁到 `src/capability.rs`（插件 id / editor capability）、`src/extension_ids.rs`（view/drawer/template id）、`src/plugin.rs`（`EditorPlugin` owner / manifest / registration）与 `src/tests.rs`。后续 editor 插件新增扩展点时应优先落到对应 owner 文件，不把 descriptor、template id 或 registration helper 堆回 crate root。
+
+Authoring runtime+editor 插件按同根双 crate 完成同一骨架：M5/T1 authoring runtime/editor skeleton owner 子切片已把 `prefab_tools`、`terrain` 与 `tilemap_2d` 的 runtime crate 迁到 `runtime/src/plugin.rs`、`runtime/src/capability.rs` 与 `runtime/src/tests.rs`，editor crate 迁到 `editor/src/authoring.rs`、`capability.rs`、`extension_ids.rs`、`plugin.rs` 与 `tests.rs`。后续 authoring 插件应把领域 helper 放入 `authoring.rs` 或更细 owner，`plugin.rs` 只保留 trait owner、manifest、registration 与批量 extension 组装。
+
+Runtime+editor 成对插件继续按同一 owner 规则递减迁移债：M5/T1 particles/physics/texture skeleton owner 子切片已把 `particles`、`physics` 与 `texture` 的 runtime plugin owner 迁到 `runtime/src/plugin.rs`，runtime `lib.rs` 退为薄 façade；`physics` 与 `texture` 的测试进入 `runtime/src/tests.rs`，`texture` 的领域逻辑拆为 `manager.rs` 与 `module.rs`。三个 editor crate 均使用 `capability.rs`、`extension_ids.rs`、`plugin.rs` 与 `tests.rs` owner；`particles` 另保留 `authoring.rs` 领域 helper。`particles/runtime/src/simulation/cpu.rs` 的 `RenderParticleSpriteSnapshot` 构造已补齐 `render_layer_mask`，这是本轮编译验证所需的既有结构漂移修复。
+
+Standalone/export editor 插件也遵守同一骨架：M5/T1 editor_build_export_desktop skeleton owner 子切片已把 `editor_build_export_desktop/editor` 的插件 id 与 editor capabilities 放入 `capability.rs`，view/drawer/template/report/operation ids 与私有模板路径放入 `extension_ids.rs`，`EditorBuildExportDesktopPlugin`、descriptor、manifest、registration report、导出 operation/menu、NativeDynamic report templates 与 export profile authoring 注册放入 `plugin.rs`，package/registration/template asset 断言放入 `tests.rs`；`lib.rs` 只保留 façade 与 export wizard 精选 re-export。
+
+Timeline authoring editor 插件按同一规则收敛：M5/T1 timeline_sequence skeleton owner 子切片已把 `timeline_sequence/editor` 的插件 id、editor capability 与 animation timeline event track capability 放入 `capability.rs`，view/drawer/template ids 放入 `extension_ids.rs`，`TimelineSequenceEditorPlugin`、descriptor、manifest、registration report、operation/menu 与 timeline authoring batch helper 放入 `plugin.rs`，package/registration/validation/keyframe/event marker 断言放入 `tests.rs`；`lib.rs` 只保留 façade 与 timeline authoring 领域 helper。
+
+最终存量 roots 已按同一骨架清零：M5/T1 final owner rollout 把 `animation`、`animation_graph`、`hybrid_gi`、`material_editor`、`navigation`、`net`、`rendering` 与 `virtual_geometry` 的 runtime/editor crate 迁到 `plugin.rs`、`capability.rs`、`extension_ids.rs`、`tests.rs` 等 owner 文件，`net` 和 `rendering` 的 feature runtime/editor crate 也具备 feature-local `capability.rs` / `plugin.rs` owner。当前结构审计报告 `plugin_skeleton_gate.m2_gate_status = sample-clean-migration-debt-clear`、`skeleton_conformance.migration_debt_count = 0`、`plugin_skeleton_gate.migration_debt_count = 0`、`migration_debt_roots = []`。
 
 ## 4. `plugin_sdk` builder（祝福路径）
 
@@ -159,7 +481,7 @@ M2/T3 native ABI helper 已提供 `plugin_sdk::native` feature、ABI v3 类型�
 
 M3/T2 runtime registration builder 已提供 `plugin_sdk::registration::RuntimePluginRegistrationBuilder` 与 `RuntimePluginModuleRegistration`。runtime 插件在 `impl RuntimePlugin::register(...)` 内先声明 module，再通过 module handle 声明 runtime scene system、set、order 和 before/after constraint，SDK 内部负责 owner token 顺序。`zircon_plugins/animation/runtime` 已作为代表插件迁到该路径。
 
-M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::registration`，`tools/audit_plugin_structure.py --json` 当前报告 `registration_conformance.m3_t1_gate_status = family-single-entry-clean`、`registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean`、`m3_importer_gate_status = importer-single-entry-clean`，且 importer free-function registration sites 为 0。`asset_importers/{data,model,shader}/runtime/src/plugin.rs` 和 root-level split importer `runtime/src/plugin.rs` 现在拥有 trait-backed plugin entry；因为 `RuntimePluginId` 仍是 core 封闭 enum，本轮仅补 data/model/shader 和 opus importer 临时枚举接线，D6 string-newtype 仍是 M5 工作。
+M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::registration`，`tools/audit_plugin_structure.py --json` 当前报告 `registration_conformance.m3_t1_gate_status = family-single-entry-clean`、`registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean`、`m3_importer_gate_status = importer-single-entry-clean`，且 importer free-function registration sites 为 0。`asset_importers/{data,model,shader}/runtime/src/plugin.rs` 和 root-level split importer `runtime/src/plugin.rs` 现在拥有 trait-backed plugin entry。M5/T2 D6 已把 `RuntimePluginId` 从 core 封闭 enum 改为开放 string-newtype；data/model/shader/opus importer 的一方 id 保留为关联常量，后续第三方或独立插件合法 key 不再需要新增 core 枚举分支。
 
 ## 5. 首个骨架样例
 
@@ -180,7 +502,7 @@ M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::
 - `plugins_12_crate_skeleton_conformance` 消费同一 JSON，锁定首个样例不回退。
 - `registration_conformance.m3_t1_gate_status = family-single-entry-clean` 锁定 `asset_importers/*` 家族不再出现公开 `pub fn register(...)` 自由函数或 `runtime/src/registration.rs` owner。
 - `registration_conformance.m3_split_importer_gate_status = split-importer-single-entry-clean` 和 `m3_importer_gate_status = importer-single-entry-clean` 锁定 split importers 与 aggregate importer 口径不再出现公开注册自由函数或 `runtime/src/registration.rs` owner。
-- 存量插件仍按 `migration_debt_roots` 记录为迁移债；当前目标不是一次性硬切所有插件，而是在 M5 touch-it-conform-it 中递减到 0。
+- 存量插件仍按 `migration_debt_roots` 记录为迁移债；2026-06-23 M5/T1 importer capability-owner、runtime-only skeleton owner、editor-only skeleton owner、authoring runtime/editor skeleton owner、particles/physics/texture skeleton owner、editor_build_export_desktop skeleton owner、sound skeleton owner、timeline_sequence skeleton owner 与 final owner rollout 后当前 `migration_debt_count = 0`，`migration_debt_roots = []`。后续新增插件必须 day 1 进入同一骨架，不再新增迁移债。
 - `native_dynamic_fixture` 作为 native-only ABI fixture 继续豁免 runtime/editor 骨架规则；M2/T3 已收编其 ABI 样板到 `plugin_sdk::native`，但它仍不是 runtime/editor 双 crate 骨架样例。
 
 ## 7. 双形态（embed / dist）发行维扩展
@@ -203,5 +525,5 @@ M3/T1 importer registration slices 已新增并扩展 `plugin_structure_audits::
 ```
 
 - **依赖边界铁律**：`backend/`、`capability.rs` 禁 `use zircon_runtime::*`；触碰 `zircon_runtime` 的代码必须 `#[cfg(feature = "embed")]`。`dist` 形态依赖闭包禁含 `zircon_runtime`，由 `tools/plugin_structure_audits/dependency_boundary.py` 守卫（`dist_dependency_boundary_violations = 0`）。
-- **单源双投影**：一份 manifest + 一份 `backend/` 逻辑同时喂 embed 注册（`plugin_sdk::registration`）与 dist 导出（`plugin_sdk::native`/`dist`）；不复制逻辑。
+- **单源双投影**：一份 manifest + 一份 `backend/` 逻辑同时喂 embed 注册（`plugin_sdk::registration`）与 dist 导出（`plugin_sdk::native` / `plugin_sdk::dist::{native_dist_plugin_v3!, native_dist_runtime_plugin_v3!}`）；不复制逻辑。
 - 逻辑无法干净 feature-gate 时退化为独立 `<plugin>/dist/` cdylib crate 包裹 `backend/`（fallback，非首选）。

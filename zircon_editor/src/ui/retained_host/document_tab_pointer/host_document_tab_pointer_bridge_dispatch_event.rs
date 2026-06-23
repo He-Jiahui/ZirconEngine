@@ -2,19 +2,20 @@ use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
 
 use super::{
     host_document_tab_pointer_bridge::HostDocumentTabPointerBridge,
-    host_document_tab_pointer_target::HostDocumentTabPointerTarget,
+    host_document_tab_pointer_route::HostDocumentTabPointerRoute,
 };
 
 impl HostDocumentTabPointerBridge {
     pub(in crate::ui::retained_host::document_tab_pointer) fn dispatch_event(
         &mut self,
         event: UiPointerEvent,
-    ) -> Result<Option<HostDocumentTabPointerTarget>, String> {
+    ) -> Result<Option<HostDocumentTabPointerRoute>, String> {
         let dispatch = self
             .surface
             .dispatch_pointer_event(&self.dispatcher, event)
             .map_err(|error| error.to_string())?;
-        let target_node = dispatch.handled_by.or(dispatch.route.target);
-        Ok(target_node.and_then(|node_id| self.targets.get(&node_id).cloned()))
+        Ok(self
+            .route_intents
+            .document_tab_route_for_pointer_dispatch(&dispatch))
     }
 }

@@ -341,7 +341,9 @@ fn parse_v2_typed(
 ) -> Result<UiV2AssetDocument, UiV2AssetDocumentError> {
     let parsed = UiV2AssetLoader::load_toml_str(document)
         .map_err(|error| UiV2AssetDocumentError::Parse(error.to_string()))?;
-    if parsed.asset.kind != expected {
+    let matches_style_import =
+        expected == UiV2AssetKind::Style && parsed.asset.kind == UiV2AssetKind::ThemeTokens;
+    if parsed.asset.kind != expected && !matches_style_import {
         return Err(UiV2AssetDocumentError::UnexpectedKind {
             expected,
             actual: parsed.asset.kind,

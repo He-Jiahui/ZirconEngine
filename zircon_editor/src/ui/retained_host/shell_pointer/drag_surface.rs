@@ -1,10 +1,9 @@
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,
-    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    event_ui::{UiNodePath, UiRouteId, UiTreeId},
     layout::UiFrame,
     surface::UiPointerEventKind,
     tree::{UiInputPolicy, UiTreeNode},
@@ -12,6 +11,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::{ShellFrame, ShellSizePx};
 use crate::ui::workbench::layout::DockEdge;
@@ -30,6 +30,7 @@ use super::route::HostShellPointerRoute;
 
 const MIN_SIDE_DROP_EXTENT: f32 = 92.0;
 const MIN_BOTTOM_DROP_EXTENT: f32 = 92.0;
+const DRAG_ROUTE_ID_BASE: u64 = 50_000;
 
 pub(super) fn build_drag_surface(
     root_size: ShellSizePx,
@@ -37,11 +38,7 @@ pub(super) fn build_drag_surface(
     floating_windows: &[FloatingWindowModel],
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
-) -> (
-    UiSurface,
-    UiPointerDispatcher,
-    BTreeMap<UiNodeId, HostShellPointerRoute>,
-) {
+) -> (UiSurface, UiPointerDispatcher, EditorRouteIntentMap) {
     let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.workbench.shell_pointer.drag"));
     surface.tree.insert_root(
         UiTreeNode::new(
@@ -52,46 +49,64 @@ pub(super) fn build_drag_surface(
         .with_frame(UiFrame::new(0.0, 0.0, 1.0, 1.0)),
     );
 
-    for (node_id, path, z_index) in [
+    let mut route_intents = EditorRouteIntentMap::default();
+
+    for (node_id, path, z_index, route_id, route) in [
         (
             DRAG_TARGET_DOCUMENT_NODE_ID,
             "editor.workbench.shell_pointer/drag/document",
             10,
+            drag_route_id(1),
+            HostShellPointerRoute::DragTarget(HostDragTargetGroup::Document),
         ),
         (
             DRAG_TARGET_BOTTOM_NODE_ID,
             "editor.workbench.shell_pointer/drag/bottom",
             20,
+            drag_route_id(2),
+            HostShellPointerRoute::DragTarget(HostDragTargetGroup::Bottom),
         ),
         (
             DOCUMENT_EDGE_LEFT_NODE_ID,
             "editor.workbench.shell_pointer/drag/document_edge_left",
             30,
+            drag_route_id(3),
+            HostShellPointerRoute::DocumentEdge(DockEdge::Left),
         ),
         (
             DOCUMENT_EDGE_RIGHT_NODE_ID,
             "editor.workbench.shell_pointer/drag/document_edge_right",
             31,
+            drag_route_id(4),
+            HostShellPointerRoute::DocumentEdge(DockEdge::Right),
         ),
         (
             DOCUMENT_EDGE_TOP_NODE_ID,
             "editor.workbench.shell_pointer/drag/document_edge_top",
             32,
+            drag_route_id(5),
+            HostShellPointerRoute::DocumentEdge(DockEdge::Top),
         ),
         (
             DOCUMENT_EDGE_BOTTOM_NODE_ID,
             "editor.workbench.shell_pointer/drag/document_edge_bottom",
             33,
+            drag_route_id(6),
+            HostShellPointerRoute::DocumentEdge(DockEdge::Bottom),
         ),
         (
             DRAG_TARGET_LEFT_NODE_ID,
             "editor.workbench.shell_pointer/drag/left",
             40,
+            drag_route_id(7),
+            HostShellPointerRoute::DragTarget(HostDragTargetGroup::Left),
         ),
         (
             DRAG_TARGET_RIGHT_NODE_ID,
             "editor.workbench.shell_pointer/drag/right",
             50,
+            drag_route_id(8),
+            HostShellPointerRoute::DragTarget(HostDragTargetGroup::Right),
         ),
     ] {
         surface
@@ -104,6 +119,7 @@ pub(super) fn build_drag_surface(
                     .with_state_flags(base_target_state(true)),
             )
             .expect("drag pointer root must exist");
+        route_intents.bind_node(node_id, route_id, EditorRouteIntent::ShellPointer(route));
     }
 
     let root_frame = UiFrame::new(
@@ -230,7 +246,6 @@ pub(super) fn build_drag_surface(
         document: document_edge_frame.unwrap_or_default(),
     }));
     let mut drag_dispatcher = UiPointerDispatcher::default();
-    let mut drag_routes = BTreeMap::new();
 
     let left_frames = Arc::clone(&drag_frames);
     drag_dispatcher.register(
@@ -339,9 +354,12 @@ pub(super) fn build_drag_surface(
             update_target_node(&mut surface, node_id, Some(frame));
         }
 
-        drag_routes.insert(
+        route_intents.bind_node(
             attach_id,
-            HostShellPointerRoute::FloatingWindow(window.window_id.clone()),
+            drag_route_id(100 + index as u64 * 10),
+            EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindow(
+                window.window_id.clone(),
+            )),
         );
         drag_dispatcher.register(attach_id, UiPointerEventKind::Move, |_context| {
             UiPointerDispatchEffect::handled()
@@ -353,12 +371,13 @@ pub(super) fn build_drag_surface(
             (top_edge_id, DockEdge::Top),
             (bottom_edge_id, DockEdge::Bottom),
         ] {
-            drag_routes.insert(
+            route_intents.bind_node(
                 node_id,
-                HostShellPointerRoute::FloatingWindowEdge {
+                floating_window_edge_route_id(index, edge),
+                EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindowEdge {
                     window_id: window.window_id.clone(),
                     edge,
-                },
+                }),
             );
             drag_dispatcher.register(node_id, UiPointerEventKind::Move, move |context| {
                 edge_effect_in_frame(frame, edge, context.route.point)
@@ -367,7 +386,21 @@ pub(super) fn build_drag_surface(
     }
 
     surface.rebuild();
-    (surface, drag_dispatcher, drag_routes)
+    (surface, drag_dispatcher, route_intents)
+}
+
+const fn drag_route_id(offset: u64) -> UiRouteId {
+    UiRouteId::new(DRAG_ROUTE_ID_BASE + offset)
+}
+
+const fn floating_window_edge_route_id(index: usize, edge: DockEdge) -> UiRouteId {
+    let offset = match edge {
+        DockEdge::Left => 101,
+        DockEdge::Right => 102,
+        DockEdge::Top => 103,
+        DockEdge::Bottom => 104,
+    };
+    drag_route_id(offset + index as u64 * 10)
 }
 
 fn shell_frame(frame: UiFrame) -> ShellFrame {

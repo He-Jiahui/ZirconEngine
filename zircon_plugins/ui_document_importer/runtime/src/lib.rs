@@ -2,19 +2,17 @@ use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, UiV2ComponentAsset,
 };
 
+mod capability;
 mod plugin;
 
+pub use capability::{
+    IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, UiDocumentImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "ui_document_importer";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_ui_document_importer_runtime";
-pub const MODULE_NAME: &str = "UiDocumentImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.ui_document_importer";
-pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.ui_document";
 
 pub fn import_ui_zui_component_document(
     context: &AssetImportContext,

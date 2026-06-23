@@ -36,7 +36,9 @@ pub(super) fn apply_drag_drop_effect(
                 payload.clone(),
             )?;
             surface.focus.captured = Some(*target);
-            surface.input.captured_pointer_id = Some(*pointer_id);
+            surface
+                .input
+                .set_pointer_capture_for_id(*pointer_id, *target);
             set_dragging_component_state(surface, *target, true)?;
             set_drop_target_component_state(surface, *target, true)?;
             Ok(Some(*target))

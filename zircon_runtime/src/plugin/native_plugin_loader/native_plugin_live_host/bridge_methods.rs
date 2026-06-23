@@ -166,6 +166,28 @@ impl NativePluginLiveHost {
         Ok(())
     }
 
+    pub(super) fn runtime_bridge_method_slot(
+        &self,
+        plugin_id: &str,
+        interface_id: &str,
+        method_name: &str,
+    ) -> Result<u32, String> {
+        let manifest = self.loaded_runtime_package_manifest_required(plugin_id)?;
+        for interface in &manifest.provides_interfaces {
+            if interface.id != interface_id {
+                continue;
+            }
+            for method in &interface.methods {
+                if method.name == method_name {
+                    return Ok(method.method_slot);
+                }
+            }
+        }
+        Err(format!(
+            "runtime plugin {plugin_id} package manifest does not declare bridge method `{interface_id}.{method_name}`"
+        ))
+    }
+
     fn loaded_runtime_package_manifest(
         &self,
         plugin_id: &str,

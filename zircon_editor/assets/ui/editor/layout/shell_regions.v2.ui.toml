@@ -1,0 +1,40 @@
+[asset]
+kind = "layout_regions"
+id = "zircon.editor.workbench.shell_regions"
+version = 2
+display_name = "Workbench Shell Region Bindings"
+
+[[regions]]
+region = "left_top"
+role = "placement_tools"
+panel_asset = "res://ui/editor/host/asset_surface_controls.v2.ui.toml"
+size_token = "--left-drawer-width"
+
+[[regions]]
+region = "left_bottom"
+role = "project_tree"
+panel_asset = "res://ui/editor/asset_browser.v2.ui.toml"
+size_token = "--left-drawer-width"
+
+[[regions]]
+region = "center"
+role = "center_document"
+panel_asset = "res://ui/editor/components/workbench/shell/workbench_main_band.zui"
+
+[[regions]]
+region = "right_top"
+role = "hierarchy_structure"
+panel_asset = "res://ui/editor/host/hierarchy_body.v2.ui.toml"
+size_token = "--right-drawer-width"
+
+[[regions]]
+region = "right_bottom"
+role = "detail_inspector"
+panel_asset = "res://ui/editor/host/inspector_body.v2.ui.toml"
+size_token = "--right-drawer-width"
+
+[[regions]]
+region = "bottom"
+role = "console_diagnostics_timeline"
+panel_asset = "res://ui/editor/host/console_body.v2.ui.toml"
+size_token = "--bottom-output-height"

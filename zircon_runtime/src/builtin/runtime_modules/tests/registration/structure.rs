@@ -80,10 +80,12 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(ids_source.contains("mod target_mode;"));
     assert!(ids_source.contains("pub use plugin_id::RuntimePluginId;"));
     assert!(ids_source.contains("pub use target_mode::RuntimeTargetMode;"));
-    assert!(plugin_id_source.contains("pub enum RuntimePluginId"));
+    assert!(plugin_id_source.contains("pub struct RuntimePluginId"));
+    assert!(!plugin_id_source.contains("pub enum RuntimePluginId"));
     assert!(plugin_id_source.contains("pub const fn key"));
-    assert!(plugin_id_source.contains("pub const fn label"));
+    assert!(plugin_id_source.contains("pub fn label"));
     assert!(plugin_id_source.contains("pub fn parse_key"));
+    assert!(plugin_id_source.contains("intern_runtime_plugin_key"));
     assert!(target_mode_source.contains("pub enum RuntimeTargetMode"));
     assert!(profile_modules_source.contains("pub(super) fn runtime_modules_for_runtime_profile"));
     assert!(profile_modules_source.contains("minimal_profile_runtime_modules"));

@@ -4,6 +4,7 @@ use crate::plugin::native::NativeHostBridgeCallScope;
 use crate::plugin::{
     PluginModuleKind, RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
 };
+use crate::scene::SystemStage;
 
 use super::super::super::runtime_plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -110,6 +111,38 @@ impl NativePluginRuntimeHotUpdateReport {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct NativePluginRuntimeRegistrationReplayReport {
+    pub registered_systems: Vec<NativePluginRuntimeRegistrationSystemReplay>,
+    pub skipped_plugin_ids: Vec<String>,
+    pub diagnostics: Vec<String>,
+}
+
+impl NativePluginRuntimeRegistrationReplayReport {
+    pub fn is_clean(&self) -> bool {
+        self.diagnostics.is_empty() && self.skipped_plugin_ids.is_empty()
+    }
+
+    pub(super) fn append(&mut self, other: &mut Self) {
+        self.registered_systems
+            .append(&mut other.registered_systems);
+        self.skipped_plugin_ids
+            .append(&mut other.skipped_plugin_ids);
+        self.diagnostics.append(&mut other.diagnostics);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativePluginRuntimeRegistrationSystemReplay {
+    pub plugin_id: String,
+    pub module: String,
+    pub system_id: String,
+    pub stage: SystemStage,
+    pub order: i32,
+    pub bridge_interface: String,
+    pub bridge_method: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginRuntimeBehaviorDescriptor {
     pub plugin_id: String,
@@ -117,8 +150,10 @@ pub struct NativePluginRuntimeBehaviorDescriptor {
     pub state_schema_version: Option<u32>,
     pub command_manifest_schema: Option<String>,
     pub event_manifest_schema: Option<String>,
+    pub registration_manifest_schema: Option<String>,
     pub command_manifest: Option<String>,
     pub event_manifest: Option<String>,
+    pub registration_manifest: Option<String>,
     pub validation_report: Option<NativePluginBehaviorValidationReport>,
 }
 

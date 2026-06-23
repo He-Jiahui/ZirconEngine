@@ -12,6 +12,7 @@ use crate::core::editor_extension::{
     AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
     EditorUiTemplateDescriptor,
 };
+use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::EditorOperationStack;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
@@ -82,7 +83,7 @@ impl EditorEventRuntime {
     pub fn set_status_line(&self, message: impl Into<String>) {
         let mut inner = self.lock_inner();
         inner.state.set_status_line(message);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn status_line(&self) -> String {
@@ -92,7 +93,7 @@ impl EditorEventRuntime {
     pub fn set_status_task_progress(&self, progress: Option<StatusTaskProgressSnapshot>) {
         let mut inner = self.lock_inner();
         inner.state.set_status_task_progress(progress);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn status_task_progress(&self) -> Option<StatusTaskProgressSnapshot> {
@@ -120,7 +121,10 @@ impl EditorEventRuntime {
                 envelope,
             )?;
         if result.refresh_projection {
-            Self::refresh_reflection_locked(&mut inner);
+            Self::refresh_workbench_locked(
+                &mut inner,
+                EditorViewInvalidationMask::PRESENTATION_DATA,
+            );
         }
         Ok(result)
     }
@@ -236,38 +240,41 @@ impl EditorEventRuntime {
     pub fn set_session_mode(&self, session_mode: EditorSessionMode) {
         let mut inner = self.lock_inner();
         inner.state.set_session_mode(session_mode);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn set_welcome_snapshot(&self, welcome: WelcomePaneSnapshot) {
         let mut inner = self.lock_inner();
         inner.state.set_welcome_snapshot(welcome);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_catalog(&self, catalog: EditorAssetCatalogSnapshotRecord) {
         let mut inner = self.lock_inner();
         inner.state.sync_asset_catalog(catalog);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_resources(&self, resources: Vec<ResourceRecord>) {
         let mut inner = self.lock_inner();
         inner.state.sync_asset_resources(resources);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_details(&self, details: Option<EditorAssetDetailsRecord>) {
         let mut inner = self.lock_inner();
         inner.state.sync_asset_details(details);
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn replace_world(&self, world: LevelSystem, project_path: impl Into<String>) {
         let mut inner = self.lock_inner();
         inner.state.replace_world(world, project_path);
         inner.dragging_gizmo = false;
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(
+            &mut inner,
+            EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
+        );
     }
 
     pub fn import_mesh_asset(
@@ -280,7 +287,10 @@ impl EditorEventRuntime {
         let changed = inner
             .state
             .import_mesh_asset(model, material, display_path)?;
-        Self::refresh_reflection_locked(&mut inner);
+        Self::refresh_workbench_locked(
+            &mut inner,
+            EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
+        );
         Ok(changed)
     }
 

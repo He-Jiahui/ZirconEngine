@@ -1,0 +1,145 @@
+use super::*;
+
+#[test]
+fn hybrid_gi_registration_contributes_render_feature_descriptor() {
+    let report = plugin_registration();
+
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+    assert!(report
+        .extensions
+        .modules()
+        .iter()
+        .any(|module| module.name == HYBRID_GI_MODULE_NAME));
+    assert_eq!(
+        report.extensions.render_features()[0].name,
+        HYBRID_GI_FEATURE_NAME
+    );
+    assert_eq!(
+        report.package_manifest.modules[0].target_modes,
+        vec![
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    assert_eq!(report.package_manifest.category, "rendering");
+    assert_eq!(
+        report.package_manifest.maturity,
+        zircon_runtime::plugin::PluginMaturity::Experimental
+    );
+    assert!(report
+        .package_manifest
+        .capabilities
+        .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string()));
+    assert!(report.package_manifest.modules[0]
+        .capabilities
+        .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string()));
+    let feature = &report.extensions.render_features()[0];
+    assert_eq!(
+        feature.required_extract_sections,
+        vec![
+            "view".to_string(),
+            "lighting".to_string(),
+            "visibility".to_string()
+        ]
+    );
+    assert_eq!(
+        feature.capability_requirements,
+        vec![
+            zircon_runtime::graphics::RenderFeatureCapabilityRequirement::HybridGlobalIllumination
+        ]
+    );
+    assert_eq!(
+        feature.history_bindings,
+        vec![zircon_runtime::graphics::FrameHistoryBinding::read_write(
+            zircon_runtime::graphics::FrameHistorySlot::GlobalIllumination
+        )]
+    );
+    assert_eq!(
+        feature
+            .stage_passes
+            .iter()
+            .map(|pass| pass.pass_name.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "hybrid-gi-scene-prepare",
+            "hybrid-gi-trace-schedule",
+            "hybrid-gi-resolve",
+            "hybrid-gi-history",
+        ]
+    );
+    assert_eq!(report.extensions.render_pass_executors().len(), 4);
+    assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
+    assert_eq!(
+        report.extensions.runtime_prepare_collectors()[0].collector_id(),
+        "hybrid-gi.runtime-prepare"
+    );
+    assert_eq!(
+        report.extensions.hybrid_gi_runtime_providers()[0].provider_id(),
+        "plugin.hybrid_gi.runtime"
+    );
+    assert_eq!(
+        report
+            .extensions
+            .render_pass_executors()
+            .iter()
+            .map(|registration| registration.executor_id().as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "hybrid-gi.scene-prepare",
+            "hybrid-gi.trace-schedule",
+            "hybrid-gi.resolve",
+            "hybrid-gi.history",
+        ]
+    );
+}
+
+#[test]
+fn hybrid_gi_package_manifest_declares_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("hybrid_gi distribution manifest");
+    assert_eq!(distribution.forms, vec!["dist".to_string()]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, "zircon_plugin_hybrid_gi_dist");
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(
+        distribution.runtime_entry,
+        "zircon_plugin_hybrid_gi_runtime_entry_v3"
+    );
+
+    let native_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "hybrid_gi.dist")
+        .expect("hybrid_gi native dist module");
+    assert_eq!(
+        native_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert_eq!(native_module.crate_name, "zircon_plugin_hybrid_gi_dist");
+    assert_eq!(
+        native_module.target_modes,
+        vec![
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    for capability in RUNTIME_CAPABILITIES {
+        assert!(native_module.capabilities.contains(&capability.to_string()));
+    }
+}

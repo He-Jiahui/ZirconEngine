@@ -4,23 +4,19 @@ use zircon_runtime::asset::{
     ImportedAsset,
 };
 
+mod capability;
 mod plugin;
 
+pub use capability::{
+    IMPORTER_FAMILY, JSON_IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
+    RUNTIME_CRATE_NAME, TOML_IMPORTER_CAPABILITY, XML_IMPORTER_CAPABILITY,
+    YAML_IMPORTER_CAPABILITY,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, DataAssetImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "asset_importer.data";
-pub const IMPORTER_FAMILY: &str = "data";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_asset_importer_data_runtime";
-pub const MODULE_NAME: &str = "DataImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.data";
-pub const TOML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.toml";
-pub const JSON_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.json";
-pub const YAML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.yaml";
-pub const XML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.xml";
 
 pub fn import_toml_data(
     context: &AssetImportContext,

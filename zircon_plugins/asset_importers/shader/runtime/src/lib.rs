@@ -4,21 +4,18 @@ use zircon_runtime::asset::{
     ShaderEntryPointAsset, ShaderSourceLanguage,
 };
 
+mod capability;
 mod plugin;
 
+pub use capability::{
+    IMPORTER_FAMILY, MODULE_NAME, NAGA_IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITY,
+    RUNTIME_CRATE_NAME, WGSL_IMPORTER_CAPABILITY,
+};
 pub use plugin::{
     asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
     runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
     runtime_selection, supported_platforms, supported_targets, ShaderAssetImporterRuntimePlugin,
 };
-
-pub const PLUGIN_ID: &str = "asset_importer.shader";
-pub const IMPORTER_FAMILY: &str = "shader";
-pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_asset_importer_shader_runtime";
-pub const MODULE_NAME: &str = "ShaderImporterModule";
-pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.shader";
-pub const WGSL_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.shader.wgsl";
-pub const NAGA_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.shader.naga";
 
 pub fn import_shader(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
     let extension = context

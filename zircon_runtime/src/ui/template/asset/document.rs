@@ -1,9 +1,15 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiChildMount, UiNodeDefinition, UiSelector, UiStyleRule,
-    UiStyleSheet,
+    UiAssetDocument, UiAssetError, UiChildMount, UiNodeDefinition, UiStyleRule, UiStyleSheet,
 };
+
+use validation::{
+    validate_node_tree, validate_style_rule_ids, validate_style_rule_selectors,
+    validate_stylesheet_ids,
+};
+
+mod validation;
 
 pub trait UiAssetDocumentRuntimeExt {
     fn validate_tree_authority(&self) -> Result<(), UiAssetError>;
@@ -601,104 +607,6 @@ pub struct UiStyleRulePosition<'a> {
     pub stylesheet_id: &'a str,
     pub stylesheet_index: usize,
     pub rule_index: usize,
-}
-
-fn validate_node_tree(
-    asset_id: &str,
-    scope: &str,
-    node: &UiNodeDefinition,
-    seen: &mut BTreeMap<String, UiNodeDefinition>,
-) -> Result<(), UiAssetError> {
-    if node.node_id.trim().is_empty() {
-        return Err(UiAssetError::InvalidDocument {
-            asset_id: asset_id.to_string(),
-            detail: format!("{scope} contains a node with an empty node_id"),
-        });
-    }
-    if let Some(existing) = seen.get(&node.node_id) {
-        if existing == node {
-            return Ok(());
-        }
-        return Err(UiAssetError::InvalidDocument {
-            asset_id: asset_id.to_string(),
-            detail: format!(
-                "duplicate node_id {} resolves to conflicting subtrees",
-                node.node_id
-            ),
-        });
-    }
-    let _ = seen.insert(node.node_id.clone(), node.clone());
-    for child in &node.children {
-        validate_node_tree(asset_id, scope, &child.node, seen)?;
-    }
-    Ok(())
-}
-
-fn validate_stylesheet_ids(
-    asset_id: &str,
-    stylesheets: &[UiStyleSheet],
-) -> Result<(), UiAssetError> {
-    let mut seen = BTreeMap::new();
-    for (stylesheet_index, stylesheet) in stylesheets.iter().enumerate() {
-        if stylesheet.id.trim().is_empty() {
-            return Err(UiAssetError::InvalidDocument {
-                asset_id: asset_id.to_string(),
-                detail: "stylesheet id cannot be empty".to_string(),
-            });
-        }
-        if let Some(first_index) = seen.insert(stylesheet.id.as_str(), stylesheet_index) {
-            return Err(UiAssetError::InvalidDocument {
-                asset_id: asset_id.to_string(),
-                detail: format!(
-                    "duplicate stylesheet id {} appears at indexes {first_index} and {}",
-                    stylesheet.id, stylesheet_index
-                ),
-            });
-        }
-    }
-    Ok(())
-}
-
-fn validate_style_rule_ids(
-    asset_id: &str,
-    stylesheets: &[UiStyleSheet],
-) -> Result<(), UiAssetError> {
-    let mut seen = BTreeMap::new();
-    for stylesheet in stylesheets {
-        for rule in &stylesheet.rules {
-            let Some(rule_id) = rule.id.as_deref() else {
-                continue;
-            };
-            if rule_id.trim().is_empty() {
-                return Err(UiAssetError::InvalidDocument {
-                    asset_id: asset_id.to_string(),
-                    detail: format!(
-                        "stylesheet {} contains a style rule with an empty id",
-                        stylesheet.id
-                    ),
-                });
-            }
-            if let Some(first_stylesheet) = seen.insert(rule_id, stylesheet.id.as_str()) {
-                return Err(UiAssetError::InvalidDocument {
-                    asset_id: asset_id.to_string(),
-                    detail: format!(
-                        "duplicate style rule id {rule_id} appears in stylesheets {first_stylesheet} and {}",
-                        stylesheet.id
-                    ),
-                });
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_style_rule_selectors(stylesheets: &[UiStyleSheet]) -> Result<(), UiAssetError> {
-    for stylesheet in stylesheets {
-        for rule in &stylesheet.rules {
-            UiSelector::parse(&rule.selector)?;
-        }
-    }
-    Ok(())
 }
 
 fn find_node<'a>(node: &'a UiNodeDefinition, target: &str) -> Option<&'a UiNodeDefinition> {

@@ -4,6 +4,8 @@
 //! manifest and descriptor contracts without moving ownership out of
 //! `zircon_runtime`.
 
+#[cfg(feature = "native")]
+pub mod dist;
 #[cfg(feature = "editor")]
 pub mod editor;
 #[cfg(feature = "runtime")]

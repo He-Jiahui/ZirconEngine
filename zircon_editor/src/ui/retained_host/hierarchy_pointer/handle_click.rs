@@ -4,8 +4,7 @@ use zircon_runtime_interface::ui::{
 
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_dispatch::HierarchyPointerDispatch;
-use super::hierarchy_pointer_target::HierarchyPointerTarget;
-use super::to_public_route::to_public_route;
+use super::hierarchy_pointer_route::HierarchyPointerRoute;
 
 impl HierarchyPointerBridge {
     pub(crate) fn handle_click(
@@ -14,16 +13,16 @@ impl HierarchyPointerBridge {
     ) -> Result<HierarchyPointerDispatch, String> {
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
         match route.as_ref() {
-            Some(HierarchyPointerTarget::Node { item_index, .. }) => {
+            Some(HierarchyPointerRoute::Node { item_index, .. }) => {
                 self.state.hovered_item_index = Some(*item_index);
             }
-            Some(HierarchyPointerTarget::ListSurface) | None => {
+            Some(HierarchyPointerRoute::ListSurface) | None => {
                 self.state.hovered_item_index = None;
             }
         }
 
         Ok(HierarchyPointerDispatch {
-            route: route.map(to_public_route),
+            route,
             state: self.state.clone(),
         })
     }

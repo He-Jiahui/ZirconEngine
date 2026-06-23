@@ -141,11 +141,6 @@ impl VisibilityStaticIndex {
         entities.into_iter().collect()
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn indexed_entity_count(&self) -> usize {
-        self.entries.len()
-    }
-
     pub(crate) fn report(&self) -> VisibilityStaticIndexReport {
         self.report.clone()
     }
@@ -208,6 +203,7 @@ fn cell_axis(value: Real, cell_size: Real) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::framework::render::RenderLayerSet;
     use crate::core::framework::scene::Mobility;
     use crate::core::resource::ResourceId;
     use crate::graphics::visibility::{VisibilityBatchKey, VisibilityBvhUpdateStrategy};
@@ -281,7 +277,7 @@ mod tests {
         assert_eq!(report.incremental_update_count, 0);
         assert_eq!(report.frame_full_rebuild_count, 1);
         assert_eq!(report.frame_incremental_update_count, 0);
-        assert_eq!(index.indexed_entity_count(), 1);
+        assert_eq!(index.report().indexed_entity_count, 1);
         assert_eq!(
             index.query_bounds(VisibilityBounds {
                 center: Vec3::new(32.0, 0.0, 0.0),
@@ -295,7 +291,7 @@ mod tests {
         VisibilityBvhInstance {
             entity,
             key: VisibilityBatchKey {
-                render_layer_mask: u32::MAX,
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
                 material_id: ResourceId::from_stable_label("tests/material"),
                 model_id: ResourceId::from_stable_label("tests/model"),
                 mobility: Mobility::Static,

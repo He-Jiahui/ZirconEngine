@@ -1,38 +1,30 @@
 use std::collections::{BTreeMap, HashMap};
-use std::f32::consts::{FRAC_PI_2, PI};
 
 use crate::core::framework::render::{
     GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    RenderPointLightSnapshot, RenderSpotLightSnapshot, ViewportCameraSnapshot, SHADOW_SLOT_NONE,
+    ViewportCameraSnapshot, SHADOW_SLOT_NONE,
 };
-use crate::core::math::{is_finite_vec3, view_matrix, Mat4, Real, Transform, Vec3};
+use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasFrameAllocation, ShadowAtlasRect, ShadowAtlasResourceConfig,
-    ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
+    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
+    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
-use super::cascade::{
-    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges,
-    snapped_cascade_view_projection, CascadeShadowBounds, CascadeSplitConfig,
-};
+use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
 use super::slot::{
     GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
     GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
+};
+use super::view_projection::{
+    directional_cascade_view_projection, point_light_face_view_projection,
+    spot_light_view_projection,
 };
 
 const POINT_LIGHT_SHADOW_FACE_COUNT: u32 = 6;
 const SPOT_LIGHT_SHADOW_SLOT_COUNT: u32 = 1;
 const SHADOW_PLAN_NEAR_PLANE: f32 = 0.1;
-const MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT: Real = 4.0;
-const SHADOW_CAMERA_DISTANCE_SCALE: Real = 2.0;
-const SHADOW_CAMERA_FAR_PADDING: Real = 64.0;
-const SHADOW_CAMERA_NEAR_PLANE: Real = 0.1;
-const SHADOW_CAMERA_MIN_FAR_PLANE: Real = 1.0;
-const SHADOW_UP_ALIGNMENT_LIMIT: Real = 0.95;
-const DEFAULT_SHADOW_LIGHT_DIRECTION_COMPONENTS: [Real; 3] = [-0.4, -1.0, -0.25];
-const MIN_PUNCTUAL_SHADOW_RANGE: Real = SHADOW_CAMERA_NEAR_PLANE + SHADOW_CAMERA_MIN_FAR_PLANE;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ShadowLightSlotAssignment {
@@ -100,7 +92,6 @@ pub(crate) struct ShadowFramePlan {
     atlas_passes: Vec<ShadowAtlasSlotPass>,
     globals: GpuShadowGlobals,
     light_slots: ShadowLightSlotAssignments,
-    atlas_allocation: ShadowAtlasFrameAllocation,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -134,7 +125,6 @@ impl ShadowFramePlan {
             atlas_passes: Vec::new(),
             globals: GpuShadowGlobals::disabled(atlas_width, atlas_height),
             light_slots: ShadowLightSlotAssignments::default(),
-            atlas_allocation: ShadowAtlasFrameAllocation::default(),
         }
     }
 
@@ -152,11 +142,6 @@ impl ShadowFramePlan {
 
     pub(crate) fn light_slots(&self) -> &ShadowLightSlotAssignments {
         &self.light_slots
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn atlas_allocation(&self) -> &ShadowAtlasFrameAllocation {
-        &self.atlas_allocation
     }
 }
 
@@ -223,7 +208,6 @@ pub(crate) fn build_shadow_frame_plan(
         atlas_passes,
         globals,
         light_slots,
-        atlas_allocation,
     }
 }
 
@@ -482,60 +466,6 @@ fn directional_cascade_tier(
     tier
 }
 
-fn directional_cascade_view_projection(
-    light: &RenderDirectionalLightSnapshot,
-    camera: &ViewportCameraSnapshot,
-    resolution: u32,
-    range: super::cascade::CascadeRange,
-) -> Mat4 {
-    let direction = sanitize_direction(light.direction);
-    let slice_bounds = cascade_shadow_bounds_from_camera_slice(camera, range);
-    let half_extent = slice_bounds.radius.max(MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT);
-    let distance = half_extent * SHADOW_CAMERA_DISTANCE_SCALE + SHADOW_CAMERA_FAR_PADDING;
-    let eye = slice_bounds.center - direction * distance;
-    let transform = Transform::looking_at(eye, slice_bounds.center, stable_shadow_up(direction));
-    let light_view = view_matrix(transform);
-    let far_plane = (distance + half_extent + SHADOW_CAMERA_FAR_PADDING)
-        .max(SHADOW_CAMERA_NEAR_PLANE + SHADOW_CAMERA_MIN_FAR_PLANE)
-        .max(range.far);
-    let bounds = CascadeShadowBounds::new(slice_bounds.center, half_extent)
-        .with_depth_range(SHADOW_CAMERA_NEAR_PLANE, far_plane);
-    snapped_cascade_view_projection(light_view, bounds, resolution)
-}
-
-fn spot_light_view_projection(light: &RenderSpotLightSnapshot) -> Mat4 {
-    let direction = sanitize_direction(light.direction);
-    let position = finite_vec3_or(light.position, Vec3::ZERO);
-    let target = position + direction;
-    let view = view_matrix(Transform::looking_at(
-        position,
-        target,
-        stable_shadow_up(direction),
-    ));
-    let fov_y = (light.outer_angle_radians.max(0.001) * 2.0).clamp(0.001, PI - 0.001);
-    let far = sanitize_shadow_far_plane(light.range);
-    Mat4::perspective_rh(fov_y, 1.0, SHADOW_CAMERA_NEAR_PLANE, far) * view
-}
-
-fn point_light_face_view_projection(light: &RenderPointLightSnapshot, face_index: u8) -> Mat4 {
-    let position = finite_vec3_or(light.position, Vec3::ZERO);
-    let (direction, up) = point_light_face_axes(face_index);
-    let view = view_matrix(Transform::looking_at(position, position + direction, up));
-    let far = sanitize_shadow_far_plane(light.range);
-    Mat4::perspective_rh(FRAC_PI_2, 1.0, SHADOW_CAMERA_NEAR_PLANE, far) * view
-}
-
-fn point_light_face_axes(face_index: u8) -> (Vec3, Vec3) {
-    match face_index % POINT_LIGHT_SHADOW_FACE_COUNT as u8 {
-        0 => (Vec3::X, Vec3::Y),
-        1 => (-Vec3::X, Vec3::Y),
-        2 => (Vec3::Y, Vec3::Z),
-        3 => (-Vec3::Y, -Vec3::Z),
-        4 => (Vec3::Z, Vec3::Y),
-        _ => (-Vec3::Z, Vec3::Y),
-    }
-}
-
 fn shadow_enabled(shadow: Option<LightShadowSettings>) -> Option<LightShadowSettings> {
     shadow.filter(|settings| settings.casts_shadow)
 }
@@ -554,46 +484,6 @@ fn sanitize_priority(value: f32) -> f32 {
     } else {
         0.0
     }
-}
-
-fn sanitize_direction(direction: Vec3) -> Vec3 {
-    if is_finite_vec3(direction) && direction.length_squared() > f32::EPSILON {
-        direction.normalize_or_zero()
-    } else {
-        default_shadow_light_direction()
-    }
-}
-
-fn stable_shadow_up(direction: Vec3) -> Vec3 {
-    if direction.dot(Vec3::Y).abs() > SHADOW_UP_ALIGNMENT_LIMIT {
-        Vec3::X
-    } else {
-        Vec3::Y
-    }
-}
-
-fn finite_vec3_or(value: Vec3, fallback: Vec3) -> Vec3 {
-    if is_finite_vec3(value) {
-        value
-    } else {
-        fallback
-    }
-}
-
-fn sanitize_positive_distance(value: Real, fallback: Real) -> Real {
-    if value.is_finite() && value > 0.0 {
-        value
-    } else {
-        fallback
-    }
-}
-
-fn sanitize_shadow_far_plane(value: Real) -> Real {
-    sanitize_positive_distance(value, MIN_PUNCTUAL_SHADOW_RANGE).max(MIN_PUNCTUAL_SHADOW_RANGE)
-}
-
-fn default_shadow_light_direction() -> Vec3 {
-    Vec3::from_array(DEFAULT_SHADOW_LIGHT_DIRECTION_COMPONENTS).normalize_or_zero()
 }
 
 fn slots_remaining(resource_config: ShadowAtlasResourceConfig, current_len: usize) -> u32 {
@@ -617,7 +507,7 @@ mod tests {
     use super::*;
     use crate::core::framework::render::{
         FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderFrameExtract,
-        RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
+        RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
         RenderSceneSnapshot, RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality,
         ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
     };
@@ -663,6 +553,10 @@ mod tests {
         shadow_with_quality(tier, ShadowPcfQuality::High)
     }
 
+    fn default_light_layer_mask() -> RenderLayerSet {
+        RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK)
+    }
+
     fn shadow_with_quality(
         tier: ShadowResolutionTier,
         pcf_quality: ShadowPcfQuality,
@@ -684,7 +578,7 @@ mod tests {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 1,
                 light_id: 101,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,
                 intensity: 2.0,
@@ -738,7 +632,7 @@ mod tests {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 1,
                 light_id: 101,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 direction: Vec3::new(0.0, -1.0, -1.0),
                 color: Vec3::ONE,
                 intensity: 2.0,
@@ -769,7 +663,7 @@ mod tests {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 1,
                 light_id: 404,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,
                 intensity: 2.0,
@@ -799,7 +693,7 @@ mod tests {
             point_lights: vec![RenderPointLightSnapshot {
                 node_id: 2,
                 light_id: 202,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 position: Vec3::ZERO,
                 color: Vec3::ONE,
                 intensity: 4.0,
@@ -859,7 +753,7 @@ mod tests {
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 3,
                 light_id: 303,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 position: Vec3::ZERO,
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,
@@ -894,7 +788,7 @@ mod tests {
             point_lights: vec![RenderPointLightSnapshot {
                 node_id: 2,
                 light_id: 202,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 position: Vec3::ZERO,
                 color: Vec3::ONE,
                 intensity: 4.0,
@@ -907,7 +801,7 @@ mod tests {
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 3,
                 light_id: 303,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 position: Vec3::ZERO,
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,
@@ -948,7 +842,7 @@ mod tests {
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 3,
                 light_id: 303,
-                layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                layer_mask: default_light_layer_mask(),
                 position: Vec3::ZERO,
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,

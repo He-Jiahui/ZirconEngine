@@ -74,14 +74,14 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         let relevance = PrimitiveRelevance::for_mesh_view(
             value.view.selected_camera_layers(),
             value.view.core_pipeline,
-            entry.render_layer_mask,
+            &mesh.render_layer_mask,
             entry.mobility,
             material_alpha_mode,
         );
         primitive_relevance.push(VisibilityRelevanceEntry { entity, relevance });
 
         let key = VisibilityBatchKey {
-            render_layer_mask: entry.render_layer_mask,
+            render_layer_mask: mesh.render_layer_mask.clone(),
             material_id: mesh.material.id(),
             model_id: mesh.model.id(),
             mobility: entry.mobility,
@@ -92,12 +92,12 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
             .unwrap_or_else(|| mesh_bounds(mesh));
         bvh_instances.push(VisibilityBvhInstance {
             entity,
-            key,
+            key: key.clone(),
             bounds,
         });
         history_entries.push(VisibilityHistoryEntry {
             entity,
-            key,
+            key: key.clone(),
             bounds,
         });
         batches.entry(key).or_default().push(entity);

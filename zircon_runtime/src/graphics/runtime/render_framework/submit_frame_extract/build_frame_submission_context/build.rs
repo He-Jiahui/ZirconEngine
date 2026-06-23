@@ -24,7 +24,7 @@ use super::compile_pipeline::{
 };
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
-use super::target_resolution::resolve_camera_target_size;
+use super::target_resolution::resolve_camera_target_descriptor;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
     server: &WgpuRenderFramework,
@@ -48,11 +48,13 @@ fn build_frame_submission_context_from_source(
         let state = server.lock_state();
         state.renderer.asset_manager_for_runtime_extract()
     };
-    let submission_size = resolve_camera_target_size(
+    let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
         extract_source.as_ref().view.selected_camera_target(),
         asset_manager.as_ref(),
     )?;
+    let submission_size = resolved_camera_target.size();
+    let compile_camera_target = resolved_camera_target.compile_fingerprint();
     {
         let sized_extract = Arc::make_mut(extract_source);
         sized_extract.apply_viewport_size(submission_size);
@@ -72,8 +74,14 @@ fn build_frame_submission_context_from_source(
     let output_target = ViewportRenderOutputTarget::from_camera_target(
         sized_extract.view.selected_camera_target(),
         submission_size,
+        resolved_camera_target.texture_format(),
     );
-    let compiled_pipeline = compile_submission_pipeline(server, &viewport_state, sized_extract)?;
+    let compiled_pipeline = compile_submission_pipeline(
+        server,
+        &viewport_state,
+        sized_extract,
+        compile_camera_target,
+    )?;
     let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
@@ -101,7 +109,7 @@ fn build_frame_submission_context_from_source(
         .post_process
         .resolved_settings_for_camera(
             sized_extract.view.camera.transform.translation,
-            sized_extract.view.selected_camera_layers(),
+            sized_extract.view.selected_camera_volume_layers(),
         )
         .map_err(|error| {
             RenderFrameworkError::Backend(format!("post-process volume evaluation failed: {error}"))
@@ -226,6 +234,7 @@ fn build_frame_submission_context_from_source(
         server,
         &viewport_state,
         effective_extract,
+        compile_camera_target,
         &viewport_state
             .compile_options()
             .clone()

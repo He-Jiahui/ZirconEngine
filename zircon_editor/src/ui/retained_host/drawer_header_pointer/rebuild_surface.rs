@@ -1,25 +1,24 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
-use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
+use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiRouteId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::tree::{UiInputPolicy, UiTreeNode};
 
 use super::base_state::base_state;
 use super::constants::{
-    ROOT_NODE_ID, STRIP_X, STRIP_Y, SURFACE_NODE_ID_BASE, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
-    TAB_NODE_ID_BASE,
+    DRAWER_HEADER_ROUTE_ID_BASE, ROOT_NODE_ID, STRIP_X, STRIP_Y, SURFACE_NODE_ID_BASE, TAB_GAP,
+    TAB_HEIGHT, TAB_MIN_WIDTH, TAB_NODE_ID_BASE,
 };
 use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
-use super::host_drawer_header_pointer_target::HostDrawerHeaderPointerTarget;
+use super::host_drawer_header_pointer_route::HostDrawerHeaderPointerRoute;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 impl HostDrawerHeaderPointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.drawer_header.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
+        let mut route_intents = EditorRouteIntentMap::default();
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.drawer_header.root"))
@@ -86,14 +85,15 @@ impl HostDrawerHeaderPointerBridge {
                     )
                     .expect("drawer header surface must exist");
                 register_handled_pointer_node(&mut dispatcher, node_id);
-                targets.insert(
+                route_intents.bind_node(
                     node_id,
-                    HostDrawerHeaderPointerTarget::Tab {
+                    drawer_header_route_id(surface_index, item_index),
+                    EditorRouteIntent::DrawerHeader(HostDrawerHeaderPointerRoute::Tab {
                         surface_key: surface_layout.key.clone(),
                         item_index,
                         slot: item.slot.clone(),
                         instance_id: item.instance_id.clone(),
-                    },
+                    }),
                 );
             }
         }
@@ -101,6 +101,10 @@ impl HostDrawerHeaderPointerBridge {
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
-        self.targets = targets;
+        self.route_intents = route_intents;
     }
+}
+
+const fn drawer_header_route_id(surface_index: usize, item_index: usize) -> UiRouteId {
+    UiRouteId::new(DRAWER_HEADER_ROUTE_ID_BASE + surface_index as u64 * 1_000 + item_index as u64)
 }

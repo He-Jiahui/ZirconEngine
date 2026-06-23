@@ -14,7 +14,6 @@ mod handle_scroll;
 mod inspector_constants;
 mod inspector_content_extent;
 mod inspector_scroll_layout;
-mod map_route;
 mod new;
 mod rebuild_surface;
 mod scroll_surface_pointer_bridge;
@@ -32,11 +31,10 @@ pub(crate) use console_scroll_layout::console_scroll_layout;
 pub(crate) use inspector_scroll_layout::inspector_scroll_layout;
 pub(crate) use scroll_surface_pointer_bridge::ScrollSurfacePointerBridge;
 pub(crate) use scroll_surface_pointer_layout::ScrollSurfacePointerLayout;
+pub(crate) use scroll_surface_pointer_route::ScrollSurfacePointerRoute;
 pub(crate) use scroll_surface_pointer_state::ScrollSurfacePointerState;
 
 #[cfg(test)]
 pub(crate) use asset_details_content_extent::asset_details_content_extent;
 #[cfg(test)]
 pub(crate) use inspector_content_extent::inspector_content_extent;
-#[cfg(test)]
-pub(crate) use scroll_surface_pointer_route::ScrollSurfacePointerRoute;

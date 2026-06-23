@@ -1,23 +1,20 @@
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
-use crate::ui::retained_host::host_contract::surface_hit_test::ViewportToolbarPointerHit;
+use crate::ui::retained_host::primitives::SharedString;
 
 use super::super::super::super::super::routing::PanePointerRoute;
 
 pub(super) fn invoke_viewport_toolbar_click(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
-    hit: &ViewportToolbarPointerHit,
+    surface_key: &SharedString,
+    control_id: Option<&SharedString>,
 ) -> String {
-    let control_id = hit.control_id.clone();
     pane_host.invoke_viewport_toolbar_pointer_clicked(
-        hit.surface_key.clone(),
-        hit.control_id.clone(),
-        hit.control_x,
-        hit.control_y,
-        hit.control_width,
-        hit.control_height,
+        surface_key.clone(),
         pointer.local_x,
         pointer.local_y,
+        pointer.width,
+        pointer.height,
     );
-    control_id
+    control_id.unwrap_or(surface_key).to_string()
 }

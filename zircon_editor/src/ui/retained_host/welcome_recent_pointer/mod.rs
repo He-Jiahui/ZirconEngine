@@ -15,12 +15,13 @@ mod welcome_recent_pointer_bridge_sync;
 mod welcome_recent_pointer_dispatch;
 mod welcome_recent_pointer_layout;
 mod welcome_recent_pointer_route;
+mod welcome_recent_pointer_route_intent;
 mod welcome_recent_pointer_state;
-mod welcome_recent_pointer_target;
 
 pub(crate) use welcome_recent_pointer_action::WelcomeRecentPointerAction;
 pub(crate) use welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 pub(crate) use welcome_recent_pointer_dispatch::WelcomeRecentPointerDispatch;
 pub(crate) use welcome_recent_pointer_layout::WelcomeRecentPointerLayout;
 pub(crate) use welcome_recent_pointer_route::WelcomeRecentPointerRoute;
+pub(crate) use welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 pub(crate) use welcome_recent_pointer_state::WelcomeRecentPointerState;

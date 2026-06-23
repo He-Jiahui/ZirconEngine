@@ -13,8 +13,8 @@ mod host_menu_pointer_bridge_sync;
 mod host_menu_pointer_dispatch;
 mod host_menu_pointer_layout;
 mod host_menu_pointer_route;
+mod host_menu_pointer_route_intent;
 mod host_menu_pointer_state;
-mod host_menu_pointer_target;
 mod menu_item_spec;
 mod menu_item_tree;
 mod menu_items_for_layout;
@@ -28,8 +28,8 @@ pub(crate) use build_host_menu_pointer_layout::build_host_menu_pointer_layout;
 pub(crate) use host_menu_pointer_bridge::HostMenuPointerBridge;
 pub(crate) use host_menu_pointer_dispatch::HostMenuPointerDispatch;
 pub(crate) use host_menu_pointer_layout::HostMenuPointerLayout;
-#[cfg(test)]
 pub(crate) use host_menu_pointer_route::HostMenuPointerRoute;
+pub(crate) use host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 pub(crate) use host_menu_pointer_state::HostMenuPointerState;
 #[cfg(test)]
 pub(crate) use menu_item_spec::MenuItemSpec;

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::ui::retained_host::primitives::PhysicalSize;
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
@@ -8,6 +9,10 @@ use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,
+};
+use crate::ui::retained_host::callback_dispatch::{
+    load_startup_builtin_template_runtime, BuiltinWorkbenchWindowLayoutFrames,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
@@ -35,6 +40,7 @@ use crate::ui::workbench::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
+use zircon_runtime_interface::ui::layout::UiSize;
 
 const SCROLLED_WINDOW_POPUP_SCREENSHOT: &str =
     "editor-window-20260429-window-popup-scrolled-900x620.png";
@@ -82,6 +88,10 @@ fn capture_scrolled_window_popup_visual_artifact() {
     ui.show()
         .expect("workbench shell should show for screenshot capture");
     ui.window().set_size(PhysicalSize::new(900, 620));
+    let workbench_window_bridge = workbench_window_bridge_for_visual_artifact(&model, 900, 620);
+    let componentized_workbench_layout_frames = workbench_window_bridge.layout_frames();
+    assert_visible_workbench_layout_frames(&componentized_workbench_layout_frames, 900, 620);
+
     apply_presentation(
         &ui,
         &model,
@@ -95,8 +105,8 @@ fn capture_scrolled_window_popup_visual_artifact() {
         &module_plugins,
         &build_export,
         None,
-        None,
-        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
+        Some(workbench_window_bridge.host_projection()),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
         None,
     );
@@ -169,6 +179,10 @@ fn capture_close_prompt_visual_artifact() {
     ui.show()
         .expect("workbench shell should show for screenshot capture");
     ui.window().set_size(PhysicalSize::new(900, 620));
+    let workbench_window_bridge = workbench_window_bridge_for_visual_artifact(&model, 900, 620);
+    let componentized_workbench_layout_frames = workbench_window_bridge.layout_frames();
+    assert_visible_workbench_layout_frames(&componentized_workbench_layout_frames, 900, 620);
+
     apply_presentation(
         &ui,
         &model,
@@ -182,8 +196,8 @@ fn capture_close_prompt_visual_artifact() {
         &module_plugins,
         &build_export,
         None,
-        None,
-        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
+        Some(workbench_window_bridge.host_projection()),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
         None,
     );
@@ -524,6 +538,10 @@ fn presented_window_from_chrome(
     let module_plugins = ModulePluginsPaneViewData::default();
     let build_export = BuildExportPaneViewData::default();
     let ui = UiHostWindow::new().expect("workbench shell should instantiate for screenshot");
+    let workbench_window_bridge =
+        workbench_window_bridge_for_visual_artifact(&model, width, height);
+    let componentized_workbench_layout_frames = workbench_window_bridge.layout_frames();
+    assert_visible_workbench_layout_frames(&componentized_workbench_layout_frames, width, height);
 
     ui.show()
         .expect("workbench shell should show for screenshot capture");
@@ -541,12 +559,71 @@ fn presented_window_from_chrome(
         &module_plugins,
         &build_export,
         None,
-        None,
-        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
+        Some(workbench_window_bridge.host_projection()),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
         None,
     );
     ui
+}
+
+fn workbench_window_bridge_for_visual_artifact(
+    model: &WorkbenchViewModel,
+    width: u32,
+    height: u32,
+) -> BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    let shell_size = UiSize::new(width as f32, height as f32);
+    let runtime = Arc::new(
+        load_startup_builtin_template_runtime()
+            .expect("startup template runtime should load for screenshot"),
+    );
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new_with_runtime(runtime, shell_size)
+            .expect("workbench window template bridge should instantiate for screenshot");
+    bridge
+        .recompute_layout_with_workbench_model(
+            shell_size,
+            model,
+            &WorkbenchChromeMetrics::default(),
+        )
+        .expect("workbench window template bridge should recompute screenshot layout");
+    bridge
+}
+
+fn assert_visible_workbench_layout_frames(
+    frames: &BuiltinWorkbenchWindowLayoutFrames,
+    width: u32,
+    height: u32,
+) {
+    let center = frames
+        .center_band_frame
+        .expect("screenshot layout must expose a visible center band frame");
+    let document = frames
+        .document_region_frame
+        .expect("screenshot layout must expose a visible document region frame");
+    let viewport = frames
+        .viewport_content_frame
+        .expect("screenshot layout must expose a visible viewport content frame");
+    let status = frames
+        .status_bar_frame
+        .expect("screenshot layout must expose a visible status bar frame");
+
+    assert!(
+        center.y >= 56.0 && center.width > width as f32 * 0.5,
+        "screenshot center band should start below menu and host tabs: {center:?}"
+    );
+    assert!(
+        document.y >= center.y && document.height > height as f32 * 0.45,
+        "screenshot document region should live inside the center band: {document:?}"
+    );
+    assert!(
+        viewport.y >= document.y && viewport.width > width as f32 * 0.4,
+        "screenshot viewport should live inside the document region: {viewport:?}"
+    );
+    assert!(
+        status.y >= height as f32 - 25.0,
+        "screenshot status bar should be anchored at the bottom: {status:?}"
+    );
 }
 
 fn release_first_document_tab_drag(ui: &UiHostWindow) {

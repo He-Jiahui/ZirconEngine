@@ -81,9 +81,7 @@ pub(super) fn apply_focus_pointer_effect(
             require_valid_input_owner(surface, *target)?;
             if *enabled {
                 if surface.focus.captured != Some(*target)
-                    || !surface
-                        .input
-                        .has_pointer_capture_or_unindexed_fallback_for_owner(*target)
+                    || !surface.input.has_pointer_capture_for_owner(*target)
                 {
                     return Err("high precision requires pointer capture".to_string());
                 }
@@ -104,14 +102,7 @@ fn pointer_capture_release_matches(
     pointer_id: zircon_runtime_interface::ui::dispatch::UiPointerId,
     target: UiNodeId,
 ) -> bool {
-    match surface.input.pointer_capture_owner(pointer_id) {
-        Some(owner) => owner == target,
-        None => {
-            surface.input.pointer_captures.is_empty()
-                && surface.input.captured_pointer_id == Some(pointer_id)
-                && surface.focus.captured == Some(target)
-        }
-    }
+    surface.input.pointer_capture_owner(pointer_id) == Some(target)
 }
 
 fn focus_effect_reasons(reason: UiFocusEffectReason) -> (UiFocusChangeReason, UiFocusVisible) {

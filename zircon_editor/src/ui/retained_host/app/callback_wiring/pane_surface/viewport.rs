@@ -18,24 +18,14 @@ pub(super) fn wire_viewport_callbacks(
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
     pane_surface_host.on_viewport_toolbar_pointer_clicked(
-        move |surface_key: SharedString,
-              control_id: SharedString,
-              control_x,
-              control_y,
-              control_width,
-              control_height,
-              point_x,
-              point_y| {
+        move |surface_key: SharedString, point_x, point_y, width, height| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {
                 host.viewport_toolbar_pointer_clicked(
                     surface_key.as_str(),
-                    control_id.as_str(),
-                    control_x,
-                    control_y,
-                    control_width,
-                    control_height,
                     point_x,
                     point_y,
+                    width,
+                    height,
                 );
             });
         },

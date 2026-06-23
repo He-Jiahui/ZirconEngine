@@ -74,6 +74,7 @@ pub(in crate::builtin::runtime_modules) fn module_for_plugin(
         RuntimePluginId::ZrVmLanguage => {
             externalized_runtime_plugin_module("zr_vm_language", warnings)
         }
+        _ => externalized_runtime_plugin_module(id.key(), warnings),
     }
 }
 

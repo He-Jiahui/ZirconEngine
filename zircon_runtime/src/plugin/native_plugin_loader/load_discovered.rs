@@ -3,6 +3,7 @@ use std::path::Path;
 use libloading::Library;
 
 use super::candidate_from_manifest::native_library_paths_for_candidate;
+use super::compatibility::native_distribution_compatibility_diagnostic;
 use super::native_plugin_abi::{call_native_plugin_entry, probe_native_plugin_descriptor};
 use super::{LoadedNativePlugin, NativePluginLoadReport, NativePluginLoader};
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
@@ -40,6 +41,13 @@ impl NativePluginLoader {
     ) -> NativePluginLoadReport {
         for candidate in report.discovered.clone() {
             if !package_matches_module_kinds(&candidate.package_manifest, module_kinds) {
+                continue;
+            }
+            if let Some(diagnostic) = native_distribution_compatibility_diagnostic(
+                &candidate.plugin_id,
+                &candidate.package_manifest,
+            ) {
+                report.diagnostics.push(diagnostic);
                 continue;
             }
             for (library_path, library_module_kinds) in
@@ -181,4 +189,51 @@ fn package_matches_module_kinds(
             .iter()
             .flat_map(|feature| feature.modules.iter())
             .any(|module| module_kinds.contains(&module.kind))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use crate::plugin::{PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest};
+
+    #[test]
+    fn native_loader_skips_distribution_with_incompatible_engine_range_before_library_probe() {
+        let package_manifest = PluginPackageManifest::new("future_native", "Future Native")
+            .with_runtime_module(PluginModuleManifest::runtime(
+                "future_native.runtime",
+                "zircon_plugin_future_native_runtime",
+            ))
+            .with_distribution(PluginDistributionManifest {
+                forms: vec!["dist".to_string()],
+                abi_version: Some(super::super::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3),
+                engine_compat: ">=99.0, <100.0".to_string(),
+                dist_crate: "zircon_plugin_future_native_runtime".to_string(),
+                ..PluginDistributionManifest::default()
+            });
+        let report = NativePluginLoadReport {
+            discovered: vec![super::super::NativePluginCandidate {
+                plugin_id: "future_native".to_string(),
+                package_manifest,
+                manifest_path: PathBuf::from("future_native/plugin.toml"),
+                library_path: PathBuf::from("future_native/native/future_native.dll"),
+            }],
+            loaded: Vec::new(),
+            diagnostics: Vec::new(),
+        };
+
+        let report = NativePluginLoader
+            .load_candidates_for_module_kinds(report, &[PluginModuleKind::Runtime]);
+
+        assert!(report.loaded.is_empty());
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("engine_compat")));
+        assert!(!report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("library is missing")));
+    }
 }

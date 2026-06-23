@@ -3,12 +3,21 @@ use zircon_runtime_interface::ui::{
     component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
+    surface::UiRenderCommand,
     tree::UiTemplateNodeMetadata,
 };
 
+mod colors;
+mod commands;
 mod state;
 
+use self::colors::{
+    alert_action_color, alert_border_color, alert_mark_color, alert_surface_color,
+    alert_text_color, toast_action_color, toast_border_color, toast_mark_color,
+    toast_surface_color, toast_text_color, tooltip_body_color, tooltip_border_color,
+    tooltip_icon_color, tooltip_surface_color, tooltip_title_color, AlertTone,
+};
+use self::commands::{icon_command, quad_command, text_command};
 use self::state::{FeedbackKind, FeedbackRenderState};
 
 const TOOLTIP_PADDING_X: f32 = 8.0;
@@ -36,34 +45,6 @@ const TOAST_ACTION_WIDTH: f32 = 44.0;
 const TOAST_CLOSE_SIZE: f32 = 14.0;
 const TOAST_FONT_SIZE: f32 = 11.5;
 const TOAST_LINE_HEIGHT: f32 = TOAST_FONT_SIZE * 1.25;
-
-const TOOLTIP_SURFACE: &str = "#171c20";
-const TOOLTIP_BORDER: &str = "#252d32";
-const TOOLTIP_TITLE: &str = "#d0d9dd";
-const TOOLTIP_BODY: &str = "#a8b3b8";
-const TOOLTIP_ICON: &str = "#259ca7";
-const ALERT_INFO_SURFACE: &str = "#122e48";
-const ALERT_INFO_BORDER: &str = "#296596";
-const ALERT_INFO_MARK: &str = "#35c7d0";
-const ALERT_SUCCESS_SURFACE: &str = "#163927";
-const ALERT_SUCCESS_BORDER: &str = "#357348";
-const ALERT_SUCCESS_MARK: &str = "#42b883";
-const ALERT_WARNING_SURFACE: &str = "#453214";
-const ALERT_WARNING_BORDER: &str = "#845e23";
-const ALERT_WARNING_MARK: &str = "#e0a33a";
-const ALERT_ERROR_SURFACE: &str = "#482024";
-const ALERT_ERROR_BORDER: &str = "#853d3a";
-const ALERT_ERROR_MARK: &str = "#ef7066";
-const TOAST_SURFACE: &str = "#153035";
-const TOAST_SURFACE_HOVER: &str = "#183a3f";
-const TOAST_SURFACE_PRESSED: &str = "#103c4a";
-const TOAST_BORDER: &str = "#35c7d014";
-const TOAST_TEXT: &str = "#cee0e2";
-const TOAST_ACTION: &str = "#35c7d0";
-const DISABLED_SURFACE: &str = "#252c31";
-const DISABLED_BORDER: &str = "#343f47";
-const DISABLED_TEXT: &str = "#59656c";
-const FOCUS_BORDER: &str = "#35c7d0";
 
 pub(super) fn feedback_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(|metadata| feedback_kind(metadata).is_some())
@@ -108,14 +89,6 @@ pub(super) fn feedback_render_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,
         ),
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum AlertTone {
-    Info,
-    Success,
-    Warning,
-    Error,
 }
 
 fn feedback_kind(metadata: &UiTemplateNodeMetadata) -> Option<FeedbackKind> {
@@ -568,235 +541,6 @@ fn toast_icon_size(metadata: &UiTemplateNodeMetadata) -> f32 {
         .clamp(10.0, 24.0)
 }
 
-fn alert_surface_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-    tone: AlertTone,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_SURFACE
-    } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color")
-            .unwrap_or_else(|| alert_tone_surface(tone))
-    } else if state.hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or_else(|| {
-            color_attribute(metadata, "background_color").unwrap_or(alert_tone_surface(tone))
-        })
-    } else {
-        color_attribute(metadata, "background_color").unwrap_or_else(|| alert_tone_surface(tone))
-    }
-}
-
-fn alert_border_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-    tone: AlertTone,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_BORDER
-    } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
-    } else {
-        color_attribute(metadata, "border_color").unwrap_or_else(|| alert_tone_border(tone))
-    }
-}
-
-fn alert_text_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-    tone: AlertTone,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "foreground_color")
-            .or_else(|| color_attribute(metadata, "text_color"))
-            .unwrap_or_else(|| alert_tone_mark(tone))
-    }
-}
-
-fn alert_mark_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-    tone: AlertTone,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "icon_color")
-            .or_else(|| color_attribute(metadata, "label_color"))
-            .or_else(|| color_attribute(metadata, "mark_color"))
-            .unwrap_or_else(|| alert_tone_mark(tone))
-    }
-}
-
-fn alert_action_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-    tone: AlertTone,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "action_color")
-            .or_else(|| color_attribute(metadata, "value_color"))
-            .unwrap_or_else(|| alert_text_color(metadata, state, tone))
-    }
-}
-
-fn alert_tone_surface(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_SURFACE,
-        AlertTone::Success => ALERT_SUCCESS_SURFACE,
-        AlertTone::Warning => ALERT_WARNING_SURFACE,
-        AlertTone::Error => ALERT_ERROR_SURFACE,
-    }
-}
-
-fn alert_tone_border(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_BORDER,
-        AlertTone::Success => ALERT_SUCCESS_BORDER,
-        AlertTone::Warning => ALERT_WARNING_BORDER,
-        AlertTone::Error => ALERT_ERROR_BORDER,
-    }
-}
-
-fn alert_tone_mark(tone: AlertTone) -> &'static str {
-    match tone {
-        AlertTone::Info => ALERT_INFO_MARK,
-        AlertTone::Success => ALERT_SUCCESS_MARK,
-        AlertTone::Warning => ALERT_WARNING_MARK,
-        AlertTone::Error => ALERT_ERROR_MARK,
-    }
-}
-
-fn tooltip_surface_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_SURFACE
-    } else {
-        color_attribute(metadata, "background_color").unwrap_or(TOOLTIP_SURFACE)
-    }
-}
-
-fn tooltip_border_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_BORDER
-    } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
-    } else {
-        color_attribute(metadata, "border_color").unwrap_or(TOOLTIP_BORDER)
-    }
-}
-
-fn tooltip_title_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TOOLTIP_TITLE)
-    }
-}
-
-fn tooltip_body_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "label_color")
-            .or_else(|| color_attribute(metadata, "body_color"))
-            .unwrap_or(TOOLTIP_BODY)
-    }
-}
-
-fn tooltip_icon_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "icon_color").unwrap_or(FOCUS_BORDER)
-    } else {
-        color_attribute(metadata, "icon_color").unwrap_or(TOOLTIP_ICON)
-    }
-}
-
-fn toast_surface_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_SURFACE
-    } else if state.pressed() {
-        color_attribute(metadata, "pressed_background_color").unwrap_or(TOAST_SURFACE_PRESSED)
-    } else if state.hot() {
-        color_attribute(metadata, "hover_background_color").unwrap_or(TOAST_SURFACE_HOVER)
-    } else {
-        color_attribute(metadata, "background_color").unwrap_or(TOAST_SURFACE)
-    }
-}
-
-fn toast_border_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_BORDER
-    } else if state.focused() || state.pressed() {
-        color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
-    } else {
-        color_attribute(metadata, "border_color").unwrap_or(TOAST_BORDER)
-    }
-}
-
-fn toast_text_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "foreground_color").unwrap_or(TOAST_TEXT)
-    }
-}
-
-fn toast_mark_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "label_color")
-            .or_else(|| color_attribute(metadata, "mark_color"))
-            .unwrap_or(TOAST_ACTION)
-    }
-}
-
-fn toast_action_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
-    state: &FeedbackRenderState,
-) -> &'a str {
-    if state.unavailable() {
-        DISABLED_TEXT
-    } else {
-        color_attribute(metadata, "action_color")
-            .or_else(|| color_attribute(metadata, "value_color"))
-            .unwrap_or(TOAST_ACTION)
-    }
-}
-
 fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
     number_attribute(metadata, "border_width")
         .unwrap_or(1.0)
@@ -826,7 +570,10 @@ fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Opti
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
-fn color_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
+pub(super) fn color_attribute<'a>(
+    metadata: &'a UiTemplateNodeMetadata,
+    key: &str,
+) -> Option<&'a str> {
     metadata
         .style_overrides
         .get(key)
@@ -840,97 +587,4 @@ fn value_as_f32(value: &Value) -> Option<f32> {
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
         .map(|value| value as f32)
-}
-
-fn quad_command(
-    node_id: UiNodeId,
-    frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
-    background: &str,
-    border: Option<&str>,
-    border_width: f32,
-    corner_radius: f32,
-    state: &FeedbackRenderState,
-    opacity: f32,
-) -> UiRenderCommand {
-    UiRenderCommand {
-        node_id,
-        kind: UiRenderCommandKind::Quad,
-        frame,
-        clip_frame,
-        z_index,
-        style: UiResolvedStyle {
-            background_color: Some(background.to_string()),
-            border_color: border.map(str::to_string),
-            border_width,
-            corner_radius,
-            ..UiResolvedStyle::default()
-        }
-        .with_painter_state(state.family, state.visual_state),
-        text_layout: None,
-        text: None,
-        image: None,
-        opacity,
-    }
-}
-
-fn text_command(
-    node_id: UiNodeId,
-    frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
-    text: String,
-    foreground: &str,
-    font_size: f32,
-    line_height: f32,
-    state: &FeedbackRenderState,
-    opacity: f32,
-) -> UiRenderCommand {
-    UiRenderCommand {
-        node_id,
-        kind: UiRenderCommandKind::Text,
-        frame,
-        clip_frame,
-        z_index,
-        style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
-            font_size,
-            line_height,
-            ..UiResolvedStyle::default()
-        }
-        .with_painter_state(state.family, state.visual_state),
-        text_layout: None,
-        text: Some(text),
-        image: None,
-        opacity,
-    }
-}
-
-fn icon_command(
-    node_id: UiNodeId,
-    frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-    z_index: i32,
-    icon: String,
-    foreground: &str,
-    state: &FeedbackRenderState,
-    opacity: f32,
-) -> UiRenderCommand {
-    UiRenderCommand {
-        node_id,
-        kind: UiRenderCommandKind::Image,
-        frame,
-        clip_frame,
-        z_index,
-        style: UiResolvedStyle {
-            foreground_color: Some(foreground.to_string()),
-            ..UiResolvedStyle::default()
-        }
-        .with_painter_state(state.family, state.visual_state),
-        text_layout: None,
-        text: None,
-        image: Some(UiVisualAssetRef::Icon(icon)),
-        opacity,
-    }
 }

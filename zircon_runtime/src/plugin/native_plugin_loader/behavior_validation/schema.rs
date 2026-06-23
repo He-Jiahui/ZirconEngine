@@ -5,6 +5,8 @@ use super::diagnostics::{invalid_diagnostic, module_kind_label, ValidationDiagno
 
 pub const ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V3: &str = "zircon.native.command-manifest/3";
 pub const ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3: &str = "zircon.native.event-manifest/3";
+pub const ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3: &str =
+    "zircon.native.registration-manifest/3";
 
 pub(super) fn validate_v3_schema(
     diagnostics: &mut Vec<ValidationDiagnostic>,

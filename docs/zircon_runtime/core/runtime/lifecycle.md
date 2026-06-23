@@ -6,18 +6,48 @@ related_code:
   - zircon_runtime/src/core/runtime/descriptors/registry_name.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/shutdown_order.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_four_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_without_index_map.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_dependency_matcher.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs
+  - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/shutdown_order.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_four_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_without_index_map.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_dependency_matcher.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - zircon_runtime::tests::runtime_absorption::structure_convention::production_file_budget::runtime_15_core_runtime_service_lists_are_folder_backed
+  - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::core_runtime_deactivation::runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
 ---
@@ -38,3 +68,21 @@ The lifecycle module defines vocabulary only. Registration ordering, dependency 
 ## Validation
 
 The root-surface guard rejects a revived `mod lifecycle;`, `pub use lifecycle::...`, or retired `src/core/lifecycle.rs` file. Source scans reject `crate::core::lifecycle` and `zircon_runtime::core::lifecycle` imports after the migration.
+
+## Runtime 15 M4 core runtime service-list owner split
+
+`runtime_15_core_runtime_service_lists_folder_split_static_passed_cargo_lock_blocked`
+
+Runtime 15 M4 keeps registration and lifecycle behavior unchanged and splits only the oversized service-list owner. The old flat `core/runtime/handle/registration/service_lists.rs` file is gone. `core/runtime/handle/registration/service_lists/mod.rs` now owns the structural dispatch from pending services to `ModuleServiceLists`; `types.rs` owns the returned service/startup/shutdown name lists; `multi.rs` owns the generic multi-service scan paths; `specialized.rs` owns the one-through-five service paths; `shutdown.rs` owns shutdown list assembly and preserves the inverse plugin, manager, driver lifecycle order.
+
+`runtime_15_core_runtime_service_lists_are_folder_backed` locks the folder-backed layout, prevents the flat file from returning, checks `register_module.rs` still consumes the same narrow service-list entry points, and keeps each service-list owner under the Runtime 15 production-file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+`runtime_15_core_runtime_service_lists_registration_visibility_coremin_check_passed` records the first compile blocker found after the split. Moving the owner into child modules changed `pub(super)` to mean "visible only inside `service_lists`", while `register_module.rs` still legitimately consumes `ModuleServiceLists` and the single-service fast path through the registration owner. The fix exposes only `ModuleServiceLists`, its three returned list fields, and `single_service_module_lists(...)` to `crate::core::runtime::handle::registration`; all multi-service and shutdown helpers stay private to the service-list subtree. This preserves the split's narrow boundary without widening to `pub(crate)` or restoring the deleted flat file. Runtime core-min offline package validation now passes with existing warnings; locked validation is still blocked before compilation by current lockfile drift, and `Cargo.lock` is restored after each Cargo attempt.
+
+## Runtime 15 M3 core runtime deactivation blocked test folder split
+
+`runtime_15_core_runtime_deactivation_blocked_tests_folder_split_static_passed_cargo_deferred`
+
+Runtime 15 M3 keeps deactivation behavior unchanged and splits only the oversized blocked-deactivation test owner. `core/runtime/tests/activation/behavior/deactivation/blocked.rs` now owns only child module mounting. External dependent blockers live in `blocked/external_dependents.rs`; exact two/three dependency matcher coverage lives in `blocked/exact_two_three_dependency_matcher.rs`; shutdown-order coverage lives in `blocked/shutdown_order.rs`; exact four matcher coverage lives in `blocked/exact_four_dependency_matcher.rs`; exact five no-index-map fallback coverage lives in `blocked/exact_five_without_index_map.rs`; the existing exact-five all-dependency matcher remains in `blocked/exact_five_dependency_matcher.rs`.
+
+`runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed` locks that folder-backed layout, prevents representative moved tests from returning to `blocked.rs`, preserves all 10 blocked-deactivation tests in child owners, and keeps every file in this test family under the Runtime 15 test-file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.

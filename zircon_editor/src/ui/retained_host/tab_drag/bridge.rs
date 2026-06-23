@@ -1,10 +1,17 @@
+#[cfg(any(test, feature = "integration-contracts"))]
+use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
 #[cfg(test)]
+use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+#[cfg(any(test, feature = "integration-contracts"))]
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::shell_pointer::HostShellPointerBridge;
 use crate::ui::workbench::autolayout::ShellSizePx;
+#[cfg(feature = "integration-contracts")]
+use crate::ui::workbench::autolayout::{
+    ShellFrame, ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
+};
 
 use super::group::HostDragTargetGroup;
 
@@ -25,6 +32,7 @@ impl HostDragTargetBridge {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn update_layout_with_root_frames(
         &mut self,
         root_size: ShellSizePx,
@@ -40,7 +48,7 @@ impl HostDragTargetBridge {
         );
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "integration-contracts"))]
     pub(crate) fn update_layout_with_workbench_layout_frames(
         &mut self,
         root_size: ShellSizePx,
@@ -62,6 +70,7 @@ impl HostDragTargetBridge {
     }
 }
 
+#[cfg(test)]
 pub fn resolve_host_drag_target_group(
     root_size: ShellSizePx,
     drawers_visible: bool,
@@ -70,6 +79,7 @@ pub fn resolve_host_drag_target_group(
     resolve_host_drag_target_group_with_root_frames(root_size, drawers_visible, point, None)
 }
 
+#[cfg(test)]
 pub fn resolve_host_drag_target_group_with_root_frames(
     root_size: ShellSizePx,
     drawers_visible: bool,
@@ -81,7 +91,7 @@ pub fn resolve_host_drag_target_group_with_root_frames(
     bridge.resolve(point)
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "integration-contracts"))]
 pub(crate) fn resolve_host_drag_target_group_with_workbench_layout_frames(
     root_size: ShellSizePx,
     drawers_visible: bool,
@@ -95,4 +105,60 @@ pub(crate) fn resolve_host_drag_target_group_with_workbench_layout_frames(
         componentized_workbench_layout_frames,
     );
     bridge.resolve(point)
+}
+
+#[cfg(feature = "integration-contracts")]
+pub fn resolve_host_drag_target_group_with_workbench_shell_geometry(
+    root_size: ShellSizePx,
+    drawers_visible: bool,
+    point: UiPoint,
+    geometry: &WorkbenchShellGeometry,
+    drawer_regions: &[ShellRegionId],
+) -> Option<HostDragTargetGroup> {
+    resolve_host_drag_target_group_with_workbench_layout_frames(
+        root_size,
+        drawers_visible,
+        point,
+        workbench_layout_frames_from_geometry_with_drawers(geometry, drawer_regions),
+    )
+}
+
+#[cfg(feature = "integration-contracts")]
+fn workbench_layout_frames_from_geometry_with_drawers(
+    geometry: &WorkbenchShellGeometry,
+    drawer_regions: &[ShellRegionId],
+) -> BuiltinWorkbenchWindowLayoutFrames {
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(ui_frame(geometry.center_band_frame)),
+        left_region_frame: drawer_regions
+            .contains(&ShellRegionId::Left)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Left))),
+        right_region_frame: drawer_regions
+            .contains(&ShellRegionId::Right)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Right))),
+        bottom_region_frame: drawer_regions
+            .contains(&ShellRegionId::Bottom)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Bottom))),
+        document_region_frame: Some(ui_frame(geometry.region_frame(ShellRegionId::Document))),
+        status_bar_frame: Some(ui_frame(geometry.status_bar_frame)),
+        document_tabs_frame: Some(ui_frame(document_tabs_frame_from_geometry(geometry))),
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
+    }
+}
+
+#[cfg(feature = "integration-contracts")]
+fn document_tabs_frame_from_geometry(geometry: &WorkbenchShellGeometry) -> ShellFrame {
+    let metrics = WorkbenchChromeMetrics::default();
+    let document = geometry.region_frame(ShellRegionId::Document);
+    ShellFrame::new(
+        document.x,
+        document.y,
+        document.width,
+        metrics.document_header_height.max(0.0),
+    )
+}
+
+#[cfg(feature = "integration-contracts")]
+fn ui_frame(frame: ShellFrame) -> UiFrame {
+    UiFrame::new(frame.x, frame.y, frame.width, frame.height)
 }

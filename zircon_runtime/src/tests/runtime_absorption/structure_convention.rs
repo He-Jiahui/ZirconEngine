@@ -4,11 +4,31 @@ mod diagnostics_surface;
 mod facade_surface;
 #[path = "structure_convention/graphics_dead_code/mod.rs"]
 mod graphics_dead_code;
+#[path = "structure_convention/production_file_budget.rs"]
+mod production_file_budget;
 #[path = "structure_convention/provider_boilerplate.rs"]
 mod provider_boilerplate;
+#[path = "structure_convention/render_builtin_postprocess_executors.rs"]
+mod render_builtin_postprocess_executors;
+#[path = "structure_convention/render_graph_execution_record.rs"]
+mod render_graph_execution_record;
+#[path = "structure_convention/render_mesh_draw_command_list.rs"]
+mod render_mesh_draw_command_list;
+#[path = "structure_convention/render_mesh_pass_processors.rs"]
+mod render_mesh_pass_processors;
+#[path = "structure_convention/render_pending_command_cache_material_boundary.rs"]
+mod render_pending_command_cache_material_boundary;
+#[path = "structure_convention/render_pending_command_cache_plan.rs"]
+mod render_pending_command_cache_plan;
+#[path = "structure_convention/render_post_process_stack.rs"]
+mod render_post_process_stack;
+#[path = "structure_convention/render_post_process_volume_component.rs"]
+mod render_post_process_volume_component;
+#[path = "structure_convention/render_prepared_mesh_queue.rs"]
+mod render_prepared_mesh_queue;
 #[path = "structure_convention/runtime_dead_code.rs"]
 mod runtime_dead_code;
-#[path = "structure_convention/test_file_budget.rs"]
+#[path = "structure_convention/test_file_budget/mod.rs"]
 mod test_file_budget;
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {

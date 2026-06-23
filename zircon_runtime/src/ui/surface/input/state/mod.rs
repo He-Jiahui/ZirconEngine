@@ -23,7 +23,6 @@ pub use popup_tooltip::{UiSurfacePopupState, UiSurfaceTooltipState};
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiSurfaceInputState {
-    pub captured_pointer_id: Option<UiPointerId>,
     pub pointer_captures: BTreeMap<UiPointerId, UiSurfacePointerCaptureState>,
     pub high_precision_owner: Option<UiNodeId>,
     pub pointer_lock_owner: Option<UiNodeId>,
@@ -41,7 +40,6 @@ pub struct UiSurfaceInputState {
 
 impl UiSurfaceInputState {
     pub fn clear_pointer_capture(&mut self) {
-        self.captured_pointer_id = None;
         self.pointer_captures.clear();
     }
 

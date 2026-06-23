@@ -2,15 +2,223 @@
 related_code:
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
+  - zircon_plugins/animation/plugin.toml
+  - zircon_plugins/animation/dist/Cargo.toml
+  - zircon_plugins/animation/dist/src/lib.rs
   - zircon_plugins/animation/runtime/Cargo.toml
   - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/capability.rs
   - zircon_plugins/animation/runtime/src/plugin.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/tests.rs
+  - zircon_plugins/hybrid_gi/plugin.toml
+  - zircon_plugins/hybrid_gi/dist/Cargo.toml
+  - zircon_plugins/hybrid_gi/dist/src/lib.rs
+  - zircon_plugins/hybrid_gi/runtime/Cargo.toml
+  - zircon_plugins/hybrid_gi/runtime/src/lib.rs
+  - zircon_plugins/hybrid_gi/runtime/src/capability.rs
+  - zircon_plugins/hybrid_gi/runtime/src/plugin.rs
+  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/physics/runtime/Cargo.toml
+  - zircon_plugins/physics/plugin.toml
+  - zircon_plugins/physics/dist/Cargo.toml
+  - zircon_plugins/physics/dist/src/lib.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/capability.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/physics/editor/src/capability.rs
+  - zircon_plugins/physics/editor/src/extension_ids.rs
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/particles/plugin.toml
+  - zircon_plugins/particles/dist/Cargo.toml
+  - zircon_plugins/particles/dist/src/lib.rs
+  - zircon_plugins/particles/runtime/Cargo.toml
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/capability.rs
+  - zircon_plugins/particles/runtime/src/plugin.rs
+  - zircon_plugins/particles/runtime/src/simulation/cpu.rs
+  - zircon_plugins/particles/runtime/src/tests/package_manifest.rs
+  - zircon_plugins/particles/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/particles/editor/src/capability.rs
+  - zircon_plugins/particles/editor/src/extension_ids.rs
+  - zircon_plugins/particles/editor/src/plugin.rs
+  - zircon_plugins/particles/editor/src/tests.rs
+  - zircon_plugins/texture/runtime/Cargo.toml
+  - zircon_plugins/texture/plugin.toml
+  - zircon_plugins/texture/dist/Cargo.toml
+  - zircon_plugins/texture/dist/src/lib.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/capability.rs
+  - zircon_plugins/texture/runtime/src/manager.rs
+  - zircon_plugins/texture/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/plugin.rs
+  - zircon_plugins/texture/runtime/src/tests.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/capability.rs
+  - zircon_plugins/texture/editor/src/extension_ids.rs
+  - zircon_plugins/texture/editor/src/plugin.rs
+  - zircon_plugins/texture/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/capability.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/capability.rs
+  - zircon_plugins/sound/editor/src/extension_ids.rs
+  - zircon_plugins/sound/editor/src/plugin.rs
+  - zircon_plugins/sound/editor/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/capability.rs
+  - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
+  - zircon_plugins/timeline_sequence/editor/src/plugin.rs
+  - zircon_plugins/timeline_sequence/editor/src/tests.rs
+  - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/capability.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/capability.rs
+  - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/capability.rs
+  - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/capability.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
+  - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/capability.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
+  - zircon_plugins/ai/plugin.toml
+  - zircon_plugins/ai/dist/Cargo.toml
+  - zircon_plugins/ai/dist/src/lib.rs
+  - zircon_plugins/ai/runtime/Cargo.toml
+  - zircon_plugins/ai/runtime/src/lib.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/src/tests/registration.rs
+  - zircon_plugins/solari/plugin.toml
+  - zircon_plugins/solari/dist/Cargo.toml
+  - zircon_plugins/solari/dist/src/lib.rs
+  - zircon_plugins/solari/runtime/Cargo.toml
+  - zircon_plugins/solari/runtime/src/lib.rs
+  - zircon_plugins/solari/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/plugin.toml
+  - zircon_plugins/zr_vm_language/dist/Cargo.toml
+  - zircon_plugins/zr_vm_language/dist/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/Cargo.toml
+  - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/navigation/plugin.toml
+  - zircon_plugins/navigation/dist/Cargo.toml
+  - zircon_plugins/navigation/dist/src/lib.rs
+  - zircon_plugins/navigation/runtime/Cargo.toml
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/navigation/runtime/src/plugin.rs
+  - zircon_plugins/navigation/runtime/src/tests/registration.rs
+  - zircon_plugins/particles/plugin.toml
+  - zircon_plugins/particles/dist/Cargo.toml
+  - zircon_plugins/particles/dist/src/lib.rs
+  - zircon_plugins/physics/plugin.toml
+  - zircon_plugins/physics/dist/Cargo.toml
+  - zircon_plugins/physics/dist/src/lib.rs
+  - zircon_plugins/texture/plugin.toml
+  - zircon_plugins/texture/dist/Cargo.toml
+  - zircon_plugins/texture/dist/src/lib.rs
+  - zircon_plugins/native_window_hosting/editor/src/lib.rs
+  - zircon_plugins/native_window_hosting/editor/src/capability.rs
+  - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
+  - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/tests.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
+  - zircon_plugins/prefab_tools/runtime/src/lib.rs
+  - zircon_plugins/prefab_tools/runtime/src/capability.rs
+  - zircon_plugins/prefab_tools/runtime/src/plugin.rs
+  - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/authoring.rs
+  - zircon_plugins/prefab_tools/editor/src/capability.rs
+  - zircon_plugins/prefab_tools/editor/src/extension_ids.rs
+  - zircon_plugins/prefab_tools/editor/src/plugin.rs
+  - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/runtime/src/lib.rs
+  - zircon_plugins/terrain/runtime/src/capability.rs
+  - zircon_plugins/terrain/runtime/src/plugin.rs
+  - zircon_plugins/terrain/runtime/src/tests.rs
+  - zircon_plugins/terrain/plugin.toml
+  - zircon_plugins/terrain/dist/Cargo.toml
+  - zircon_plugins/terrain/dist/src/lib.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/authoring.rs
+  - zircon_plugins/terrain/editor/src/capability.rs
+  - zircon_plugins/terrain/editor/src/extension_ids.rs
+  - zircon_plugins/terrain/editor/src/plugin.rs
+  - zircon_plugins/terrain/editor/src/tests.rs
+  - zircon_plugins/tilemap_2d/runtime/src/lib.rs
+  - zircon_plugins/tilemap_2d/runtime/src/capability.rs
+  - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
+  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - zircon_plugins/tilemap_2d/editor/src/capability.rs
+  - zircon_plugins/tilemap_2d/editor/src/extension_ids.rs
+  - zircon_plugins/tilemap_2d/editor/src/plugin.rs
+  - zircon_plugins/tilemap_2d/editor/src/tests.rs
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/runtime_exports.rs
@@ -19,10 +227,37 @@ related_code:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/schema.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_distribution_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors.rs
+  - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
+  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
   - tools/zircon_build.py
   - tools/zircon_export/cli.py
+  - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/native_build.py
   - tools/zircon_export/native_signing.py
   - tools/zircon_export/native_dynamic.py
@@ -30,6 +265,8 @@ related_code:
   - tools/audit_plugin_structure.py
   - tools/plugin_structure_audits/manifest_schema.py
   - tools/plugin_structure_audits/capability.py
+  - tools/plugin_structure_audits/dependency_boundary.py
+  - zircon_plugins/first_party_runtime_catalog/src/lib.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
@@ -41,23 +278,398 @@ implementation_files:
   - docs/zircon_plugins/plugin-manifest-schema.md
   - docs/zircon_plugins/plugin-crate-skeleton.md
   - docs/zircon_plugins/plugin-sdk.md
+  - zircon_plugins/plugin_sdk/Cargo.toml
+  - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
+  - zircon_plugins/native_dynamic_fixture/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/schema.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_distribution_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors.rs
+  - zircon_runtime/src/plugin/mod.rs
+  - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
+  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
   - tools/zircon_export/cli.py
+  - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/native_build.py
   - tools/zircon_build.py
+  - tools/tests/test_plugin_standalone_ci_matrix.py
+  - .github/workflows/ci.yml
   - tools/plugin_structure_audits/dependency_boundary.py
+  - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/animation/plugin.toml
+  - zircon_plugins/animation/dist/Cargo.toml
+  - zircon_plugins/animation/dist/src/lib.rs
+  - zircon_plugins/animation/runtime/Cargo.toml
+  - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/capability.rs
+  - zircon_plugins/animation/runtime/src/plugin.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/tests.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/capability.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
+  - zircon_plugins/physics/runtime/src/tests.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/physics/editor/src/capability.rs
+  - zircon_plugins/physics/editor/src/extension_ids.rs
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/particles/plugin.toml
+  - zircon_plugins/particles/dist/Cargo.toml
+  - zircon_plugins/particles/dist/src/lib.rs
+  - zircon_plugins/particles/runtime/Cargo.toml
+  - zircon_plugins/particles/runtime/src/lib.rs
+  - zircon_plugins/particles/runtime/src/capability.rs
+  - zircon_plugins/particles/runtime/src/plugin.rs
+  - zircon_plugins/particles/runtime/src/simulation/cpu.rs
+  - zircon_plugins/particles/runtime/src/tests/package_manifest.rs
+  - zircon_plugins/particles/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/particles/editor/src/capability.rs
+  - zircon_plugins/particles/editor/src/extension_ids.rs
+  - zircon_plugins/particles/editor/src/plugin.rs
+  - zircon_plugins/particles/editor/src/tests.rs
+  - zircon_plugins/texture/runtime/src/lib.rs
+  - zircon_plugins/texture/runtime/src/capability.rs
+  - zircon_plugins/texture/runtime/src/manager.rs
+  - zircon_plugins/texture/runtime/src/module.rs
+  - zircon_plugins/texture/runtime/src/plugin.rs
+  - zircon_plugins/texture/runtime/src/tests.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/capability.rs
+  - zircon_plugins/texture/editor/src/extension_ids.rs
+  - zircon_plugins/texture/editor/src/plugin.rs
+  - zircon_plugins/texture/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
+  - zircon_plugins/sound/runtime/src/lib.rs
+  - zircon_plugins/sound/runtime/src/capability.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
+  - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/capability.rs
+  - zircon_plugins/sound/editor/src/extension_ids.rs
+  - zircon_plugins/sound/editor/src/plugin.rs
+  - zircon_plugins/sound/editor/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/capability.rs
+  - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
+  - zircon_plugins/timeline_sequence/editor/src/plugin.rs
+  - zircon_plugins/timeline_sequence/editor/src/tests.rs
+  - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/audio_importer/runtime/src/capability.rs
+  - zircon_plugins/gltf_importer/runtime/src/lib.rs
+  - zircon_plugins/gltf_importer/runtime/src/capability.rs
+  - zircon_plugins/obj_importer/runtime/src/lib.rs
+  - zircon_plugins/obj_importer/runtime/src/capability.rs
+  - zircon_plugins/opus_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/src/capability.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
+  - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/capability.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/data/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/Cargo.toml
+  - zircon_plugins/ai/runtime/src/lib.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/solari/plugin.toml
+  - zircon_plugins/solari/dist/Cargo.toml
+  - zircon_plugins/solari/dist/src/lib.rs
+  - zircon_plugins/solari/runtime/Cargo.toml
+  - zircon_plugins/solari/runtime/src/lib.rs
+  - zircon_plugins/solari/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/plugin.toml
+  - zircon_plugins/zr_vm_language/dist/Cargo.toml
+  - zircon_plugins/zr_vm_language/dist/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/Cargo.toml
+  - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/navigation/plugin.toml
+  - zircon_plugins/navigation/dist/Cargo.toml
+  - zircon_plugins/navigation/dist/src/lib.rs
+  - zircon_plugins/navigation/runtime/Cargo.toml
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/navigation/runtime/src/plugin.rs
+  - zircon_plugins/navigation/runtime/src/tests/registration.rs
+  - zircon_plugins/native_window_hosting/editor/src/lib.rs
+  - zircon_plugins/native_window_hosting/editor/src/capability.rs
+  - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
+  - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/editor/src/tests.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/lib.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
+  - zircon_plugins/prefab_tools/runtime/src/lib.rs
+  - zircon_plugins/prefab_tools/runtime/src/capability.rs
+  - zircon_plugins/prefab_tools/runtime/src/plugin.rs
+  - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/authoring.rs
+  - zircon_plugins/prefab_tools/editor/src/capability.rs
+  - zircon_plugins/prefab_tools/editor/src/extension_ids.rs
+  - zircon_plugins/prefab_tools/editor/src/plugin.rs
+  - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/runtime/src/lib.rs
+  - zircon_plugins/terrain/runtime/src/capability.rs
+  - zircon_plugins/terrain/runtime/src/plugin.rs
+  - zircon_plugins/terrain/runtime/src/tests.rs
+  - zircon_plugins/terrain/plugin.toml
+  - zircon_plugins/terrain/dist/Cargo.toml
+  - zircon_plugins/terrain/dist/src/lib.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/authoring.rs
+  - zircon_plugins/terrain/editor/src/capability.rs
+  - zircon_plugins/terrain/editor/src/extension_ids.rs
+  - zircon_plugins/terrain/editor/src/plugin.rs
+  - zircon_plugins/terrain/editor/src/tests.rs
+  - zircon_plugins/tilemap_2d/runtime/src/lib.rs
+  - zircon_plugins/tilemap_2d/runtime/src/capability.rs
+  - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
+  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - zircon_plugins/tilemap_2d/editor/src/capability.rs
+  - zircon_plugins/tilemap_2d/editor/src/extension_ids.rs
+  - zircon_plugins/tilemap_2d/editor/src/plugin.rs
+  - zircon_plugins/tilemap_2d/editor/src/tests.rs
 tests:
   - cargo metadata --manifest-path zircon_plugins/Cargo.toml --format-version 1 --no-deps --locked
   - python tools/audit_plugin_structure.py --json
   - cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/dependency_boundary.py
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-dist-m1-0623 --message-format short --color never
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m4-capability-test-nodebug-0623 --message-format short --color never plugins_13_dist_dependency_boundary_clean -- --test-threads=1 --nocapture
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-m2-registration-0623 --message-format short --color never
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-m2-registration-0623 --message-format short --color never native_dynamic_registration_manifest_round_trips -- --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib malformed_registration_schema_marks_behavior_invalid --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-native-registration-m2-0623 --message-format short --color never -- --test-threads=1 --nocapture: blocked by unrelated runtime lib-test compile drift after registration ABI field errors were cleared
+  - rustfmt --edition 2021 --check zircon_runtime/src/plugin/native.rs zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs zircon_runtime/src/plugin/native_plugin_loader/mod.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs: passed 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test -p zircon_runtime --lib --no-default-features --features core-min --offline --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-m2-t2-0623 --message-format short --color never dist_system_plugin_loads_and_ticks_via_bridge -- --test-threads=1 --nocapture: blocked by unrelated runtime lib-test compile drift (`runtime_absorption/structure_convention/test_file_budget.rs` missing child modules) after M2/T2 replay type errors were cleared
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native dist_plugin_one_file_export_compiles --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-sdk: 1 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-fixture: passed 2026-06-23
+  - python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py: passed 2026-06-23
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-package-fixture --target-dir D:\cargo-targets\zircon-plugin-m3-build-fixture: passed 2026-06-23
+  - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/dependency_boundary.py tools/tests/test_plugin_standalone_ci_matrix.py: passed 2026-06-23
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-23
+  - python tools/audit_plugin_structure.py --json: standalone_distribution_conformance.dist_build_matrix_count=1, dist_capable_plugin_count=1, dist_dependency_boundary_violations=0 on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-ci-fixture-build --message-format short --color never: passed 2026-06-23
+  - rustfmt --edition 2021 zircon_runtime/src/plugin/mod.rs zircon_runtime/src/plugin/package_manifest/plugin_distribution_manifest.rs zircon_runtime/src/plugin/package_manifest/mod.rs zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs zircon_runtime/src/plugin/package_manifest/constructors.rs zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs zircon_runtime/src/plugin/native_plugin_loader/mod.rs zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs: passed 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m4-t2-loader-compat-check --message-format short --color never: passed 2026-06-23 with existing warning noise
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test -p zircon_runtime --lib --no-default-features --features core-min native_loader_skips_distribution_with_incompatible_engine_range_before_library_probe --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m4-t2-loader-compat-test --message-format short --color never -- --test-threads=1 --nocapture: blocked by unrelated runtime lib-test compile drift (`script/vm/tests.rs` missing child modules, `runtime_absorption/structure_convention/test_file_budget.rs` missing child modules, private gltf fixture re-exports, and existing WgpuRenderFramework test API drift); not counted as passed
+  - rustfmt --edition 2021 zircon_runtime\src\builtin\runtime_modules\ids\plugin_id.rs zircon_runtime\src\builtin\runtime_modules\plugin_modules\loader.rs zircon_runtime\src\builtin\runtime_modules\tests\registration\structure.rs zircon_runtime\src\tests\plugin_extensions\plugin_workspace_shape.rs: passed 2026-06-23 for Plugins 13 M5/T3 RuntimePluginId string-newtype
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-plugin-id-check --message-format short --color never: passed 2026-06-23 with existing warning noise
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-plugin-id-sdk-check --message-format short --color never: passed 2026-06-23 with existing warning noise
+  - cargo test -p zircon_runtime --lib --no-default-features --features core-min runtime_plugin_id_accepts_external_keys_without_core_variant --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-plugin-id-check --message-format short --color never -- --test-threads=1 --nocapture: blocked before running by unrelated runtime lib-test compile drift; not counted as passed
+  - rustfmt --edition 2021 --check importer runtime lib.rs/capability.rs set for audio/gltf/obj/opus/shader_wgsl/texture/ui_document and asset_importers/data/model/shader: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=25, plugin_skeleton_gate.migration_debt_count=25, standalone_distribution_conformance.dist_capable_plugin_count=1 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p each of zircon_plugin_audio_importer_runtime, zircon_plugin_gltf_importer_runtime, zircon_plugin_obj_importer_runtime, zircon_plugin_opus_importer_runtime, zircon_plugin_shader_wgsl_importer_runtime, zircon_plugin_texture_importer_runtime, zircon_plugin_ui_document_importer_runtime, zircon_plugin_asset_importer_data_runtime, zircon_plugin_asset_importer_model_runtime, zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-skeleton-split-importers-check --message-format short --color never: each package exit=0 on 2026-06-23 with existing warning noise
+  - rustfmt --edition 2021 --check runtime-only skeleton owner files for ai, asset_importers/audio, asset_importers/texture, solari, zr_vm_language: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=20, plugin_skeleton_gate.migration_debt_count=20, standalone_distribution_conformance.dist_capable_plugin_count=1 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_runtime -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_zr_vm_language_runtime --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never: passed 2026-06-23 and refreshed zircon_plugins/Cargo.lock for audio/texture SDK dependencies
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_runtime -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime -p zircon_plugin_solari_runtime -p zircon_plugin_zr_vm_language_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warning noise
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-only-skeleton-check --message-format short --color never package_declares_ -- --test-threads=1 --nocapture: timed out after 904s on 2026-06-23 with no test result; residual cargo/rustc processes for this target-dir were stopped; not counted as passing
+  - python -m py_compile tools/plugin_structure_audits/capability.py tools/audit_plugin_structure.py: passed 2026-06-23 after plugin.rs-owned runtime_capabilities() re-export handling
+  - rustfmt --edition 2021 --check editor-only skeleton owner files for native_window_hosting, runtime_diagnostics, ui_asset_authoring: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: capability_source_mismatches=0, skeleton_conformance.migration_debt_count=17, plugin_skeleton_gate.migration_debt_count=17, standalone_distribution_conformance.dist_capable_plugin_count=1 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_window_hosting_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-editor-small-skeleton-check --message-format short --color never: blocked before target plugin packages by unrelated zircon_editor retained-host compile drift (`HostWindowPresentationData` import and E0282 inference); not counted as passing
+  - rustfmt --edition 2021 authoring runtime/editor skeleton owner files for prefab_tools, terrain, tilemap_2d: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=14, plugin_skeleton_gate.migration_debt_count=14, standalone_distribution_conformance.dist_capable_plugin_count=1, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_tilemap_2d_runtime --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-m5-authoring-runtime-0623 --message-format short --color never: passed 2026-06-23 with existing zircon_runtime warning noise
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_editor -p zircon_plugin_terrain_editor -p zircon_plugin_tilemap_2d_editor --offline --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-m5-authoring-editor-0623 --message-format short --color never: timed out twice while building dependencies; no final output captured, not counted as passing
+  - rustfmt --edition 2021 particles/physics/texture runtime/editor skeleton owner files plus zircon_plugins/particles/runtime/src/simulation/cpu.rs: passed 2026-06-23
+  - python tools/audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=11, plugin_skeleton_gate.migration_debt_count=11, standalone_distribution_conformance.dist_capable_plugin_count=1, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check -p zircon_plugin_particles_runtime --offline; cargo check -p zircon_plugin_physics_runtime --offline; cargo check -p zircon_plugin_texture_runtime --offline: passed 2026-06-23 with existing warning noise
+  - cargo check --manifest-path zircon_plugins\particles\editor\Cargo.toml --offline; cargo check --manifest-path zircon_plugins\physics\editor\Cargo.toml --offline --target-dir target\codex-plugin-validation; cargo check --manifest-path zircon_plugins\texture\editor\Cargo.toml --offline --target-dir target\codex-plugin-validation: passed 2026-06-23 with existing warning noise
+  - rustfmt --edition 2021 zircon_plugins\editor_build_export_desktop\editor\src\lib.rs zircon_plugins\editor_build_export_desktop\editor\src\capability.rs zircon_plugins\editor_build_export_desktop\editor\src\extension_ids.rs zircon_plugins\editor_build_export_desktop\editor\src\plugin.rs zircon_plugins\editor_build_export_desktop\editor\src\tests.rs zircon_plugins\editor_build_export_desktop\editor\src\export_wizard.rs: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=10, plugin_skeleton_gate.migration_debt_count=10, standalone_distribution_conformance.dist_capable_plugin_count=1, capability_conformance.capability_source_mismatches=0 on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\editor_build_export_desktop\editor\Cargo.toml --all-targets --offline --target-dir target\codex-plugin-validation --message-format short --color never: passed 2026-06-23 with existing runtime/editor warning noise
+  - rustfmt --edition 2021 sound runtime/editor skeleton owner files for main crate plus ray_traced_convolution_reverb and timeline_animation_track feature crates: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=9, plugin_skeleton_gate.migration_debt_count=9, standalone_distribution_conformance.dist_capable_plugin_count=1, capability_conformance.capability_source_mismatches=0 on 2026-06-23 after sound owner rollout
+  - cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never: blocked before target sound crate by unrelated zircon_runtime render compile drift (`MeshPassCommandBuffers` / `CachedMeshDrawLookup` / `mesh_draw` / `mesh_pipeline_cache` imports); not counted as passing
+  - rustfmt --edition 2021 --check zircon_plugins\timeline_sequence\editor\src\lib.rs zircon_plugins\timeline_sequence\editor\src\capability.rs zircon_plugins\timeline_sequence\editor\src\extension_ids.rs zircon_plugins\timeline_sequence\editor\src\plugin.rs zircon_plugins\timeline_sequence\editor\src\tests.rs: passed 2026-06-23
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=8, plugin_skeleton_gate.migration_debt_count=8, standalone_distribution_conformance.dist_capable_plugin_count=1, capability_conformance.capability_source_mismatches=0 on 2026-06-23 after timeline_sequence owner rollout
+  - cargo check --manifest-path zircon_plugins\timeline_sequence\editor\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never: blocked before target timeline_sequence crate by unrelated zircon_runtime render compile drift (`MeshPassCommandBuffers` / `CachedMeshDrawLookup` / `mesh_draw` / `mesh_pipeline_cache` imports); not counted as passing
+  - python tools\audit_plugin_structure.py --json: plugin_skeleton_gate.m2_gate_status=sample-clean-migration-debt-clear, skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, skeleton_conformance.migration_debt_roots=[], standalone_distribution_conformance.dist_capable_plugin_count=1, standalone_distribution_conformance.dist_build_matrix_count=1, standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-23 after final owner rollout
+  - rustfmt --edition 2021 --check on 139 touched owner/façade files under animation, animation_graph, hybrid_gi, material_editor, navigation, net, rendering, timeline_sequence, and virtual_geometry: passed 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --offline --locked --target-dir target\codex-plugin-validation --message-format short --color never: passed 2026-06-23 after final owner rollout and `hybrid_gi` RenderLayerSet mask alignment, with existing warning noise
+  - rustfmt --edition 2021 zircon_plugins\solari\runtime\src\plugin.rs zircon_plugins\solari\runtime\src\lib.rs zircon_plugins\solari\dist\src\lib.rs zircon_runtime\src\plugin\native_plugin_loader\candidate_from_manifest.rs: passed 2026-06-23 after Solari dist rollout
+  - python -m py_compile tools\zircon_export\plugin_build.py tools\zircon_export\tests\test_plugin_build.py tools\audit_plugin_structure.py tools\plugin_structure_audits\dependency_boundary.py tools\tests\test_plugin_standalone_ci_matrix.py: passed 2026-06-23 after Solari dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23 after Solari dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-23 after Solari dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=2, standalone_distribution_conformance.dist_build_matrix_count=2, standalone_distribution_conformance.dist_capable_plugins=["native_dynamic_fixture","solari"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-23 after Solari dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_solari_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-solari-dist-check --message-format short --color never: passed 2026-06-23
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_solari_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-solari-dist-test --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-23
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_solari_runtime --offline --locked --target-dir target\codex-plugin-solari-runtime-check --message-format short --color never: passed 2026-06-23 with existing warning noise
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_solari_runtime solari_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-solari-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-23 with existing warning noise
+  - python -m tools.zircon_export plugin build solari --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-solari --target-dir target\codex-plugin-build-solari-target --offline: passed 2026-06-23; emitted root and `plugins/native_plugins.toml` load manifests plus `solari\native\zircon_plugin_solari_dist.dll`
+  - cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --offline --locked --target-dir target\codex-plugin-validation --message-format short --color never: passed 2026-06-23 after Solari dist rollout with existing warning noise
+  - rustfmt --edition 2021 zircon_plugins\ai\runtime\src\plugin.rs zircon_plugins\ai\runtime\src\lib.rs zircon_plugins\ai\runtime\src\tests\registration.rs zircon_plugins\ai\dist\src\lib.rs: passed 2026-06-23 after AI dist rollout
+  - python -m py_compile tools\zircon_export\plugin_build.py tools\zircon_export\tests\test_plugin_build.py tools\audit_plugin_structure.py tools\plugin_structure_audits\dependency_boundary.py tools\tests\test_plugin_standalone_ci_matrix.py: passed 2026-06-23 after AI dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-ai-dist-check --message-format short --color never: passed 2026-06-23 and refreshed zircon_plugins/Cargo.lock for the new ai/dist workspace member
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-ai-dist-check --message-format short --color never: passed 2026-06-23
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-ai-dist-test --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-23
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ai_runtime ai_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-ai-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-23 with existing warning noise
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=3, standalone_distribution_conformance.dist_build_matrix_count=3, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","solari"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-23 after AI dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-23 after AI dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23 after AI dist rollout
+  - python -m tools.zircon_export plugin build ai --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-ai --target-dir target\codex-plugin-build-ai-target --offline: passed 2026-06-23; emitted root and `plugins/native_plugins.toml` load manifests plus `ai\ai.dll`, `ai\native\zircon_plugin_ai_dist.dll`, and `ai\ai.sig`
+  - cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --offline --locked --target-dir target\codex-plugin-validation-ai-final --message-format short --color never: blocked on 2026-06-23 by unrelated `zircon_runtime` UI template compile drift (`mui_slot_name` unresolved imports and private `apply_mui_*_slot_props` imports); not counted as passing
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --offline --locked --target-dir target\codex-runtime-loader-check --message-format short --color never: blocked before compile by root Cargo.lock update requirement on 2026-06-23; root Cargo.lock was not modified
+  - rustfmt --edition 2021 zircon_plugins\zr_vm_language\runtime\src\plugin.rs zircon_plugins\zr_vm_language\runtime\src\lib.rs zircon_plugins\zr_vm_language\runtime\src\tests\registration.rs zircon_plugins\zr_vm_language\dist\src\lib.rs: passed 2026-06-23 after ZrVM Language dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_zr_vm_language_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-zrvm-dist-check --message-format short --color never: passed 2026-06-23 and refreshed zircon_plugins/Cargo.lock for the new zr_vm_language/dist workspace member
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_zr_vm_language_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-zrvm-dist-check-final --message-format short --color never: passed 2026-06-23
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_zr_vm_language_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-zrvm-dist-test-final --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-23
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_zr_vm_language_runtime --offline --locked --target-dir target\codex-plugin-zrvm-runtime-check-final --message-format short --color never: passed 2026-06-23 with existing warning noise
+- cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_zr_vm_language_runtime zr_vm_language_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-zrvm-runtime-test-final-verify --message-format short --color never -- --test-threads=1 --nocapture: after fixing the test to read the runtime `package_manifest()` helper directly, rerun was blocked before the target test by unrelated `zircon_runtime/src/ui/component/catalog/editor_showcase.rs` `numeric` missing compile drift on 2026-06-23; no runtime unit-test pass is claimed
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=4, standalone_distribution_conformance.dist_build_matrix_count=4, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","solari","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-23 after ZrVM Language dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-23 after ZrVM Language dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23 after ZrVM Language dist rollout
+  - python -m py_compile tools\zircon_export\plugin_build.py tools\zircon_export\tests\test_plugin_build.py tools\audit_plugin_structure.py tools\plugin_structure_audits\dependency_boundary.py tools\tests\test_plugin_standalone_ci_matrix.py: passed 2026-06-23 after ZrVM Language dist rollout
+  - python -m tools.zircon_export plugin build zr_vm_language --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-zrvm-final --target-dir target\codex-plugin-build-zrvm-target-final --offline: passed 2026-06-23; emitted root and `plugins/native_plugins.toml` load manifests plus `zr_vm_language\zr_vm_language.dll`, `zr_vm_language\native\zircon_plugin_zr_vm_language_dist.dll`, and `zr_vm_language\zr_vm_language.sig`
+  - rustfmt --edition 2021 zircon_plugins\navigation\dist\src\lib.rs zircon_plugins\navigation\runtime\src\plugin.rs zircon_plugins\navigation\runtime\src\lib.rs zircon_plugins\navigation\runtime\src\tests\registration.rs: passed 2026-06-24 after Navigation dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-navigation-dist-check: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new navigation/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-navigation-dist-test: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_runtime --offline --locked --target-dir target\codex-plugin-navigation-runtime-check: passed 2026-06-24 with existing warning noise
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_runtime navigation_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-navigation-runtime-test: blocked before the target test by unrelated `zircon_runtime` UI surface compile drift (`push_pointer_component_events_with_drag_metrics` private method calls and missing `UiRuntimeTreeInteractionExt` import for `scrollable_candidates`); no runtime unit-test pass is claimed
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=5, standalone_distribution_conformance.dist_build_matrix_count=5, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","navigation","solari","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Navigation dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Navigation dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Navigation dist rollout
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py: passed 2026-06-24 after Navigation dist rollout
+  - python -m tools.zircon_export plugin build navigation --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-navigation-final --target-dir target\codex-plugin-build-navigation-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `navigation\navigation.dll`, `navigation\native\zircon_plugin_navigation_dist.dll`, and `navigation\navigation.sig`
+  - rustfmt --edition 2021 zircon_plugins\physics\runtime\src\plugin.rs zircon_plugins\physics\runtime\src\lib.rs zircon_plugins\physics\runtime\src\tests.rs zircon_plugins\physics\dist\src\lib.rs: passed 2026-06-24 after Physics dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-physics-dist-check: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new physics/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-physics-dist-test: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime --offline --locked --target-dir target\codex-plugin-physics-runtime-check: passed 2026-06-24 with existing warning noise
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime physics_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-physics-runtime-test -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py: passed 2026-06-24 after Physics dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Physics dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Physics dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=6, standalone_distribution_conformance.dist_build_matrix_count=6, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","navigation","physics","solari","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Physics dist rollout
+  - python -m tools.zircon_export plugin build physics --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-physics-final --target-dir target\codex-plugin-build-physics-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `physics\physics.dll`, `physics\native\zircon_plugin_physics_dist.dll`, and `physics\physics.sig`
+  - rustfmt --edition 2021 zircon_plugins\texture\runtime\src\plugin.rs zircon_plugins\texture\runtime\src\lib.rs zircon_plugins\texture\runtime\src\tests.rs zircon_plugins\texture\dist\src\lib.rs: passed 2026-06-24 after Texture dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-texture-dist-check: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new texture/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-texture-dist-test: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_runtime --offline --locked --target-dir target\codex-plugin-texture-runtime-check: passed 2026-06-24 with existing warning noise
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_runtime texture_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-texture-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise after the first too-short timeout was rerun with a larger timeout
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py: passed 2026-06-24 after Texture dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Texture dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Texture dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=7, standalone_distribution_conformance.dist_build_matrix_count=7, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","navigation","physics","solari","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Texture dist rollout
+  - python -m tools.zircon_export plugin build texture --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-texture-final --target-dir target\codex-plugin-build-texture-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `texture\texture.dll`, `texture\native\zircon_plugin_texture_dist.dll`, and `texture\texture.sig`
+  - rustfmt --edition 2021 zircon_plugins\particles\runtime\src\plugin.rs zircon_plugins\particles\runtime\src\lib.rs zircon_plugins\particles\runtime\src\tests\mod.rs zircon_plugins\particles\runtime\src\tests\package_manifest.rs zircon_plugins\particles\dist\src\lib.rs: passed 2026-06-24 after Particles dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-particles-dist-check: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new particles/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-particles-dist-test: 2 passed, 0 failed on 2026-06-24
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_runtime --offline --locked --target-dir target\codex-plugin-particles-runtime-check: passed 2026-06-24 with existing warning noise
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_runtime particles_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-particles-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise after the first too-short timeout was rerun with a larger timeout
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py: passed 2026-06-24 after Particles dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Particles dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Particles dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=8, standalone_distribution_conformance.dist_build_matrix_count=8, standalone_distribution_conformance.dist_capable_plugins=["ai","native_dynamic_fixture","navigation","particles","physics","solari","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Particles dist rollout
+  - python -m tools.zircon_export plugin build particles --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-particles-final --target-dir target\codex-plugin-build-particles-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `particles\particles.dll`, `particles\native\zircon_plugin_particles_dist.dll`, and `particles\particles.sig`
+  - rustfmt --edition 2021 zircon_plugins\animation\runtime\src\plugin.rs zircon_plugins\animation\runtime\src\lib.rs zircon_plugins\animation\runtime\src\tests.rs zircon_plugins\animation\dist\src\lib.rs: passed 2026-06-24 after Animation dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-animation-dist-check --message-format short --color never: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new animation/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-animation-dist-test --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --offline --locked --target-dir target\codex-plugin-animation-runtime-check --message-format short --color never: passed 2026-06-24 with existing warning noise after the first too-short timeout was rerun
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime animation_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-animation-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Animation dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Animation dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Animation dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=9, standalone_distribution_conformance.dist_build_matrix_count=9, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","native_dynamic_fixture","navigation","particles","physics","solari","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Animation dist rollout
+  - python -m tools.zircon_export plugin build animation --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-animation-final --target-dir target\codex-plugin-build-animation-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `animation\animation.dll`, `animation\native\zircon_plugin_animation_dist.dll`, and `animation\animation.sig`
+  - rustfmt --edition 2021 zircon_plugins\hybrid_gi\runtime\src\plugin.rs zircon_plugins\hybrid_gi\runtime\src\tests.rs zircon_plugins\hybrid_gi\dist\src\lib.rs: passed 2026-06-24 after Hybrid GI dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-hybrid-gi-dist-check --message-format short --color never: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new hybrid_gi/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-hybrid-gi-dist-test --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime hybrid_gi_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-hybrid-gi-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: blocked before target test by unrelated `zircon_runtime` render handle/value semantics compile drift (`RenderViewportHandle` missing Clone/Debug/Eq/Hash/Copy traits and `FrameHistoryInvalidationReason` move/PartialEq errors); not counted as passing
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Hybrid GI dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Hybrid GI dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Hybrid GI dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=10, standalone_distribution_conformance.dist_build_matrix_count=10, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","particles","physics","solari","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Hybrid GI dist rollout
+  - python -m tools.zircon_export plugin build hybrid_gi --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-hybrid-gi --target-dir target\codex-plugin-build-hybrid-gi-target --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `hybrid_gi\hybrid_gi.dll`, `hybrid_gi\native\zircon_plugin_hybrid_gi_dist.dll`, and `hybrid_gi\hybrid_gi.sig`
+  - rustfmt --edition 2021 zircon_plugins\terrain\runtime\src\plugin.rs zircon_plugins\terrain\runtime\src\lib.rs zircon_plugins\terrain\runtime\src\tests.rs zircon_plugins\terrain\dist\src\lib.rs: passed 2026-06-24 after Terrain dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-terrain-dist-check --message-format short --color never: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new terrain/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-terrain-dist-test --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_runtime terrain_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-terrain-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise after waiting for the first too-broad runtime test attempt to finish
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Terrain dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Terrain dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Terrain dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=11, standalone_distribution_conformance.dist_build_matrix_count=11, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","particles","physics","solari","terrain","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Terrain dist rollout
+  - python -m tools.zircon_export plugin build terrain --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-terrain-final --target-dir target\codex-plugin-build-terrain-target-final --offline: passed 2026-06-24; emitted root and `plugins/native_plugins.toml` load manifests plus `terrain\terrain.dll`, `terrain\native\zircon_plugin_terrain_dist.dll`, and `terrain\terrain.sig`
 doc_type: structure-plan
-status: planned
+status: in_progress
 ---
-
 # 13 · 插件独立构建与分发计划（每插件可独立编译产出动态包）
 
-> 状态：planned · 优先级：P1（横切，与 [09 跨平台发行](09-export-publishing.md)、[12 插件 DX 与结构框架](12-plugin-dx-and-structure-framework.md)、[11 调用桥](11-plugin-call-bridge.md) 并列横切层）
+> 状态：in_progress · 优先级：P1（横切，与 [09 跨平台发行](09-export-publishing.md)、[12 插件 DX 与结构框架](12-plugin-dx-and-structure-framework.md)、[11 调用桥](11-plugin-call-bridge.md) 并列横切层）
 > 上游权威：[`engine-code-structure-convention`](../engine-code-structure-convention.md) §6（Plugin DX）、[Plugins 01](01-plugin-architecture-core.md)（`RuntimePlugin::register`、ABI v3、capability 协商）
 > 规范落地（唯一权威）：[`docs/zircon_plugins/plugin-standalone-build.md`](../../zircon_plugins/plugin-standalone-build.md)
 > 目标：把"每个插件都能脱离引擎源码树、仅依赖稳定 ABI 独立编译，产出可分发动态包并被 NativeDynamic loader 加载/热更"从 `native_dynamic_fixture` 一个 fixture，升格为所有一方插件都走的一等公民路径；静态链接（LibraryEmbed）降为发行期性能优化，而非唯一可构建形态。
@@ -81,18 +693,68 @@ status: planned
 
 主要缺口：
 
-| # | 缺口 | 规范条目 | 证据路径 |
-|---|------|---------|---------|
-| B1 | **唯一独立可构建插件是 fixture**：仅 `native_dynamic_fixture` 是 `crate-type = ["cdylib"]`；其余 ~83 个一方插件均 `rlib`，无 cdylib 形态 | §标准产物 | `grep crate-type zircon_plugins/**/Cargo.toml` 仅命中 `native_dynamic_fixture/native/Cargo.toml` |
-| B2 | **dist 形态依赖边界未解耦**：runtime crate 直链 `zircon_runtime = { path = "../../../zircon_runtime" }`，无法脱离源码树编译 | §依赖边界 | `animation/runtime/Cargo.toml`（`zircon_runtime` path dep）；对比 `native_dynamic_fixture/native/Cargo.toml` 仅依赖 `zircon_plugin_sdk` `native` feature |
-| B3 | **注册语义不可跨 ABI 编组**：ABI v3 仅暴露 `invoke_command` + bridge method；`RuntimePlugin::register` 的 register_module / register_system / register_resource / register_event / 扩展点注册无 ABI 编组通道，故"系统型"插件（绝大多数）无法做成 cdylib | §注册编组 | `plugin_sdk/src/native.rs:97-107`（`NativePluginBehaviorV3` 仅 invoke/save/restore/unload）；`plugin_sdk/src/registration.rs`（in-tree 注册经 `zircon_runtime` 类型） |
-| B4 | **无单源双投影**：manifest 是 descriptor 派生（12-M1），但 in-tree rlib 与 dist cdylib 没有统一声明同时喂两形态 | §双形态单源 | `runtime_exports.rs`（`runtime_plugin_exports!` 只投影 in-tree）；fixture 的 cdylib 与一方 rlib 各写各的 |
-| B5 | **无每插件构建子命令**：`zircon_build.py --targets plugins` 是 staged 全量布局；`zircon_export` 是 profile 级整包导出；都没有"单插件独立产物 + 独立 target dir + 独立 lockfile 语义" | §构建命令 | `tools/zircon_build.py`（target 粒度）、`tools/zircon_export/cli.py`（profile 粒度） |
-| B6 | **无依赖边界 guard**：没有审计断言 dist crate 的依赖闭包不含 `zircon_runtime`，无法防回归 | §强制机制 | `tools/plugin_structure_audits/` 现有 manifest/skeleton/registration/capability owner，无 dependency_boundary owner |
-| B7 | **资产子包未按插件切分**：zrpack（09-M2）是发行整包级；插件自带资产（shader/preset）无 per-plugin 子包随 cdylib 分发 | §资产子包 | 09 §3.3 zrpack 为 profile 级；`native_dynamic_package_plan.rs` 产物目录无资产入口 |
-| B8 | **`RuntimePluginId` 封闭枚举**：第三方/独立插件自带 id 必须改引擎核心（与 12-S12/D6 同根） | 架构 | `builtin/runtime_modules/ids/plugin_id.rs`（core 封闭 enum）；12 计划 M5/T2 在途 |
+| #  | 缺口                                                                                                                                                                                                                                                              | 规范条目     | 证据路径                                                                                                                                                                      |
+| -- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1 | **唯一独立可构建插件是 fixture**：仅 `native_dynamic_fixture` 是 `crate-type = ["cdylib"]`；其余 ~83 个一方插件均 `rlib`，无 cdylib 形态                                                                                                              | §标准产物   | `grep crate-type zircon_plugins/**/Cargo.toml` 仅命中 `native_dynamic_fixture/native/Cargo.toml`                                                                          |
+| B2 | **dist 形态依赖边界未解耦**：runtime crate 直链 `zircon_runtime = { path = "../../../zircon_runtime" }`，无法脱离源码树编译                                                                                                                               | §依赖边界   | `animation/runtime/Cargo.toml`（`zircon_runtime` path dep）；对比 `native_dynamic_fixture/native/Cargo.toml` 仅依赖 `zircon_plugin_sdk` `native` feature            |
+| B3 | **注册语义不可跨 ABI 编组**：ABI v3 仅暴露 `invoke_command` + bridge method；`RuntimePlugin::register` 的 register_module / register_system / register_resource / register_event / 扩展点注册无 ABI 编组通道，故"系统型"插件（绝大多数）无法做成 cdylib | §注册编组   | `plugin_sdk/src/native.rs:97-107`（`NativePluginBehaviorV3` 仅 invoke/save/restore/unload）；`plugin_sdk/src/registration.rs`（in-tree 注册经 `zircon_runtime` 类型） |
+| B4 | **无单源双投影**：manifest 是 descriptor 派生（12-M1），但 in-tree rlib 与 dist cdylib 没有统一声明同时喂两形态                                                                                                                                             | §双形态单源 | `runtime_exports.rs`（`runtime_plugin_exports!` 只投影 in-tree）；fixture 的 cdylib 与一方 rlib 各写各的                                                                  |
+| B5 | **无每插件构建子命令**：`zircon_build.py --targets plugins` 是 staged 全量布局；`zircon_export` 是 profile 级整包导出；都没有"单插件独立产物 + 独立 target dir + 独立 lockfile 语义"                                                                    | §构建命令   | `tools/zircon_build.py`（target 粒度）、`tools/zircon_export/cli.py`（profile 粒度）                                                                                      |
+| B6 | **无依赖边界 guard**：没有审计断言 dist crate 的依赖闭包不含 `zircon_runtime`，无法防回归                                                                                                                                                                 | §强制机制   | `tools/plugin_structure_audits/` 现有 manifest/skeleton/registration/capability owner，无 dependency_boundary owner                                                         |
+| B7 | **资产子包未按插件切分**：zrpack（09-M2）是发行整包级；插件自带资产（shader/preset）无 per-plugin 子包随 cdylib 分发                                                                                                                                        | §资产子包   | 09 §3.3 zrpack 为 profile 级；`native_dynamic_package_plan.rs` 产物目录无资产入口                                                                                          |
+| B8 | **`RuntimePluginId` 封闭枚举**：第三方/独立插件自带 id 必须改引擎核心（与 12-S12/D6 同根；2026-06-23 M5/T3 前基线）                                                                                                                                          | 架构         | 已由 M5/T3 改为开放 string-newtype；`builtin/runtime_modules/ids/plugin_id.rs` 保留内建常量并接受合法外部 key                                                                  |
 
 > B3 是本计划的**最深依赖**：它决定"每插件独立构建"的覆盖面——在 B3 闭合前，只有 command/bridge 型插件能做成 cdylib；闭合后，系统型插件才能全量独立构建。B3 必须与 [Plugins 01](01-plugin-architecture-core.md) ABI v3 / register 通道、[Plugins 11](11-plugin-call-bridge.md) bridge dense 通道协同推进，不在本计划内独立发明第二套注册模型。
+>
+> 2026-06-23 M1 首切已把 `native_dynamic_fixture` 明确为首个 `dist` 形态插件：根 manifest 增 `[distribution]`，native crate 增 `dist` feature，并由 `tools/plugin_structure_audits/dependency_boundary.py` + `plugins_13_dist_dependency_boundary_clean` 锁定当时 `dist_capable_plugin_count = 1`、`distribution_section_violations = 0`、`dist_dependency_boundary_violations = 0`。后续记录已关闭 B3/B5/B7 focused 路径与 B8 string-newtype；M5/T1 skeleton owner rollout 已把插件骨架迁移债清零，Solari、AI、ZrVM Language、Navigation、Physics、Texture、Particles 与 Animation dist rollout 已把真实 dist-capable 矩阵扩到 `ai` + `animation` + `native_dynamic_fixture` + `navigation` + `particles` + `physics` + `solari` + `texture` + `zr_vm_language` 九项。
+>
+> 2026-06-23 M2/T1 首切已把 registration 段加入 SDK 与 loader 的 ABI v3 行为面：`NativePluginSchemaVersionsV3.registration_manifest_schema` + `NativePluginBehaviorV3.registration_manifest` 承载注册清单 schema/text，SDK 提供 `NativePluginRegistrationManifestV3` 及 TOML round-trip helper，runtime loader 行为验证报告登记 `registration_manifest_schema` / `has_registration_manifest`，`native_dynamic_fixture` runtime entry 已导出含 module/system/event/capability 的 registration manifest。状态锚点：`plugins_13_registration_manifest_schema_round_trips`；SDK native-only check、SDK focused test 与 native fixture dist check 已通过。runtime loader focused test 的本切片字段错误已清除，但当前被无关 runtime lib-test compile drift 阻塞，不计通过。
+>
+> 2026-06-23 M2/T2 已实现 system 型 dist 插件的宿主侧 bridge 回放路径：runtime loader 新增 registration manifest 解析 owner，`NativePluginLiveHost::replay_runtime_registration_manifests_via_bridge(...)` 将 manifest system anchor 注册为宿主拥有的 conservative native system，并在 tick 时通过已安装的 `NativeHostBridgeCallScope` 调用插件声明的 bridge interface/method；回放报告 `NativePluginRuntimeRegistrationReplayReport` 透出已注册 system。focused test `dist_system_plugin_loads_and_ticks_via_bridge` 已拆到独立 test owner，避免继续扩张 1100+ 行 `tests.rs`。状态锚点：`plugins_13_registration_bridge_replay_implemented`；scoped rustfmt 通过，focused cargo test 当前被无关 runtime lib-test compile drift 阻塞，未计通过。M2/T3 dist entry helper、M3/T1 plugin build、M3/T2 carrier form 判定、M3/T3 可重复构建与 M4/T1 per-plugin zrpack 已在后续记录落地；M4/T3 已由后续签名/hash/load manifest 记录关闭；M5 仍未完成。
+>
+> 2026-06-23 M2/T3 已新增 `zircon_plugin_sdk::dist` owner 与 `native_dist_plugin_v3!` / `native_dist_runtime_plugin_v3!` 一文件导出宏：宏生成 ABI v3 descriptor、runtime/editor entry report、capability gating、schema/manifest pointer、bridge method table 与 entry symbol export，native fixture 改为由该宏声明 cdylib 导出，并在 `plugin.toml` 中声明 `native_dynamic_fixture.runtime.tick` bridge method。状态锚点：`plugins_13_dist_entry_helper_compiles`；SDK focused test `dist_plugin_one_file_export_compiles` 1/1 通过，fixture `--no-default-features --features dist` check 通过。M3/T1 单插件构建入口、M3/T2 carrier form 判定、M3/T3 可重复构建与 M4/T1 per-plugin zrpack 已在后续记录落地；M4/T3 已由后续签名/hash/load manifest 记录关闭；M5 全量 rollout 仍未完成。
+>
+> 2026-06-23 M3/T1 已新增 `tools/zircon_export/plugin_build.py` 与 CLI 分派 `python -m tools.zircon_export plugin build <id>`：按 `plugin.toml` `[distribution]` 查 dist crate，使用独立 `--target-dir` 构建 `--no-default-features --features dist --locked`，并把产物物化为 `<out>/<id>/{<id>.dll|so|dylib, plugin.toml, native_dynamic_package.toml}`，不经过 profile 级 `<out>/stages` 目录。状态锚点：`plugins_13_plugin_build_emits_isolated_package_dir`；Python focused test 与真实 `native_dynamic_fixture` 构建/打包 smoke 均通过。M3/T2、M3/T3 与 M4/T1 已由后续记录关闭；M4/T3 已由后续签名/hash/load manifest 记录关闭；M5 全量 rollout 仍未完成。
+>
+> 2026-06-23 M3/T2 已把 profile 级 `tools/zircon_build.py` 的插件 carrier 判定升级为读取 `[distribution].forms`：当 manifest 声明 `forms` 时，`dist` 映射 `native_dynamic`、`embed` 映射 `rlib_static`，`dist_crate` 用于选择动态 crate；未迁移、未声明 forms 的旧插件暂时保留 crate-type 回退，避免 rollout 前误排除现有静态/动态插件。状态锚点：`plugins_13_zircon_build_classifies_forms_from_manifest`；新增 focused Python test `zircon_build_classifies_forms_from_manifest` 覆盖 `dist`、`embed` 与 legacy fallback。M3/T3 与 M4/T1 已由后续记录关闭；M4/T3 已由后续签名/hash/load manifest 记录关闭；M5 全量 rollout 仍未完成。
+>
+> 2026-06-23 M3/T3 已锁定 `plugin build <id>` 可重复包输出：`tools/zircon_export/tests/test_plugin_build.py::test_plugin_dist_build_is_byte_reproducible` 对同一输入执行两次单插件 dist 构建并比较包目录相对路径到 bytes 的完整映射；真实 `native_dynamic_fixture` debug 构建也用同一 target-dir 双跑到两个 out 目录，`native_dynamic_fixture.dll`、`plugin.toml`、`native_dynamic_package.toml` 三个文件 sha256 完全一致。状态锚点：`plugins_13_plugin_dist_build_is_byte_reproducible`。该记录只关闭 M3/T3；M4/T1 已由后续记录关闭，M4/T3 已由后续签名/hash/load manifest 记录关闭；M5 全量 rollout 仍未完成。
+
+> 2026-06-23 M4/T1 已把 per-plugin zrpack 资产子包接入 `plugin build <id>`：`plugin_build.py` 读取 `[distribution].assets`，生成 Pack 阶段资产清单，调用 `zircon_export_pack` 或 `--packer` 预构建 packer 写出 `<id>.zrpack`，再由 `native_dynamic_package.toml` payload manifest 收录。`native_dynamic_fixture` 已声明 `assets = ["assets/**"]` 并带最小 `assets/shader.wgsl` fixture。状态锚点：`plugins_13_native_dynamic_package_includes_plugin_zrpack`；focused Python test `plugin_build_includes_plugin_zrpack_asset_subpackage` 通过。真实 `native_dynamic_fixture` smoke 当前在 packer Cargo 构建/运行阶段 604s 超时，未计通过；M4/T2 与 M4/T3 已由后续记录关闭，M5 全量 rollout 仍未完成。
+>
+> 2026-06-23 M5/T3 已把 `RuntimePluginId` 从 core 封闭 enum 改为开放 string-newtype：一方内建插件继续通过 `RuntimePluginId::Ui` 等关联常量保持调用面，合法第三方/独立插件 key 可通过 `RuntimePluginId::parse_key(...)` / `RuntimePluginId::new(...)` 承载且不需要新增 core 分支；loader 对未知合法 runtime plugin id 走 externalized diagnostic fallback。状态锚点：`plugins_13_runtime_plugin_id_string_newtype_accepts_external_ids`；scoped rustfmt、runtime `core-min` cargo check 与 plugin SDK locked check 通过，focused runtime lib-test 被无关 test-tree 编译漂移阻塞，未计通过。该记录关闭 B8 / M5/T3；M5/T1 skeleton owner rollout 已清零迁移债，真实 dist-capable 扩容仍以后续发行切片推进。
+>
+> 2026-06-23 M5/T1 importer skeleton/capability-owner 子切片已把 7 个 split importer 与 `asset_importers/{data,model,shader}` runtime 根迁到 `runtime/src/capability.rs` 单源，并让 `lib.rs` 只负责模块声明和常量 re-export；`tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 25`、`plugin_skeleton_gate.migration_debt_count = 25`，但 `standalone_distribution_conformance.dist_capable_plugin_count` 仍为 1。状态锚点：`plugins_13_m5_t1_importer_capability_owner_rollout`；该记录只减少 skeleton debt，不关闭 M5/T1 full dual-form rollout。
+>
+> 2026-06-23 M5/T1 runtime-only skeleton owner 子切片继续把 `ai`、`solari`、`zr_vm_language` 和 `asset_importers/{audio,texture}` 收到 `runtime/src/plugin.rs` / `runtime/src/capability.rs` 骨架：`lib.rs` 只保留模块声明与 re-export，`asset_importers/audio` 与 `asset_importers/texture` 从 legacy declaration-only `package_manifest()` 改为 trait-backed runtime plugin。`tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 20`、`plugin_skeleton_gate.migration_debt_count = 20`，`standalone_distribution_conformance.dist_capable_plugin_count` 仍为 1。状态锚点：`plugins_13_m5_t1_runtime_only_skeleton_owner_rollout`；该记录仍不关闭 full dual-form rollout。
+>
+> 2026-06-23 M5/T1 editor-only skeleton owner 子切片把 `native_window_hosting`、`runtime_diagnostics`、`ui_asset_authoring` 的 editor crate 收到 `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs` 骨架，`lib.rs` 退为薄 façade；`tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 17`、`plugin_skeleton_gate.migration_debt_count = 17`，`standalone_distribution_conformance.dist_capable_plugin_count` 仍为 1。状态锚点：`plugins_13_m5_t1_editor_only_skeleton_owner_rollout`；该记录只降低 editor-only 根的骨架债，不新增 dist-capable 插件，也不关闭 full dual-form rollout。
+>
+> 2026-06-23 M5/T1 authoring runtime/editor skeleton owner 子切片把 `prefab_tools`、`terrain`、`tilemap_2d` 的 runtime crate 收到 `runtime/src/plugin.rs` / `runtime/src/capability.rs` / `runtime/src/tests.rs`，editor crate 收到 `editor/src/authoring.rs` / `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs` 骨架，两个 `lib.rs` 均退为薄 façade；`tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 14`、`plugin_skeleton_gate.migration_debt_count = 14`，`standalone_distribution_conformance.dist_capable_plugin_count` 仍为 1。状态锚点：`plugins_13_m5_t1_authoring_runtime_editor_skeleton_owner_rollout`；该记录只降低 authoring 双 crate 根的骨架债，不新增 dist-capable 插件，也不关闭 full dual-form rollout。
+>
+> 2026-06-23 M5/T1 particles / physics / texture skeleton owner 子切片把 `particles`、`physics`、`texture` 的 runtime crate 收到 `runtime/src/plugin.rs` 与薄 `lib.rs` façade，`physics`/`texture` 测试收到 `runtime/src/tests.rs`，`texture` 领域实现拆到 `manager.rs` / `module.rs`，三个 editor crate 收到 `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs` 骨架；`particles/runtime/src/simulation/cpu.rs` 同步补齐 `RenderParticleSpriteSnapshot.render_layer_mask` 字段以恢复 runtime check。`tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 11`、`plugin_skeleton_gate.migration_debt_count = 11`，`standalone_distribution_conformance.dist_capable_plugin_count` 仍为 1。状态锚点：`plugins_13_m5_t1_particles_physics_texture_skeleton_owner_rollout`；该记录只降低三组 runtime/editor 根的骨架债，不新增 dist-capable 插件，也不关闭 full dual-form rollout。
+
+> 2026-06-23 M5/T1 final skeleton owner rollout 已把剩余 `animation`、`animation_graph`、`hybrid_gi`、`material_editor`、`navigation`、`net`、`rendering`、`virtual_geometry` 迁到 Plugins 12 owner 骨架，`tools/audit_plugin_structure.py --json` 当时报告 `plugin_skeleton_gate.m2_gate_status = sample-clean-migration-debt-clear`、`skeleton_conformance.migration_debt_count = 0`、`plugin_skeleton_gate.migration_debt_count = 0`、`migration_debt_roots = []`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`、`dist_build_matrix_count = 1`。状态锚点：`plugins_13_m5_t1_final_skeleton_owner_rollout`；该记录关闭 skeleton migration debt，但不把当时尚未扩容的真实 dist-capable 插件矩阵冒充为完成；当前 dist-capable 计数已由 Solari、AI、ZrVM Language、Navigation、Physics、Texture、Particles、Animation、Hybrid GI 与 Terrain rollout 更新为 11。
+>
+> 2026-06-23 M5/T1 Solari dist rollout 已把首个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/solari/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`solari/plugin.toml` 与 `SolariRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `solari`。`plugin build solari --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml` 与 `plugins/native_plugins.toml`。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 2`、`dist_build_matrix_count = 2`、`dist_capable_plugins = ["native_dynamic_fixture", "solari"]`、`dist_dependency_boundary_violations = 0`。状态锚点：`plugins_13_m5_t1_solari_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+>
+> 2026-06-23 M5/T1 AI dist rollout 已把第二个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/ai/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`ai/plugin.toml` 与 `AiRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `ai.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `ai`。`plugin build ai --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 3`、`dist_build_matrix_count = 3`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "solari"]`、`dist_dependency_boundary_violations = 0`。插件 workspace 全量 locked check 当前被无关 `zircon_runtime` UI template 编译漂移阻塞，未计通过。状态锚点：`plugins_13_m5_t1_ai_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-23 M5/T1 ZrVM Language dist rollout 已把第三个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/zr_vm_language/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`zr_vm_language/plugin.toml` 与 `ZrVmLanguageRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `zr_vm_language.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `zr_vm_language`。`plugin build zr_vm_language --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 4`、`dist_build_matrix_count = 4`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。runtime crate scoped check 通过；focused runtime unit test 的 manifest 入口断言已修正，但复跑被无关 `zircon_runtime/src/ui/component/catalog/editor_showcase.rs` `numeric` 未定义编译漂移阻塞，仍未计通过。状态锚点：`plugins_13_m5_t1_zr_vm_language_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Navigation dist rollout 已把第四个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/navigation/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`navigation/plugin.toml` 与 `NavigationRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `navigation.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `navigation`。`plugin build navigation --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 5`、`dist_build_matrix_count = 5`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime crate scoped check、真实 `plugin build navigation` smoke 均通过；focused runtime unit test 被无关 `zircon_runtime` UI surface private method / trait import 编译漂移阻塞，未计通过。状态锚点：`plugins_13_m5_t1_navigation_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Physics dist rollout 已把第五个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/physics/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`physics/plugin.toml` 与 `PhysicsRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `physics.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `physics`。`plugin build physics --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 6`、`dist_build_matrix_count = 6`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "physics", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime crate scoped check、runtime focused unit test 与真实 `plugin build physics` smoke 均通过。状态锚点：`plugins_13_m5_t1_physics_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Texture dist rollout 已把第六个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/texture/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`texture/plugin.toml` 与 `TextureRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `texture.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `texture`。`plugin build texture --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 7`、`dist_build_matrix_count = 7`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime crate scoped check、runtime focused unit test 与真实 `plugin build texture` smoke 均通过。状态锚点：`plugins_13_m5_t1_texture_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Particles dist rollout 已把第七个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/particles/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`particles/plugin.toml` 与 `ParticlesRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `particles.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `particles`。`plugin build particles --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 8`、`dist_build_matrix_count = 8`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime crate scoped check、runtime focused unit test 与真实 `plugin build particles` smoke 均通过。状态锚点：`plugins_13_m5_t1_particles_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Animation dist rollout 已把第八个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/animation/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`animation/plugin.toml` 与 `AnimationRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `animation.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `animation`。`plugin build animation --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 9`、`dist_build_matrix_count = 9`、`dist_capable_plugins = ["ai", "animation", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime crate scoped check、runtime focused unit test 与真实 `plugin build animation` smoke 均通过。状态锚点：`plugins_13_m5_t1_animation_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+
+> 2026-06-24 M5/T1 Hybrid GI dist rollout 已把第九个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/hybrid_gi/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`hybrid_gi/plugin.toml` 与 `HybridGiRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `hybrid_gi.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `hybrid_gi`。`plugin build hybrid_gi --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 10`、`dist_build_matrix_count = 10`、`dist_capable_plugins = ["ai", "animation", "hybrid_gi", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、CI matrix unittest、`test_plugin_build`、py_compile、audit JSON 与真实 `plugin build hybrid_gi` smoke 均通过；runtime focused unit test 被无关 `zircon_runtime` render handle/value semantics compile drift 阻塞，未计通过。状态锚点：`plugins_13_m5_t1_hybrid_gi_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
+>
+> 2026-06-24 M5/T1 Terrain dist rollout 已把第十个真实一方 runtime 插件扩成独立 dist 形态：`zircon_plugins/terrain/dist` 作为 fallback `<plugin>/dist/` cdylib crate，只依赖 `zircon_plugin_sdk` native ABI；`terrain/plugin.toml` 与 `TerrainRuntimePlugin::package_manifest()` 声明 `[distribution]`、native module `terrain.dist`、ABI v3、engine compatibility、descriptor/runtime entry 与 NativeDynamic default packaging；CI matrix 同步覆盖 `terrain`。`plugin build terrain --form dist` 现在物化根 loadable、`native/<dist_crate>.dll` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与签名 sidecar。`tools/audit_plugin_structure.py --json` 报告 `dist_capable_plugin_count = 11`、`dist_build_matrix_count = 11`、`dist_capable_plugins = ["ai", "animation", "hybrid_gi", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "terrain", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`。dist check/test、runtime focused unit test、CI matrix unittest、`test_plugin_build`、py_compile、audit JSON 与真实 `plugin build terrain` smoke 均通过。状态锚点：`plugins_13_m5_t1_terrain_dist_rollout`；该记录新增真实 dist-capable 一方插件，但 full dual-form rollout 仍未完成。
 
 ## 3. 架构设计
 
@@ -127,13 +789,13 @@ status: planned
 
 dist 产物的依赖闭包白名单（编译期 guard）：
 
-| 允许 | 禁止 |
-|---|---|
-| `zircon_plugin_sdk`（`native`/`dist` feature） | `zircon_runtime`（path 或任何形态） |
+| 允许                                                        | 禁止                                                                  |
+| ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `zircon_plugin_sdk`（`native`/`dist` feature）        | `zircon_runtime`（path 或任何形态）                                 |
 | `zircon_runtime_interface`（经 SDK 再导出，稳定 ABI/DTO） | `zircon_editor` / `zircon_app` / `wgpu` / `slint` / `winit` |
-| 纯第三方算法库（kira、jolt、recast 等） | runtime 世界引用、trait object、wgpu/slint 对象（与 E8 边界规则同源） |
+| 纯第三方算法库（kira、jolt、recast 等）                     | runtime 世界引用、trait object、wgpu/slint 对象（与 E8 边界规则同源） |
 
-- guard：`cargo metadata --manifest-path zircon_plugins/Cargo.toml -p <dist crate> --features dist --no-default-features --no-deps` 解析依赖，断言 `zircon_runtime` 不在闭包；新增审计 owner `tools/plugin_structure_audits/dependency_boundary.py`，字段 `dist_dependency_boundary_violations`、`dist_capable_plugin_count`。
+- guard：`tools/plugin_structure_audits/dependency_boundary.py` 读取 `[distribution]`、workspace crate manifest 与 `dist` feature，断言 dist crate 不直接启用 `zircon_runtime` / `zircon_editor` / `zircon_app` / `wgpu` / `slint` / `winit`，并要求 `zircon_plugin_sdk` 使用 `default-features = false` + native/dist ABI helper。字段：`dist_dependency_boundary_violations`、`distribution_section_violations`、`dist_capable_plugin_count`。里程碑末再叠加 `cargo metadata --manifest-path zircon_plugins/Cargo.toml -p <dist crate> --features dist --no-default-features --no-deps` 与实际 `cargo check --no-default-features --features dist`。
 
 ### 3.3 注册跨 ABI 编组（解决 B3，与 01/11 协同）
 
@@ -188,7 +850,7 @@ python -m tools.zircon_export plugin build <id> \
 
 ```
 zircon_plugins/plugin_sdk/src/
-  native.rs                 [改造] 增 registration 段 ABI schema（§3.3）+ dist entry helper 宏
+  native.rs                 [改造] 增 registration 段 ABI schema（§3.3）与底层 ABI 类型
   dist.rs                   [新增] dist 形态投影 helper（单源喂 cdylib 导出）
   registration.rs           [改造] embed/dist 双形态 registration builder 收口
 zircon_plugins/<plugin>/
@@ -213,24 +875,24 @@ docs/zircon_plugins/
 
 切片期 `cargo check --manifest-path zircon_plugins/Cargo.toml -p <crate> --features dist --no-default-features --locked`；里程碑末进测试 + `cargo fmt --all --check` + `python tools/audit_plugin_structure.py --json`。
 
-| 里程碑 | 任务 | 改动文件（代表） | 依赖 | 验收命令 / 测试函数 |
-|---|---|---|---|---|
-| **M1 双形态骨架 + 依赖边界** | T1 规范文档 owner | `docs/zircon_plugins/plugin-standalone-build.md` | 12-M1/M2 | 人工 review + 链接可达 |
-| | T2 `crate-type rlib+cdylib` + `embed`/`dist` feature + optional `zircon_runtime`（代表插件先行） | 代表插件 `runtime/Cargo.toml`、`src/{plugin.rs,dist.rs}` | 12-M3 | `cargo check -p <crate> --features dist --no-default-features` 不拉入 `zircon_runtime` |
-| | T3 依赖边界 guard | `tools/plugin_structure_audits/dependency_boundary.py` | T2 | `plugins_13_dist_dependency_boundary_clean`（`dist_dependency_boundary_violations = 0`） |
-| | T4 `plugin.toml` 增 `[distribution]` 段 + `@generated` 投影 | manifest schema 校验器、各 `plugin.toml` | M1-T1 | `plugins_13_distribution_section_uniform` |
-| **M2 注册跨 ABI 编组** | T1 registration 段 ABI schema（module/system anchor/resource/event/扩展点/capability） | `plugin_sdk/src/native.rs`、`native_plugin_loader/` | 01-M2/M4 | `native_dynamic_registration_manifest_round_trips` |
-| | T2 system 型插件经 bridge 回放（与 11 dense 通道对齐） | `plugin_sdk/src/{native,registration}.rs`、对齐 11 | 11-M1/M2，T1 | `dist_system_plugin_loads_and_ticks_via_bridge` |
-| | T3 dist entry helper 宏（一文件导出 cdylib） | `plugin_sdk/src/dist.rs`、`native.rs` 宏 | T1 | `dist_plugin_one_file_export_compiles` |
-| **M3 每插件独立构建命令** | T1 `zircon_export plugin build <id>`（独立 target/产物/形态） | `tools/zircon_export/cli.py`、`native_build.py` | M1 | `plugin_build_emits_isolated_package_dir` |
-| | T2 carrier 形态判定读 `[distribution].forms` | `tools/zircon_build.py` | M1-T4 | `zircon_build_classifies_forms_from_manifest` |
-| | T3 可重复构建：同输入 byte 相同（双跑比对） | `native_build.py`、CI | T1 | `plugin_dist_build_is_byte_reproducible` |
-| **M4 产物包 + 兼容性协商** | T1 产物目录增 per-plugin zrpack 资产子包 | `native_dynamic_package_plan.rs`、09 zrpack writer | 09-M2 | `native_dynamic_package_includes_plugin_zrpack` |
-| | T2 loader 加载期协商 `abi_version`/`engine_compat`，不匹配出诊断 | `native_plugin_loader/` | M2-T1 | `loader_rejects_incompatible_abi_with_diagnostic` |
-| | T3 签名/hash + load manifest 汇编 | `native_signing.py`、`native_plugin_load_manifest.rs` | T1 | `native_plugin_load_manifest_assembles_signed_entries` |
-| **M5 全量 rollout + CI 矩阵** | T1 touch-it-conform-it：各插件随 02–11 能力波次迁双形态 | 各插件，随其能力波次 | M1–M4 | `dist_capable_plugin_count` 递增至全量；`plugin_skeleton_gate.migration_debt_count → 0` |
-| | T2 每插件独立构建 CI job 矩阵 | `.github/workflows/ci.yml` | M3 | 每插件独立 `cargo build --features dist` 绿 |
-| | T3 `RuntimePluginId` string-newtype（与 12-M5/T2 / D6 合流） | `builtin/runtime_modules/ids/plugin_id.rs` | 12-M5 | 第三方插件自带 id 不改引擎核心 |
+| 里程碑                              | 任务                                                                                                     | 改动文件（代表）                                             | 依赖         | 验收命令 / 测试函数                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------- |
+| **M1 双形态骨架 + 依赖边界**  | T1 规范文档 owner                                                                                        | `docs/zircon_plugins/plugin-standalone-build.md`           | 12-M1/M2     | 人工 review + 链接可达                                                                       |
+|                                     | T2 `crate-type rlib+cdylib` + `embed`/`dist` feature + optional `zircon_runtime`（代表插件先行） | 代表插件 `runtime/Cargo.toml`、`src/{plugin.rs,dist.rs}` | 12-M3        | `cargo check -p <crate> --features dist --no-default-features` 不拉入 `zircon_runtime`   |
+|                                     | T3 依赖边界 guard                                                                                        | `tools/plugin_structure_audits/dependency_boundary.py`     | T2           | `plugins_13_dist_dependency_boundary_clean`（`dist_dependency_boundary_violations = 0`） |
+|                                     | T4 `plugin.toml` 增 `[distribution]` 段 + `@generated` 投影                                        | manifest schema 校验器、各 `plugin.toml`                   | M1-T1        | `plugins_13_distribution_section_uniform`                                                  |
+| **M2 注册跨 ABI 编组**        | T1 registration 段 ABI schema（module/system anchor/resource/event/扩展点/capability）                   | `plugin_sdk/src/native.rs`、`native_plugin_loader/`      | 01-M2/M4     | `native_dynamic_registration_manifest_round_trips`                                         |
+|                                     | T2 system 型插件经 bridge 回放（与 11 dense 通道对齐）                                                   | `plugin_sdk/src/{native,registration}.rs`、对齐 11         | 11-M1/M2，T1 | `dist_system_plugin_loads_and_ticks_via_bridge`                                            |
+|                                     | T3 dist entry helper 宏（一文件导出 cdylib）                                                             | `plugin_sdk/src/dist.rs`、`native.rs` 宏                 | T1           | `dist_plugin_one_file_export_compiles`                                                     |
+| **M3 每插件独立构建命令**     | T1 `zircon_export plugin build <id>`（独立 target/产物/形态）                                          | `tools/zircon_export/cli.py`、`plugin_build.py`、`native_build.py` | M1           | `plugin_build_emits_isolated_package_dir`                                                  |
+|                                     | T2 carrier 形态判定读 `[distribution].forms`                                                           | `tools/zircon_build.py`                                    | M1-T4        | `zircon_build_classifies_forms_from_manifest`                                              |
+|                                     | T3 可重复构建：同输入 byte 相同（双跑比对）                                                              | `native_build.py`、CI                                      | T1           | `plugin_dist_build_is_byte_reproducible`                                                   |
+| **M4 产物包 + 兼容性协商**    | T1 产物目录增 per-plugin zrpack 资产子包                                                                 | `native_dynamic_package_plan.rs`、09 zrpack writer         | 09-M2        | `native_dynamic_package_includes_plugin_zrpack`                                            |
+|                                     | T2 loader 加载期协商 `abi_version`/`engine_compat`，不匹配出诊断                                     | `native_plugin_loader/`                                    | M2-T1        | `native_loader_skips_distribution_with_incompatible_engine_range_before_library_probe` / `distribution_diagnostic_rejects_unsupported_abi_version` |
+|                                     | T3 签名/hash + load manifest 汇编                                                                        | `native_signing.py`、`native_plugin_load_manifest.rs`    | T1           | `native_plugin_load_manifest_assembles_signed_entries`                                     |
+| **M5 全量 rollout + CI 矩阵** | T1 touch-it-conform-it：各插件随 02–11 能力波次迁双形态                                                 | 各插件，随其能力波次                                         | M1–M4       | `dist_capable_plugin_count` 递增至全量；`plugin_skeleton_gate.migration_debt_count → 0` |
+|                                     | T2 每插件独立构建 CI job 矩阵                                                                            | `.github/workflows/ci.yml`                                 | M3           | 每插件独立 `cargo build --features dist` 绿                                                |
+|                                     | T3 `RuntimePluginId` string-newtype（与 12-M5/T2 / D6 合流）                                           | `builtin/runtime_modules/ids/plugin_id.rs`                 | 12-M5        | 第三方插件自带 id 不改引擎核心                                                               |
 
 > 波次：M1–M2 = **波次零（结构前置）**，与 12 同窗口（双形态骨架是 12 骨架的发行维扩展）；M3–M4 进 plugins index §2 波次四（与 09-M1/M2 同窗口共享 zrpack/CLI 底座）；M5 随各能力波次 touch-it-conform-it。
 
@@ -266,4 +928,40 @@ cargo fmt --all --check
 - 继承 09（三路径、NativeDynamic、zrpack、export-templates、CLI 阶段机）的 NativeDynamic 路径并把它从 profile 级整包升格为 per-plugin 独立路径；09 的整包导出调用本计划同一底座。
 - 继承 12（统一 manifest / 唯一骨架 / capability 单源 / plugin_sdk builder）并扩出"发行维"：双形态骨架、`[distribution]` 段、依赖边界 guard。
 - 依赖 01（ABI v3 / register 通道 / 访问集）与 11（bridge dense 通道）闭合 B3；本计划不另立第二套注册或调用模型。
-- B8（`RuntimePluginId` 封闭枚举）与 12-S12/D6 同根，合流在 M5/T3。
+- B8（`RuntimePluginId` 封闭枚举）与 12-S12/D6 同根，已在 M5/T3 合流为开放 string-newtype；M5/T1 已通过 importer skeleton/capability-owner、runtime-only skeleton owner、editor-only skeleton owner、authoring runtime/editor skeleton owner、particles/physics/texture skeleton owner、editor_build_export_desktop skeleton owner、sound runtime/editor feature skeleton owner、timeline_sequence editor skeleton owner 与最终 8 根 owner rollout 把 skeleton debt 降到 0。真实 dist-capable 插件矩阵当前覆盖 `ai`、`animation`、`hybrid_gi`、`native_dynamic_fixture`、`navigation`、`particles`、`physics`、`solari`、`terrain`、`texture` 与 `zr_vm_language` 十一项，全量发行扩容继续按能力波次推进。
+
+## 9. 审查和验收记录
+
+| 日期 | 里程碑 | 切片 | 状态 | 证据 |
+|---|---|---|---|---|
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Terrain first-party dist rollout | plugins_13_m5_t1_terrain_dist_rollout | `terrain` 已从 runtime/editor root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_terrain_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`terrain/plugin.toml` 与 `TerrainRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `terrain.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Terrain runtime capability；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `terrain`。`plugin build terrain --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 11`、`dist_build_matrix_count = 11`、`dist_capable_plugins = ["ai", "animation", "hybrid_gi", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "terrain", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_terrain_dist --no-default-features --features dist --offline` 通过，`cargo test -p zircon_plugin_terrain_runtime terrain_package_manifest_declares_dist_contract --offline --locked` 1/1 通过，`python -m tools.zircon_export plugin build terrain --form dist ... --offline` 通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Hybrid GI first-party dist rollout | plugins_13_m5_t1_hybrid_gi_dist_rollout | `hybrid_gi` 已从 runtime/editor root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_hybrid_gi_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`hybrid_gi/plugin.toml` 与 `HybridGiRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `hybrid_gi.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Hybrid GI runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `hybrid_gi`。`plugin build hybrid_gi --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 10`、`dist_build_matrix_count = 10`、`dist_capable_plugins = ["ai", "animation", "hybrid_gi", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_hybrid_gi_dist --no-default-features --features dist --offline` 通过，`python -m tools.zircon_export plugin build hybrid_gi --form dist ... --offline` 通过。focused runtime unit test 被无关 `zircon_runtime` render handle/value semantics 编译漂移阻塞，未计通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Animation first-party dist rollout | plugins_13_m5_t1_animation_dist_rollout | `animation` 已从 runtime root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_animation_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`animation/plugin.toml` 与 `AnimationRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `animation.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Animation runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `animation`。`plugin build animation --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 9`、`dist_build_matrix_count = 9`、`dist_capable_plugins = ["ai", "animation", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_animation_dist --no-default-features --features dist --offline` 通过，`cargo check -p zircon_plugin_animation_runtime --offline --locked` 通过（仅既有 warning 噪声），`cargo test -p zircon_plugin_animation_runtime animation_package_manifest_declares_dist_contract --offline --locked` 1/1 通过，`python -m tools.zircon_export plugin build animation --form dist ... --offline` 通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Particles first-party dist rollout | plugins_13_m5_t1_particles_dist_rollout | `particles` 已从 runtime/editor root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_particles_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`particles/plugin.toml` 与 `ParticlesRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `particles.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Particles runtime capability；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `particles`。`plugin build particles --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 8`、`dist_build_matrix_count = 8`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "particles", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_particles_dist --no-default-features --features dist --offline` 通过，`cargo check -p zircon_plugin_particles_runtime --offline --locked` 通过（仅既有 warning 噪声），`cargo test -p zircon_plugin_particles_runtime particles_package_manifest_declares_dist_contract --offline --locked` 1/1 通过，`python -m tools.zircon_export plugin build particles --form dist ... --offline` 通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Texture first-party dist rollout | plugins_13_m5_t1_texture_dist_rollout | `texture` 已从 runtime/editor root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_texture_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`texture/plugin.toml` 与 `TextureRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `texture.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Texture runtime capability；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `texture`。`plugin build texture --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 7`、`dist_build_matrix_count = 7`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "physics", "solari", "texture", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_texture_dist --no-default-features --features dist --offline` 通过，`cargo check -p zircon_plugin_texture_runtime --offline --locked` 通过（仅既有 warning 噪声），`cargo test -p zircon_plugin_texture_runtime texture_package_manifest_declares_dist_contract --offline --locked` 1/1 通过，`python -m tools.zircon_export plugin build texture --form dist ... --offline` 通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Physics first-party dist rollout | plugins_13_m5_t1_physics_dist_rollout | `physics` 已从 runtime/editor root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_physics_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`physics/plugin.toml` 与 `PhysicsRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `physics.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Physics runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `physics`。`plugin build physics --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 6`、`dist_build_matrix_count = 6`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "physics", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_physics_dist --no-default-features --features dist --offline` 通过，`cargo check -p zircon_plugin_physics_runtime --offline --locked` 通过（仅既有 warning 噪声），`cargo test -p zircon_plugin_physics_runtime physics_package_manifest_declares_dist_contract --offline --locked` 1/1 通过，`python -m tools.zircon_export plugin build physics --form dist ... --offline` 通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-24 | M5 全量 rollout + CI 矩阵 | T1 Navigation first-party dist rollout | plugins_13_m5_t1_navigation_dist_rollout | `navigation` 已从 runtime/editor/native root 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_navigation_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`navigation/plugin.toml` 与 `NavigationRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `navigation.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Navigation/Recast runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `navigation`。`plugin build navigation --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 5`、`dist_build_matrix_count = 5`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "navigation", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_navigation_dist --no-default-features --features dist --offline` 通过，`cargo check -p zircon_plugin_navigation_runtime --offline --locked` 通过（仅既有 warning 噪声），`python -m tools.zircon_export plugin build navigation --form dist ... --offline` 通过。focused runtime unit test 被无关 `zircon_runtime` UI surface private method / trait import 编译漂移阻塞，未计通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 ZrVM Language first-party dist rollout | plugins_13_m5_t1_zr_vm_language_dist_rollout | `zr_vm_language` 已从纯 runtime crate 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_zr_vm_language_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`zr_vm_language/plugin.toml` 与 `ZrVmLanguageRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `zr_vm_language.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 ZrVM runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `zr_vm_language`。`plugin build zr_vm_language --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 4`、`dist_build_matrix_count = 4`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "solari", "zr_vm_language"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_zr_vm_language_dist --no-default-features --features dist --offline --locked` 通过，`cargo check -p zircon_plugin_zr_vm_language_runtime --offline --locked` 通过（仅既有 warning 噪声），`python -m tools.zircon_export plugin build zr_vm_language --form dist ... --offline` 通过。focused runtime unit test 的 manifest 入口断言已修正，但复跑被无关 `zircon_runtime/src/ui/component/catalog/editor_showcase.rs` `numeric` 未定义编译漂移阻塞，未计通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 AI first-party dist rollout | plugins_13_m5_t1_ai_dist_rollout | `ai` 已从纯 runtime crate 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_ai_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`ai/plugin.toml` 与 `AiRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `ai.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 AI runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `ai`。`plugin build ai --form dist` 输出根 loadable、`native/<dist_crate>` loader 兼容副本、根 `native_plugins.toml`、`plugins/native_plugins.toml` 与 `.sig` sidecar。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 3`、`dist_build_matrix_count = 3`、`dist_capable_plugins = ["ai", "native_dynamic_fixture", "solari"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_ai_dist --no-default-features --features dist --offline --locked` 通过，`cargo test -p zircon_plugin_ai_runtime ... ai_package_manifest_declares_dist_contract` 通过，`python -m tools.zircon_export plugin build ai --form dist ... --offline` 通过。插件 workspace 全量 locked check 被无关 `zircon_runtime` UI template 编译漂移阻塞，未计通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 Solari first-party dist rollout | plugins_13_m5_t1_solari_dist_rollout | `solari` 已从纯 runtime crate 扩出 fallback `<plugin>/dist/` cdylib crate `zircon_plugin_solari_dist`，由 `native_dist_runtime_plugin_v3!` 导出 ABI v3 descriptor/runtime entry/registration manifest，且仅依赖 `zircon_plugin_sdk` native feature。`solari/plugin.toml` 与 `SolariRuntimePlugin::package_manifest()` 已声明 `[distribution]`、native module `solari.dist`、NativeDynamic default packaging、ABI v3、engine compatibility、descriptor/runtime entry 与 Solari runtime capabilities；`.github/workflows/ci.yml` standalone dist matrix 同步新增 `solari`。`plugin_build.py` 现在同时写 `<out>/native_plugins.toml` 与 `<out>/plugins/native_plugins.toml`，并在包内同时保留根 loadable 与 `native/<dist_crate>` loader 兼容副本；native loader candidate path 选择优先使用 `[distribution].dist_crate`。验证：scoped rustfmt、py_compile、`test_plugin_build` 4/4、CI matrix unittest 1/1、audit JSON 均通过；audit 报告 `dist_capable_plugin_count = 2`、`dist_build_matrix_count = 2`、`dist_capable_plugins = ["native_dynamic_fixture", "solari"]`、`dist_dependency_boundary_violations = 0`；`cargo check/test -p zircon_plugin_solari_dist --no-default-features --features dist --offline --locked` 通过，`cargo check/test -p zircon_plugin_solari_runtime ... solari_package_manifest_declares_dist_contract` 通过，`python -m tools.zircon_export plugin build solari --form dist ... --offline` 通过，插件 workspace locked check 通过。根 `zircon_runtime` focused locked check 被 root `Cargo.lock` 更新需求在编译前阻塞，未修改 root lock，不计通过。该记录新增真实一方 dist-capable 插件；M5/T1 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 final skeleton owner rollout | plugins_13_m5_t1_final_skeleton_owner_rollout | 最后 8 个 skeleton debt roots（`animation`、`animation_graph`、`hybrid_gi`、`material_editor`、`navigation`、`net`、`rendering`、`virtual_geometry`）已迁入 Plugins 12 owner 骨架，为后续 embed/dist 双形态拆分移除 crate-root 注册/manifest/capability 耦合。验证：`python tools\audit_plugin_structure.py --json` 当时报告 `plugin_skeleton_gate.m2_gate_status = sample-clean-migration-debt-clear`、`skeleton_conformance.migration_debt_count = 0`、`plugin_skeleton_gate.migration_debt_count = 0`、`migration_debt_roots = []`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`、`dist_build_matrix_count = 1`、`dist_dependency_boundary_violations = 0`；139 个 touched owner/façade 文件 rustfmt check 通过；`cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --offline --locked` 在补齐 `hybrid_gi` placeholder mesh 的 `RenderLayerSet::from_legacy_mask(...)` 后通过（仅既有 warning 噪声）。该记录关闭 M5/T1 skeleton migration debt；当前 dist-capable 计数已由 Solari、AI、ZrVM Language、Navigation、Physics、Texture、Particles、Animation、Hybrid GI 与 Terrain rollout 更新为 11，见上方 `plugins_13_m5_t1_terrain_dist_rollout`。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 timeline_sequence editor skeleton owner sub-rollout | plugins_13_m5_t1_timeline_sequence_skeleton_owner_rollout | `timeline_sequence/editor` 已迁入 Plugins 12 owner 骨架：`capability.rs` 负责插件 id、editor capability 与 animation timeline event track capability 单源，`extension_ids.rs` 负责 view/drawer/template ids，`plugin.rs` 负责 editor plugin owner、descriptor/manifest/registration、operation/menu 与 timeline authoring batch helper，`tests.rs` 承接 focused package/registration/validation/keyframe/event marker 断言，`lib.rs` 退为薄 façade 并保留 timeline authoring 领域 helper。该切片为后续 timeline sequence authoring embed/dist 或扩展包拆分降低 crate-root 耦合，但不新增 dist-capable 插件。验证：scoped rustfmt 通过；`python tools\audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 8`、`plugin_skeleton_gate.migration_debt_count = 8`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`、`capability_conformance.capability_source_mismatches = 0`。`cargo check --manifest-path zircon_plugins\timeline_sequence\editor\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never` 被当前无关 `zircon_runtime` render 编译漂移挡在目标 timeline_sequence crate 前（`MeshPassCommandBuffers` / `CachedMeshDrawLookup` / `mesh_draw` / `mesh_pipeline_cache` imports），未计通过。该记录只关闭 M5/T1 timeline_sequence skeleton owner 子切片；remaining 8 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 sound runtime/editor feature skeleton owner sub-rollout | plugins_13_m5_t1_sound_skeleton_owner_rollout | `sound` main runtime/editor 与 `ray_traced_convolution_reverb`、`timeline_animation_track` feature runtime/editor crate 已迁入 Plugins 12 owner 骨架：runtime/editor `plugin.rs` 负责 trait owner、descriptor/manifest/registration/helper，`capability.rs` 负责 capability 单源，editor `extension_ids.rs` 负责 authoring ids，`tests.rs` 承接 focused package/registration 断言，`lib.rs` 均退为薄 façade。该切片让 sound 的 runtime/editor/feature entry 不再堆在 crate root 或 `runtime_plugin/registration.rs`，为后续 embed/dist 双形态和 feature bundle 分发拆分降低耦合，但不新增 dist-capable 插件。验证：scoped rustfmt 通过；`python tools\audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 9`、`plugin_skeleton_gate.migration_debt_count = 9`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`、`capability_conformance.capability_source_mismatches = 0`。`cargo check --manifest-path zircon_plugins\sound\runtime\Cargo.toml --lib --offline --target-dir target\codex-plugin-validation --message-format short --color never` 被当前无关 `zircon_runtime` render 编译漂移挡在目标 sound crate 前（`MeshPassCommandBuffers` / `CachedMeshDrawLookup` / `mesh_draw` / `mesh_pipeline_cache` imports），未计通过。该记录只关闭 M5/T1 sound skeleton owner 子切片；remaining 9 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 editor build/export desktop skeleton owner sub-rollout | plugins_13_m5_t1_editor_build_export_desktop_skeleton_owner_rollout | `editor_build_export_desktop` editor crate 已迁入 Plugins 12 owner 骨架：`capability.rs` 拥有插件 id 与 editor capabilities，`extension_ids.rs` 拥有 view/drawer/template/report/operation ids 与私有模板路径，`plugin.rs` 拥有 `EditorBuildExportDesktopPlugin`、descriptor、package manifest、registration report、导出 operation/menu、NativeDynamic report templates 与 export profile authoring 注册，`tests.rs` 承接 package/registration/template asset 断言；`lib.rs` 从 639 行退为 74 行薄 façade。该切片让 SourceTemplate/LibraryEmbed/NativeDynamic report/editor surface 不再堆在 crate root，为后续 dual-form 独立插件形态拆分降低耦合，但不新增 dist-capable 插件。验证：scoped rustfmt 通过；`python tools\audit_plugin_structure.py --json` 报告 `capability_source_mismatches = 0`、`skeleton_conformance.migration_debt_count = 10`、`plugin_skeleton_gate.migration_debt_count = 10`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`；`cargo check --manifest-path zircon_plugins\editor_build_export_desktop\editor\Cargo.toml --all-targets --offline --target-dir target\codex-plugin-validation --message-format short --color never` 通过（仅既有 warning 噪声）。该记录只关闭 M5/T1 editor_build_export_desktop skeleton owner 子切片；remaining 10 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 particles / physics / texture skeleton owner sub-rollout | plugins_13_m5_t1_particles_physics_texture_skeleton_owner_rollout | `particles`、`physics`、`texture` 的 runtime crate 已迁入 `runtime/src/plugin.rs` owner 与薄 `lib.rs` façade；`physics`/`texture` 测试迁入 `runtime/src/tests.rs`，`texture` 领域逻辑拆到 `manager.rs` 与 `module.rs`；三个 editor crate 已迁入 `capability.rs`、`extension_ids.rs`、`plugin.rs` 与 `tests.rs` owner 骨架。`particles/runtime/src/simulation/cpu.rs` 补齐 `RenderParticleSpriteSnapshot.render_layer_mask` 字段，解除本轮 runtime check 的既有结构漂移。验证：scoped rustfmt 通过；`python tools/audit_plugin_structure.py --json` 报告 `capability_source_mismatches = 0`、`skeleton_conformance.migration_debt_count = 11`、`plugin_skeleton_gate.migration_debt_count = 11`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`。三包 runtime 与三包 editor `cargo check --offline` 均通过（仅既有 warning 噪声；physics/texture editor 使用隔离 target dir 避开外部并发 Cargo 产物干扰）。该记录只关闭 M5/T1 particles/physics/texture skeleton owner 子切片；remaining 11 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 authoring runtime/editor skeleton owner sub-rollout | plugins_13_m5_t1_authoring_runtime_editor_skeleton_owner_rollout | `prefab_tools`、`terrain`、`tilemap_2d` 的 runtime crate 已迁入 `runtime/src/plugin.rs`、`runtime/src/capability.rs` 与 `runtime/src/tests.rs` owner 骨架，editor crate 已迁入 `editor/src/authoring.rs`、`capability.rs`、`extension_ids.rs`、`plugin.rs` 与 `tests.rs` owner 骨架，两个 `lib.rs` 均只保留模块声明和精选 re-export。验证：scoped rustfmt 通过；`python tools/audit_plugin_structure.py --json` 报告 `capability_source_mismatches = 0`、`skeleton_conformance.migration_debt_count = 14`、`plugin_skeleton_gate.migration_debt_count = 14`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`。三包 runtime `cargo check --offline` 通过（仅既有 `zircon_runtime` warning 噪声）；三包 editor `cargo check --offline` 两次在依赖构建阶段超时，未捕获最终输出，未计通过。该记录只关闭 M5/T1 authoring runtime/editor skeleton owner 子切片；remaining 14 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 editor-only skeleton owner sub-rollout | plugins_13_m5_t1_editor_only_skeleton_owner_rollout | `native_window_hosting`、`runtime_diagnostics`、`ui_asset_authoring` 的 editor crate 已迁入 `capability.rs`、`extension_ids.rs`、`plugin.rs` 与 `tests.rs` owner 骨架，`lib.rs` 只保留模块声明和精选 re-export，减少后续 embed/dist 双形态拆分前的 crate-root 负担。`tools/plugin_structure_audits/capability.py` 同步接受 `runtime_capabilities()` 由 `plugin.rs` 实现并从 `lib.rs` re-export，保持 M4 capability guard 在 M5 骨架迁移后仍 clean。验证：scoped rustfmt 通过；py_compile 通过；`python tools/audit_plugin_structure.py --json` 报告 `capability_source_mismatches = 0`、`skeleton_conformance.migration_debt_count = 17`、`plugin_skeleton_gate.migration_debt_count = 17`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`。三包 editor `cargo check` 被当前无关 `zircon_editor` retained-host compile drift（`HostWindowPresentationData` import 与 E0282）挡在目标包编译前，未计通过。该记录只关闭 M5/T1 editor-only skeleton owner 子切片；remaining 17 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 runtime-only skeleton owner sub-rollout | plugins_13_m5_t1_runtime_only_skeleton_owner_rollout | `ai`、`solari`、`zr_vm_language` 的 runtime plugin trait owner 已迁到 `runtime/src/plugin.rs`，`asset_importers/audio` 与 `asset_importers/texture` 也从 legacy declaration-only `package_manifest()` 收口为 trait-backed runtime plugin，并补齐 `capability.rs` / `plugin.rs` / SDK workspace dependency。`package_manifest()` 仍保留原 asset importer descriptor 清单，`register()` 只注册 runtime module，避免把尚不存在的真实导入函数编造成已注册能力。验证：scoped rustfmt 通过；offline cargo check 刷新 `zircon_plugins/Cargo.lock`，随后 5 个 runtime package locked cargo check 通过（仅既有 runtime warning 噪声）；`python tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 20`、`plugin_skeleton_gate.migration_debt_count = 20`、`standalone_distribution_conformance.dist_capable_plugin_count = 1`。该记录只关闭 M5/T1 runtime-only skeleton owner 子切片；remaining 20 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T1 importer skeleton/capability-owner sub-rollout | plugins_13_m5_t1_importer_capability_owner_rollout | `audio_importer`、`gltf_importer`、`obj_importer`、`opus_importer`、`shader_wgsl_importer`、`texture_importer`、`ui_document_importer` 与 `asset_importers/{data,model,shader}` 已具备 `runtime/src/capability.rs` capability owner，crate root 改为薄 façade + re-export，减少后续 embed/dist 双形态拆分时的 lib 根耦合。验证：scoped rustfmt 通过；`python tools/audit_plugin_structure.py --json` 报告 `skeleton_conformance.migration_debt_count = 25`、`plugin_skeleton_gate.migration_debt_count = 25`，但 `standalone_distribution_conformance.dist_capable_plugin_count = 1` 仍只覆盖 `native_dynamic_fixture`；10 个 importer runtime package 逐包 locked `cargo check` 均 exit=0（仅既有 warning 噪声）。该记录只关闭 M5/T1 的 importer capability-owner 子切片；remaining 25 skeleton debt roots 与 full dual-form rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T3 `RuntimePluginId` string-newtype / third-party id | plugins_13_runtime_plugin_id_string_newtype_accepts_external_ids | `zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs` 已由封闭 enum 改为开放 string-newtype，内建插件保留 `RuntimePluginId::Ui`、`::Physics` 等关联常量，未知但合法的第三方 key 由 `parse_key(...)` / `new(...)` 承载并稳定序列化为字符串；`plugin_modules/loader.rs` 对未知合法 runtime plugin id 走 externalized diagnostic fallback，不要求新增 core match arm；`runtime_modules/tests/registration/structure.rs` 源码守卫改为拒绝回退 enum；`plugin_workspace_shape.rs` 不再把 editor-only 判断绑定到封闭 runtime id 解析表。验证：scoped rustfmt 通过；`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked` 通过（仅既有 warning 噪声）；`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sdk --locked` 通过（仅既有 warning 噪声）。focused test `runtime_plugin_id_accepts_external_keys_without_core_variant` 已加入，但 `cargo test -p zircon_runtime --lib --no-default-features --features core-min ...` 在测试执行前被当前无关 runtime lib-test compile drift 阻塞（missing child modules、gltf fixture 私有 re-export、既有 WGPU test API drift），未计通过。该记录关闭 M5/T3 / B8；M5/T1 全量双形态 rollout 仍未关闭。 |
+| 2026-06-23 | M5 全量 rollout + CI 矩阵 | T2 当前 dist-capable 插件 CI 矩阵种子 | plugins_13_standalone_dist_ci_matrix_covers_dist_capable_plugins | `.github/workflows/ci.yml` 新增 `plugin-standalone-dist` job，按 matrix 编译当前已具备 `dist` 形态的 `native_dynamic_fixture`；`tools/plugin_structure_audits/dependency_boundary.py` 同步输出 `dist_build_matrix_entries` / `dist_build_matrix_count`，`tools/tests/test_plugin_standalone_ci_matrix.py` 比对 CI matrix 与审计里的 dist-capable 插件集合，防止新增 dist 插件后漏进 CI。验证：py_compile 通过；`python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py` 1/1 通过；`python tools/audit_plugin_structure.py --json` 输出 `dist_build_matrix_count = 1`、`dist_dependency_boundary_violations = 0`；真实 `cargo build -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked` 通过。该记录只关闭 M5/T2 当前 dist-capable CI seed；当前 matrix 已由 Solari、AI、ZrVM Language、Navigation、Physics、Texture、Particles、Animation、Hybrid GI 与 Terrain rollout 扩到 11，M5/T3 已由上方记录关闭，M5/T1 全量双形态 rollout 仍未关闭。 |
+| 2026-06-23 | M4 产物包 + 兼容性协商 | T3 签名/hash + load manifest 汇编 | plugins_13_native_plugin_load_manifest_assembles_signed_entries | `tools/zircon_export/plugin_build.py` 现在复用 `native_signing.py` 的外部签名命令执行语义，为 `plugin build <id>` 增加 `--sign-command` / `--sign-arg` / `--sign-profile` / `--sign-platform`，签名命令在 package report 与 payload hash 写入前执行。单插件包始终生成确定性的 `<id>.sig` hash sidecar，记录 loadable artifact 的 bytes/sha256；外部签名启用时 sidecar 还记录 before/after sha256 与 signer exit code。`plugin build` 同时在 `<out>/native_plugins.toml` 汇编 `NativePluginLoadManifest` 条目（`id`、`path`、`manifest`、`package_report`、ABI v3 表），且 `native_dynamic_package.toml` payload 会收录签名后的 loadable artifact 与 `.sig`。验证：新增 focused test `native_plugin_load_manifest_assembles_signed_entries`，`python -m unittest tools.zircon_export.tests.test_plugin_build` 4/4 通过；`python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py` 通过；carrier focused unittest 1/1 通过。该记录关闭 M4/T3；M5 全量 rollout 未关闭，M4/T1 真实 packer Cargo smoke 仍因 604s 超时未计通过。 |
+| 2026-06-23 | M4 产物包 + 兼容性协商 | T2 loader 加载期协商 `abi_version` / `engine_compat` | plugins_13_loader_distribution_compatibility_gate | `PluginPackageManifest` 现在承载 typed `[distribution]` 段（`PluginDistributionManifest`），runtime native loader 在探测库路径前执行 distribution compatibility gate：缺失/不含 `dist` form、`abi_version` 缺失或不等于 ABI v3、`engine_compat` 为空/格式错误/不包含当前引擎版本时，直接写入诊断并跳过该插件，不再继续报 `library is missing`。`native_plugin_loader/compatibility.rs` 负责 `>=0.1, <0.2` 这类逗号分隔版本区间解析，`load_discovered.rs` 在 module kind 命中后调用该 gate。验证：scoped `rustfmt` 通过；`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked` 通过（仅既有 warning 噪声）；新增 focused tests `native_loader_skips_distribution_with_incompatible_engine_range_before_library_probe` 与 `distribution_diagnostic_rejects_unsupported_abi_version`，但 `cargo test -p zircon_runtime --lib --no-default-features --features core-min ...` 被当前无关 runtime lib-test 编译漂移阻塞（`script/vm/tests.rs` 缺 child modules、`runtime_absorption/structure_convention/test_file_budget.rs` 缺 child modules、gltf fixture 私有 re-export、既有 `WgpuRenderFramework` test API drift），未计通过。该记录关闭 M4/T2 production 代码路径与编译检查；M4/T3 已由上方记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M4 产物包 + 兼容性协商 | T1 产物目录增 per-plugin zrpack 资产子包 | plugins_13_native_dynamic_package_includes_plugin_zrpack | `tools/zircon_export/plugin_build.py` 现在读取 `[distribution].assets`，对插件内匹配文件生成 Pack 阶段 JSON 清单，调用 `zircon_export_pack`（或 `--packer` 指向的预构建 packer）写出 `<id>.zrpack` 到单插件包目录，然后在生成 `native_dynamic_package.toml` 前重新扫描 package payload，使 `.zrpack` 与 loadable cdylib、`plugin.toml` 一起进入 payload file manifest。`native_dynamic_fixture/plugin.toml` 声明 `assets = ["assets/**"]`，新增最小 `assets/shader.wgsl` fixture。验证：新增 `tools/zircon_export/tests/test_plugin_build.py::test_plugin_build_includes_plugin_zrpack_asset_subpackage`，`python -m unittest tools.zircon_export.tests.test_plugin_build` 3/3 通过；真实 `native_dynamic_fixture` debug 构建/打包 smoke 在 packer Cargo 构建/运行阶段 604s 超时，包目录只写出 dll 与 `plugin.toml`，未计通过。该记录只关闭 M4/T1 focused guard 与代码路径，不关闭 M4/T2 loader `abi_version`/`engine_compat` 协商、M4/T3 签名/hash/load manifest 汇编或 M5 全量 rollout。 |
+| 2026-06-23 | M3 每插件独立构建命令 | T3 可重复构建：同输入 byte 相同 | plugins_13_plugin_dist_build_is_byte_reproducible | `tools/zircon_export/tests/test_plugin_build.py::test_plugin_dist_build_is_byte_reproducible` 在临时 repo 中对同一插件 manifest、同一 fake cargo 产物执行两次 `python -m tools.zircon_export plugin build native_dynamic_fixture --form dist`，分别写入两个 out 目录，并比较包目录内相对路径到 bytes 的完整映射，锁定 `plugin.toml`、loadable cdylib 与 `native_dynamic_package.toml` 不携带 out/target 绝对路径漂移。真实 smoke 复用同一 `D:\cargo-targets\zircon-plugin-m3-t3-build-fixture` target dir 双跑到 `D:\cargo-targets\zircon-plugin-m3-t3-package-a` 与 `D:\cargo-targets\zircon-plugin-m3-t3-package-b`，三个文件 sha256 均一致。验证：`python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py` 通过；`python -m unittest tools.zircon_export.tests.test_plugin_build` 2/2 通过；真实双跑包比较输出 `MATCH`。该记录只关闭 M3/T3；M4/T1 已由上方记录关闭，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M3 每插件独立构建命令 | T2 carrier 形态判定读 `[distribution].forms` | plugins_13_zircon_build_classifies_forms_from_manifest | `tools/zircon_build.py` 的 `PluginPackage` 现在记录 `distribution_forms` 与 `dist_crate_name`；当 manifest 写入 `[distribution].forms` 时，`dist` 只选 `native_dynamic`，`embed` 只选 `rlib_static`，`dist_crate` 精确约束动态 crate。未写 forms 的 legacy 清单仍沿用 crate-type 回退，保持 rollout 前兼容。新增 `tools/tests/test_zircon_build_plugin_carriers.py::test_zircon_build_classifies_forms_from_manifest` 覆盖 dist-only、embed-only 与 legacy cdylib 三种分类。验证：`python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py` 通过；`python -m unittest discover -s tools/tests -p test_zircon_build_plugin_carriers.py` 1/1 通过。该记录只关闭 M3/T2；M3/T3 与 M4/T1 已由上方记录关闭，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M3 每插件独立构建命令 | T1 `zircon_export plugin build <id>` 单插件独立构建 | plugins_13_plugin_build_emits_isolated_package_dir | `tools/zircon_export/plugin_build.py` 现在提供 `plugin build <id>` 专用入口，CLI 在主阶段解析前分派该子命令；命令从 `<repo>/zircon_plugins/**/plugin.toml` 查目标插件 `[distribution]`，校验 `forms` 包含 `dist`、`dist_crate` 与 ABI v3，随后用独立 target dir 执行 `cargo build --manifest-path zircon_plugins/Cargo.toml -p <dist_crate> --no-default-features --features dist --locked`。构建成功后只物化 `<out>/<sanitized-id>/plugin.toml`、重命名后的 loadable cdylib 与 `native_dynamic_package.toml`，并输出 JSON 报告；不会写入 profile 级 `<out>/stages`。验证：`python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py` 通过；`python -m unittest tools.zircon_export.tests.test_plugin_build` 1/1 通过；真实 `native_dynamic_fixture` debug 构建/打包 smoke 通过。该记录只关闭 M3/T1；M3/T2/T3 与 M4/T1 已由上方记录关闭，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M2 注册跨 ABI 编组 | T3 dist entry helper 宏（一文件导出 cdylib） | plugins_13_dist_entry_helper_compiles | `zircon_plugin_sdk::dist` 现在拥有 dist 一文件导出 helper：`native_dist_plugin_v3!` 生成 runtime/editor 双 entry 的 ABI v3 descriptor、entry report、behavior/schema/manifest 指针、capability gating、bridge method table 与 symbol export；`native_dist_runtime_plugin_v3!` 覆盖 runtime-only 形态。`native_dynamic_fixture/native/src/lib.rs` 已删除手写 descriptor/report/entry static 样板，改由宏声明 runtime/editor entry，并导出 `native_dynamic_fixture.runtime.tick` bridge method；`native_dynamic_fixture/plugin.toml` 同步声明 `[[provides_interfaces]] native_dynamic_fixture.runtime` + `tick` method slot，供 M2/T2 registration replay 查 slot。验证：`cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native dist_plugin_one_file_export_compiles --locked` 1/1 通过；`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked` 通过。该记录只关闭 M2/T3 helper/fixture 接入；M3/T1/T2/T3 与 M4/T1 已由上方记录关闭，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M2 注册跨 ABI 编组 | T2 system 型插件 bridge 回放 | plugins_13_registration_bridge_replay_implemented | `zircon_runtime::plugin::native` 现在公开 registration replay report；runtime native loader 新增 `registration_manifest.rs` 解析 `zircon.native.registration-manifest/3` 的 module/system/resource/event/extension/capability TOML；`NativePluginLiveHost::replay_runtime_registration_manifests_via_bridge(...)` 读取已加载 runtime 插件的 registration manifest，校验 behavior schema，解析 system anchor，依据 package manifest bridge metadata 查 method slot，依据 `RuntimePluginBridgeLifecycleState` 查 dense interface slot，并用已有 `NativeDynamicAccess` 把 system 注册到 `RuntimeExtensionRegistry`。运行时 system 捕获 `NativeHostBridgeCallScope`，tick 时经 bridge call 调用插件方法，不把裸 FFI 函数指针塞进调度图。focused test `dist_system_plugin_loads_and_ticks_via_bridge` 覆盖 load report 自动安装 bridge binding、manifest 回放、registry/world 应用与 native system tick 递增 bridge counter。验证：scoped rustfmt 通过；`cargo test -p zircon_runtime --lib --no-default-features --features core-min --offline ... dist_system_plugin_loads_and_ticks_via_bridge` 已清除本切片 schema export / slot lifetime 编译错误，但被无关 `runtime_absorption/structure_convention/test_file_budget.rs` 缺失 child modules 阻塞，未计通过。该记录只标记 M2/T2 代码落地与验证阻塞；M2/T3、M3/T1/T2/T3 与 M4/T1 见上方记录，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 未关闭。 |
+| 2026-06-23 | M2 注册跨 ABI 编组 | T1 registration manifest ABI schema + loader behavior surface | plugins_13_registration_manifest_schema_round_trips | `zircon_plugin_sdk::native` 现在在 ABI v3 schema versions/behavior 中携带 `registration_manifest_schema` 与 `registration_manifest`，新增 `NativePluginRegistrationManifestV3`、module/system/resource/event/extension TOML DTO，以及 `registration_manifest_v3_to_toml` / `registration_manifest_v3_from_toml` / schema-current helper。runtime loader ABI declaration、behavior reader、validation report、loaded-plugin accessors 与 live-host runtime descriptor 已同步读取和上报 registration manifest；`native_dynamic_fixture` runtime entry 导出 schema `zircon.native.registration-manifest/3` 与包含 runtime module、`native_dynamic_fixture.runtime_tick` system、`native_dynamic_fixture.echoed` event 和 capability 的 registration manifest。验证：SDK native-only `cargo check --no-default-features --features native --locked` 通过；`native_dynamic_registration_manifest_round_trips` focused test 1/1 通过；native fixture dist `cargo check --no-default-features --features dist --locked` 通过；py_compile、plugin audit JSON 与 scoped rustfmt 通过。runtime loader focused test `malformed_registration_schema_marks_behavior_invalid` 已清除本切片缺字段编译错误，但当前被无关 runtime lib-test compile drift 阻塞，未计通过；带默认 runtime feature 的 SDK native test 当前被无关 render compile drift 阻塞，未计通过。该记录只关闭 M2/T1 schema/承载切片；M2/T2、M2/T3、M3/T1/T2/T3 与 M4/T1 见上方记录，M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |
+| 2026-06-23 | M1 双形态骨架 + 依赖边界 | T1/T3/T4 首个 dist 代表插件 + dependency boundary guard | plugins_13_dist_dependency_boundary_clean | `native_dynamic_fixture/plugin.toml` 新增 `[distribution]`，声明 `forms = ["dist"]`、`abi_version = 3`、`engine_compat = ">=0.1, <0.2"`、`dist_crate = "zircon_plugin_native_dynamic_fixture_native"`、descriptor/runtime/editor entry symbols；`native_dynamic_fixture/native/Cargo.toml` 新增 `default = ["dist"]` 与空 `dist` feature，使 `--no-default-features --features dist` 成为独立构建形态。新增 `tools/plugin_structure_audits/dependency_boundary.py`，并接入 `tools/audit_plugin_structure.py --json` 和 `zircon_first_party_runtime_catalog::tests::plugins_13_dist_dependency_boundary_clean`，当前报告 `dist_capable_plugin_count = 1`、`distribution_section_violations = 0`、`dist_dependency_boundary_violations = 0`、`m1_dist_dependency_boundary_gate_status = dist-boundary-clean`。验证：py_compile、plugin audit JSON、scoped rustfmt、native fixture dist `cargo check --no-default-features --features dist`、catalog focused test 1/1 均通过（仅既有 runtime warning）。M2 注册跨 ABI 编组、M3/T1/T2/T3 与 M4/T1 已由上方记录关闭；M4/T3 已由上方签名/hash/load manifest 记录关闭，M5 全量 rollout 未关闭。 |

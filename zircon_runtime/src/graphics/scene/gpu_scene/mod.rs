@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports)]
-
 mod binding;
 mod gpu_scene;
 mod id_allocator;
@@ -10,37 +8,13 @@ mod prev_transform;
 mod update_queue;
 mod upload;
 
-pub(crate) use binding::{
-    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
-    gpu_scene_bind_group_layout_entries, GPU_SCENE_INSTANCE_DATA_BINDING,
-    GPU_SCENE_LIGHT_DATA_BINDING, GPU_SCENE_PRIMITIVE_DATA_BINDING,
-};
 pub(crate) use gpu_scene::{
     GpuScene, GpuSceneEntry, GpuSceneStats, GpuSceneUploadPath, GpuSceneUploadReport,
-    GPU_SCENE_INITIAL_INSTANCE_CAPACITY, GPU_SCENE_INITIAL_LIGHT_CAPACITY,
-    GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
 };
-pub(crate) use id_allocator::{GpuSceneIdAllocator, GpuSceneIdSpan};
 pub(crate) use layout::{
-    GpuInstanceData, GpuPrimitiveData, GPU_INSTANCE_DATA_FLAGS_OFFSET,
-    GPU_INSTANCE_DATA_PAD0_OFFSET, GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET,
-    GPU_INSTANCE_DATA_PREV_WORLD_FROM_LOCAL_OFFSET, GPU_INSTANCE_DATA_PRIMITIVE_INDEX_OFFSET,
-    GPU_INSTANCE_DATA_STRIDE, GPU_INSTANCE_DATA_WORLD_FROM_LOCAL_OFFSET,
-    GPU_PRIMITIVE_DATA_BOUNDS_CENTER_OFFSET, GPU_PRIMITIVE_DATA_BOUNDS_RADIUS_OFFSET,
-    GPU_PRIMITIVE_DATA_FIRST_INSTANCE_INDEX_OFFSET, GPU_PRIMITIVE_DATA_FLAGS_OFFSET,
-    GPU_PRIMITIVE_DATA_INSTANCE_COUNT_OFFSET, GPU_PRIMITIVE_DATA_MOTION_PARAMS_OFFSET,
-    GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET, GPU_PRIMITIVE_DATA_SHADOW_PARAMS_OFFSET,
-    GPU_PRIMITIVE_DATA_STRIDE, GPU_PRIMITIVE_DATA_TINT_OFFSET, GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
-    GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM, GPU_PRIMITIVE_FLAG_VISIBLE,
-    GPU_SCENE_INVALID_PAYLOAD_SLOT,
+    GpuInstanceData, GpuPrimitiveData, GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE,
+    GPU_PRIMITIVE_FLAG_CAST_SHADOWS, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
-pub(crate) use prev_skinned_palette::{
-    GpuScenePrevSkinnedPaletteRollReport, GpuSceneSkinnedJointPaletteState,
-};
-pub(crate) use prev_skinned_source::{
-    GpuScenePrevSkinnedSourceRollReport, GpuSceneSkinnedGpuSourceState,
-};
-pub(crate) use prev_transform::GpuScenePrevTransformRollReport;
-pub(crate) use update_queue::{
-    GpuSceneDirtyRange, GpuSceneUpdateQueue, GpuSceneUploadRange, GPU_SCENE_DIRTY_RANGE_MERGE_GAP,
-};
+pub(crate) use prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
+pub(crate) use prev_skinned_source::GpuSceneSkinnedGpuSourceState;

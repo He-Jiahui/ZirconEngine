@@ -5,8 +5,7 @@ use zircon_runtime_interface::ui::{
 use super::constants::VIEWPORT_NODE_ID;
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;
 use super::hierarchy_pointer_dispatch::HierarchyPointerDispatch;
-use super::hierarchy_pointer_target::HierarchyPointerTarget;
-use super::to_public_route::to_public_route;
+use super::hierarchy_pointer_route::HierarchyPointerRoute;
 
 impl HierarchyPointerBridge {
     pub(crate) fn handle_scroll(
@@ -26,12 +25,12 @@ impl HierarchyPointerBridge {
             }
         }
 
-        if let Some(HierarchyPointerTarget::Node { item_index, .. }) = route.as_ref() {
+        if let Some(HierarchyPointerRoute::Node { item_index, .. }) = route.as_ref() {
             self.state.hovered_item_index = Some(*item_index);
         }
 
         Ok(HierarchyPointerDispatch {
-            route: route.map(to_public_route),
+            route,
             state: self.state.clone(),
         })
     }

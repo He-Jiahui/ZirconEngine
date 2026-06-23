@@ -1,0 +1,16 @@
+[package]
+name = "zircon_plugin_hybrid_gi_dist"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Standalone native dynamic Hybrid GI plugin wrapper for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["dist"]
+dist = []
+
+[dependencies]
+zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

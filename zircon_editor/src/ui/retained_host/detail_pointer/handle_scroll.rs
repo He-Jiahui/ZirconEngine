@@ -3,7 +3,6 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::bridge_constants::VIEWPORT_NODE_ID;
-use super::map_route::map_route;
 use super::scroll_surface_pointer_bridge::ScrollSurfacePointerBridge;
 use super::scroll_surface_pointer_dispatch::ScrollSurfacePointerDispatch;
 
@@ -29,7 +28,9 @@ impl ScrollSurfacePointerBridge {
         }
 
         Ok(ScrollSurfacePointerDispatch {
-            route: map_route(dispatch.handled_by.or(dispatch.route.target)),
+            route: self
+                .route_intents
+                .detail_route_for_pointer_dispatch(&dispatch),
             state: self.state.clone(),
         })
     }

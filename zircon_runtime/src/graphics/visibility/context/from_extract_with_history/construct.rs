@@ -313,10 +313,11 @@ mod tests {
         sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
         GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
         PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
-        RenderDirectionalLightSnapshot, RenderFrameExtract, RenderMaterialAlphaMode,
-        RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
-        RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
-        ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot,
+        RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet,
+        RenderMaterialAlphaMode, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
+        RenderPointLightSnapshot, RenderSpotLightSnapshot, RenderViewExtract,
+        RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, SpriteExtract,
+        ViewportCameraSnapshot,
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Real, Transform, Vec3, Vec4};
@@ -416,6 +417,27 @@ mod tests {
     }
 
     #[test]
+    fn visibility_batch_key_preserves_layers_above_legacy_mask_width() {
+        let high_layer = RenderLayerSet::layer(40);
+        let frame = frame_from_meshes(vec![mesh_at_layers(
+            40,
+            Vec3::new(0.0, 0.0, -5.0),
+            high_layer.clone(),
+        )]);
+
+        let context = VisibilityContext::from_extract(&frame);
+        let batch_layers = &context.batches[0].key.render_layer_mask;
+
+        assert!(batch_layers.contains(40));
+        assert_eq!(batch_layers.to_legacy_mask_lossy(), 0);
+        assert!(context.frame_visibility.render_layer_masks[0].contains(40));
+        assert_eq!(
+            context.frame_visibility.render_layer_masks[0].to_legacy_mask_lossy(),
+            0
+        );
+    }
+
+    #[test]
     fn visibility_context_builds_shadow_view_independent_from_main_layers() {
         let camera = ViewportCameraSnapshot::default();
         let frame = RenderFrameExtract {
@@ -442,7 +464,7 @@ mod tests {
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 10,
                     light_id: 10,
-                    layer_mask: 1,
+                    layer_mask: RenderLayerSet::from_legacy_mask(1),
                     direction: Vec3::new(0.0, -1.0, -1.0),
                     color: Vec3::ONE,
                     intensity: 1.0,
@@ -506,7 +528,7 @@ mod tests {
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 10,
                     light_id: 10,
-                    layer_mask: 1,
+                    layer_mask: RenderLayerSet::from_legacy_mask(1),
                     direction: Vec3::new(0.0, -1.0, -1.0),
                     color: Vec3::ONE,
                     intensity: 1.0,
@@ -515,7 +537,7 @@ mod tests {
                 point_lights: vec![RenderPointLightSnapshot {
                     node_id: 20,
                     light_id: 20,
-                    layer_mask: 1,
+                    layer_mask: RenderLayerSet::from_legacy_mask(1),
                     position: Vec3::ZERO,
                     color: Vec3::ONE,
                     intensity: 1.0,
@@ -525,7 +547,7 @@ mod tests {
                 spot_lights: vec![RenderSpotLightSnapshot {
                     node_id: 30,
                     light_id: 30,
-                    layer_mask: 1,
+                    layer_mask: RenderLayerSet::from_legacy_mask(1),
                     position: Vec3::ZERO,
                     direction: Vec3::new(0.0, 0.0, -1.0),
                     color: Vec3::ONE,
@@ -759,7 +781,19 @@ mod tests {
         }
     }
 
-    fn mesh_at(node_id: u64, translation: Vec3, render_layer_mask: u32) -> RenderMeshSnapshot {
+    fn mesh_at(node_id: u64, translation: Vec3, legacy_layer_bits: u32) -> RenderMeshSnapshot {
+        mesh_at_layers(
+            node_id,
+            translation,
+            RenderLayerSet::from_legacy_mask(legacy_layer_bits),
+        )
+    }
+
+    fn mesh_at_layers(
+        node_id: u64,
+        translation: Vec3,
+        render_layer_mask: RenderLayerSet,
+    ) -> RenderMeshSnapshot {
         let mut transform = Transform::default();
         transform.translation = translation;
 

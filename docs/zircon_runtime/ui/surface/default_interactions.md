@@ -5,6 +5,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/radio.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/scrollbar.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/timers.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
@@ -15,6 +16,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
 implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/timers.rs
   - docs/zircon_runtime/ui/surface/default_interactions.md
   - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
 plan_sources:
@@ -25,6 +27,7 @@ tests:
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_debt
   - ui_architecture_boundary targeted audit
   - rustfmt check for zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - cargo test -p zircon_editor --lib page_layout_templates --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309 --message-format short --color never -- --test-threads=1 --nocapture: passed 4/4 on 2026-06-23 after default-interaction timer import repair
 doc_type: module-detail
 ---
 
@@ -39,3 +42,7 @@ runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo
 The Runtime 09 M1.2 cutover renamed the local open-state compatibility list from `legacy_properties` / `legacy_property` to `fallback_properties` / `fallback_property` in `default_open_boolean_value(...)`. The behavior is unchanged: authored metadata, component state, retained fallback aliases, and runtime open flags keep the same precedence.
 
 `runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_debt` guards the final Runtime 09 production UI `legacy` naming hit from returning. After this slice the UI source scan records `ui_legacy_hits=54`, `ui_legacy_production_hits=0`, and `ui_legacy_production_files=0`; the remaining full-tree hits are outside production UI source.
+
+## Editor Layout 05.S2 Support Repair
+
+During editor layout 05.S2 verification, `default_interactions/timers.rs` exposed a split import drift: it referenced `UiTemplateNodeMetadata` through the old `ui::template` namespace while the current owner exports that type from `ui::tree`. The repair changed only the import to `tree::{UiTemplateNodeMetadata, UiTreeError}` and left timer behavior in the child owner. Focused editor layout verification then compiled through runtime and passed `page_layout_templates` 4/4 with existing warning noise.

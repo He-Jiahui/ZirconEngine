@@ -5,17 +5,13 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring.rs");
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
+    let globals = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
+    let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/menu.rs");
+    let pointer_layout = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
     let activity_rail_sync = pointer_layout
-        .split("pub(super) fn sync_activity_rail_pointer_layout")
+        .split("fn sync_activity_rail_pointer_layout")
         .nth(1)
-        .and_then(|source| {
-            source
-                .split("pub(super) fn sync_host_page_pointer_layout")
-                .next()
-        })
+        .and_then(|source| source.split("fn sync_host_page_pointer_layout").next())
         .expect("activity rail pointer sync function should exist");
     let activity_rail_layout = source(
         "src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs",
@@ -49,5 +45,33 @@ fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
         "ActivityRailButton1",
     ] {
         assert!(activity_asset.contains(required), "missing `{required}`");
+    }
+}
+
+#[test]
+fn activity_rail_pointer_bridge_uses_route_intent_only() {
+    let bridge =
+        source("src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs");
+    let rebuild = source("src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs");
+    let insert_strip = source("src/ui/retained_host/activity_rail_pointer/insert_strip.rs");
+    let dispatch = source("src/ui/retained_host/activity_rail_pointer/dispatch_event.rs");
+
+    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
+    assert!(insert_strip.contains("EditorRouteIntent::ActivityRail"));
+    assert!(insert_strip.contains("route_intents.bind_node"));
+    assert!(dispatch.contains("activity_rail_route_for_pointer_dispatch"));
+    for forbidden in [
+        "targets:",
+        "HostActivityRailPointerTarget",
+        "handled_by",
+        "route.target",
+    ] {
+        assert!(
+            !bridge.contains(forbidden)
+                && !rebuild.contains(forbidden)
+                && !insert_strip.contains(forbidden)
+                && !dispatch.contains(forbidden),
+            "activity rail pointer bridge should not keep old hit target marker `{forbidden}`"
+        );
     }
 }

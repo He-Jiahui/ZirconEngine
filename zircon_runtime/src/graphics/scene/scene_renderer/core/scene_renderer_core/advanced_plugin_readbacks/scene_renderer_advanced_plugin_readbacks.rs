@@ -45,7 +45,7 @@ impl SceneRendererAdvancedPluginReadbacks {
         &self.external_buffer_bindings
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn is_empty(&self) -> bool {
         self.outputs.is_empty() && self.external_buffer_bindings.is_empty()
     }

@@ -1,4 +1,4 @@
-use crate::PLUGIN_ID;
+use crate::capability::{PLUGIN_ID, SOUND_RUNTIME_CAPABILITY};
 
 use super::feature_manifest::{
     sound_ray_traced_convolution_reverb_feature_manifest,
@@ -17,10 +17,10 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
-    .with_capability("runtime.plugin.sound")
+    .with_capability(SOUND_RUNTIME_CAPABILITY)
     .with_capability_status(
         zircon_runtime::plugin::CapabilityStatusManifest::new(
-            "runtime.plugin.sound",
+            SOUND_RUNTIME_CAPABILITY,
             zircon_runtime::plugin::CapabilityStatus::Partial,
         )
         .with_bevy_reference("dev/bevy/crates/bevy_audio/src/lib.rs"),

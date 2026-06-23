@@ -221,6 +221,7 @@ pub(crate) struct ShadowSlotAllocation {
 }
 
 impl ShadowSlotAllocation {
+    #[cfg(test)]
     pub(crate) fn was_downgraded(self) -> bool {
         self.allocated_tier.size_px() < self.requested_tier.size_px()
     }
@@ -260,6 +261,7 @@ pub(crate) struct ShadowAtlasFrameAllocation {
 }
 
 impl ShadowAtlasFrameAllocation {
+    #[cfg(test)]
     pub(crate) fn allocation_for(&self, key: ShadowSlotKey) -> Option<&ShadowSlotAllocation> {
         self.allocations
             .iter()
@@ -298,10 +300,7 @@ impl ShadowAtlasAllocator {
         }
     }
 
-    pub(crate) fn config(&self) -> ShadowAtlasConfig {
-        self.config
-    }
-
+    #[cfg(test)]
     pub(crate) fn last_frame(&self) -> &ShadowAtlasFrameAllocation {
         &self.last_frame
     }

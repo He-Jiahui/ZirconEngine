@@ -1,6 +1,7 @@
 use std::ffi::{c_char, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
 
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
@@ -31,6 +32,7 @@ pub struct NativePluginSchemaVersionsV3 {
     pub state_schema_version: u32,
     pub command_manifest_schema: *const c_char,
     pub event_manifest_schema: *const c_char,
+    pub registration_manifest_schema: *const c_char,
 }
 
 #[repr(C)]
@@ -100,6 +102,7 @@ pub struct NativePluginBehaviorV3 {
     pub schema_versions: NativePluginSchemaVersionsV3,
     pub command_manifest: *const c_char,
     pub event_manifest: *const c_char,
+    pub registration_manifest: *const c_char,
     pub invoke_command: Option<NativePluginInvokeCommandFnV3>,
     pub save_state: Option<NativePluginSaveStateFnV3>,
     pub restore_state: Option<NativePluginRestoreStateFnV3>,
@@ -172,10 +175,87 @@ pub type NativePluginHostDiagnosticFnV3 = unsafe extern "C" fn(
 
 pub const NATIVE_COMMAND_MANIFEST_SCHEMA_V3: &[u8] = b"zircon.native.command-manifest/3\0";
 pub const NATIVE_EVENT_MANIFEST_SCHEMA_V3: &[u8] = b"zircon.native.event-manifest/3\0";
+pub const NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3: &[u8] =
+    b"zircon.native.registration-manifest/3\0";
 pub const NATIVE_EMPTY_CSTR: &[u8] = b"\0";
 pub const NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS: &[u8] =
     b"native plugin SDK allocation owner mismatch\0";
 const SDK_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
+
+pub const NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT: &str =
+    "zircon.native.registration-manifest/3";
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationManifestV3 {
+    pub schema: String,
+    #[serde(default)]
+    pub modules: Vec<NativePluginRegistrationModuleV3>,
+    #[serde(default)]
+    pub systems: Vec<NativePluginRegistrationSystemV3>,
+    #[serde(default)]
+    pub resources: Vec<NativePluginRegistrationResourceV3>,
+    #[serde(default)]
+    pub events: Vec<NativePluginRegistrationEventV3>,
+    #[serde(default)]
+    pub extensions: Vec<NativePluginRegistrationExtensionV3>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationModuleV3 {
+    pub name: String,
+    pub kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationSystemV3 {
+    pub id: String,
+    pub module: String,
+    pub stage: String,
+    #[serde(default)]
+    pub order: i32,
+    #[serde(default)]
+    pub sets: Vec<String>,
+    #[serde(default)]
+    pub before: Vec<String>,
+    #[serde(default)]
+    pub after: Vec<String>,
+    #[serde(default)]
+    pub access: Vec<String>,
+    #[serde(default)]
+    pub bridge_interface: Option<String>,
+    #[serde(default)]
+    pub bridge_method: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationResourceV3 {
+    pub id: String,
+    #[serde(default)]
+    pub module: Option<String>,
+    #[serde(default)]
+    pub schema: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationEventV3 {
+    pub namespace: String,
+    pub name: String,
+    #[serde(default)]
+    pub stable_hash: u64,
+    #[serde(default)]
+    pub schema: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativePluginRegistrationExtensionV3 {
+    pub point: String,
+    #[serde(default)]
+    pub contribution: Option<String>,
+    #[serde(default)]
+    pub schema: Option<String>,
+}
 
 pub type NativePluginHostReadyFnV3 = fn(*const NativePluginHostFunctionTableV3);
 
@@ -260,6 +340,24 @@ pub fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV2 {
         owner_token,
         free: Some(free_owned_bytes_v2),
     }
+}
+
+pub fn registration_manifest_v3_to_toml(
+    manifest: &NativePluginRegistrationManifestV3,
+) -> Result<String, toml::ser::Error> {
+    toml::to_string(manifest)
+}
+
+pub fn registration_manifest_v3_from_toml(
+    text: &str,
+) -> Result<NativePluginRegistrationManifestV3, toml::de::Error> {
+    toml::from_str(text)
+}
+
+pub fn registration_manifest_v3_schema_is_current(
+    manifest: &NativePluginRegistrationManifestV3,
+) -> bool {
+    manifest.schema.trim() == NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT
 }
 
 pub unsafe extern "C" fn free_owned_bytes_v2(
@@ -431,9 +529,11 @@ macro_rules! native_command_plugin_v3 {
                 event_manifest_schema: $crate::native::NATIVE_EVENT_MANIFEST_SCHEMA_V3
                     .as_ptr()
                     .cast(),
+                registration_manifest_schema: ::core::ptr::null(),
             },
             command_manifest: ($command_manifest).as_ptr().cast(),
             event_manifest: ($event_manifest).as_ptr().cast(),
+            registration_manifest: ::core::ptr::null(),
             invoke_command: Some($invoke_command),
             save_state: None,
             restore_state: None,
@@ -560,6 +660,54 @@ mod tests {
         let status = catch_native_callback_panic(b"panic caught\0", || panic!("fixture panic"));
 
         assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC);
+    }
+
+    #[test]
+    fn native_dynamic_registration_manifest_round_trips() {
+        let manifest = NativePluginRegistrationManifestV3 {
+            schema: NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT.to_string(),
+            modules: vec![NativePluginRegistrationModuleV3 {
+                name: "runtime".to_string(),
+                kind: "runtime".to_string(),
+            }],
+            systems: vec![NativePluginRegistrationSystemV3 {
+                id: "fixture.tick".to_string(),
+                module: "runtime".to_string(),
+                stage: "Update".to_string(),
+                order: 10,
+                sets: vec!["fixture".to_string()],
+                before: vec!["render".to_string()],
+                after: vec!["physics".to_string()],
+                access: vec!["read:scene.time".to_string()],
+                bridge_interface: Some("fixture.runtime".to_string()),
+                bridge_method: Some("tick".to_string()),
+            }],
+            resources: vec![NativePluginRegistrationResourceV3 {
+                id: "fixture.resource".to_string(),
+                module: Some("runtime".to_string()),
+                schema: Some("json".to_string()),
+            }],
+            events: vec![NativePluginRegistrationEventV3 {
+                namespace: "fixture".to_string(),
+                name: "echoed".to_string(),
+                stable_hash: 42,
+                schema: Some("bytes".to_string()),
+            }],
+            extensions: vec![NativePluginRegistrationExtensionV3 {
+                point: "runtime.importer".to_string(),
+                contribution: Some("fixture.data_json".to_string()),
+                schema: None,
+            }],
+            capabilities: vec!["runtime.plugin.fixture".to_string()],
+        };
+
+        let text =
+            registration_manifest_v3_to_toml(&manifest).expect("registration manifest serializes");
+        let parsed =
+            registration_manifest_v3_from_toml(&text).expect("registration manifest parses");
+
+        assert!(registration_manifest_v3_schema_is_current(&parsed));
+        assert_eq!(parsed, manifest);
     }
 
     unsafe extern "C" fn host_abi_version() -> u32 {

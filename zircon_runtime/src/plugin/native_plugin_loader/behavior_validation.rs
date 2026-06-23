@@ -7,3 +7,4 @@ mod schema;
 mod tests;
 
 pub use report::{NativePluginBehaviorHealth, NativePluginBehaviorValidationReport};
+pub(super) use schema::ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3;

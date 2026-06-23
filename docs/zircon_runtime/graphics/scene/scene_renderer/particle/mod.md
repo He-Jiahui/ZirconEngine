@@ -4,6 +4,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
@@ -36,6 +38,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
@@ -62,6 +66,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
+  - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - user: 2026-06-14 implement WGPU render pipeline architecture code and update plan progress
 tests:
   - rustfmt --edition 2021 --check on TP-M1-S8 particle velocity diagnostic files
@@ -105,14 +110,18 @@ tests:
   - cargo test -p zircon_runtime scene::world::render_particles::tests::world_hud_bar --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 world-HUD producer key migration; passed 2 filtered tests)
   - cargo test -p zircon_runtime render_product_particle_velocity --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 key=0 hard-reject product route; passed 9 filtered product tests)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 production check; passed with 70 existing warnings)
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs::tests::particle_velocity_vertices_filter_current_sprites_by_selected_camera_layers
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers
+  - cargo test -p zircon_runtime --lib particle_vertices_filter_sprites_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-particle-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
 doc_type: module-detail
 ---
 
 # Particle Renderer
 
-The current scene particle path renders transparent camera-facing billboards. `World::collect_render_particles(...)` builds `ParticleExtract` from transient JSON components such as `render.particle_sprites`, `gameplay.particle_sprites`, and world-HUD bars. Each `RenderParticleSpriteSnapshot` contains current-frame state: entity, stable sprite key, position, size, aspect ratio, billboard offset, rotation, sort order, color, intensity, and optional material or texture handles. `RenderParticlePreviousSpriteSnapshot` is the optional previous-state companion keyed by `RenderParticleSpriteIdentity { entity, stable_sprite_key }`. Scene JSON extraction can read `stable_sprite_key`/`sprite_key` for current sprites; previous rows are renderer-owned and come from the viewport record after successful submits unless an extract provides explicit previous rows.
+The current scene particle path renders transparent camera-facing billboards. `World::collect_render_particles(...)` builds `ParticleExtract` from transient JSON components such as `render.particle_sprites`, `gameplay.particle_sprites`, and world-HUD bars. Each `RenderParticleSpriteSnapshot` contains current-frame state: entity, stable sprite key, position, size, aspect ratio, billboard offset, rotation, sort order, color, intensity, typed `render_layer_mask: RenderLayerSet`, and optional material or texture handles. `RenderParticlePreviousSpriteSnapshot` is the optional previous-state companion keyed by `RenderParticleSpriteIdentity { entity, stable_sprite_key }`. Scene JSON extraction can read `stable_sprite_key`/`sprite_key` for current sprites and wraps the authored legacy entity layer mask into `RenderLayerSet` at the DTO boundary; previous rows are renderer-owned and come from the viewport record after successful submits unless an extract provides explicit previous rows.
 
-`build_particle_vertices(...)` expands those snapshots into six `ParticleVertex` values per visible sprite using the current camera right/up basis. `ParticleRenderer::record(...)` uploads that transient vertex buffer and draws it through `particle.wgsl` into the transparent pass (`particle.transparent`), depth-tested against the current scene depth.
+`build_particle_vertices(...)` expands those snapshots into six `ParticleVertex` values per selected-camera-visible sprite using the current camera right/up basis, and `build_particle_velocity_vertices(...)` applies the same typed layer intersection before matching previous rows. `RenderPipelineAsset::compile(...)` now auto-inserts `particle-render` only when current particle sprites intersect the selected camera layer set. The compatibility boundary is explicit: `scene/world/render.rs` downgrades particle masks with `to_legacy_mask_lossy()` only when aggregating legacy `VisibilityRenderableInput` data. Status anchor `render_plan09_particle_render_layer_set_snapshot_static_passed_cargo_lock_blocked` records the scoped rustfmt/static pass and the focused locked Cargo blocker caused by current `Cargo.lock` drift. `ParticleRenderer::record(...)` uploads the transient vertex buffer and draws it through `particle.wgsl` into the transparent pass (`particle.transparent`), depth-tested against the current scene depth.
 
 ## Temporal Velocity
 

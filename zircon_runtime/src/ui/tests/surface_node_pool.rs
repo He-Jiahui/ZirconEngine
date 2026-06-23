@@ -16,7 +16,9 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
     surface.focus.captured = Some(child_id());
     surface.focus.pressed = Some(child_id());
     surface.focus.hovered = vec![child_id(), root_id()];
-    surface.input.captured_pointer_id = Some(UiPointerId::new(7));
+    surface
+        .input
+        .set_pointer_capture_for_id(UiPointerId::new(7), child_id());
     surface.input.high_precision_owner = Some(child_id());
     surface.input.input_method_owner = Some(child_id());
     surface
@@ -72,7 +74,7 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
     assert_eq!(surface.focus.captured, None);
     assert_eq!(surface.focus.pressed, None);
     assert_eq!(surface.focus.hovered, vec![root_id()]);
-    assert_eq!(surface.input.captured_pointer_id, None);
+    assert_eq!(surface.input.active_pointer_capture(), None);
     assert_eq!(surface.input.high_precision_owner, None);
     assert_eq!(surface.input.input_method_owner, None);
     assert_eq!(surface.input.drag_drop, None);

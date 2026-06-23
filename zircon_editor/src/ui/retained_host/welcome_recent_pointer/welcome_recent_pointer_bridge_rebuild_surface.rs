@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
@@ -10,24 +8,27 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTreeNode},
 };
 
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
+
 use super::constants::{
     BUTTON_Y, ITEM_GAP, ITEM_HEIGHT, OPEN_BUTTON_X, REMOVE_BUTTON_X, ROOT_NODE_ID,
     VIEWPORT_INNER_WIDTH_INSET, VIEWPORT_NODE_ID,
 };
 use super::helper::{
-    base_state, button_size, content_height, item_node_id, open_button_node_id,
-    remove_button_node_id, viewport_frame,
+    base_state, button_size, content_height, item_node_id, item_route_id, list_surface_route_id,
+    open_button_node_id, open_button_route_id, remove_button_node_id, remove_button_route_id,
+    viewport_frame,
 };
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::welcome_recent_pointer_action::WelcomeRecentPointerAction;
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
-use super::welcome_recent_pointer_target::WelcomeRecentPointerTarget;
+use super::welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 
 impl WelcomeRecentPointerBridge {
     pub(in crate::ui::retained_host::welcome_recent_pointer) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.welcome.recent_pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
+        let mut route_intents = EditorRouteIntentMap::default();
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.welcome.recent.root"))
@@ -68,7 +69,11 @@ impl WelcomeRecentPointerBridge {
             )
             .expect("welcome recent pointer root must exist");
         register_handled_pointer_node(&mut dispatcher, VIEWPORT_NODE_ID);
-        targets.insert(VIEWPORT_NODE_ID, WelcomeRecentPointerTarget::ListSurface);
+        route_intents.bind_node(
+            VIEWPORT_NODE_ID,
+            list_surface_route_id(),
+            EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::ListSurface),
+        );
 
         let row_width = (viewport.width - VIEWPORT_INNER_WIDTH_INSET).max(0.0);
         let (button_width, button_height) = button_size();
@@ -96,7 +101,11 @@ impl WelcomeRecentPointerBridge {
                 )
                 .expect("welcome viewport must exist");
             register_handled_pointer_node(&mut dispatcher, item_node_id);
-            targets.insert(item_node_id, WelcomeRecentPointerTarget::Item(item_index));
+            route_intents.bind_node(
+                item_node_id,
+                item_route_id(item_index),
+                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Item(item_index)),
+            );
 
             let open_node_id = open_button_node_id(item_index);
             surface
@@ -119,13 +128,14 @@ impl WelcomeRecentPointerBridge {
                 )
                 .expect("welcome recent item must exist");
             register_handled_pointer_node(&mut dispatcher, open_node_id);
-            targets.insert(
+            route_intents.bind_node(
                 open_node_id,
-                WelcomeRecentPointerTarget::Action {
+                open_button_route_id(item_index),
+                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Action {
                     item_index,
                     action: WelcomeRecentPointerAction::Open,
                     path: path.clone(),
-                },
+                }),
             );
 
             let remove_node_id = remove_button_node_id(item_index);
@@ -149,19 +159,20 @@ impl WelcomeRecentPointerBridge {
                 )
                 .expect("welcome recent item must exist");
             register_handled_pointer_node(&mut dispatcher, remove_node_id);
-            targets.insert(
+            route_intents.bind_node(
                 remove_node_id,
-                WelcomeRecentPointerTarget::Action {
+                remove_button_route_id(item_index),
+                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Action {
                     item_index,
                     action: WelcomeRecentPointerAction::Remove,
                     path: path.clone(),
-                },
+                }),
             );
         }
 
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
-        self.targets = targets;
+        self.route_intents = route_intents;
     }
 }

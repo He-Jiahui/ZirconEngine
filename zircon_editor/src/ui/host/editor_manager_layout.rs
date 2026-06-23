@@ -1,5 +1,6 @@
-use crate::ui::workbench::layout::LayoutCommand;
+use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
+use crate::ui::workbench::LayoutPresetRestoreResult;
 
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
@@ -39,6 +40,18 @@ impl EditorManager {
 
     pub fn save_global_default_layout(&self) -> Result<(), EditorError> {
         self.host.save_global_default_layout()
+    }
+
+    pub fn save_page_layout(&self, user_id: &str, page_id: &MainPageId) -> Result<(), EditorError> {
+        self.host.save_page_layout(user_id, page_id)
+    }
+
+    pub fn restore_page_layout(
+        &self,
+        user_id: &str,
+        page_id: &MainPageId,
+    ) -> Result<LayoutPresetRestoreResult, EditorError> {
+        self.host.restore_page_layout(user_id, page_id)
     }
 
     pub fn preset_names(&self) -> Result<Vec<String>, EditorError> {

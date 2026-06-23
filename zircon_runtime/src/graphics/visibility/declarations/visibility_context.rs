@@ -90,7 +90,7 @@ impl VisibilityContext {
                     .filter(|entity| visible_entities.contains(entity))
                     .collect::<Vec<_>>();
                 (!entities.is_empty()).then_some(VisibilityBatch {
-                    key: batch.key,
+                    key: batch.key.clone(),
                     entities,
                 })
             })

@@ -4,9 +4,13 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/retained_cache.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/shaders/ui_material.wgsl
+  - zircon_runtime/src/rhi_wgpu/ui_surface/surface_setup.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/tests.rs
   - zircon_runtime/src/rhi/mod.rs
@@ -31,9 +35,13 @@ implementation_files:
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/retained_cache.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/shaders/ui_material.wgsl
+  - zircon_runtime/src/rhi_wgpu/ui_surface/surface_setup.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
@@ -67,9 +75,13 @@ tests:
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/retained_cache.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/shaders/ui_material.wgsl
+  - zircon_runtime/src/rhi_wgpu/ui_surface/surface_setup.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
@@ -210,6 +222,10 @@ The native renderer supports damage without relying on the swapchain's previous 
 `GpuChromePresenter` protects the cache preconditions at the editor boundary. The first native GPU present, any present without damage, and the first present after resize build a full command stream so runtime can seed the retained cache with complete UI contents. Once a successful present has initialized that cache, subsequent damaged host presents build patch command streams and carry `UiSurfaceDrawList::damage` through to runtime. Headless presenter stats remain damage-aware for tests, while native presenter `draw_calls` reports the surface presentation work, including the cache restore draw on patch frames.
 
 `rhi_wgpu::ui_surface::geometry` owns the draw-list geometry layer: stable `(z_index, command_index, sub_index)` ordering, quad/image vertices, rounded solid tessellation, rounded border rings, image UV trimming, square border expansion, and the shared effective command rectangle. Solid and image commands are clipped on the CPU before batching, so the renderer no longer needs per-primitive scissor calls for ordinary quad/image clipping. Rounded quads and borders produce larger solid vertex lists but still remain in the normal solid batch path; they do not trigger a software fallback or a separate material. `rhi_wgpu::ui_surface::batching` turns those visible items into a partial-order draw plan: earlier items only constrain later items when their clipped rectangles intersect, independent items share a depth layer, and each layer groups solid geometry, same-resource images, and text into as few draw ops as current materials allow. `rhi_wgpu::ui_surface::pipeline` owns WGSL shader strings, solid/image pipeline creation, shared image samplers, and bind-group layout creation for direct swapchain rendering. `rhi_wgpu::ui_surface::text` owns glyphon buffer preparation, style mapping, glyph atlas lifetime, and render-pass submission for text batches. Keeping these layers outside the presenter file keeps the wgpu presenter focused on resource lifetime, render passes, and surface presentation while making clip and batching parity directly unit-testable.
+
+Runtime 15 M4 RHI WGPU UI surface render/setup owner split status is `runtime_15_rhi_wgpu_ui_surface_render_setup_owner_split_static_passed_cargo_timeout_no_result`. The M4 structure slice keeps `rhi_wgpu/ui_surface.rs` as the 549-line owner for `WgpuUiSurfaceRenderer` lifecycle, surface frame acquire/present, image cache pruning, and public UI surface renderer entry points; it moves draw-buffer ownership, `TargetLoad`, render pass begin, viewport/scissor setup, and solid/image/text draw recording into `rhi_wgpu/ui_surface/render_pass.rs` (168 lines), moves surface configuration, format/present/alpha selection, adapter/device request, instance descriptor, and raw-window-handle surface creation into `rhi_wgpu/ui_surface/surface_setup.rs` (164 lines), and moves focused headless presenter, format/alpha, damage, batch, atlas image, and image-cache prune coverage into `rhi_wgpu/ui_surface/tests.rs` (273 lines). `runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners` guards the parent/child layout, moved helper ownership, four-way 800-line budget, and Runtime 15/status/RHI UI surface/module documentation anchors. This split does not change `rhi::ui_surface` trait shape, the editor retained-host presenter contract, shader/pipeline layout, or image cache key semantics; full `large_file_ownership_gate`, `module_convention_gate`, and RHI/graphics Cargo sweep remain pending because the focused locked Cargo command timed out after 120 seconds with no test result.
+
+Runtime 15 M4 RHI WGPU UI surface geometry test owner split status is `runtime_15_rhi_wgpu_ui_surface_geometry_tests_owner_split_static_passed_cargo_timeout_no_result`. The M4 structure slice keeps `rhi_wgpu/ui_surface/geometry.rs` as the 559-line owner for draw-list ordering, solid/image/text draw item projection, rounded quad/border tessellation, image UV trimming, effective rect clipping, and text bounds conversion; it moves the geometry test suite and test-only `solid_items(...)` helper into `rhi_wgpu/ui_surface/geometry/tests.rs` (308 lines). `runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner` guards the parent/child layout, moved test ownership, two-way 800-line budget, and Runtime 15/status/RHI UI surface/module documentation anchors. This split does not change `UiSurfaceDrawList` geometry semantics, batching input order, atlas UV calculation, shader/pipeline layout, or the `rhi::ui_surface` trait; full `large_file_ownership_gate`, `module_convention_gate`, and RHI/UI surface Cargo sweep remain pending because the focused locked Cargo guard timed out after 10 minutes with no test result.
 
 The Material shader keeps the alpha contract explicit. Solid and image fragment outputs pass through tint-ready helper functions and are premultiplied before the shared UI blend state, then blend directly into the non-sRGB swapchain target. Rounded fill and border shape still comes from CPU geometry today, but `ui_material.wgsl` keeps the rounded-SDF helper as the stable handoff point for future GPU-side rounded primitive work.
 

@@ -4,9 +4,10 @@ use std::sync::Arc;
 use super::declarations::{
     CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions,
 };
+use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
-    CameraRenderType, RenderCameraTarget, RenderCapabilitySummary, RenderFrameExtract,
-    RenderPipelineHandle, ShaderQualityTier,
+    CameraRenderType, RenderCapabilitySummary, RenderFrameExtract, RenderPipelineHandle,
+    ShaderQualityTier,
 };
 use crate::core::resource::ResourceId;
 
@@ -26,6 +27,7 @@ impl CompiledGraphCacheKey {
     pub fn from_inputs(
         pipeline: &RenderPipelineAsset,
         extract: &RenderFrameExtract,
+        camera_target: RenderGraphCompileCameraTargetFingerprint,
         options: &RenderPipelineCompileOptions,
         capabilities: &RenderCapabilitySummary,
         shader_quality: ShaderQualityTier,
@@ -34,7 +36,7 @@ impl CompiledGraphCacheKey {
             pipeline: pipeline.handle,
             pipeline_revision: pipeline.revision,
             shader_quality,
-            frame: extract_compile_fingerprint(extract),
+            frame: extract_compile_fingerprint(extract, camera_target),
             options: options.clone(),
             capabilities: RenderGraphCompileCapabilityFingerprint::from_capabilities(capabilities),
         }
@@ -60,6 +62,7 @@ pub struct RenderGraphCompileFrameFingerprint {
 
 pub fn extract_compile_fingerprint(
     extract: &RenderFrameExtract,
+    camera_target: RenderGraphCompileCameraTargetFingerprint,
 ) -> RenderGraphCompileFrameFingerprint {
     let view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
@@ -69,7 +72,7 @@ pub fn extract_compile_fingerprint(
         .expect("render frame extract must carry a selected camera descriptor");
     RenderGraphCompileFrameFingerprint {
         core_pipeline: extract.view.core_pipeline,
-        camera_target: RenderGraphCompileCameraTargetFingerprint::from_target(&camera.target),
+        camera_target,
         camera_render_type: camera.render_type,
         viewport_rect_present: camera.viewport_rect.is_some(),
         view_width: view_size.x,
@@ -88,6 +91,9 @@ pub enum RenderGraphCompileCameraTargetFingerprint {
     PrimarySurface,
     Texture {
         id: ResourceId,
+        width: u32,
+        height: u32,
+        format: RenderGraphCompileTextureTargetFormat,
     },
     Headless {
         width: u32,
@@ -96,15 +102,55 @@ pub enum RenderGraphCompileCameraTargetFingerprint {
 }
 
 impl RenderGraphCompileCameraTargetFingerprint {
-    fn from_target(target: &RenderCameraTarget) -> Self {
+    #[cfg(test)]
+    fn from_target_and_view_size(
+        target: &crate::core::framework::render::RenderCameraTarget,
+        view_size: crate::core::math::UVec2,
+    ) -> Self {
         match target {
-            RenderCameraTarget::PrimarySurface => Self::PrimarySurface,
-            RenderCameraTarget::Texture(handle) => Self::Texture { id: handle.id() },
-            RenderCameraTarget::Headless { size } => Self::Headless {
-                width: size.x,
-                height: size.y,
+            crate::core::framework::render::RenderCameraTarget::PrimarySurface => {
+                Self::PrimarySurface
+            }
+            crate::core::framework::render::RenderCameraTarget::Texture(handle) => Self::Texture {
+                id: handle.id(),
+                width: view_size.x,
+                height: view_size.y,
+                format: RenderGraphCompileTextureTargetFormat::Rgba8UnormSrgb,
             },
+            crate::core::framework::render::RenderCameraTarget::Headless { size } => {
+                Self::Headless {
+                    width: size.x,
+                    height: size.y,
+                }
+            }
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderGraphCompileTextureTargetFormat {
+    Rgba8Unorm,
+    #[default]
+    Rgba8UnormSrgb,
+}
+
+impl RenderGraphCompileTextureTargetFormat {
+    pub(crate) const fn as_format_label(self) -> &'static str {
+        match self {
+            Self::Rgba8Unorm => RGBA8_UNORM_FORMAT,
+            Self::Rgba8UnormSrgb => RGBA8_UNORM_SRGB_FORMAT,
+        }
+    }
+
+    pub(crate) fn from_format_label(format: &str) -> Option<Self> {
+        let format = format.trim();
+        if format.eq_ignore_ascii_case(RGBA8_UNORM_FORMAT) {
+            return Some(Self::Rgba8Unorm);
+        }
+        if format.eq_ignore_ascii_case(RGBA8_UNORM_SRGB_FORMAT) {
+            return Some(Self::Rgba8UnormSrgb);
+        }
+        None
     }
 }
 
@@ -263,8 +309,9 @@ impl CompiledGraphCache {
 mod tests {
     use crate::core::framework::render::{
         CameraRenderType, CorePipelineKind, RenderCameraTarget, RenderCapabilitySummary,
-        RenderDynamicResolutionSettings, RenderFrameExtract, RenderParticleSpriteSnapshot,
-        RenderPipelineHandle, RenderViewportRect, RenderWorldSnapshotHandle,
+        RenderDynamicResolutionSettings, RenderFrameExtract, RenderLayerSet,
+        RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderViewportRect,
+        RenderWorldSnapshotHandle,
     };
     use crate::core::math::{UVec2, Vec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -336,53 +383,38 @@ mod tests {
     fn render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs() {
         let mut baseline = test_extract();
         baseline.apply_viewport_size(UVec2::new(128, 64));
-        let baseline_fingerprint = super::extract_compile_fingerprint(&baseline);
+        let baseline_fingerprint = fingerprint_for(&baseline);
 
         let mut resized = baseline.clone();
         resized.apply_viewport_size(UVec2::new(256, 64));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&resized)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&resized));
 
         let dynamic_resolution = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline)
                 .with_dynamic_resolution(RenderDynamicResolutionSettings::fixed_scale(0.5)),
         );
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&dynamic_resolution)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&dynamic_resolution));
 
         let hdr = baseline
             .clone()
             .with_selected_camera_descriptor(selected_descriptor(&baseline).with_hdr(true));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&hdr)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&hdr));
 
         let msaa = baseline
             .clone()
             .with_selected_camera_descriptor(selected_descriptor(&baseline).with_msaa_samples(4));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&msaa)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&msaa));
 
         let mut particles = baseline;
         particles.particles.sprites.push(particle_sprite_snapshot());
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&particles)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&particles));
     }
 
     #[test]
     fn render_graph_compile_frame_fingerprint_tracks_camera_target_and_stack_inputs() {
         let mut baseline = test_extract();
         baseline.apply_viewport_size(UVec2::new(128, 64));
-        let baseline_fingerprint = super::extract_compile_fingerprint(&baseline);
+        let baseline_fingerprint = fingerprint_for(&baseline);
 
         let mut texture = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline).with_target(RenderCameraTarget::Texture(
@@ -390,10 +422,7 @@ mod tests {
             )),
         );
         texture.apply_viewport_size(UVec2::new(128, 64));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&texture)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&texture));
 
         let mut other_texture = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline).with_target(RenderCameraTarget::Texture(
@@ -401,10 +430,7 @@ mod tests {
             )),
         );
         other_texture.apply_viewport_size(UVec2::new(128, 64));
-        assert_ne!(
-            super::extract_compile_fingerprint(&texture),
-            super::extract_compile_fingerprint(&other_texture)
-        );
+        assert_ne!(fingerprint_for(&texture), fingerprint_for(&other_texture));
 
         let mut headless = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline).with_target(RenderCameraTarget::Headless {
@@ -412,10 +438,7 @@ mod tests {
             }),
         );
         headless.apply_viewport_size(UVec2::new(128, 64));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&headless)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&headless));
 
         let mut viewport = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline).with_viewport_rect(RenderViewportRect::new(
@@ -424,19 +447,48 @@ mod tests {
             )),
         );
         viewport.apply_viewport_size(UVec2::new(128, 64));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&viewport)
-        );
+        assert_ne!(baseline_fingerprint, fingerprint_for(&viewport));
 
         let mut overlay = baseline.clone().with_selected_camera_descriptor(
             selected_descriptor(&baseline).with_render_type(CameraRenderType::Overlay),
         );
         overlay.apply_viewport_size(UVec2::new(128, 64));
-        assert_ne!(
-            baseline_fingerprint,
-            super::extract_compile_fingerprint(&overlay)
+        assert_ne!(baseline_fingerprint, fingerprint_for(&overlay));
+    }
+
+    #[test]
+    fn compiled_render_pipeline_cache_key_tracks_texture_target_format_class() {
+        let pipeline = RenderPipelineAsset::default_forward_plus();
+        let texture = texture_handle("res://target-format.png");
+        let extract = test_extract();
+        let descriptor =
+            selected_descriptor(&extract).with_target(RenderCameraTarget::Texture(texture));
+        let mut extract = extract.with_selected_camera_descriptor(descriptor);
+        extract.apply_viewport_size(UVec2::new(128, 64));
+        let srgb_key = key_for_with_camera_target(
+            &pipeline,
+            &extract,
+            super::RenderGraphCompileCameraTargetFingerprint::Texture {
+                id: texture.id(),
+                width: 128,
+                height: 64,
+                format: super::RenderGraphCompileTextureTargetFormat::Rgba8UnormSrgb,
+            },
+            &RenderPipelineCompileOptions::default(),
         );
+        let linear_key = key_for_with_camera_target(
+            &pipeline,
+            &extract,
+            super::RenderGraphCompileCameraTargetFingerprint::Texture {
+                id: texture.id(),
+                width: 128,
+                height: 64,
+                format: super::RenderGraphCompileTextureTargetFormat::Rgba8Unorm,
+            },
+            &RenderPipelineCompileOptions::default(),
+        );
+
+        assert_ne!(srgb_key, linear_key);
     }
 
     #[test]
@@ -584,12 +636,41 @@ mod tests {
         extract: &RenderFrameExtract,
         options: &RenderPipelineCompileOptions,
     ) -> CompiledGraphCacheKey {
+        key_for_with_camera_target(
+            pipeline,
+            extract,
+            camera_target_fingerprint_for_extract(extract),
+            options,
+        )
+    }
+
+    fn key_for_with_camera_target(
+        pipeline: &RenderPipelineAsset,
+        extract: &RenderFrameExtract,
+        camera_target: super::RenderGraphCompileCameraTargetFingerprint,
+        options: &RenderPipelineCompileOptions,
+    ) -> CompiledGraphCacheKey {
         CompiledGraphCacheKey::from_inputs(
             pipeline,
             extract,
+            camera_target,
             options,
             &RenderCapabilitySummary::default(),
             Default::default(),
+        )
+    }
+
+    fn fingerprint_for(extract: &RenderFrameExtract) -> super::RenderGraphCompileFrameFingerprint {
+        super::extract_compile_fingerprint(extract, camera_target_fingerprint_for_extract(extract))
+    }
+
+    fn camera_target_fingerprint_for_extract(
+        extract: &RenderFrameExtract,
+    ) -> super::RenderGraphCompileCameraTargetFingerprint {
+        let view_size = extract.view.effective_view_size();
+        let target = &selected_descriptor(extract).target;
+        super::RenderGraphCompileCameraTargetFingerprint::from_target_and_view_size(
+            target, view_size,
         )
     }
 
@@ -630,6 +711,7 @@ mod tests {
             color: Vec4::new(1.0, 1.0, 1.0, 1.0),
             intensity: 1.0,
             depth_test: true,
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
             material: None,
             texture: None,
         }

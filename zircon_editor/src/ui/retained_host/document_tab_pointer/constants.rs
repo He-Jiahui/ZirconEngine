@@ -5,6 +5,8 @@ pub(in crate::ui::retained_host::document_tab_pointer) const ROOT_NODE_ID: UiNod
 pub(in crate::ui::retained_host::document_tab_pointer) const SURFACE_NODE_ID_BASE: u64 = 10;
 pub(in crate::ui::retained_host::document_tab_pointer) const TAB_NODE_ID_BASE: u64 = 100;
 pub(in crate::ui::retained_host::document_tab_pointer) const CLOSE_NODE_ID_BASE: u64 = 10_000;
+pub(in crate::ui::retained_host::document_tab_pointer) const DOCUMENT_TAB_ROUTE_ID_BASE: u64 =
+    52_000;
 
 pub(in crate::ui::retained_host::document_tab_pointer) const STRIP_X: f32 = 8.0;
 pub(in crate::ui::retained_host::document_tab_pointer) const STRIP_Y: f32 = 1.0;

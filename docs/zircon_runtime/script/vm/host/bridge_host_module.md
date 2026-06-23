@@ -7,6 +7,8 @@ related_code:
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/tests/host_exports.rs
+  - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
@@ -25,6 +27,8 @@ plan_sources:
   - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/tests/host_exports.rs
+  - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
 ---
 

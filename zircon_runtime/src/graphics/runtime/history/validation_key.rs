@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderFrameExtract, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderFrameExtract, RenderLayerSet, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{Transform, Vec4};
@@ -45,7 +45,7 @@ struct FrameHistoryMeshValidationKey {
     material: ResourceId,
     tint: Vec4,
     mobility: Mobility,
-    render_layer_mask: u32,
+    render_layer_mask: RenderLayerSet,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -80,7 +80,7 @@ impl FrameHistoryValidationKey {
                     material: mesh.material.id(),
                     tint: mesh.tint,
                     mobility: mesh.mobility,
-                    render_layer_mask: mesh.render_layer_mask,
+                    render_layer_mask: mesh.render_layer_mask.clone(),
                 })
                 .collect(),
             lighting: extract.lighting.clone(),

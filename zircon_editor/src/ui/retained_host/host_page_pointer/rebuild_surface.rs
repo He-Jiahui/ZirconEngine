@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
@@ -7,21 +5,23 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTreeNode},
 };
 
+use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
+
 use super::base_state::base_state;
 use super::constants::{
     ROOT_NODE_ID, STRIP_NODE_ID, STRIP_X, STRIP_Y, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
 };
 use super::host_page_pointer_bridge::HostPagePointerBridge;
-use super::host_page_pointer_target::HostPagePointerTarget;
+use super::host_page_pointer_route::HostPagePointerRoute;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
-use super::tab_node_id::tab_node_id;
+use super::tab_node_id::{tab_node_id, tab_route_id};
 
 impl HostPagePointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.host_page.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
+        let mut route_intents = EditorRouteIntentMap::default();
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.host_page.root"))
@@ -69,18 +69,19 @@ impl HostPagePointerBridge {
                 )
                 .expect("host page strip must exist");
             register_handled_pointer_node(&mut dispatcher, node_id);
-            targets.insert(
+            route_intents.bind_node(
                 node_id,
-                HostPagePointerTarget::Tab {
+                tab_route_id(item_index),
+                EditorRouteIntent::HostPage(HostPagePointerRoute::Tab {
                     item_index,
                     page_id: item.page_id.clone(),
-                },
+                }),
             );
         }
 
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
-        self.targets = targets;
+        self.route_intents = route_intents;
     }
 }

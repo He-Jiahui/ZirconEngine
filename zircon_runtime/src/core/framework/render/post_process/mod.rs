@@ -5,6 +5,7 @@ mod effect;
 mod effect_stack_settings;
 mod exposure_readback;
 mod exposure_settings;
+mod graph_resource_names;
 mod pass_graph;
 mod pass_node;
 mod resolved_stack;
@@ -40,10 +41,11 @@ pub use exposure_settings::{
     RenderExposureMode, RenderExposureSettings, EXPOSURE_BUFFER_WORD_COUNT,
     EXPOSURE_HISTOGRAM_BIN_COUNT,
 };
+pub use graph_resource_names::PostProcessGraphResourceNames;
 pub use pass_graph::PostProcessPassGraph;
 pub use pass_node::PostProcessPassNode;
 pub use resolved_stack::RenderResolvedPostProcessSettings;
-pub use stack::{PostProcessGraphResourceNames, PostProcessStackDescriptor};
+pub use stack::PostProcessStackDescriptor;
 pub use validation::PostProcessGraphValidationError;
 pub use volume_component::{
     interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, VolumeComponentApplyError,

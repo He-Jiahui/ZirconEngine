@@ -2,7 +2,9 @@ use crate::core::framework::render::{RenderFrameExtract, RenderFrameworkError};
 
 use std::sync::Arc;
 
-use crate::graphics::pipeline::{extract_compile_fingerprint, CompiledGraphCacheKey};
+use crate::graphics::pipeline::{
+    extract_compile_fingerprint, CompiledGraphCacheKey, RenderGraphCompileCameraTargetFingerprint,
+};
 use crate::graphics::{CompiledRenderPipeline, RenderPipelineCompileOptions, WgpuRenderFramework};
 
 use super::super::super::capability_validation::validate_compiled_pipeline_capabilities;
@@ -12,19 +14,28 @@ pub(super) fn compile_submission_pipeline(
     server: &WgpuRenderFramework,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
+    camera_target: RenderGraphCompileCameraTargetFingerprint,
 ) -> Result<Arc<CompiledRenderPipeline>, RenderFrameworkError> {
-    compile_submission_pipeline_with_options(server, state, extract, state.compile_options())
+    compile_submission_pipeline_with_options(
+        server,
+        state,
+        extract,
+        camera_target,
+        state.compile_options(),
+    )
 }
 
 pub(super) fn compile_submission_pipeline_with_options(
     server: &WgpuRenderFramework,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
+    camera_target: RenderGraphCompileCameraTargetFingerprint,
     options: &RenderPipelineCompileOptions,
 ) -> Result<Arc<CompiledRenderPipeline>, RenderFrameworkError> {
     let key = CompiledGraphCacheKey::from_inputs(
         state.pipeline_asset(),
         extract,
+        camera_target,
         options,
         state.capabilities(),
         state.shader_quality(),
@@ -45,7 +56,7 @@ pub(super) fn compile_submission_pipeline_with_options(
     if lookup.status.is_hit() {
         debug_assert_eq!(
             frame_fingerprint,
-            extract_compile_fingerprint(extract),
+            extract_compile_fingerprint(extract, camera_target),
             "compiled graph cache hit used a stale render frame compile fingerprint"
         );
     }

@@ -5,11 +5,12 @@ use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
     AntiAliasFallbackReason, AntiAliasMode, AntiAliasSettings, CapturedFrame, FallbackSkyboxKind,
     GeometryExtract, GeometryPhaseInput, PreviewEnvironmentExtract, ProjectionMode,
-    RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderMotionBlurSettings, RenderParticlePreviousSpriteSnapshot,
-    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderMotionBlurSettings,
+    RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderPipelineHandle,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -649,6 +650,7 @@ fn particle_taa_product_extract(viewport_size: UVec2) -> RenderFrameExtract {
         color: Vec4::new(1.0, 0.48, 0.12, 0.85),
         intensity: 1.0,
         depth_test: true,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         material: None,
         texture: None,
     }];
@@ -755,7 +757,7 @@ fn dynamic_occlusion_mesh(
         tint,
         mobility,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }
 
@@ -912,7 +914,7 @@ fn authored_reactive_mask_mesh(node_id: u64, material: ResourceId) -> RenderMesh
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: Default::default(),
-        render_layer_mask: u32::MAX,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }
 

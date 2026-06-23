@@ -1,8 +1,12 @@
-use std::collections::BTreeMap;
-
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime::ui::{
+    dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
+    surface::UiSurface,
+};
 use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent,
+    dispatch::{
+        UiDispatchEffect, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata,
+        UiInputSequence, UiInputTimestamp, UiPointerEvent, UiPointerId, UiPointerInputEvent,
+    },
     event_ui::UiNodeId,
     layout::UiPoint,
     surface::{UiPointerButton, UiPointerEventKind},
@@ -17,6 +21,7 @@ use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
 #[cfg(test)]
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
@@ -25,14 +30,19 @@ use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::drag_surface::build_drag_surface;
 use super::resize_surface::{build_resize_surface, update_resize_surface};
-use super::route::{drag_route_from_node, resize_group_from_dispatch, HostShellPointerRoute};
+use super::route::HostShellPointerRoute;
+
+const SHELL_POINTER_ID: UiPointerId = UiPointerId::new(1);
 
 pub(crate) struct HostShellPointerBridge {
     drag_surface: UiSurface,
     drag_dispatcher: UiPointerDispatcher,
-    drag_routes: BTreeMap<UiNodeId, HostShellPointerRoute>,
+    drag_route_intents: EditorRouteIntentMap,
     resize_surface: UiSurface,
     resize_dispatcher: UiPointerDispatcher,
+    resize_route_intents: EditorRouteIntentMap,
+    navigation_dispatcher: UiNavigationDispatcher,
+    input_sequence: u64,
 }
 
 impl Default for HostShellPointerBridge {
@@ -43,20 +53,23 @@ impl Default for HostShellPointerBridge {
 
 impl HostShellPointerBridge {
     pub(crate) fn new() -> Self {
-        let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
+        let (drag_surface, drag_dispatcher, drag_route_intents) = build_drag_surface(
             ShellSizePx::new(1.0, 1.0),
             false,
             &[],
             BuiltinWorkbenchWindowLayoutFrames::default(),
             None,
         );
-        let (resize_surface, resize_dispatcher) = build_resize_surface();
+        let (resize_surface, resize_dispatcher, resize_route_intents) = build_resize_surface();
         Self {
             drag_surface,
             drag_dispatcher,
-            drag_routes,
+            drag_route_intents,
             resize_surface,
             resize_dispatcher,
+            resize_route_intents,
+            navigation_dispatcher: UiNavigationDispatcher::default(),
+            input_sequence: 0,
         }
     }
 
@@ -134,7 +147,7 @@ impl HostShellPointerBridge {
         componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
         floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
     ) {
-        let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
+        let (drag_surface, drag_dispatcher, drag_route_intents) = build_drag_surface(
             root_size,
             drawers_visible,
             floating_windows,
@@ -143,7 +156,7 @@ impl HostShellPointerBridge {
         );
         self.drag_surface = drag_surface;
         self.drag_dispatcher = drag_dispatcher;
-        self.drag_routes = drag_routes;
+        self.drag_route_intents = drag_route_intents;
         update_resize_surface(
             &mut self.resize_surface,
             root_size,
@@ -164,22 +177,15 @@ impl HostShellPointerBridge {
     }
 
     pub(crate) fn drag_route_at(&mut self, point: UiPoint) -> Option<HostShellPointerRoute> {
-        let dispatch = self
-            .drag_surface
-            .dispatch_pointer_event(
-                &self.drag_dispatcher,
-                UiPointerEvent::new(UiPointerEventKind::Move, point),
-            )
-            .ok()?;
-
-        dispatch
-            .handled_by
-            .and_then(|node_id| drag_route_from_node(node_id, &self.drag_routes))
+        let dispatch =
+            self.dispatch_drag_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+        shell_pointer_route_from_input_result(&self.drag_route_intents, &dispatch)
     }
 
     #[cfg(test)]
     pub(crate) fn resize_target_at(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(UiPointerEvent::new(UiPointerEventKind::Move, point))
+            .and_then(resize_group_from_shell_route)
     }
 
     pub(crate) fn begin_resize(&mut self, point: UiPoint) -> Option<HostShellPointerRoute> {
@@ -187,11 +193,11 @@ impl HostShellPointerBridge {
             UiPointerEvent::new(UiPointerEventKind::Down, point)
                 .with_button(UiPointerButton::Primary),
         )
-        .map(HostShellPointerRoute::Resize)
     }
 
     pub(crate) fn update_resize(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(UiPointerEvent::new(UiPointerEventKind::Move, point))
+            .and_then(resize_group_from_shell_route)
     }
 
     pub(crate) fn finish_resize(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
@@ -199,14 +205,65 @@ impl HostShellPointerBridge {
             UiPointerEvent::new(UiPointerEventKind::Up, point)
                 .with_button(UiPointerButton::Primary),
         )
+        .and_then(resize_group_from_shell_route)
     }
 
-    fn dispatch_resize_event(&mut self, event: UiPointerEvent) -> Option<HostResizeTargetGroup> {
+    fn dispatch_drag_event(&mut self, event: UiPointerEvent) -> Option<UiInputDispatchResult> {
+        let event = self.pointer_input_event(event);
+        self.drag_surface
+            .dispatch_input_event(&self.drag_dispatcher, &self.navigation_dispatcher, event)
+            .ok()
+    }
+
+    fn dispatch_resize_event(&mut self, event: UiPointerEvent) -> Option<HostShellPointerRoute> {
+        let event = self.pointer_input_event(event);
         let dispatch = self
             .resize_surface
-            .dispatch_pointer_event(&self.resize_dispatcher, event)
+            .dispatch_input_event(&self.resize_dispatcher, &self.navigation_dispatcher, event)
             .ok()?;
-        resize_group_from_dispatch(&dispatch)
+        shell_pointer_route_from_input_result(&self.resize_route_intents, &dispatch)
+    }
+
+    fn pointer_input_event(&mut self, event: UiPointerEvent) -> UiInputEvent {
+        self.input_sequence += 1;
+        let mut metadata = UiInputEventMetadata::new(
+            UiInputTimestamp::from_micros(self.input_sequence),
+            UiInputSequence::new(self.input_sequence),
+        );
+        metadata.pointer_id = Some(SHELL_POINTER_ID);
+        UiInputEvent::Pointer(UiPointerInputEvent {
+            metadata,
+            event,
+            precise_scroll: None,
+        })
+    }
+}
+
+fn shell_pointer_route_from_input_result(
+    intents: &EditorRouteIntentMap,
+    result: &UiInputDispatchResult,
+) -> Option<HostShellPointerRoute> {
+    shell_pointer_reply_effect_target(result)
+        .or(result.reply.handler)
+        .or(result.diagnostics.route_target)
+        .and_then(|node_id| intents.shell_pointer_route_for_node(node_id))
+}
+
+fn shell_pointer_reply_effect_target(result: &UiInputDispatchResult) -> Option<UiNodeId> {
+    result.reply.effects.iter().find_map(|effect| match effect {
+        UiDispatchEffect::CapturePointer { target, .. }
+        | UiDispatchEffect::ReleasePointerCapture { target, .. } => Some(*target),
+        _ => None,
+    })
+}
+
+fn resize_group_from_shell_route(route: HostShellPointerRoute) -> Option<HostResizeTargetGroup> {
+    match route {
+        HostShellPointerRoute::Resize(group) => Some(group),
+        HostShellPointerRoute::DragTarget(_)
+        | HostShellPointerRoute::DocumentEdge(_)
+        | HostShellPointerRoute::FloatingWindow(_)
+        | HostShellPointerRoute::FloatingWindowEdge { .. } => None,
     }
 }
 

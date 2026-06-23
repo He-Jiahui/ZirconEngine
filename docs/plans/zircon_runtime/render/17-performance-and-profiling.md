@@ -450,6 +450,7 @@ PF-M4:
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-23 | Render index 当前状态总览拆分 | PF-M1/PF-M3 部分完成,PF-M2/PF-M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 17 Performance/Profiling 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：CPU parallelization、compile stutter/perf baseline、预算降级阶梯；验收缺口：需要 GPU timestamp/profile hierarchy、perf fixtures、threshold policy、shader warmup reporting |
 | 2026-06-15 | PF-M1 observation base | 部分完成: CPU profiling/markers/diagnostics 存在,GPU timestamp 未接 | `RenderStats`、runtime diagnostics、`profile_scope!`、debug markers 和 RenderDoc capture env hook 已存在并被各计划复用;但无 GPU pass timing、frame profile hierarchy 或 graph dump bundle。 | 本文件 `现状与差距` 实读代码列出 CPU profiling、debug marker、RenderDoc hook 已有,且 `timestamp_writes: None` 全面存在。 | 请求 timestamp feature、实现 `GpuPassTimer`、`RenderFrameProfile` 和 graph dump/profile 关联。 |
 | 2026-06-15 | PF-M2 CPU parallelization | 未启动: 渲染提交仍串行 | submit/extract/prepare/present 仍在锁内串行,graph stage pass 逐个录制。 | 本文件 `现状与差距` 记录 `submit_frame_extract` 双锁串行和 `execute_graph_stage` for 循环。 | 设计 pipeline extract/prepare、rayon prepare jobs 和安全的并行 command recording。 |
 | 2026-06-15 | PF-M3 memory and bandwidth budgets | 部分完成: 统计字段存在,预算/降级缺失 | 多计划已扩展 `RenderStats` 和 diagnostics,能看到 transient bytes、GPUScene upload、reactive mask、HZB readback 等;但无预算、超限降级或 OOM 阶梯。 | 本文件 `现状与差距` 明确统计扁平且无预算防回归;计划 03/04/06/07 状态表记录多项统计面已接入。 | 建立 budget policy、per-pass memory/bandwidth buckets 和 degrade ladder。 |

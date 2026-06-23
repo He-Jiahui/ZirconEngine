@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::framework::render::RenderMaterialAlphaMode;
+use crate::core::framework::render::{RenderLayerSet, RenderMaterialAlphaMode};
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Transform, Vec2, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
@@ -23,6 +23,7 @@ pub struct RenderSpriteSnapshot {
     pub image_mode: RenderSpriteImageMode,
     pub color: Vec4,
     pub z_order: i32,
-    pub render_layer_mask: u32,
+    #[serde(default)]
+    pub render_layer_mask: RenderLayerSet,
     pub material_alpha_mode: RenderMaterialAlphaMode,
 }

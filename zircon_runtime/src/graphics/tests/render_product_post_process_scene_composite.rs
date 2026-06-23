@@ -5,7 +5,7 @@ use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, PostProcessGraphResourceNames, PreviewEnvironmentExtract,
     RenderDirectionalLightSnapshot, RenderFogSettings, RenderFrameExtract, RenderFramework,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderPostProcessEffectStackSettings,
+    RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract, RenderPostProcessEffectStackSettings,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderScreenSpaceReflectionSettings, RenderStats, RenderViewportDescriptor,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
@@ -354,7 +354,7 @@ fn scene_composite_ssr_product_extract(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 925_200,
                     light_id: 925_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
                     direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 1.2,
@@ -423,7 +423,7 @@ fn scene_composite_product_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 
