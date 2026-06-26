@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let marked = node.selected || node.checked;
 
     WorkbenchTreeRowStyle {
-        background: tree_row_background(state, marked),
+        background: tree_row_background(node, state, marked),
         border: tree_row_border(state, marked),
         border_width: tree_row_border_width(state, marked),
         text: tree_row_primary_color(state, marked),

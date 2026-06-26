@@ -24,6 +24,8 @@ fn runtime_15_production_file_budget_guard_child_owner_split() {
             "mod render_scene_world;",
             "mod render_shadow;",
             "mod render_stats_graph;",
+            "mod render_stats_product_tests;",
+            "mod native_host_api_adapter;",
             "mod scene_fixed_lights;",
             "mod ui_text_layout;",
             "fn read_runtime_src(",
@@ -53,6 +55,8 @@ fn runtime_15_production_file_budget_guard_child_owner_split() {
         "tests/runtime_absorption/structure_convention/production_file_budget/render_scene_world.rs",
         "tests/runtime_absorption/structure_convention/production_file_budget/render_shadow.rs",
         "tests/runtime_absorption/structure_convention/production_file_budget/render_stats_graph.rs",
+        "tests/runtime_absorption/structure_convention/production_file_budget/render_stats_product_tests.rs",
+        "tests/runtime_absorption/structure_convention/production_file_budget/native_host_api_adapter.rs",
         "tests/runtime_absorption/structure_convention/production_file_budget/scene_fixed_lights.rs",
         "tests/runtime_absorption/structure_convention/production_file_budget/ui_text_layout.rs",
     ] {

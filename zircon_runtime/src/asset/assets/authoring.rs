@@ -2,11 +2,34 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use thiserror::Error;
 
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::math::Real;
 
 use super::scene::{SceneAsset, TransformAsset};
+
+pub type AssetAuthoringResult<T> = std::result::Result<T, AssetAuthoringError>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum AssetAuthoringError {
+    #[error("terrain `{name}` declares {width}x{height} samples but stores {actual}")]
+    TerrainSampleCount {
+        name: String,
+        width: u32,
+        height: u32,
+        actual: usize,
+    },
+    #[error("tilemap layer `{layer}` stores {actual} tiles for {width}x{height} map")]
+    TileMapLayerTileCount {
+        layer: String,
+        width: u32,
+        height: u32,
+        actual: usize,
+    },
+    #[error("material graph `{name}` has no output node")]
+    MaterialGraphMissingOutput { name: String },
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TerrainAsset {
@@ -40,16 +63,15 @@ impl TerrainAsset {
             .collect()
     }
 
-    pub fn validate_dimensions(&self) -> Result<(), String> {
+    pub fn validate_dimensions(&self) -> AssetAuthoringResult<()> {
         let expected = self.width as usize * self.height as usize;
         if !self.height_samples.is_empty() && self.height_samples.len() != expected {
-            return Err(format!(
-                "terrain `{}` declares {}x{} samples but stores {}",
-                self.name,
-                self.width,
-                self.height,
-                self.height_samples.len()
-            ));
+            return Err(AssetAuthoringError::TerrainSampleCount {
+                name: self.name.clone(),
+                width: self.width,
+                height: self.height,
+                actual: self.height_samples.len(),
+            });
         }
         Ok(())
     }
@@ -152,17 +174,16 @@ impl TileMapAsset {
         vec![self.tile_set.clone()]
     }
 
-    pub fn validate_layers(&self) -> Result<(), String> {
+    pub fn validate_layers(&self) -> AssetAuthoringResult<()> {
         let expected = self.width as usize * self.height as usize;
         for layer in &self.layers {
             if layer.tiles.len() != expected {
-                return Err(format!(
-                    "tilemap layer `{}` stores {} tiles for {}x{} map",
-                    layer.name,
-                    layer.tiles.len(),
-                    self.width,
-                    self.height
-                ));
+                return Err(AssetAuthoringError::TileMapLayerTileCount {
+                    layer: layer.name.clone(),
+                    width: self.width,
+                    height: self.height,
+                    actual: layer.tiles.len(),
+                });
             }
         }
         Ok(())
@@ -252,7 +273,7 @@ impl MaterialGraphAsset {
             .collect()
     }
 
-    pub fn validate_output_node(&self) -> Result<(), String> {
+    pub fn validate_output_node(&self) -> AssetAuthoringResult<()> {
         if self
             .nodes
             .iter()
@@ -260,7 +281,9 @@ impl MaterialGraphAsset {
         {
             return Ok(());
         }
-        Err(format!("material graph `{}` has no output node", self.name))
+        Err(AssetAuthoringError::MaterialGraphMissingOutput {
+            name: self.name.clone(),
+        })
     }
 }
 

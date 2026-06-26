@@ -76,7 +76,10 @@ impl HybridGiRuntimeState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zircon_runtime::core::framework::render::{RenderHybridGiExtract, RenderMeshSnapshot};
+    use zircon_runtime::core::framework::render::{
+        render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiExtract,
+        RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    };
     use zircon_runtime::core::framework::scene::Mobility;
     use zircon_runtime::core::math::{Transform, Vec3, Vec4};
     use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -139,10 +142,13 @@ mod tests {
         translation: Vec3,
         uniform_scale: f32,
     ) -> RenderMeshSnapshot {
+        let transform =
+            Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale));
         RenderMeshSnapshot {
             node_id: entity,
-            transform: Transform::from_translation(translation)
-                .with_scale(Vec3::splat(uniform_scale)),
+            stable_instance_key: render_mesh_stable_instance_key(entity, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
+            transform,
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "res://models/card.obj",
             )),
@@ -150,10 +156,12 @@ mod tests {
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 material,
             )),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Static,
-            render_layer_mask: u32::MAX,
+            static_state: RenderMeshStaticState::from_transform_static(true),
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         }
     }
 }

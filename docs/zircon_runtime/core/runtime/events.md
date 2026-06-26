@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/framework/events.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/events.rs
@@ -19,15 +19,17 @@ implementation_files:
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/core/runtime/tests/events
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
 doc_type: module-detail
 ---
 
@@ -65,5 +67,7 @@ The curated `core` root still exposes `EventBus` for compatibility with the sett
 `core::runtime::tests::events` covers publish/subscribe behavior and source-shape ownership. The structure guards load `core/runtime/events.rs` and `core/runtime/events/{subscribe,publish,failure,prune}.rs` directly, reject moving publish, subscribe, prune, or failed-subscriber matching back into the root owner file, and reject direct production `.lock().unwrap(` use in this owner family.
 
 `runtime_absorption::root_entries::core_root_splits_event_dto_from_runtime_event_bus` guards the M2.2 hard cutover: no `core/event_bus.rs`, no `core/event_bus/`, `framework::events` is declared, and `runtime::events` owns `EventBus`.
+
+Runtime 15 M3 F2 lock poison recovery guard / `runtime_15_f2_lock_poison_recovery_guard_static_passed_cargo_deferred` adds `structure_convention/lock_poison_policy.rs::runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus` as a cross-owner regression guard for EventBus and scene level lock helpers.
 
 2026-06-22 F2 validation for the poison-safe lock slice: scoped rustfmt/check passed for the touched EventBus files and guards; production static scan found no direct `.lock().unwrap(` in `core/runtime/events.rs` or its publish/subscribe/prune owners. Focused Cargo validation was attempted through the Runtime 07 scene poison test and timed out during compilation, so no package-level Cargo pass is claimed for this slice.

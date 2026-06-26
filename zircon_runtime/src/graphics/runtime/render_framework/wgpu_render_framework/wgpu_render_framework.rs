@@ -5,6 +5,8 @@ use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkErr
 use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
+#[cfg(test)]
+use crate::graphics::shader::ShaderVariantCacheDisk;
 
 #[cfg(test)]
 use super::super::render_framework_backend_error::render_framework_backend_error;
@@ -22,7 +24,9 @@ impl WgpuRenderFramework {
     ) -> MutexGuard<'_, ()> {
         #[cfg(feature = "profiling")]
         crate::profile_scope!("runtime", "render_framework.wait", "operation_lock");
-        self.operation_lock.lock().unwrap()
+        self.operation_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(in crate::graphics::runtime::render_framework) fn lock_state(
@@ -30,7 +34,9 @@ impl WgpuRenderFramework {
     ) -> MutexGuard<'_, RenderFrameworkState> {
         #[cfg(feature = "profiling")]
         crate::profile_scope!("runtime", "render_framework.wait", "state");
-        self.state.lock().unwrap()
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     #[cfg(test)]
@@ -46,6 +52,16 @@ impl WgpuRenderFramework {
     }
 
     #[cfg(test)]
+    pub(crate) fn replace_shader_variant_disk_cache_for_tests(
+        &self,
+        cache: ShaderVariantCacheDisk,
+    ) {
+        self.lock_state()
+            .renderer
+            .replace_shader_variant_disk_cache_for_tests(cache);
+    }
+
+    #[cfg(test)]
     pub(crate) fn read_output_target_texture_rgba_for_tests(
         &self,
         texture_id: ResourceId,
@@ -56,5 +72,33 @@ impl WgpuRenderFramework {
             .renderer
             .read_output_target_texture_rgba_for_tests(&texture_id)
             .map_err(render_framework_backend_error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::sync::Arc;
+
+    use crate::asset::pipeline::manager::ProjectAssetManager;
+
+    use super::*;
+
+    #[test]
+    fn wgpu_render_framework_accessors_recover_poisoned_locks() {
+        let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default()))
+            .expect("framework should initialize for lock recovery test");
+
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = framework.operation_lock.lock().unwrap();
+            panic!("poison operation lock");
+        }));
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = framework.state.lock().unwrap();
+            panic!("poison render framework state lock");
+        }));
+
+        drop(framework.lock_operation());
+        assert!(framework.lock_state().viewports.is_empty());
     }
 }

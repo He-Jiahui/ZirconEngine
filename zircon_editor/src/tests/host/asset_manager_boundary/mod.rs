@@ -2,7 +2,8 @@
 fn editor_asset_boundary_lives_in_editor_crate() {
     let app_source = include_str!("../../../ui/retained_host/app.rs");
     let ui_host_mod_source = include_str!("../../../ui/host/mod.rs");
-    let host_lifecycle_source = include_str!("../../../ui/retained_host/app/host_lifecycle.rs");
+    let startup_managers_source =
+        include_str!("../../../ui/retained_host/app/host_lifecycle/startup/resources/managers.rs");
     let project_access_source = include_str!("../../../ui/host/project_access.rs");
     let asset_workspace_source =
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
@@ -62,19 +63,19 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "editor event runtime accessors should import editor asset snapshot types from crate::ui::host::editor_asset_manager"
     );
     assert!(
-        host_lifecycle_source.contains("use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;"),
+        startup_managers_source.contains("use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;"),
         "editor host lifecycle should resolve the editor asset server through crate::ui::host::editor_asset_manager"
     );
     assert!(
-        host_lifecycle_source.contains("use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;"),
+        startup_managers_source.contains("use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;"),
         "editor host lifecycle should resolve the generic asset server through zircon_runtime::asset::pipeline::manager"
     );
     assert!(
-        !host_lifecycle_source.contains("resolver.editor_asset()?"),
+        !startup_managers_source.contains("resolver.editor_asset()?"),
         "editor host lifecycle should not resolve editor asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(
-        !host_lifecycle_source.contains("resolver.asset()?"),
+        !startup_managers_source.contains("resolver.asset()?"),
         "editor host lifecycle should not resolve generic asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(

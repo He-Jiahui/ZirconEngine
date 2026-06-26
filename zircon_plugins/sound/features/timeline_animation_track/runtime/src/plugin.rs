@@ -1,4 +1,9 @@
-use crate::capability::{EDITOR_CAPABILITY, FEATURE_ID, RUNTIME_CAPABILITY};
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{
+    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginModuleManifest,
+};
+
+use crate::capability::{DIST_CRATE_NAME, EDITOR_CAPABILITY, FEATURE_ID, RUNTIME_CAPABILITY};
 
 #[derive(Clone, Debug)]
 pub struct SoundTimelineAnimationRuntimeFeature;
@@ -30,37 +35,48 @@ pub fn plugin_feature_registration(
     )
 }
 
-pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
-    zircon_runtime::plugin::PluginFeatureBundleManifest::new(
-        FEATURE_ID,
-        "Sound Timeline Animation Track",
-        "sound",
-    )
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
-        "sound",
-        "runtime.plugin.sound",
-    ))
-    .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
-        "animation",
-        "runtime.feature.animation.timeline_event_track",
-    ))
-    .with_capability(RUNTIME_CAPABILITY)
-    .with_runtime_module(
-        zircon_runtime::plugin::PluginModuleManifest::runtime(
-            "sound.timeline_animation_track.runtime",
-            "zircon_plugin_sound_timeline_animation_runtime",
-        )
-        .with_target_modes([
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+pub fn feature_manifest() -> PluginFeatureBundleManifest {
+    PluginFeatureBundleManifest::new(FEATURE_ID, "Sound Timeline Animation Track", "sound")
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
         ])
-        .with_capabilities([RUNTIME_CAPABILITY.to_string()]),
-    )
-    .with_editor_module(
-        zircon_runtime::plugin::PluginModuleManifest::editor(
-            "sound.timeline_animation_track.editor",
-            "zircon_plugin_sound_timeline_animation_editor",
+        .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::primary(
+            "sound",
+            "runtime.plugin.sound",
+        ))
+        .with_dependency(zircon_runtime::plugin::PluginFeatureDependency::required(
+            "animation",
+            "runtime.feature.animation.timeline_event_track",
+        ))
+        .with_capability(RUNTIME_CAPABILITY)
+        .with_runtime_module(
+            PluginModuleManifest::runtime(
+                "sound.timeline_animation_track.runtime",
+                "zircon_plugin_sound_timeline_animation_runtime",
+            )
+            .with_target_modes([
+                RuntimeTargetMode::ClientRuntime,
+                RuntimeTargetMode::EditorHost,
+            ])
+            .with_capabilities([RUNTIME_CAPABILITY.to_string()]),
         )
-        .with_capabilities([EDITOR_CAPABILITY.to_string()]),
-    )
+        .with_editor_module(
+            PluginModuleManifest::editor(
+                "sound.timeline_animation_track.editor",
+                "zircon_plugin_sound_timeline_animation_editor",
+            )
+            .with_capabilities([EDITOR_CAPABILITY.to_string()]),
+        )
+        .with_native_module(sound_timeline_animation_dist_module_manifest())
+}
+
+pub fn sound_timeline_animation_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native("sound.timeline_animation_track.dist", DIST_CRATE_NAME)
+        .with_target_modes([
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ])
+        .with_capabilities([RUNTIME_CAPABILITY.to_string()])
 }

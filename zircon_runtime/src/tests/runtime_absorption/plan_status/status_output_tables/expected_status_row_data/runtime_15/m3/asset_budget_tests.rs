@@ -77,12 +77,42 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 asset project example vampire test folder split",
+        &[
+            "runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred",
+            "asset/tests/project/example_vampire.rs",
+            "asset/tests/project/example_vampire/manifest_scene_imports.rs",
+            "asset/tests/project/example_vampire/third_person_render_extract.rs",
+            "runtime_15_asset_project_example_vampire_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 asset artifact store test folder split",
+        &[
+            "runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred",
+            "asset/tests/assets/artifact_store.rs",
+            "asset/tests/assets/artifact_store/binary_payloads.rs",
+            "asset/tests/assets/artifact_store/library_assets.rs",
+            "runtime_15_asset_artifact_store_tests_are_folder_backed",
+        ],
+    ),
+    (
         "Runtime 15 M3 asset material test folder split",
         &[
             "runtime_15_asset_material_tests_folder_split_static_passed_cargo_lock_blocked",
             "asset/tests/assets/material.rs",
             "asset/tests/assets/material/owned_descriptor.rs",
             "runtime_15_asset_material_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 asset mesh test root split",
+        &[
+            "runtime_15_asset_mesh_tests_root_split_static_passed_cargo_deferred",
+            "asset/tests/assets/mesh.rs",
+            "asset/tests/assets/mesh/document_roundtrip.rs",
+            "asset/tests/assets/mesh/conversion_import.rs",
+            "runtime_15_asset_mesh_tests_are_folder_backed",
         ],
     ),
     (
@@ -119,6 +149,26 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "asset/tests/assets/scene.rs",
             "asset/tests/assets/scene/foundation.rs",
             "runtime_15_asset_scene_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 asset UI test folder split",
+        &[
+            "runtime_15_asset_ui_tests_folder_split_static_passed_cargo_deferred",
+            "asset/tests/assets/ui.rs",
+            "asset/tests/assets/ui/importer.rs",
+            "asset/tests/assets/ui/project_manager.rs",
+            "runtime_15_asset_ui_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 asset pipeline manager test folder split",
+        &[
+            "runtime_15_asset_pipeline_manager_tests_folder_split_static_passed_cargo_deferred",
+            "asset/tests/pipeline/manager.rs",
+            "asset/tests/pipeline/manager/model_import.rs",
+            "asset/tests/pipeline/manager/watcher.rs",
+            "runtime_15_asset_pipeline_manager_tests_are_folder_backed",
         ],
     ),
     (

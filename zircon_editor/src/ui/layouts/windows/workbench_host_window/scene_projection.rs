@@ -4,9 +4,9 @@ use super::chrome_template_projection::{
     activity_rail_active_control_id, activity_rail_button_frames, activity_rail_nodes,
     bottom_dock_header_nodes, dock_header_frame, dock_subtitle_frame, dock_tab_frames,
     document_dock_header_nodes, floating_window_header_nodes, menu_chrome_nodes,
-    menu_control_frames, page_chrome_nodes, page_project_path_frame, page_tab_frames,
-    page_tab_row_frame, side_dock_header_nodes, status_bar_nodes,
-    surface_metrics_from_chrome_assets, MENU_SLOT_COUNT,
+    menu_control_frames, page_chrome_nodes, page_overflow_frame, page_overflow_hidden_tab_indices,
+    page_project_path_frame, page_tab_frames, page_tab_row_frame, side_dock_header_nodes,
+    status_bar_nodes, surface_metrics_from_chrome_assets, MENU_SLOT_COUNT,
 };
 use super::*;
 use crate::ui::asset_editor::ui_asset_editor_node_projection;
@@ -85,9 +85,14 @@ pub(crate) fn build_host_scene_data(
         tab_row_frame: page_tab_row_frame(&page_template_nodes),
         project_path_frame: page_project_path_frame(&page_template_nodes),
         tab_frames: page_tab_frames(&page_template_nodes, &host_surface_data.host_tabs),
-        template_nodes: page_template_nodes,
         tabs: host_surface_data.host_tabs.clone(),
         project_path: host_shell.project_path.clone(),
+        overflow_frame: page_overflow_frame(&page_template_nodes),
+        overflow_hidden_tab_indices: page_overflow_hidden_tab_indices(
+            &page_template_nodes,
+            &host_surface_data.host_tabs,
+        ),
+        template_nodes: page_template_nodes,
     };
     let status_bar = HostStatusBarData {
         status_bar_frame: host_layout.status_bar_frame.clone(),

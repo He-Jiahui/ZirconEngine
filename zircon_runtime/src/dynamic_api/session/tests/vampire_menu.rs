@@ -1,7 +1,7 @@
 use crate::core::math::Vec3;
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
-use super::helpers::*;
+use super::vampire_runtime_support::*;
 
 #[test]
 fn vampire_project_session_starts_paused_until_start_button_click() {

@@ -6,11 +6,11 @@ use super::super::register_pipeline_asset::compile_pipeline_for_validation;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let pipeline_asset =
         state
             .pipelines

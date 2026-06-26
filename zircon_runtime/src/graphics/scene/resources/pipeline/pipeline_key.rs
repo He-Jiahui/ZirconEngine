@@ -14,6 +14,7 @@ pub(crate) struct PipelineKey {
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_mask: bool,
     pub(crate) alpha_cutoff_bits: Option<u32>,
+    pub(crate) receive_shadows: bool,
     pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
     pub(crate) has_base_color_texture: bool,
@@ -66,13 +67,16 @@ impl PipelineKey {
         }
     }
 
-    fn shader_feature_bits(&self) -> ShaderFeatureBits {
+    pub(crate) fn shader_feature_bits(&self) -> ShaderFeatureBits {
         let mut bits = 0;
         if self.alpha_mask {
             bits |= ShaderFeatureBits::ALPHA_TEST;
         }
         if self.double_sided {
             bits |= ShaderFeatureBits::DOUBLE_SIDED;
+        }
+        if self.receive_shadows {
+            bits |= ShaderFeatureBits::RECEIVE_SHADOWS;
         }
         ShaderFeatureBits::new(bits)
     }
@@ -101,6 +105,7 @@ mod tests {
         key.shader_revision = 42;
         key.double_sided = true;
         key.alpha_mask = true;
+        key.receive_shadows = true;
 
         let variant = key.shader_variant_key(ShaderPassType::GBuffer, "wgpu-test");
 
@@ -111,5 +116,20 @@ mod tests {
         assert_eq!(variant.platform_token, "wgpu-test");
         assert!(variant.features.contains(ShaderFeatureBits::ALPHA_TEST));
         assert!(variant.features.contains(ShaderFeatureBits::DOUBLE_SIDED));
+        assert!(variant
+            .features
+            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+    }
+
+    #[test]
+    fn pipeline_key_can_disable_receive_shadow_shader_feature() {
+        let mut key = default_pipeline_key();
+        key.receive_shadows = false;
+
+        let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+
+        assert!(!variant
+            .features
+            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
     }
 }

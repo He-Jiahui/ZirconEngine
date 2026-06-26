@@ -1,4 +1,5 @@
 use super::fixture::RuntimeSourceControlFixture;
+use zircon_runtime::core::framework::sound::{SoundMixRenderManager, SoundSourceManager};
 
 #[test]
 fn source_seek_and_gain_affect_rendered_samples_and_cursor() {

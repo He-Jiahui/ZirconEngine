@@ -105,8 +105,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
@@ -265,8 +267,10 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
@@ -371,7 +375,8 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - cargo test -p zircon_runtime animation_manager_samples_clip_pose_against_skeleton --locked -- --nocapture
   - cargo test -p zircon_runtime apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties --locked -- --nocapture
   - cargo test -p zircon_runtime directory_project_scene_renders_non_background_frame_with_gizmo_overlay --locked -- --nocapture
@@ -1177,3 +1182,8 @@ animation editor 这条 authoring 链现在已经不再停在“只能把 sessio
 - inspector canonical property model 与 sequence editor 的统一 authoring surface
 
 当前仍未完成的是完整 backend 驱动接入、scene writeback 到真实刚体世界、skinned path 的 GPU/VG 正式化，以及 conventional mesh LOD 的高阶 authoring/streaming 策略。底层共享合同、fallback query/contact、graph/state-machine evaluator、clip pose sampling、level tick 内的 graph/state-machine runtime clock、level -> render extract 的 animation pose seam、scene mesh LOD asset/runtime roundtrip 与 camera-distance snapshot selection、skinned vertex 的 joint/weight runtime resource surface、mesh-level CPU-side joint palette uniform ABI、renderer-owned per-draw current/previous palette buffer readiness、skinned GPU source candidate diagnostics、direct mesh CPU-morphed shader-skinning source diagnostics、guarded WGSL palette skinning、model bind group binding 1/2 readiness、custom material shader authored-layout renderer ABI diagnostics、fallback shader vertex-channel contract、GPU-skinned fallback motion-vector readiness，以及 raster path 对 animation pose 的实际 mesh deformation 消费都已经进入 runtime 主干，不再属于未落地空壳。
+
+
+## Runtime 15 M3 Asset Project Example Vampire Test Folder Split
+
+Runtime 15 M3 的 `Runtime 15 M3 asset project example vampire test folder split` 把 vampire 示例验收测试改为 folder-backed owner：`asset/tests/project/example_vampire.rs` 只保留共享 fixture 与子模块挂载，`asset/tests/project/example_vampire/manifest_scene_imports.rs` 继续覆盖 manifest、scene/script、shader、animation 与 import record contract，`asset/tests/project/example_vampire/third_person_render_extract.rs` 继续覆盖 loaded world 到 render frame extract 的 playable third-person mesh、static grass batch、camera 和 post-process contract。结构守卫 `runtime_15_asset_project_example_vampire_tests_are_folder_backed` 同步校验这些路径和本文件的状态锚，当前状态为 `runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred`。

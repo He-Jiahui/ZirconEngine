@@ -1,6 +1,6 @@
 use super::super::surface_hit_test::TemplateNodePointerHit;
 use super::super::template_input_semantics::hit_is_text_input;
-use super::asset::asset_dispatch_source;
+use crate::ui::retained_host::asset_control_ids::asset_dispatch_source;
 use crate::ui::retained_host::callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

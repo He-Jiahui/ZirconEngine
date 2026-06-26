@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_palette.rs
@@ -51,8 +52,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
@@ -73,6 +74,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_palette.rs
@@ -118,8 +120,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
@@ -144,9 +146,10 @@ tests:
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs::tests::render_gpu_scene_id_allocator_reuses_freed_spans_without_aliasing
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs::tests::render_gpu_scene_id_allocator_coalesces_adjacent_free_spans
   - zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs::tests::render_gpu_scene_update_queue_merges_adjacent_dirty_ranges
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs::tests::render_gpu_scene_static_scene_second_frame_uploads_zero_bytes
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs::tests::render_gpu_scene_single_moving_entity_uploads_only_its_entry
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs::tests::render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_static_scene_second_frame_uploads_zero_bytes
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_single_moving_entity_uploads_only_its_entry
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_scene_tests.rs::runtime_15_gpu_scene_tests_are_child_owner
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs::tests::render_gpu_scene_rolls_current_transform_into_previous_after_success
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs::tests::render_gpu_scene_roll_marks_previous_valid_without_dirty_upload_when_unchanged
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_palette.rs::tests::render_gpu_scene_rolls_current_skinned_palette_after_success
@@ -156,19 +159,19 @@ tests:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_declares_gpu_scene_group
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_declares_gpu_scene_group
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_declares_gpu_scene_group
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_reads_gpu_scene_instance_data
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_reads_gpu_scene_instance_data
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_reads_gpu_scene_instance_data
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_is_valid_wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs::tests::shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_carry_gpu_scene_counts
@@ -205,7 +208,8 @@ This module deliberately lives under `zircon_runtime/src/graphics/scene/` rather
 
 - `mod.rs` mounts the subsystem and re-exports only the small set of types that later renderer code should consume. The 2026-06-24 Plan 03/F12 cleanup (`render_plan03_gpu_scene_root_facade_suppression_cleanup_static_passed_cargo_timeout_active_compile`) removed the root `dead_code`/`unused_imports` suppression and stopped re-exporting child-owned binding helpers, allocators, dirty queues, capacity constants, layout offset constants, and roll-report types.
 - `binding.rs` defines the read-only storage bind group layout for primitive, instance, and light buffers; its remap params uniform also carries the active light count for shader iteration.
-- `gpu_scene.rs` owns primitive, instance, and fallback light storage buffers, shared and per-palette scene-data bind groups, CPU shadow vectors, and stable-key entries.
+- `gpu_scene.rs` owns primitive, instance, and fallback light storage buffers, shared and per-palette scene-data bind groups, CPU shadow vectors, stable-key entries, and the child test mount. The 2026-06-24 Plan 03 GPUScene tests owner split (`render_plan03_gpu_scene_tests_owner_split_static_passed_cargo_deferred_active_compile_lane`) moved headless upload tests into `gpu_scene/tests.rs`, and `runtime_15_gpu_scene_tests_are_child_owner` prevents those tests from returning to the data-plane owner.
+- `gpu_scene/tests.rs` owns the headless WGPU upload coverage for static-scene zero-byte second submit, single moving instance range upload, and light buffer growth/unchanged upload behavior.
 - `layout.rs` defines `GpuPrimitiveData` and `GpuInstanceData` as `#[repr(C, align(16))]` Pod structs with explicit stride and offset constants.
 - `prev_transform.rs` owns the TP-M1 previous-transform roll surface: successful frame submissions copy each live instance's current transform into the previous-transform slot for the next frame.
 - `prev_skinned_palette.rs` owns the Plan 06 TP-M1 skinned current/previous palette roll surface: mesh draw sync stages current palette state, and successful frame submissions copy that staged state into the next frame's previous-palette map.

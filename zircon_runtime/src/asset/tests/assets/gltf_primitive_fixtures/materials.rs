@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(super) fn write_texture_transform_triangle_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("texture_transform_triangle.bin");
     let gltf_path = root.join("texture_transform_triangle.gltf");
 
@@ -166,7 +166,7 @@ pub(super) fn write_texture_transform_triangle_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
-pub(super) fn write_two_primitive_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_two_primitive_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("two_primitives.bin");
     let gltf_path = root.join("two_primitives.gltf");
 

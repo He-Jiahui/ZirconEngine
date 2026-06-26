@@ -1,8 +1,10 @@
-use crate::asset::NavMeshAsset;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+
+use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::navigation::{
     NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshObstacleDescriptor, NavMeshObstacleShape,
-    NavigationManager, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK, NAV_MESH_AGENT_COMPONENT_TYPE,
-    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NavSampleQuery, NavigationManager, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK,
+    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::components::NodeKind;
@@ -53,6 +55,40 @@ fn tick_world_agent_moves_only_selected_agent_and_avoids_local_colliders() {
         distance_xz(selected_after, other_before) > other_distance_before,
         "selected agent should also separate from nearby agents: before={selected_before:?} after={selected_after:?} other={other_before:?}"
     );
+}
+
+#[test]
+fn navigation_manager_accessors_recover_poisoned_state_lock() {
+    let manager = BuiltinNavigationManager::new();
+
+    let poison = catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.state.lock().unwrap();
+        panic!("poison navigation state lock");
+    }));
+    assert!(poison.is_err());
+
+    let handle = manager
+        .load_nav_mesh(NavMeshAsset::simple_quad(DEFAULT_AGENT_TYPE, 2.0))
+        .unwrap();
+    manager
+        .load_navigation_settings(NavigationSettingsAsset::default_3d())
+        .unwrap();
+
+    let hit = manager
+        .sample_position(NavSampleQuery {
+            nav_mesh: Some(handle),
+            position: [0.0, 0.0, 0.0],
+            extents: [0.5, 0.5, 0.5],
+            agent_type: DEFAULT_AGENT_TYPE.to_string(),
+            area_mask: DEFAULT_AREA_MASK,
+        })
+        .unwrap();
+
+    assert!(
+        hit.is_some(),
+        "poison recovery should leave loaded navmesh queries usable"
+    );
+    assert_eq!(manager.stats().loaded_nav_meshes, 1);
 }
 
 fn spawn_test_agent(world: &mut World, position: Vec3, destination: Vec3) -> u64 {

@@ -21,6 +21,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_vi
     load_visual_asset_pixels_for_target(asset, RasterTargetSize::new(target_width, target_height))
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_existing_icon_asset_pixels_for_size(
+    icon_name: &str,
+    target_width: u32,
+    target_height: u32,
+    tint: Option<[u8; 4]>,
+) -> Option<HostPaintImagePixels> {
+    let target = RasterTargetSize::new(target_width, target_height)?;
+    let key = visual_asset_cache_key(&UiVisualAssetRef::Icon(icon_name.to_owned()));
+    load_pixels_from_candidates(icon_candidates(icon_name), &key, Some(target), tint)
+}
+
 fn load_visual_asset_pixels_for_target(
     asset: &UiVisualAssetRef,
     target: Option<RasterTargetSize>,

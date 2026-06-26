@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::asset::AssetUri;
 use crate::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
@@ -29,6 +30,75 @@ const SUPPORTED_WAV_SPEAKER_MASK: u32 = SPEAKER_FRONT_LEFT
     | SPEAKER_SIDE_LEFT
     | SPEAKER_SIDE_RIGHT;
 
+pub type SoundAssetResult<T> = std::result::Result<T, SoundAssetError>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum SoundAssetError {
+    #[error("wav file is too small")]
+    WavFileTooSmall,
+    #[error("wav file is missing RIFF/WAVE header")]
+    MissingRiffWaveHeader,
+    #[error("wav chunk extends beyond end of file")]
+    WavChunkExtendsBeyondFile,
+    #[error("wav file is missing fmt chunk")]
+    MissingFormatChunk,
+    #[error("wav fmt chunk declared zero channels")]
+    ZeroChannels,
+    #[error("wav fmt chunk declared zero sample rate")]
+    ZeroSampleRate,
+    #[error("wav file is missing data chunk")]
+    MissingDataChunk,
+    #[error("wav fmt chunk is too small")]
+    FormatChunkTooSmall,
+    #[error("wav extensible fmt chunk is too small")]
+    ExtensibleFormatChunkTooSmall,
+    #[error("wav extensible fmt chunk extension is too small")]
+    ExtensibleFormatExtensionTooSmall,
+    #[error(
+        "unsupported wav extensible valid bits per sample {valid_bits_per_sample} for container bits {container_bits}"
+    )]
+    UnsupportedExtensibleValidBits {
+        valid_bits_per_sample: u16,
+        container_bits: u16,
+    },
+    #[error("wav extensible subformat read overflow")]
+    ExtensibleSubformatReadOverflow,
+    #[error("unsupported wav extensible subformat")]
+    UnsupportedExtensibleSubformat,
+    #[error("unsupported wav bits per sample: {bits_per_sample}")]
+    UnsupportedBitsPerSample { bits_per_sample: u16 },
+    #[error(
+        "wav block align {block_align} did not match channel_count {channel_count} * bytes_per_sample {bytes_per_sample}"
+    )]
+    BlockAlignMismatch {
+        block_align: u16,
+        channel_count: u16,
+        bytes_per_sample: usize,
+    },
+    #[error("wav data chunk did not align to whole audio frames")]
+    DataFrameAlignment,
+    #[error("wav data chunk did not align to sample width")]
+    DataSampleWidthAlignment,
+    #[error("unsupported wav format {audio_format} / {bits_per_sample}-bit")]
+    UnsupportedFormat {
+        audio_format: u16,
+        bits_per_sample: u16,
+    },
+    #[error(
+        "wav extensible channel mask {channel_mask:#010x} did not match channel count {channel_count}"
+    )]
+    ChannelMaskCountMismatch {
+        channel_mask: u32,
+        channel_count: u16,
+    },
+    #[error(
+        "wav extensible channel mask {channel_mask:#010x} uses unsupported speaker bits {unsupported:#010x}"
+    )]
+    UnsupportedSpeakerMaskBits { channel_mask: u32, unsupported: u32 },
+    #[error("wav header read overflow")]
+    HeaderReadOverflow,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundAsset {
     pub uri: AssetUri,
@@ -40,12 +110,12 @@ pub struct SoundAsset {
 }
 
 impl SoundAsset {
-    pub fn from_wav_bytes(uri: &AssetUri, bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_wav_bytes(uri: &AssetUri, bytes: &[u8]) -> SoundAssetResult<Self> {
         if bytes.len() < 12 {
-            return Err("wav file is too small".to_string());
+            return Err(SoundAssetError::WavFileTooSmall);
         }
         if &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
-            return Err("wav file is missing RIFF/WAVE header".to_string());
+            return Err(SoundAssetError::MissingRiffWaveHeader);
         }
 
         let mut cursor = 12;
@@ -56,9 +126,11 @@ impl SoundAsset {
             let chunk_size =
                 u32::from_le_bytes(bytes[cursor + 4..cursor + 8].try_into().unwrap()) as usize;
             let chunk_start = cursor + 8;
-            let chunk_end = chunk_start + chunk_size;
+            let chunk_end = chunk_start
+                .checked_add(chunk_size)
+                .ok_or(SoundAssetError::WavChunkExtendsBeyondFile)?;
             if chunk_end > bytes.len() {
-                return Err("wav chunk extends beyond end of file".to_string());
+                return Err(SoundAssetError::WavChunkExtendsBeyondFile);
             }
 
             match chunk_id {
@@ -70,12 +142,12 @@ impl SoundAsset {
             cursor = chunk_end + (chunk_size % 2);
         }
 
-        let format = format.ok_or_else(|| "wav file is missing fmt chunk".to_string())?;
+        let format = format.ok_or(SoundAssetError::MissingFormatChunk)?;
         if format.channel_count == 0 {
-            return Err("wav fmt chunk declared zero channels".to_string());
+            return Err(SoundAssetError::ZeroChannels);
         }
         if format.sample_rate_hz == 0 {
-            return Err("wav fmt chunk declared zero sample rate".to_string());
+            return Err(SoundAssetError::ZeroSampleRate);
         }
 
         Ok(Self {
@@ -83,10 +155,7 @@ impl SoundAsset {
             sample_rate_hz: format.sample_rate_hz,
             channel_count: format.channel_count,
             channel_layout: format.channel_layout()?,
-            samples: decode_samples(
-                &format,
-                data.ok_or_else(|| "wav file is missing data chunk".to_string())?,
-            )?,
+            samples: decode_samples(&format, data.ok_or(SoundAssetError::MissingDataChunk)?)?,
         })
     }
 
@@ -117,7 +186,7 @@ struct WavFormat {
 }
 
 impl WavFormat {
-    fn channel_layout(&self) -> Result<SoundChannelLayout, String> {
+    fn channel_layout(&self) -> SoundAssetResult<SoundChannelLayout> {
         match self.channel_mask {
             Some(mask) => channel_layout_from_wav_mask(mask, self.channel_count),
             None => Ok(SoundChannelLayout::for_channel_count(self.channel_count)),
@@ -125,9 +194,9 @@ impl WavFormat {
     }
 }
 
-fn parse_format_chunk(bytes: &[u8]) -> Result<WavFormat, String> {
+fn parse_format_chunk(bytes: &[u8]) -> SoundAssetResult<WavFormat> {
     if bytes.len() < 16 {
-        return Err("wav fmt chunk is too small".to_string());
+        return Err(SoundAssetError::FormatChunkTooSmall);
     }
 
     let mut format = WavFormat {
@@ -144,56 +213,59 @@ fn parse_format_chunk(bytes: &[u8]) -> Result<WavFormat, String> {
     Ok(format)
 }
 
-fn parse_extensible_format_chunk(bytes: &[u8], format: &mut WavFormat) -> Result<(), String> {
+fn parse_extensible_format_chunk(bytes: &[u8], format: &mut WavFormat) -> SoundAssetResult<()> {
     if bytes.len() < 40 {
-        return Err("wav extensible fmt chunk is too small".to_string());
+        return Err(SoundAssetError::ExtensibleFormatChunkTooSmall);
     }
     let extension_size = read_u16(bytes, 16)?;
     if extension_size < 22 {
-        return Err("wav extensible fmt chunk extension is too small".to_string());
+        return Err(SoundAssetError::ExtensibleFormatExtensionTooSmall);
     }
     let valid_bits_per_sample = read_u16(bytes, 18)?;
     if valid_bits_per_sample != 0 && valid_bits_per_sample != format.bits_per_sample {
-        return Err(format!(
-            "unsupported wav extensible valid bits per sample {valid_bits_per_sample} for container bits {}",
-            format.bits_per_sample
-        ));
+        return Err(SoundAssetError::UnsupportedExtensibleValidBits {
+            valid_bits_per_sample,
+            container_bits: format.bits_per_sample,
+        });
     }
     let subformat = bytes
         .get(24..40)
-        .ok_or_else(|| "wav extensible subformat read overflow".to_string())?;
+        .ok_or(SoundAssetError::ExtensibleSubformatReadOverflow)?;
     format.audio_format = if subformat == PCM_SUBFORMAT_GUID {
         PCM_FORMAT
     } else if subformat == IEEE_FLOAT_SUBFORMAT_GUID {
         IEEE_FLOAT_FORMAT
     } else {
-        return Err("unsupported wav extensible subformat".to_string());
+        return Err(SoundAssetError::UnsupportedExtensibleSubformat);
     };
     let channel_mask = read_u32(bytes, 20)?;
     format.channel_mask = (channel_mask != 0).then_some(channel_mask);
     Ok(())
 }
 
-fn decode_samples(format: &WavFormat, data: &[u8]) -> Result<Vec<f32>, String> {
+fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>> {
     let bytes_per_sample = match format.bits_per_sample {
         8 => 1,
         16 => 2,
         24 => 3,
         32 => 4,
-        other => return Err(format!("unsupported wav bits per sample: {other}")),
+        bits_per_sample => {
+            return Err(SoundAssetError::UnsupportedBitsPerSample { bits_per_sample })
+        }
     };
     let expected_block_align = format.channel_count as usize * bytes_per_sample;
     if format.block_align as usize != expected_block_align {
-        return Err(format!(
-            "wav block align {} did not match channel_count {} * bytes_per_sample {}",
-            format.block_align, format.channel_count, bytes_per_sample
-        ));
+        return Err(SoundAssetError::BlockAlignMismatch {
+            block_align: format.block_align,
+            channel_count: format.channel_count,
+            bytes_per_sample,
+        });
     }
     if data.len() % format.block_align as usize != 0 {
-        return Err("wav data chunk did not align to whole audio frames".to_string());
+        return Err(SoundAssetError::DataFrameAlignment);
     }
     if data.len() % bytes_per_sample != 0 {
-        return Err("wav data chunk did not align to sample width".to_string());
+        return Err(SoundAssetError::DataSampleWidthAlignment);
     }
 
     match (format.audio_format, format.bits_per_sample) {
@@ -221,26 +293,29 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> Result<Vec<f32>, String> {
             .chunks_exact(4)
             .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()).clamp(-1.0, 1.0))
             .collect()),
-        (audio_format, bits_per_sample) => Err(format!(
-            "unsupported wav format {audio_format} / {bits_per_sample}-bit"
-        )),
+        (audio_format, bits_per_sample) => Err(SoundAssetError::UnsupportedFormat {
+            audio_format,
+            bits_per_sample,
+        }),
     }
 }
 
 fn channel_layout_from_wav_mask(
     channel_mask: u32,
     channel_count: u16,
-) -> Result<SoundChannelLayout, String> {
+) -> SoundAssetResult<SoundChannelLayout> {
     if channel_mask.count_ones() != channel_count as u32 {
-        return Err(format!(
-            "wav extensible channel mask {channel_mask:#010x} did not match channel count {channel_count}"
-        ));
+        return Err(SoundAssetError::ChannelMaskCountMismatch {
+            channel_mask,
+            channel_count,
+        });
     }
     let unsupported = channel_mask & !SUPPORTED_WAV_SPEAKER_MASK;
     if unsupported != 0 {
-        return Err(format!(
-            "wav extensible channel mask {channel_mask:#010x} uses unsupported speaker bits {unsupported:#010x}"
-        ));
+        return Err(SoundAssetError::UnsupportedSpeakerMaskBits {
+            channel_mask,
+            unsupported,
+        });
     }
 
     let mut speakers = Vec::with_capacity(channel_count as usize);
@@ -289,16 +364,22 @@ fn layout_from_speakers(
     })
 }
 
-fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, String> {
+fn read_u16(bytes: &[u8], offset: usize) -> SoundAssetResult<u16> {
+    let end = offset
+        .checked_add(2)
+        .ok_or(SoundAssetError::HeaderReadOverflow)?;
     let range = bytes
-        .get(offset..offset + 2)
-        .ok_or_else(|| "wav header read overflow".to_string())?;
+        .get(offset..end)
+        .ok_or(SoundAssetError::HeaderReadOverflow)?;
     Ok(u16::from_le_bytes(range.try_into().unwrap()))
 }
 
-fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, String> {
+fn read_u32(bytes: &[u8], offset: usize) -> SoundAssetResult<u32> {
+    let end = offset
+        .checked_add(4)
+        .ok_or(SoundAssetError::HeaderReadOverflow)?;
     let range = bytes
-        .get(offset..offset + 4)
-        .ok_or_else(|| "wav header read overflow".to_string())?;
+        .get(offset..end)
+        .ok_or(SoundAssetError::HeaderReadOverflow)?;
     Ok(u32::from_le_bytes(range.try_into().unwrap()))
 }

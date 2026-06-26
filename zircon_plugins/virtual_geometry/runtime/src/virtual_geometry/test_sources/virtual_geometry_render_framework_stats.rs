@@ -3,12 +3,14 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
-    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderFramework, RenderMeshSnapshot, RenderOverlayExtract, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryNodeAndClusterCullSource,
-    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, DisplayMode,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
+    RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderOverlayExtract, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPage,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -203,21 +205,16 @@ fn build_single_entity_extract(
     let snapshot = RenderSceneSnapshot {
         scene: RenderSceneGeometryExtract {
             camera,
-            meshes: vec![RenderMeshSnapshot {
-                node_id: 2,
-                transform: Transform {
+            meshes: vec![mesh_snapshot(
+                2,
+                Transform {
                     translation: Vec3::ZERO,
                     scale: Vec3::new(0.8, 0.8, 1.0),
                     ..Transform::default()
                 },
                 model,
-                mesh: None,
                 material,
-                morph_weights: Vec::new(),
-                tint: Vec4::ONE,
-                mobility: Mobility::Dynamic,
-                render_layer_mask: default_render_layer_mask(),
-            }],
+            )],
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
@@ -286,36 +283,26 @@ fn build_same_page_dual_entity_extract(
         scene: RenderSceneGeometryExtract {
             camera,
             meshes: vec![
-                RenderMeshSnapshot {
-                    node_id: 2,
-                    transform: Transform {
+                mesh_snapshot(
+                    2,
+                    Transform {
                         translation: Vec3::new(-0.35, 0.0, 0.0),
                         scale: Vec3::new(0.6, 0.6, 1.0),
                         ..Transform::default()
                     },
-                    model: model.clone(),
-                    mesh: None,
-                    material: material.clone(),
-                    morph_weights: Vec::new(),
-                    tint: Vec4::ONE,
-                    mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
-                },
-                RenderMeshSnapshot {
-                    node_id: 3,
-                    transform: Transform {
+                    model.clone(),
+                    material.clone(),
+                ),
+                mesh_snapshot(
+                    3,
+                    Transform {
                         translation: Vec3::new(0.35, 0.0, 0.0),
                         scale: Vec3::new(0.6, 0.6, 1.0),
                         ..Transform::default()
                     },
                     model,
-                    mesh: None,
                     material,
-                    morph_weights: Vec::new(),
-                    tint: Vec4::ONE,
-                    mobility: Mobility::Dynamic,
-                    render_layer_mask: default_render_layer_mask(),
-                },
+                ),
             ],
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
@@ -370,21 +357,16 @@ fn build_hierarchical_instance_extract(
     let snapshot = RenderSceneSnapshot {
         scene: RenderSceneGeometryExtract {
             camera,
-            meshes: vec![RenderMeshSnapshot {
-                node_id: 2,
-                transform: Transform {
+            meshes: vec![mesh_snapshot(
+                2,
+                Transform {
                     translation: Vec3::ZERO,
                     scale: Vec3::new(0.8, 0.8, 1.0),
                     ..Transform::default()
                 },
                 model,
-                mesh: None,
                 material,
-                morph_weights: Vec::new(),
-                tint: Vec4::ONE,
-                mobility: Mobility::Dynamic,
-                render_layer_mask: default_render_layer_mask(),
-            }],
+            )],
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
@@ -496,13 +478,36 @@ fn hierarchy_node(
     }
 }
 
+fn mesh_snapshot(
+    node_id: u64,
+    transform: Transform,
+    model: ResourceHandle<ModelMarker>,
+    material: ResourceHandle<MaterialMarker>,
+) -> RenderMeshSnapshot {
+    RenderMeshSnapshot {
+        node_id,
+        stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+        transform_revision: render_mesh_transform_revision(&transform),
+        transform,
+        model,
+        mesh: None,
+        material,
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Vec4::ONE,
+        mobility: Mobility::Dynamic,
+        static_state: RenderMeshStaticState::from_transform_static(false),
+        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+    }
+}
+
 fn virtual_geometry_only_quality_profile() -> RenderQualityProfile {
     RenderQualityProfile::new("vg-execution-stats")
         .with_virtual_geometry(true)
         .with_hybrid_global_illumination(false)
         .with_clustered_lighting(false)
         .with_screen_space_ambient_occlusion(false)
-        .with_history_resolve(false)
+        .with_temporal_history(false)
         .with_bloom(false)
         .with_color_grading(false)
         .with_reflection_probes(false)

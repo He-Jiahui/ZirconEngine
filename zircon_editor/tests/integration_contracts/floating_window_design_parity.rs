@@ -144,11 +144,15 @@ fn floating_assets_use_tokenized_flat_workbench_chrome() {
     for (name, source) in [
         (
             "command_palette.zui",
-            asset_source("assets/ui/editor/components/workbench/floating/command_palette.zui"),
+            asset_source(
+                "assets/ui/editor/components/workbench/floating/workbench_command_palette.zui",
+            ),
         ),
         (
             "preferences.zui",
-            asset_source("assets/ui/editor/components/workbench/floating/preferences.zui"),
+            asset_source(
+                "assets/ui/editor/components/workbench/floating/workbench_preferences.zui",
+            ),
         ),
     ] {
         assert!(
@@ -170,7 +174,9 @@ fn floating_assets_use_tokenized_flat_workbench_chrome() {
 
 #[test]
 fn command_palette_matches_top_center_keyboard_overlay_contract() {
-    let source = asset_source("assets/ui/editor/components/workbench/floating/command_palette.zui");
+    let source = asset_source(
+        "assets/ui/editor/components/workbench/floating/workbench_command_palette.zui",
+    );
     let document = asset_document(&source);
 
     assert_eq!(
@@ -221,7 +227,8 @@ fn command_palette_matches_top_center_keyboard_overlay_contract() {
 
 #[test]
 fn preferences_matches_modal_navigation_content_contract() {
-    let source = asset_source("assets/ui/editor/components/workbench/floating/preferences.zui");
+    let source =
+        asset_source("assets/ui/editor/components/workbench/floating/workbench_preferences.zui");
     let document = asset_document(&source);
 
     assert_eq!(

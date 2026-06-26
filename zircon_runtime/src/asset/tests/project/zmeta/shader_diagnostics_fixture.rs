@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::asset::ZShaderDefinitionError;
+
 #[test]
 fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
     let root = unique_temp_project_root("project_manager_zshader_capture_diagnostics");
@@ -137,10 +139,13 @@ value = 1.0
 "#,
     )
     .unwrap();
-    assert!(unknown_kind
-        .shader_definition_values()
-        .unwrap_err()
-        .contains("unsupported kind `float`"));
+    assert_eq!(
+        unknown_kind.shader_definition_values().unwrap_err(),
+        ZShaderDefinitionError::UnsupportedKind {
+            name: "BAD_KIND".to_string(),
+            kind: "float".to_string(),
+        }
+    );
 
     let non_bool = ZShaderDocument::from_toml_str(
         r#"
@@ -151,10 +156,12 @@ value = 1
 "#,
     )
     .unwrap();
-    assert!(non_bool
-        .shader_definition_values()
-        .unwrap_err()
-        .contains("value is not a boolean"));
+    assert_eq!(
+        non_bool.shader_definition_values().unwrap_err(),
+        ZShaderDefinitionError::BoolValue {
+            name: "ENABLE_FOG".to_string(),
+        }
+    );
 
     let negative_uint = ZShaderDocument::from_toml_str(
         r#"
@@ -165,10 +172,12 @@ value = -1
 "#,
     )
     .unwrap();
-    assert!(negative_uint
-        .shader_definition_values()
-        .unwrap_err()
-        .contains("value is not a u32 integer"));
+    assert_eq!(
+        negative_uint.shader_definition_values().unwrap_err(),
+        ZShaderDefinitionError::UintValue {
+            name: "BINDING_INDEX".to_string(),
+        }
+    );
 }
 
 #[test]

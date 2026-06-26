@@ -8,11 +8,11 @@ use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 #[test]
-fn selected_segment_style_defaults_to_legacy_border_without_declaration() {
+fn selected_segment_style_defaults_to_underlined_slate_tab_without_declaration() {
     let node = segmented_node();
 
-    assert_eq!(selected_segment_border_width(&node), 1.0);
-    assert_eq!(selected_segment_underline_height(&node), 0.0);
+    assert_eq!(selected_segment_border_width(&node), 0.0);
+    assert_eq!(selected_segment_underline_height(&node), 2.0);
     assert_eq!(selected_segment_underline_color(&node), PALETTE.accent);
 }
 

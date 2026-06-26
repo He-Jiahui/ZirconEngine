@@ -5,7 +5,7 @@ use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension
 
 use super::{
     metadata, payload::default_texture_payload, TextureArrayLayout, TextureAssetDescriptor,
-    TexturePayload,
+    TextureDescriptorError, TextureDescriptorResult, TexturePayload,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -70,7 +70,10 @@ impl TextureAsset {
         self
     }
 
-    pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
+    pub fn apply_import_settings(
+        mut self,
+        settings: &toml::Table,
+    ) -> TextureDescriptorResult<Self> {
         let mut descriptor = self.texture_descriptor().apply_import_settings(settings)?;
         if let Some(array_layout) = TextureArrayLayout::from_import_settings(settings)? {
             self.apply_array_layout(array_layout, &mut descriptor)?;
@@ -87,19 +90,15 @@ impl TextureAsset {
         &mut self,
         array_layout: TextureArrayLayout,
         descriptor: &mut TextureAssetDescriptor,
-    ) -> Result<(), String> {
+    ) -> TextureDescriptorResult<()> {
         if self.payload != TexturePayload::Rgba8 {
-            return Err(
-                "texture import setting `array_layout` requires a decoded rgba8 image".to_string(),
-            );
+            return Err(TextureDescriptorError::ArrayLayoutRequiresRgba8);
         }
         if descriptor.dimension != RenderImageDimension::D2 {
-            return Err("texture import setting `array_layout` requires a 2d image".to_string());
+            return Err(TextureDescriptorError::ArrayLayoutRequires2d);
         }
         if descriptor.depth_or_array_layers != 1 || descriptor.array_layer_count != 1 {
-            return Err(
-                "texture import setting `array_layout` requires a single-layer image".to_string(),
-            );
+            return Err(TextureDescriptorError::ArrayLayoutRequiresSingleLayer);
         }
         let layers = match array_layout {
             TextureArrayLayout::RowCount { rows } => {
@@ -108,27 +107,26 @@ impl TextureAsset {
             TextureArrayLayout::RowHeight { pixels } => {
                 let pixels = nonzero_array_layout_value("array_layout.row_height", pixels)?;
                 if self.height % pixels != 0 {
-                    return Err(format!(
-                        "texture import setting `array_layout` can not evenly divide height = {} by row_height = {}",
-                        self.height, pixels
-                    ));
+                    return Err(TextureDescriptorError::ArrayLayoutRowHeightDivisibility {
+                        height: self.height,
+                        row_height: pixels,
+                    });
                 }
                 nonzero_array_layout_value("array_layout.row_count", self.height / pixels)?
             }
         };
         if self.height % layers != 0 {
-            return Err(format!(
-                "texture import setting `array_layout` can not evenly divide height = {} by layers = {}",
-                self.height, layers
-            ));
+            return Err(TextureDescriptorError::ArrayLayoutLayerDivisibility {
+                height: self.height,
+                layers,
+            });
         }
         let expected_len = rgba8_len(self.width, self.height)?;
         if self.rgba.len() != expected_len {
-            return Err(format!(
-                "texture import setting `array_layout` expected rgba byte length {} but found {}",
+            return Err(TextureDescriptorError::ArrayLayoutRgbaLength {
                 expected_len,
-                self.rgba.len()
-            ));
+                actual_len: self.rgba.len(),
+            });
         }
 
         self.height /= layers;
@@ -138,19 +136,17 @@ impl TextureAsset {
     }
 }
 
-fn nonzero_array_layout_value(name: &str, value: u32) -> Result<u32, String> {
+fn nonzero_array_layout_value(name: &str, value: u32) -> TextureDescriptorResult<u32> {
     if value == 0 {
-        return Err(format!(
-            "texture import setting `{name}` must be greater than zero"
-        ));
+        return Err(TextureDescriptorError::array_layout_zero(name));
     }
     Ok(value)
 }
 
-fn rgba8_len(width: u32, height: u32) -> Result<usize, String> {
+fn rgba8_len(width: u32, height: u32) -> TextureDescriptorResult<usize> {
     width
         .checked_mul(height)
         .and_then(|pixels| pixels.checked_mul(4))
         .and_then(|bytes| usize::try_from(bytes).ok())
-        .ok_or_else(|| format!("texture rgba8 extent {width}x{height} is too large to validate"))
+        .ok_or(TextureDescriptorError::Rgba8ExtentTooLarge { width, height })
 }

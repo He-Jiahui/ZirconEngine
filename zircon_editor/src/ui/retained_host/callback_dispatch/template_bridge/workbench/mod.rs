@@ -17,6 +17,7 @@ mod layout_frames;
 mod module_command_feedback;
 mod module_field_edit;
 mod module_navigation;
+mod module_overflow_menu;
 mod notifications;
 mod outer_shell_frames;
 mod pointer_feedback;
@@ -25,6 +26,7 @@ mod property_edit;
 mod root_shell_frames;
 mod scene_tree_rows;
 mod status_bar;
+mod toolbar_layout;
 mod transform_edit;
 mod window_menu_state;
 

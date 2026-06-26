@@ -1,20 +1,22 @@
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_SURFACE: [u8; 4] =
-    [16, 22, 26, 255];
+    PALETTE.surface_inset;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_HOVER_SURFACE: [u8; 4] =
-    [20, 27, 31, 255];
+    PALETTE.surface;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE: [u8; 4] =
-    [15, 24, 28, 255];
+    PALETTE.surface_inset;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_DISABLED_SURFACE: [u8; 4] =
-    [36, 41, 45, 255];
+    PALETTE.surface;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_BORDER: [u8; 4] =
-    [50, 63, 71, 255];
+    PALETTE.separator_soft;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_FOCUSED_BORDER: [u8; 4] =
-    [27, 152, 160, 255];
+    PALETTE.accent;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_DISABLED_BORDER: [u8; 4] =
-    [48, 56, 62, 255];
+    PALETTE.border_disabled;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_TEXT: [u8; 4] =
-    [205, 216, 221, 255];
+    PALETTE.text;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_PLACEHOLDER: [u8; 4] =
-    [122, 134, 142, 255];
+    PALETTE.text_muted;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_DISABLED_TEXT: [u8; 4] =
-    [125, 135, 141, 255];
+    PALETTE.text_disabled;

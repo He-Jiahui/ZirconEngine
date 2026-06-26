@@ -51,6 +51,44 @@ impl EditorDesignTokens {
             "--left-drawer-width" => Some(self.density.left_drawer_width),
             "--right-drawer-width" => Some(self.density.right_drawer_width),
             "--bottom-output-height" => Some(self.density.bottom_output_height),
+            "--breakpoint-ultra-width" => Some(self.density.breakpoint_ultra_width),
+            "--breakpoint-narrow-width" => Some(self.density.breakpoint_narrow_width),
+            "--breakpoint-wide-width" => Some(self.density.breakpoint_wide_width),
+            "--compact-side-width" => Some(self.density.compact_side_width),
+            "--ultra-compact-side-width" => Some(self.density.ultra_compact_side_width),
+            "--compact-left-drawer-max-width" => Some(self.density.compact_left_drawer_max_width),
+            "--compact-right-drawer-max-width" => Some(self.density.compact_right_drawer_max_width),
+            "--compact-side-min-width" => Some(self.density.compact_side_min_width),
+            "--ultra-compact-left-drawer-max-width" => {
+                Some(self.density.ultra_compact_left_drawer_max_width)
+            }
+            "--ultra-compact-right-drawer-max-width" => {
+                Some(self.density.ultra_compact_right_drawer_max_width)
+            }
+            "--compact-bottom-available-height" => {
+                Some(self.density.compact_bottom_available_height)
+            }
+            "--compact-bottom-max-height" => Some(self.density.compact_bottom_max_height),
+            "--compact-bottom-max-available-fraction" => {
+                Some(self.density.compact_bottom_max_available_fraction)
+            }
+            "--compact-bottom-min-height" => Some(self.density.compact_bottom_min_height),
+            "--ultra-compact-bottom-available-height" => {
+                Some(self.density.ultra_compact_bottom_available_height)
+            }
+            "--ultra-compact-bottom-max-height" => {
+                Some(self.density.ultra_compact_bottom_max_height)
+            }
+            "--ultra-compact-bottom-max-available-fraction" => {
+                Some(self.density.ultra_compact_bottom_max_available_fraction)
+            }
+            "--ultra-compact-bottom-min-height" => {
+                Some(self.density.ultra_compact_bottom_min_height)
+            }
+            "--minimum-window-width" => Some(self.density.minimum_window_width),
+            "--minimum-window-height" => Some(self.density.minimum_window_height),
+            "--ultra-minimum-window-width" => Some(self.density.ultra_minimum_window_width),
+            "--ultra-minimum-window-height" => Some(self.density.ultra_minimum_window_height),
             _ => None,
         }
     }
@@ -118,8 +156,8 @@ impl EditorDesignTokens {
             UiPainterResolvedState::Focused
             | UiPainterResolvedState::Selected
             | UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Open
-            | UiPainterResolvedState::Loading => self.palette.accent,
+            | UiPainterResolvedState::Open => self.palette.surface_selected,
+            UiPainterResolvedState::Loading => self.palette.accent,
             UiPainterResolvedState::Pressed => self.palette.surface[3],
             UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Dragging
@@ -134,8 +172,8 @@ impl EditorDesignTokens {
             UiPainterResolvedState::Focused
             | UiPainterResolvedState::Selected
             | UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Open
-            | UiPainterResolvedState::Loading => self.palette.surface[0],
+            | UiPainterResolvedState::Open => self.palette.text_primary,
+            UiPainterResolvedState::Loading => self.palette.surface[0],
             UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Dragging
@@ -223,15 +261,47 @@ pub struct EditorResolvedPainterStyle {
 #[serde(default)]
 pub struct EditorPaletteTokens {
     pub surface: [UiRgbaColor; 4],
+    #[serde(default = "default_palette_surface_recessed")]
+    pub surface_recessed: UiRgbaColor,
+    #[serde(default = "default_palette_surface_hover")]
+    pub surface_hover: UiRgbaColor,
+    #[serde(default = "default_palette_surface_selected")]
+    pub surface_selected: UiRgbaColor,
+    #[serde(default = "default_palette_surface_disabled")]
+    pub surface_disabled: UiRgbaColor,
     pub accent: UiRgbaColor,
+    #[serde(default = "default_palette_accent_soft")]
+    pub accent_soft: UiRgbaColor,
     pub border: UiRgbaColor,
+    #[serde(default = "default_palette_border_disabled")]
+    pub border_disabled: UiRgbaColor,
+    #[serde(default = "default_palette_separator_strong")]
+    pub separator_strong: UiRgbaColor,
+    #[serde(default = "default_palette_separator_soft")]
+    pub separator_soft: UiRgbaColor,
     pub text_primary: UiRgbaColor,
     pub text_secondary: UiRgbaColor,
     pub text_disabled: UiRgbaColor,
     pub success: UiRgbaColor,
+    #[serde(default = "default_palette_success_container")]
+    pub success_container: UiRgbaColor,
     pub info: UiRgbaColor,
+    #[serde(default = "default_palette_info_container")]
+    pub info_container: UiRgbaColor,
     pub warning: UiRgbaColor,
+    #[serde(default = "default_palette_warning_container")]
+    pub warning_container: UiRgbaColor,
     pub error: UiRgbaColor,
+    #[serde(default = "default_palette_error_container")]
+    pub error_container: UiRgbaColor,
+    #[serde(default = "default_palette_popup")]
+    pub popup: UiRgbaColor,
+    #[serde(default = "default_palette_track")]
+    pub track: UiRgbaColor,
+    #[serde(default = "default_palette_focus_ring")]
+    pub focus_ring: UiRgbaColor,
+    #[serde(default = "default_palette_shadow")]
+    pub shadow: UiRgbaColor,
 }
 
 impl Default for EditorPaletteTokens {
@@ -241,25 +311,136 @@ impl Default for EditorPaletteTokens {
 }
 
 impl EditorPaletteTokens {
+    pub const WORKBENCH_SURFACE: [[u8; 4]; 4] = [
+        [17, 20, 22, 255],
+        [23, 26, 29, 255],
+        [27, 31, 35, 255],
+        [37, 43, 49, 255],
+    ];
+    pub const WORKBENCH_SURFACE_RECESSED: [u8; 4] = [15, 19, 22, 255];
+    pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [42, 48, 54, 255];
+    pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [23, 57, 66, 255];
+    pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [34, 39, 43, 255];
+    pub const WORKBENCH_ACCENT: [u8; 4] = [42, 166, 184, 255];
+    pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [23, 67, 77, 255];
+    pub const WORKBENCH_BORDER: [u8; 4] = [50, 58, 65, 255];
+    pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [44, 50, 55, 255];
+    pub const WORKBENCH_SEPARATOR_STRONG: [u8; 4] = [65, 75, 84, 255];
+    pub const WORKBENCH_SEPARATOR_SOFT: [u8; 4] = [38, 45, 51, 255];
+    pub const WORKBENCH_TEXT_PRIMARY: [u8; 4] = [232, 236, 238, 255];
+    pub const WORKBENCH_TEXT_SECONDARY: [u8; 4] = [164, 174, 180, 255];
+    pub const WORKBENCH_TEXT_DISABLED: [u8; 4] = [101, 111, 118, 255];
+    pub const WORKBENCH_SUCCESS: [u8; 4] = [85, 190, 120, 255];
+    pub const WORKBENCH_SUCCESS_CONTAINER: [u8; 4] = [29, 71, 47, 255];
+    pub const WORKBENCH_INFO: [u8; 4] = [95, 170, 230, 255];
+    pub const WORKBENCH_INFO_CONTAINER: [u8; 4] = [24, 57, 91, 255];
+    pub const WORKBENCH_WARNING: [u8; 4] = [220, 172, 80, 255];
+    pub const WORKBENCH_WARNING_CONTAINER: [u8; 4] = [70, 49, 18, 255];
+    pub const WORKBENCH_ERROR: [u8; 4] = [235, 96, 92, 255];
+    pub const WORKBENCH_ERROR_CONTAINER: [u8; 4] = [76, 36, 39, 255];
+    pub const WORKBENCH_POPUP: [u8; 4] = [20, 22, 24, 255];
+    pub const WORKBENCH_TRACK: [u8; 4] = [44, 51, 57, 255];
+    pub const WORKBENCH_FOCUS_RING: [u8; 4] = [56, 189, 208, 255];
+    pub const WORKBENCH_SHADOW: [u8; 4] = [0, 0, 0, 115];
+
     pub fn workbench_dark() -> Self {
         Self {
-            surface: [
-                UiRgbaColor::from_u8(17, 20, 22, 255),
-                UiRgbaColor::from_u8(23, 26, 29, 255),
-                UiRgbaColor::from_u8(27, 31, 35, 255),
-                UiRgbaColor::from_u8(37, 43, 49, 255),
-            ],
-            accent: UiRgbaColor::from_u8(60, 199, 214, 255),
-            border: UiRgbaColor::from_u8(57, 65, 71, 255),
-            text_primary: UiRgbaColor::from_u8(232, 236, 238, 255),
-            text_secondary: UiRgbaColor::from_u8(164, 174, 180, 255),
-            text_disabled: UiRgbaColor::from_u8(101, 111, 118, 255),
-            success: UiRgbaColor::from_u8(85, 190, 120, 255),
-            info: UiRgbaColor::from_u8(95, 170, 230, 255),
-            warning: UiRgbaColor::from_u8(220, 172, 80, 255),
-            error: UiRgbaColor::from_u8(235, 96, 92, 255),
+            surface: Self::WORKBENCH_SURFACE.map(Self::rgba),
+            surface_recessed: Self::rgba(Self::WORKBENCH_SURFACE_RECESSED),
+            surface_hover: Self::rgba(Self::WORKBENCH_SURFACE_HOVER),
+            surface_selected: Self::rgba(Self::WORKBENCH_SURFACE_SELECTED),
+            surface_disabled: Self::rgba(Self::WORKBENCH_SURFACE_DISABLED),
+            accent: Self::rgba(Self::WORKBENCH_ACCENT),
+            accent_soft: Self::rgba(Self::WORKBENCH_ACCENT_SOFT),
+            border: Self::rgba(Self::WORKBENCH_BORDER),
+            border_disabled: Self::rgba(Self::WORKBENCH_BORDER_DISABLED),
+            separator_strong: Self::rgba(Self::WORKBENCH_SEPARATOR_STRONG),
+            separator_soft: Self::rgba(Self::WORKBENCH_SEPARATOR_SOFT),
+            text_primary: Self::rgba(Self::WORKBENCH_TEXT_PRIMARY),
+            text_secondary: Self::rgba(Self::WORKBENCH_TEXT_SECONDARY),
+            text_disabled: Self::rgba(Self::WORKBENCH_TEXT_DISABLED),
+            success: Self::rgba(Self::WORKBENCH_SUCCESS),
+            success_container: Self::rgba(Self::WORKBENCH_SUCCESS_CONTAINER),
+            info: Self::rgba(Self::WORKBENCH_INFO),
+            info_container: Self::rgba(Self::WORKBENCH_INFO_CONTAINER),
+            warning: Self::rgba(Self::WORKBENCH_WARNING),
+            warning_container: Self::rgba(Self::WORKBENCH_WARNING_CONTAINER),
+            error: Self::rgba(Self::WORKBENCH_ERROR),
+            error_container: Self::rgba(Self::WORKBENCH_ERROR_CONTAINER),
+            popup: Self::rgba(Self::WORKBENCH_POPUP),
+            track: Self::rgba(Self::WORKBENCH_TRACK),
+            focus_ring: Self::rgba(Self::WORKBENCH_FOCUS_RING),
+            shadow: Self::rgba(Self::WORKBENCH_SHADOW),
         }
     }
+
+    fn rgba(bytes: [u8; 4]) -> UiRgbaColor {
+        UiRgbaColor::from_u8(bytes[0], bytes[1], bytes[2], bytes[3])
+    }
+}
+
+fn default_palette_surface_recessed() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED)
+}
+
+fn default_palette_surface_hover() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_HOVER)
+}
+
+fn default_palette_surface_selected() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_SELECTED)
+}
+
+fn default_palette_surface_disabled() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_DISABLED)
+}
+
+fn default_palette_accent_soft() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_ACCENT_SOFT)
+}
+
+fn default_palette_border_disabled() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_BORDER_DISABLED)
+}
+
+fn default_palette_separator_strong() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SEPARATOR_STRONG)
+}
+
+fn default_palette_separator_soft() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SEPARATOR_SOFT)
+}
+
+fn default_palette_success_container() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SUCCESS_CONTAINER)
+}
+
+fn default_palette_info_container() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_INFO_CONTAINER)
+}
+
+fn default_palette_warning_container() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_WARNING_CONTAINER)
+}
+
+fn default_palette_error_container() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_ERROR_CONTAINER)
+}
+
+fn default_palette_popup() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_POPUP)
+}
+
+fn default_palette_track() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_TRACK)
+}
+
+fn default_palette_focus_ring() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_FOCUS_RING)
+}
+
+fn default_palette_shadow() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SHADOW)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -308,6 +489,28 @@ pub struct EditorDensityTokens {
     pub left_drawer_width: f32,
     pub right_drawer_width: f32,
     pub bottom_output_height: f32,
+    pub breakpoint_ultra_width: f32,
+    pub breakpoint_narrow_width: f32,
+    pub breakpoint_wide_width: f32,
+    pub compact_side_width: f32,
+    pub ultra_compact_side_width: f32,
+    pub compact_left_drawer_max_width: f32,
+    pub compact_right_drawer_max_width: f32,
+    pub compact_side_min_width: f32,
+    pub ultra_compact_left_drawer_max_width: f32,
+    pub ultra_compact_right_drawer_max_width: f32,
+    pub compact_bottom_available_height: f32,
+    pub compact_bottom_max_height: f32,
+    pub compact_bottom_max_available_fraction: f32,
+    pub compact_bottom_min_height: f32,
+    pub ultra_compact_bottom_available_height: f32,
+    pub ultra_compact_bottom_max_height: f32,
+    pub ultra_compact_bottom_max_available_fraction: f32,
+    pub ultra_compact_bottom_min_height: f32,
+    pub minimum_window_width: f32,
+    pub minimum_window_height: f32,
+    pub ultra_minimum_window_width: f32,
+    pub ultra_minimum_window_height: f32,
 }
 
 impl Default for EditorDensityTokens {
@@ -328,6 +531,28 @@ impl EditorDensityTokens {
             left_drawer_width: 332.0,
             right_drawer_width: 404.0,
             bottom_output_height: 228.0,
+            breakpoint_ultra_width: 480.0,
+            breakpoint_narrow_width: 640.0,
+            breakpoint_wide_width: 1260.0,
+            compact_side_width: 1100.0,
+            ultra_compact_side_width: 760.0,
+            compact_left_drawer_max_width: 340.0,
+            compact_right_drawer_max_width: 220.0,
+            compact_side_min_width: 196.0,
+            ultra_compact_left_drawer_max_width: 220.0,
+            ultra_compact_right_drawer_max_width: 160.0,
+            compact_bottom_available_height: 900.0,
+            compact_bottom_max_height: 148.0,
+            compact_bottom_max_available_fraction: 0.23,
+            compact_bottom_min_height: 120.0,
+            ultra_compact_bottom_available_height: 420.0,
+            ultra_compact_bottom_max_height: 96.0,
+            ultra_compact_bottom_max_available_fraction: 0.20,
+            ultra_compact_bottom_min_height: 80.0,
+            minimum_window_width: 640.0,
+            minimum_window_height: 420.0,
+            ultra_minimum_window_width: 420.0,
+            ultra_minimum_window_height: 360.0,
         }
     }
 }
@@ -339,7 +564,9 @@ pub enum EditorStateColorRole {
     Surface1,
     Surface2,
     Surface3,
+    SurfaceSelected,
     Accent,
+    FocusRing,
     Border,
     TextPrimary,
     TextSecondary,
@@ -353,7 +580,9 @@ impl EditorStateColorRole {
             Self::Surface1 => palette.surface[1],
             Self::Surface2 => palette.surface[2],
             Self::Surface3 => palette.surface[3],
+            Self::SurfaceSelected => palette.surface_selected,
             Self::Accent => palette.accent,
+            Self::FocusRing => palette.focus_ring,
             Self::Border => palette.border,
             Self::TextPrimary => palette.text_primary,
             Self::TextSecondary => palette.text_secondary,
@@ -386,8 +615,8 @@ impl EditorStateRoleTokens {
             default: EditorStateColorRole::Surface1,
             hovered: EditorStateColorRole::Surface2,
             pressed: EditorStateColorRole::Surface3,
-            selected: EditorStateColorRole::Accent,
-            focused: EditorStateColorRole::Accent,
+            selected: EditorStateColorRole::SurfaceSelected,
+            focused: EditorStateColorRole::SurfaceSelected,
             disabled: EditorStateColorRole::TextDisabled,
             loading: EditorStateColorRole::Accent,
         }

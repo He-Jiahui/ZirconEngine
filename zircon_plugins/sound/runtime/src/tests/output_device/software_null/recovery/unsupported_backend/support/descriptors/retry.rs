@@ -1,6 +1,6 @@
 use super::super::super::super::super::super::super::*;
 
-pub(super) fn software_null_retry_descriptor() -> SoundOutputDeviceDescriptor {
+pub(crate) fn software_null_retry_descriptor() -> SoundOutputDeviceDescriptor {
     SoundOutputDeviceDescriptor {
         id: SoundOutputDeviceId::new("sound.output.null.retry"),
         backend: "software-null".to_string(),

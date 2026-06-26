@@ -48,8 +48,6 @@ impl DesktopExportWizardSessions {
                 .session_mut(profile_name)?
                 .handle_request(ExportWizardPanelRequest::Poll)?,
         };
-        self.last_updates
-            .insert(profile_name.to_string(), update.clone());
         Ok(update)
     }
 

@@ -2,7 +2,8 @@ use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    ExportPackagingStrategy, ExportTargetPlatform, PluginDistributionManifest,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 
@@ -10,6 +11,15 @@ use crate::{
     CONTAINER_IMPORTER_CAPABILITY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CAPABILITIES,
     RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
+
+pub const TEXTURE_ASSET_IMPORTER_DIST_CRATE_NAME: &str =
+    "zircon_plugin_asset_importer_texture_dist";
+pub const TEXTURE_ASSET_IMPORTER_DIST_RUNTIME_ENTRY: &str =
+    "zircon_plugin_asset_importer_texture_runtime_entry_v3";
+
+const TEXTURE_ASSET_IMPORTER_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct TextureAssetImporterRuntimePlugin {
@@ -121,8 +131,31 @@ pub fn runtime_module_manifest() -> PluginModuleManifest {
         .with_capabilities(runtime_capabilities().iter().copied())
 }
 
+pub fn dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native(
+        "asset_importer.texture.dist",
+        TEXTURE_ASSET_IMPORTER_DIST_CRATE_NAME,
+    )
+    .with_target_modes(supported_targets())
+    .with_capabilities(runtime_capabilities().iter().copied())
+}
+
 fn package_manifest_from_descriptor(descriptor: &RuntimePluginDescriptor) -> PluginPackageManifest {
     let mut manifest = descriptor.package_manifest();
+    manifest
+        .default_packaging
+        .push(ExportPackagingStrategy::NativeDynamic);
+    manifest = manifest.with_native_module(dist_module_manifest());
+    manifest = manifest.with_distribution(PluginDistributionManifest {
+        forms: vec!["dist".to_string()],
+        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+        abi_version: Some(NATIVE_ABI_VERSION_V3),
+        engine_compat: TEXTURE_ASSET_IMPORTER_DIST_ENGINE_COMPAT.to_string(),
+        dist_crate: TEXTURE_ASSET_IMPORTER_DIST_CRATE_NAME.to_string(),
+        descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+        runtime_entry: TEXTURE_ASSET_IMPORTER_DIST_RUNTIME_ENTRY.to_string(),
+        ..PluginDistributionManifest::default()
+    });
     for importer in asset_importer_descriptors() {
         manifest = manifest.with_asset_importer(importer);
     }

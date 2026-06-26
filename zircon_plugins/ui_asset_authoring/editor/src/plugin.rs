@@ -1,11 +1,24 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::{
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
+};
 
 use crate::{
     CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID, UI_ASSET_DRAWER_ID, UI_ASSET_TEMPLATE_ID,
     UI_ASSET_VIEW_ID,
 };
+
+pub const UI_ASSET_AUTHORING_DIST_CRATE_NAME: &str = "zircon_plugin_ui_asset_authoring_dist";
+pub const UI_ASSET_AUTHORING_DIST_EDITOR_ENTRY: &str =
+    "zircon_plugin_ui_asset_authoring_editor_entry_v3";
+const UI_ASSET_AUTHORING_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct UiAssetAuthoringEditorPlugin {
@@ -60,7 +73,7 @@ pub fn editor_plugin() -> UiAssetAuthoringEditorPlugin {
     UiAssetAuthoringEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+pub fn package_manifest() -> PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
@@ -75,9 +88,39 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     )
 }
 
-fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "UI Asset Authoring")
+fn base_package_manifest() -> PluginPackageManifest {
+    PluginPackageManifest::new(PLUGIN_ID, "UI Asset Authoring")
         .with_category("authoring")
-        .with_supported_targets([zircon_runtime::builtin::RuntimeTargetMode::EditorHost])
+        .with_supported_targets([RuntimeTargetMode::EditorHost])
+        .with_supported_platforms([
+            ExportTargetPlatform::Windows,
+            ExportTargetPlatform::Linux,
+            ExportTargetPlatform::Macos,
+        ])
         .with_capabilities(EDITOR_CAPABILITIES.iter().copied())
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
+        ])
+        .with_native_module(ui_asset_authoring_dist_module_manifest())
+        .with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: UI_ASSET_AUTHORING_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: UI_ASSET_AUTHORING_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            editor_entry: UI_ASSET_AUTHORING_DIST_EDITOR_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
+}
+
+pub fn ui_asset_authoring_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native(
+        "ui_asset_authoring.dist",
+        UI_ASSET_AUTHORING_DIST_CRATE_NAME,
+    )
+    .with_target_modes([RuntimeTargetMode::EditorHost])
+    .with_capabilities(EDITOR_CAPABILITIES.iter().copied())
 }

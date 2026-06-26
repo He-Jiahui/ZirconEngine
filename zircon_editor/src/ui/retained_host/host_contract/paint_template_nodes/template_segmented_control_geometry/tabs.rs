@@ -1,5 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::{TAB_TEXT_INSET_X, TAB_UNDERLINE_HEIGHT};
+use super::metrics::{tab_line_height, tab_text_inset_x, tab_underline_height};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tab_paint_rect(
     node: &TemplatePaneNodeData,
@@ -16,22 +16,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tab_pai
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tab_underline_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let underline_height = tab_underline_height();
     FrameRect {
         x: rect.x,
-        y: rect.y + (rect.height - TAB_UNDERLINE_HEIGHT).max(0.0),
+        y: rect.y + (rect.height - underline_height).max(0.0),
         width: rect.width,
-        height: TAB_UNDERLINE_HEIGHT,
+        height: underline_height,
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tab_label_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    let line_height = super::metrics::tab_line_height();
+    let inset_x = tab_text_inset_x();
+    let line_height = tab_line_height();
     FrameRect {
-        x: rect.x + TAB_TEXT_INSET_X,
+        x: rect.x + inset_x,
         y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
-        width: (rect.width - TAB_TEXT_INSET_X * 2.0).max(1.0),
+        width: (rect.width - inset_x * 2.0).max(1.0),
         height: line_height,
     }
 }

@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/ui/workbench/page_layout_template.rs
   - zircon_editor/src/tests/workbench/layout/page_layout_templates.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/assets/ui/editor/layout/page_templates.v2.ui.toml
+  - zircon_editor/assets/ui/editor/layout/page_templates.toml
   - zircon_editor/assets/ui/editor/components/workbench/modules
 design_references:
   - docs/ui-and-layout/editor-workbench-designs/scene-drawer-layout-spec.png
@@ -72,15 +72,15 @@ pub fn instantiate_page(skeleton: &WorkbenchSkeleton, template: &PageLayoutTempl
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增 | `zircon_editor/assets/ui/editor/layout/page_templates.v2.ui.toml` | 各页面区域填充声明 |
+| 新增 | `zircon_editor/assets/ui/editor/layout/page_templates.toml` | 各页面区域填充声明 |
 | 修改 | `host/module.rs` | 模块工作区按页面模板入 center |
 
 ## 6. 里程碑切片化
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 | -- | --- | --- | --- | --- |
-| S1 | 核心页面模板(Scene/Material/Inspector) | page_templates.v2.ui.toml / host/module.rs | `cargo test -p zircon_editor --lib --locked` | — |
-| S2 | 其余页面 + 状态规范 | page_templates.v2.ui.toml | `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked` | — |
+| S1 | 核心页面模板(Scene/Material/Inspector) | page_templates.toml / host/module.rs | `cargo test -p zircon_editor --lib --locked` | — |
+| S2 | 其余页面 + 状态规范 | page_templates.toml | `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked` | — |
 
 ## 7. 测试矩阵
 
@@ -109,5 +109,6 @@ pub fn instantiate_page(skeleton: &WorkbenchSkeleton, template: &PageLayoutTempl
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 05.S1 核心页面模板(Scene/Material/Inspector) | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/page_layout_template.rs` 与 `zircon_editor/assets/ui/editor/layout/page_templates.v2.ui.toml`;Scene/Material/Inspector 三个核心页面复用 02 区域绑定与 04 默认预设,并通过职责角色约束防止面板错槽。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 05.S2:补齐其余页面模板与页面级状态规范,再接入 `host/module.rs` 的模块工作区实例化路径。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
-| 2026-06-23 | 05.S2 其余页面 + 状态规范 | implemented-focused-passed | `PageLayoutTemplate::builtin_templates()` 与 `page_templates.v2.ui.toml` 已覆盖 13 个编辑器页面:Scene/Game/Material/MaterialPreview/Inspector/Prefab/UIDesigner/UISource/AnimationTimeline/AnimationGraph/AssetBrowser/Console/RuntimeDiagnostics。每页声明六区域填充、默认预设、抽屉状态和中心分屏形状;新增 `page_layout_templates.rs` 覆盖页面集合、区域职责、状态 profile 与资产字段。验证:`cargo test -p zircon_editor --lib page_layout_templates --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309 --message-format short --color never -- --test-threads=1 --nocapture` 4/4 通过。Cargo 过程中按 support-first 最小修复下层 runtime UI surface split 漂移:拖拽组件事件 helper 可见性、scrollable candidates trait 导入、timer metadata import。 | 05 计划 focused path 已关闭;继续 06.S2 浮动窗口设计对齐验收、01.S2 旧 shell/module token hard cutover 与 03.S2 更宽 editor-layout Cargo 复验债。 |
+| 2026-06-23 | 05.S1 核心页面模板(Scene/Material/Inspector) | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/page_layout_template.rs` 与专用布局声明资产；Scene/Material/Inspector 三个核心页面复用 02 区域绑定与 04 默认预设,并通过职责角色约束防止面板错槽。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 05.S2:补齐其余页面模板与页面级状态规范,再接入 `host/module.rs` 的模块工作区实例化路径。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-23 | 05.S2 其余页面 + 状态规范 | implemented-focused-passed | `PageLayoutTemplate::builtin_templates()` 与 `page_templates.toml` 已覆盖 13 个编辑器页面:Scene/Game/Material/MaterialPreview/Inspector/Prefab/UIDesigner/UISource/AnimationTimeline/AnimationGraph/AssetBrowser/Console/RuntimeDiagnostics。每页声明六区域填充、默认预设、抽屉状态和中心分屏形状;新增 `page_layout_templates.rs` 覆盖页面集合、区域职责、状态 profile 与资产字段。验证:`cargo test -p zircon_editor --lib page_layout_templates --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309 --message-format short --color never -- --test-threads=1 --nocapture` 4/4 通过。Cargo 过程中按 support-first 最小修复下层 runtime UI surface split 漂移:拖拽组件事件 helper 可见性、scrollable candidates trait 导入、timer metadata import。 | 05 计划 focused path 已关闭;继续 06.S2 浮动窗口设计对齐验收、01.S2 旧 shell/module token hard cutover 与 03.S2 更宽 editor-layout Cargo 复验债。 |
+| 2026-06-24 | 05.S2 专用页面模板资产命名收束 | implemented-focused-pending-broader-matrix | `page_templates.v2.ui.toml` 硬切为 `page_templates.toml`，保留 13 页声明内容和 `page_layout_templates.rs` focused owner，不再让通用 `.v2.ui.toml` 治理扫描误把 `kind = "page_layout_templates"` 当作 UI v2 view/style root 解析。 | 直接二进制 `page_layout_templates` 4/4 通过；后续完整 editor lib-test 与 integration_contracts 仍按 Editor UI 08/10 验收矩阵补跑。 |

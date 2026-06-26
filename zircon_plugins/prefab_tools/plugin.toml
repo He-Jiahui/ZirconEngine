@@ -9,7 +9,16 @@ maturity = "beta"
 supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.prefab_tools"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_prefab_tools_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_prefab_tools_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.prefab_tools"
@@ -28,3 +37,10 @@ kind = "editor"
 crate_name = "zircon_plugin_prefab_tools_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.prefab_tools_authoring"]
+
+[[modules]]
+name = "prefab_tools.dist"
+kind = "native"
+crate_name = "zircon_plugin_prefab_tools_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.prefab_tools"]

@@ -166,6 +166,8 @@ pub(super) fn to_host_contract_page_chrome(
         template_nodes: to_host_contract_template_nodes(&page.template_nodes),
         tab_row_frame: to_host_contract_frame_rect(&page.tab_row_frame),
         project_path_frame: to_host_contract_frame_rect(&page.project_path_frame),
+        overflow_frame: to_host_contract_frame_rect(&page.overflow_frame),
+        overflow_hidden_tab_indices: page.overflow_hidden_tab_indices.clone(),
         tab_frames: map_model_rc(&page.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&page.tabs),
         project_path: page.project_path.clone(),

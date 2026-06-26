@@ -1,10 +1,10 @@
-#![allow(dead_code)]
-
 mod chrome_command_stream;
 mod data;
 mod diagnostics;
 mod frame_geometry;
 mod globals;
+mod host_page_overflow_menu;
+mod menu_popup_metrics;
 mod native_keyboard;
 mod native_pointer;
 mod native_popup_dismiss;
@@ -36,6 +36,14 @@ mod workbench_context_menu;
 pub(crate) use data::*;
 pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY};
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
+#[cfg(test)]
+pub(crate) fn paint_host_frame_for_test(
+    width: u32,
+    height: u32,
+    presentation: &HostWindowPresentationData,
+) -> Vec<u8> {
+    paint_workbench::paint_host_frame(width, height, presentation).into_bytes()
+}
 #[cfg(test)]
 pub(crate) use paint_template_nodes::{
     paint_runtime_render_commands_for_test, paint_template_nodes_for_test,

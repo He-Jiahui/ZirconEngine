@@ -18,8 +18,9 @@ pub use extension_ids::{
 };
 pub use plugin::{
     editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, ExampleAssetInspectorPlugin, ExampleWindowEditorPlugin,
-    PluginSdkExamplesEditorPlugin,
+    plugin_registration, plugin_sdk_examples_dist_module_manifest, ExampleAssetInspectorPlugin,
+    ExampleWindowEditorPlugin, PluginSdkExamplesEditorPlugin, PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME,
+    PLUGIN_SDK_EXAMPLES_DIST_EDITOR_ENTRY,
 };
 
 #[cfg(test)]

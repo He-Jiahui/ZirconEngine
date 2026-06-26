@@ -1,8 +1,9 @@
+use crate::core::framework::render::ShaderQualityTier;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::gpu_scene::GpuSceneUploadReport;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{
-    BuiltMeshDraws, CachedMeshDrawCommands, MeshDraw, MeshPassCommandBuffers,
+    BuiltMeshDraws, CachedMeshDrawCommands, MeshDraw, MeshPassCommandBuffers, MeshPipelineCache,
     PendingMeshCommandCacheExtractionStats, PendingMeshCommandCachePlanStats,
     PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,
     PreparedMeshVirtualGeometryIndirectStats,
@@ -162,7 +163,9 @@ pub(super) fn build_compiled_scene_draws(
     virtual_geometry_enabled: bool,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     command_cache: &mut CachedMeshDrawCommands,
+    mesh_pipelines: &mut MeshPipelineCache,
     generation: u64,
+    shader_quality: ShaderQualityTier,
 ) -> CompiledSceneDraws {
     let built_mesh_draws = advanced_plugin_resources.build_mesh_draws_with_command_cache(
         device,
@@ -175,7 +178,9 @@ pub(super) fn build_compiled_scene_draws(
         virtual_geometry_enabled,
         shadow_light_slots,
         command_cache,
+        mesh_pipelines,
         generation,
+        shader_quality,
     );
 
     CompiledSceneDraws::from_built_mesh_draws(built_mesh_draws)

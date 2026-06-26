@@ -6,6 +6,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::view::ViewDescriptor;
 
 use super::super::region::{build_document_region_state, build_tool_region_state};
+use super::super::right_drawer_should_collapse_for_width;
 use super::super::{ShellFrame, ShellRegionId, ShellSizePx};
 use super::super::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
 use super::floating_window_frames::build_floating_window_frames;
@@ -28,6 +29,7 @@ pub fn compute_workbench_shell_geometry(
         .map(|descriptor| (descriptor.descriptor_id.clone(), descriptor))
         .collect();
     let size = ShellSizePx::new(shell_size.width.max(1.0), shell_size.height.max(1.0));
+    let collapse_right_drawer = right_drawer_should_collapse_for_width(size.width);
 
     let left = build_tool_region_state(
         model,
@@ -37,6 +39,7 @@ pub fn compute_workbench_shell_geometry(
         &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
         transient_region_preferred,
         metrics,
+        false,
     );
     let right = build_tool_region_state(
         model,
@@ -49,6 +52,7 @@ pub fn compute_workbench_shell_geometry(
         ],
         transient_region_preferred,
         metrics,
+        collapse_right_drawer,
     );
     let bottom = build_tool_region_state(
         model,
@@ -58,6 +62,7 @@ pub fn compute_workbench_shell_geometry(
         &[ActivityDrawerSlot::Bottom],
         transient_region_preferred,
         metrics,
+        false,
     );
     let document =
         build_document_region_state(model, layout, &descriptor_map, transient_region_preferred);
@@ -87,8 +92,9 @@ pub fn compute_workbench_shell_geometry(
     );
     let viewport_content_frame =
         build_viewport_content_frame(model, resolved_frames.document_frame, metrics);
-    let window_min_width = compute_window_min_width(left, document, right, metrics);
-    let window_min_height = compute_window_min_height(left, document, right, bottom, metrics);
+    let window_min_width = compute_window_min_width(left, document, right, metrics, size.width);
+    let window_min_height =
+        compute_window_min_height(left, document, right, bottom, metrics, size.height);
 
     WorkbenchShellGeometry {
         window_min_width,

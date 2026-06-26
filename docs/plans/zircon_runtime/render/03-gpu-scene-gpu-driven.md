@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs
@@ -39,9 +40,11 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/new.rs
@@ -78,6 +81,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs
@@ -110,9 +114,11 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/new.rs
@@ -134,21 +140,25 @@ tests:
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs::tests::render_gpu_scene_id_allocator_coalesces_adjacent_free_spans
   - zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs::tests::render_gpu_scene_update_queue_merges_adjacent_dirty_ranges
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_static_scene_second_frame_uploads_zero_bytes
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_single_moving_entity_uploads_only_its_entry
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_scene_tests.rs::runtime_15_gpu_scene_tests_are_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_declares_gpu_scene_group
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_declares_gpu_scene_group
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_declares_gpu_scene_group
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_reads_gpu_scene_instance_data
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_reads_gpu_scene_instance_data
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_reads_gpu_scene_instance_data
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_is_valid_wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs::tests::shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_variant
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_carry_gpu_scene_counts
@@ -600,14 +610,15 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 | `render_gpu_scene_id_allocator_reuses_freed_spans_without_aliasing` | free 后再 allocate 复用空洞;在 flush 前的同帧内不复用 | `gpu_scene/id_allocator.rs` |
 | `render_gpu_scene_id_allocator_coalesces_adjacent_free_spans` | 相邻 span 释放后合并为一段;`high_water` 不回退 | `gpu_scene/id_allocator.rs` |
 | `render_gpu_scene_update_queue_merges_adjacent_dirty_ranges` | 间隙 ≤8 条目的脏区间合并;输出字节区间正确 | `gpu_scene/update_queue.rs` |
-| `render_gpu_scene_static_scene_second_frame_uploads_zero_bytes` | 同一 extract 连提两帧,第二帧 `flush_updates` 返回 0 | `gpu_scene/gpu_scene.rs`(headless device) |
-| `render_gpu_scene_single_moving_entity_uploads_only_its_entry` | 仅 bump 一个 `transform_revision`,上传字节 == 该条目 stride 合并区间 | `gpu_scene/gpu_scene.rs`(headless device) |
+| `render_gpu_scene_static_scene_second_frame_uploads_zero_bytes` | 同一 extract 连提两帧,第二帧 `flush_updates` 返回 0 | `gpu_scene/gpu_scene/tests.rs`(headless device) |
+| `render_gpu_scene_single_moving_entity_uploads_only_its_entry` | 仅 bump 一个 `transform_revision`,上传字节 == 该条目 stride 合并区间 | `gpu_scene/gpu_scene/tests.rs`(headless device) |
+| `render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads` | light storage buffer 扩容后首帧上传 lights,重复写入同一 light set 不再产生上传 | `gpu_scene/gpu_scene/tests.rs`(headless device) |
 | `render_gpu_scene_rolls_current_transform_into_previous_after_success` | 提交成功后的 roll 将 current 写入 previous,标记下一帧 instance upload,并让 entry previous 状态有效 | `gpu_scene/prev_transform.rs` |
 | `render_gpu_scene_roll_marks_previous_valid_without_dirty_upload_when_unchanged` | current/previous 已一致时不产生脏上传,但下一帧可读取有效 previous | `gpu_scene/prev_transform.rs` |
 | `render_gpu_scene_buffer_readback_matches_extract` | readback 三缓冲与 CPU shadow 逐字节一致 | `gpu_scene/gpu_scene.rs` |
 | `fallback_mesh_shader_reads_gpu_scene_instance_data` | forward fallback vertex/velocity 入口使用 `@builtin(instance_index)` 读取 current/previous transform 与 primitive 参数 | `fallback_mesh_shader_source.rs` |
 | `normal_prepass_shader_reads_gpu_scene_instance_data` | normal prepass 顶点入口从 GPUScene 读取 transform 与 motion params,fragment normal map gate 使用传入参数 | `normal_prepass_shader_source.rs` |
-| `shadow_map_shader_reads_gpu_scene_instance_data` | shadow vertex/alpha-mask path 从 GPUScene 读取 transform、tint、shadow params | `shadow_map_shader_source.rs` |
+| `mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked` | shadow template source 通过 GPUScene/runtime template path 生成 opaque depth 与 alpha-mask variants | `shader_source.rs` |
 | `deferred_geometry_shader_reads_gpu_scene_instance_data` | deferred geometry path 从 GPUScene 读取 transform、tint 与 motion params | `deferred/geometry_pipeline/shader_source.rs` |
 | `*_shader_is_valid_wgsl` | forward fallback、normal prepass、shadow map、deferred geometry 拼接 `zr_gpu_scene.wgsl` 后通过 Naga WGSL 解析/验证 | 对应 shader source tests |
 | `render_gpu_scene_indirect_batcher_groups_by_pipeline_geometry_material` | 同键相邻命令聚为一个 batch;`total_instances` 守恒 | `indirect_draw_batcher.rs` |
@@ -628,6 +639,7 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-24 | GS-M1/GS-M3 GPUScene tests owner split | render_plan03_gpu_scene_tests_owner_split_static_passed_cargo_deferred_active_compile_lane | `graphics/scene/gpu_scene/gpu_scene.rs` 从 815 行降到 588 行,只保留 GPUScene storage buffer/data-plane owner、stable registration、primitive/instance/light shadow writes、diff upload 和 scene-data bind group rebuild;新增 150 行 `graphics/scene/gpu_scene/gpu_scene/tests.rs` 承接 static-scene zero upload、single moving entity upload 和 light-buffer growth/unchanged upload headless WGPU tests。结构守卫 `runtime_15_gpu_scene_tests_are_child_owner` 锁定测试不回流、父/子 800 行预算和 docs/status 锚点。 | scoped rustfmt/static owner scans、line-count scan、docs-anchor scan、touched-file whitespace scan 和 scoped diff-check 通过;Cargo/WGPU/RenderDoc 因 active compile lanes 暂缓且不计通过。 | Cargo lane 空闲后补跑 gpu_scene focused guard、headless WGPU upload tests、Plan 03 GPUScene product diagnostics 和 RenderDoc multi-draw 验收。 |
 | 2026-06-24 | GS-M1/GS-M4 GPUScene root façade suppression cleanup / F12 | render_plan03_gpu_scene_root_facade_suppression_cleanup_static_passed_cargo_timeout_active_compile | `gpu_scene/mod.rs` 删除整棵子树级 `#![allow(dead_code, unused_imports)]`,并把根 façade 收窄到外部渲染路径实际消费的 `GpuScene`/entry/stats/upload report、Pod layout struct/stride/flag、previous skinned state。bind group helper、allocator、dirty queue、capacity 常量、layout offset 常量和 roll-report 类型回到各自 child owner,不再靠根 re-export 维持脚手架。 | `rustfmt --edition 2021 --check zircon_runtime\src\graphics\scene\gpu_scene\mod.rs` 通过;GPUScene 子树 `allow(dead_code)`/`allow(unused_imports)`/`#![allow]` 扫描零命中;外部用法扫描确认 binding helper、allocator/update queue 与 offset 常量没有跨 GPUScene 边界消费者。`cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` 在 180s 工具窗口超时,且后续仍有 cargo/rustc 进程活跃,不计 Cargo/WGPU/RenderDoc 通过。 | 若后台 Cargo 后续暴露新的 dead-code/visibility 警告,按 F12 子 owner 继续处理;GS-M4 仍需 focused gpu_scene/mesh lib-test、real-adapter WGPU pipeline、render-product 和 RenderDoc multi-draw 验收。 |
 | 2026-06-23 | Render index 当前状态总览拆分 | GS-M1~M3 已完成,GS-M4 部分完成 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 03 GPUScene/GPU-driven 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：GPU-decided draw count 与更高阶 submit 留到计划 19；验收缺口：需要 real-adapter WGPU pipeline、render-product 逐像素回归、RenderDoc multi-draw 确认 |
 | 2026-06-15 | GS-M1 GpuScene data plane | 已完成(数据面接入;shader ABI 当时仍待 GS-M2) | `graphics/scene/gpu_scene/` 模块、Pod 布局镜像、span allocator、dirty range 合并、`GpuScene` owner、primitive/instance/light storage buffers、CPU shadow、stable key 登记、容量扩容、direct `queue.write_buffer` flush 与 upload report 已接入;`RenderMeshSnapshot` 携带 `stable_instance_key`/`transform_revision`,compiled scene 与 legacy mesh draw 构建路径均登记 GPUScene 条目并透传统计。 | `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` 通过;`prepared_queue_stats_carry_gpu_scene_counts` 过滤测试通过;`gpu_scene` 宽过滤测试在 604s shared lib-test 编译阶段超时,未计为通过。 | staging ring / render graph upload node 保留为后续优化;shader/draw ABI 已由 GS-M2 硬切。 |

@@ -16,34 +16,26 @@ impl CoreHandle {
         &self,
         extensions: &RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.inner
-            .world_extensions
-            .lock()
-            .unwrap()
-            .install(extensions)
+        self.lock_world_extensions().install(extensions)
     }
 
     pub(crate) fn apply_world_runtime_extensions(
         &self,
         world: &mut crate::scene::World,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.inner
-            .world_extensions
-            .lock()
-            .unwrap()
-            .apply_to_world(world)
+        self.lock_world_extensions().apply_to_world(world)
     }
 
     pub fn install_plugin_bridge_lifecycle_state(&self, state: RuntimePluginBridgeLifecycleState) {
-        *self.inner.plugin_bridge_lifecycle.lock().unwrap() = Some(state);
+        *self.lock_plugin_bridge_lifecycle() = Some(state);
     }
 
     pub fn clear_plugin_bridge_lifecycle_state(&self) -> Option<RuntimePluginBridgeLifecycleState> {
-        self.inner.plugin_bridge_lifecycle.lock().unwrap().take()
+        self.lock_plugin_bridge_lifecycle().take()
     }
 
     pub fn plugin_bridge_lifecycle_state(&self) -> Option<RuntimePluginBridgeLifecycleState> {
-        self.inner.plugin_bridge_lifecycle.lock().unwrap().clone()
+        self.lock_plugin_bridge_lifecycle().clone()
     }
 
     pub fn apply_plugin_bridge_lifecycle_event(
@@ -121,7 +113,7 @@ impl CoreHandle {
     ) -> Result<(), RuntimeExtensionRegistryError> {
         let mut registry = RuntimeExtensionRegistry::default();
         {
-            let hooks = self.inner.scene_hooks.lock().unwrap();
+            let hooks = self.lock_scene_hooks();
             for hook in hooks.ordered().iter().cloned() {
                 registry.register_scene_hook(hook)?;
             }
@@ -129,7 +121,7 @@ impl CoreHandle {
         for hook in extensions.scene_hooks().iter().cloned() {
             registry.register_scene_hook(hook)?;
         }
-        *self.inner.scene_hooks.lock().unwrap() =
+        *self.lock_scene_hooks() =
             super::super::state::SceneRuntimeHookSet::from_ordered(registry.scene_hooks().to_vec());
         Ok(())
     }
@@ -138,15 +130,10 @@ impl CoreHandle {
         &self,
         stage: SystemStage,
     ) -> Vec<SceneRuntimeHookRegistration> {
-        self.inner
-            .scene_hooks
-            .lock()
-            .unwrap()
-            .hooks_for_stage(stage)
-            .to_vec()
+        self.lock_scene_hooks().hooks_for_stage(stage).to_vec()
     }
 
     pub(crate) fn scene_runtime_hook_stage_plan_snapshot(&self) -> Arc<SceneRuntimeHookStagePlan> {
-        self.inner.scene_hooks.lock().unwrap().stage_plan()
+        self.lock_scene_hooks().stage_plan()
     }
 }

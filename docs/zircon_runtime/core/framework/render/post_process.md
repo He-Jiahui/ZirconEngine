@@ -73,6 +73,16 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/mod.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process.rs
+  - zircon_runtime/src/graphics/tests/render_product_post_process/motion_blur.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_post_process_motion_blur_tests.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/post_process_lut_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_post_process_lut_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
@@ -153,6 +163,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
@@ -160,7 +171,7 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/history_resolve.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
@@ -293,6 +304,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
@@ -300,7 +312,7 @@ implementation_files:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/history_resolve.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
@@ -374,8 +386,8 @@ tests:
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_out_of_range_sizes
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_decodes_cube_lut_as_linear_3d_rgba8_texture
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_rejects_cube_lut_with_wrong_sample_count
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_effect_stack_product_node_when_authored
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_volume_effect_stack_product_node_when_authored
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_effect_stack_product_node_when_authored
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_volume_effect_stack_product_node_when_authored
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::effect_stack_settings_are_encoded_into_post_process_params
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::orthographic_camera_depth_params_disable_perspective_linearization
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::camera_view_basis_is_encoded_for_post_process_normals
@@ -426,9 +438,9 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::motion_vector_clear_executor_requires_graph_target_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::motion_vector_camera_executor_requires_post_process_context_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::feature_pass_descriptors_drive_executor_ids_and_resource_graph
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs::feature_pass_descriptors_drive_executor_ids_and_resource_graph
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::history_resolve_compiles_only_with_explicit_feature_opt_in
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 exposure_ -- --nocapture
@@ -605,7 +617,7 @@ M10.6 is the post-process side of the post-process/AA breadth gate. It does not 
 
 `zircon_runtime/src/core/framework/tests.rs` covers disabled-effect elision, missing scene color, invalid history input, duplicate output resources, missing effect dependency, dependency cycles, temporal slot split, and authored effect-stack ordering before final composite.
 
-`zircon_runtime/src/graphics/tests/render_framework_bridge.rs` covers renderer-facing stats, verifies bloom, color grading, effect stack, and final composite are recorded as product postprocess nodes without appending synthetic entries to the normal render graph pass list, and checks that history resolve is recorded only after compatible frame history exists.
+`zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs` covers renderer-facing stats, verifies bloom, color grading, effect stack, and final composite are recorded as product postprocess nodes without appending synthetic entries to the normal render graph pass list. `zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs` checks that history resolve is recorded only after compatible frame history exists. Render framework bridge tests owner split keeps `graphics/tests/render_framework_bridge.rs` as the shared fixture/root module and locks the layout with `runtime_15_render_framework_bridge_tests_are_child_owners` under status `render_framework_bridge_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; current evidence is scoped rustfmt/static/line-count/docs-anchor/stale-path/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred by milestone implementation cadence.
 
 2026-06-02 render-main-chain focused validation added the temporal slot split regression: `cargo test -p zircon_runtime --lib --locked render_product_post_process --jobs 1 --message-format short --color never` passed 10 focused tests, and `cargo test -p zircon_runtime --lib --locked product_postprocess_executor_rejects_missing_gpu_resources --jobs 1 --message-format short --color never` passed the executor resource-binding regression. Both commands used `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-main-chain` and emitted only pre-existing UI/accessibility/text warnings outside this postprocess lane.
 
@@ -658,6 +670,10 @@ M10.6 is the post-process side of the post-process/AA breadth gate. It does not 
 2026-06-05 render-main-chain SSR reflection-pyramid follow-up adds the matching color handoff before specular occlusion and resolve. `PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid`, the built-in and plugin `post_process` descriptors, and `PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID` now model `screen-space-reflection-reflection-pyramid` with executor `post.screen-space-reflection-reflection-pyramid`. The compiled render graph materializes `postprocess.screen-space-reflection.reflection-pyramid` as a half-resolution `Rgba16Float` transient, and `screen_space_reflection_reflection_pyramid_pipeline` writes a 2x2 scene-color average through `fs_screen_space_reflection_reflection_pyramid` into parent mip 0. Later coarse bridge execution now writes mip 1 and every additional owned parent mip when the graph parent exposes them, and SSR resolve reads a full-mip parent view at postprocess binding 24 so rougher ray hits can select coarser reflection color. Hierarchical SSR quality/readback policy, new material ABI, and object/skinned/particle velocity remain open.
 
 2026-06-05 render-main-chain SSR bridge modularization keeps the coarse SSR behavior unchanged but moves the WGPU graph bridge methods into `render_pass_execution_context/gpu/post_process/screen_space_reflection.rs`. That child module now owns the record helpers for SSR resolve, specular occlusion, parent depth/reflection pyramids, and coarse depth/reflection mip-chain execution. `render_pass_execution_context/gpu/post_process.rs` drops back to shared postprocess stack, SSAO/clustered, bloom, DoF, and motion-vector orchestration.
+
+The 2026-06-24 SSR GPU context test owner split keeps `graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs` as the 656-line production owner for SSR WGPU graph bridge recording, while `graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs` owns the former inline mip-pass tests. Guard `runtime_15_ssr_gpu_context_tests_are_child_owner_split` and status anchor `render_plan07_ssr_gpu_context_test_owner_split_static_passed_cargo_deferred_active_compile_lane` lock this parent/test-child boundary; the slice has scoped static evidence only while Cargo/WGPU/RenderDoc remain deferred behind active compile lanes.
+
+The 2026-06-24 Render product post-process motion-blur test owner split keeps `graphics/tests/render_product_post_process.rs` as the 609-line parent for compact product tests and shared post-process capture/assert helpers, while `graphics/tests/render_product_post_process/motion_blur.rs` owns the velocity-driven motion-blur product guard and its particle/executor/readback fixtures. Guard `runtime_15_render_product_post_process_motion_blur_tests_are_child_owner` and status anchor `render_plan07_product_post_process_motion_blur_test_owner_split_static_passed_cargo_deferred_active_compile_lane` lock this product-test boundary; Cargo/WGPU/RenderDoc evidence remains deferred behind active compile lanes.
 
 2026-06-06 render-main-chain SSR pyramid evidence follow-up adds `post_process_shader_samples_full_mip_ssr_pyramids_with_coarse_fallbacks` to the assembled postprocess shader contract. The regression requires bindings 23/24 for full-mip parent depth/reflection pyramid views, bindings 25/26 for explicit coarse fallback resources, `textureNumLevels(...)` guarded mip selection, parent mip `textureLoad(..., mip_level)` sampling, and fallback sampling from the explicit coarse textures. This is evidence for the already renderer-owned mip-chain execution path; it does not add a new SSR quality/readback policy, new material ABI, or object/skinned/particle velocity writer.
 

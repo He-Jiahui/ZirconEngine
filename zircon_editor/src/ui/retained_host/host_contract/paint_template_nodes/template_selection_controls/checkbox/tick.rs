@@ -9,7 +9,7 @@ pub(super) fn push_checkbox_tick(
     order: i32,
     opacity: f32,
 ) {
-    let color = PALETTE.shell_background;
+    let color = PALETTE.accent;
     for tick in checkbox_tick_segments(mark) {
         commands.push(HostPaintCommand::quad(
             tick,

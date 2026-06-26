@@ -9,6 +9,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum Workb
     ScenePanel,
     ViewportPanel,
     InspectorPanel,
+    ContentPanel,
     ComponentDrawer,
     DrawerBody,
     DrawerColumn,

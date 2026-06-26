@@ -14,22 +14,23 @@ use crate::core::framework::animation::{
 use crate::core::framework::render::{
     AntiAliasSettings, GeometryExtract, GeometryPhaseInput, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderQualityProfile, RenderSkeletalPoseExtract,
-    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
+    RenderMeshStaticState, RenderQualityProfile, RenderSkeletalPoseExtract, RenderStats,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
 use crate::core::framework::scene::Mobility;
-use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::core::math::{Transform, UVec2, Vec4};
 use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind,
     ResourceRecord,
 };
 use crate::graphics::WgpuRenderFramework;
 
-use super::plugin_render_feature_fixtures::pluginized_wgpu_render_framework_with_advanced_providers;
 use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
 };
+
+mod staged_prewarm;
+mod virtual_geometry;
 
 #[test]
 fn render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse() {
@@ -231,9 +232,8 @@ fn render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path() 
         "residual MeshDraw construction may still reuse ordinary cached static phases",
     );
     assert_eq!(second.last_mesh_command_cache_miss_count, 0);
-    assert_eq!(second.last_mesh_command_rebuild_count, 0);
-    assert!(
-        second.last_mesh_dynamic_command_count >= 1,
+    assert_residual_dynamic_commands_accounted(
+        &second,
         "the reactive-mask command remains an uncached per-frame command",
     );
     assert_eq!(second.last_mesh_taa_reactive_mask_command_count, 1);
@@ -299,9 +299,8 @@ fn render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache() {
     );
     assert_eq!(second.last_mesh_cached_command_hit_count, 0);
     assert_eq!(second.last_mesh_command_cache_miss_count, 0);
-    assert_eq!(second.last_mesh_command_rebuild_count, 0);
-    assert!(
-        second.last_mesh_dynamic_command_count >= 1,
+    assert_residual_dynamic_commands_accounted(
+        &second,
         "transparent mesh commands remain dynamic so depth ordering can be rebuilt per frame",
     );
 }
@@ -389,101 +388,21 @@ fn render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache() {
     );
     assert_eq!(second.last_mesh_cached_command_hit_count, 0);
     assert_eq!(second.last_mesh_command_cache_miss_count, 0);
-    assert_eq!(second.last_mesh_command_rebuild_count, 0);
-    assert!(
-        second.last_mesh_dynamic_command_count >= 1,
+    assert_residual_dynamic_commands_accounted(
+        &second,
         "skinned mesh commands remain dynamic so skinning bindings can be rebuilt per frame",
     );
 }
 
-#[test]
-fn render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache() {
-    let framework = pluginized_wgpu_render_framework_with_advanced_providers();
-    let viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
-        .unwrap();
-    framework
-        .set_quality_profile(
-            viewport,
-            RenderQualityProfile::new("static-cache-virtual-geometry-residual")
-                .with_virtual_geometry(true)
-                .with_screen_space_ambient_occlusion(false),
-        )
-        .unwrap();
-
-    framework
-        .submit_frame_extract(viewport, static_cache_virtual_geometry_extract(597))
-        .unwrap();
-    let first = framework.query_stats().unwrap();
-    assert_eq!(
-        first.last_virtual_geometry_payload_source,
-        RenderVirtualGeometryPayloadSource::Authored
+fn assert_residual_dynamic_commands_accounted(stats: &RenderStats, dynamic_path_reason: &str) {
+    assert!(
+        stats.last_mesh_dynamic_command_count >= 1,
+        "{dynamic_path_reason}",
     );
     assert!(
-        first.last_virtual_geometry_indirect_draw_count >= 1,
-        "authored virtual geometry should still produce GPU-driven execution draws",
+        stats.last_mesh_command_rebuild_count >= stats.last_mesh_dynamic_command_count,
+        "dynamic residual mesh commands should be reflected in command rebuild stats",
     );
-    assert!(
-        first.last_virtual_geometry_indirect_buffer_count >= 1,
-        "authored virtual geometry should create mesh-level WGPU indirect buffers",
-    );
-    assert!(
-        first.last_virtual_geometry_indirect_args_count >= 1,
-        "authored virtual geometry should populate indexed indirect args",
-    );
-    assert!(
-        first.last_virtual_geometry_indirect_segment_count >= 1,
-        "authored virtual geometry should record executable indirect segments",
-    );
-    assert_eq!(
-        first.last_mesh_pending_static_command_cache_draw_candidate_count, 0,
-        "virtual-geometry visibility carrier meshes must not be advertised as static mesh command-cache candidates",
-    );
-    assert_eq!(
-        first.last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count,
-        0,
-    );
-    assert_eq!(first.last_mesh_cached_command_hit_count, 0);
-
-    framework
-        .submit_frame_extract(viewport, static_cache_virtual_geometry_extract(598))
-        .unwrap();
-    let second = framework.query_stats().unwrap();
-    assert_eq!(
-        second.last_virtual_geometry_payload_source,
-        RenderVirtualGeometryPayloadSource::Authored
-    );
-    assert!(
-        second.last_virtual_geometry_indirect_draw_count >= 1,
-        "virtual geometry remains GPU-driven across frames instead of being absorbed by MeshDraw cache",
-    );
-    assert!(
-        second.last_virtual_geometry_indirect_buffer_count >= 1,
-        "virtual geometry keeps mesh-level WGPU indirect buffers across frames",
-    );
-    assert!(
-        second.last_virtual_geometry_indirect_args_count >= 1,
-        "virtual geometry keeps indexed indirect args across frames",
-    );
-    assert!(
-        second.last_virtual_geometry_indirect_segment_count >= 1,
-        "virtual geometry keeps executable indirect segments across frames",
-    );
-    assert_eq!(
-        second.last_mesh_pending_static_command_cache_draw_candidate_count,
-        0,
-    );
-    assert_eq!(
-        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count,
-        0,
-    );
-    assert_eq!(
-        second.last_mesh_pre_mesh_draw_static_command_cache_skipped_phase_count,
-        0,
-    );
-    assert_eq!(second.last_mesh_cached_command_hit_count, 0);
-    assert_eq!(second.last_mesh_command_cache_miss_count, 0);
-    assert_eq!(second.last_mesh_command_rebuild_count, 0);
 }
 
 fn register_material_revision(
@@ -636,60 +555,6 @@ fn static_cache_skinned_extract(
     extract
 }
 
-fn static_cache_virtual_geometry_extract(world: u64) -> RenderFrameExtract {
-    let mut extract = RenderFrameExtract::from_snapshot(
-        RenderWorldSnapshotHandle::new(world),
-        snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
-    );
-    extract.geometry = GeometryExtract::from_meshes(
-        extract.view.core_pipeline,
-        vec![static_cache_virtual_geometry_visibility_mesh()],
-    );
-    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
-        cluster_budget: 2,
-        page_budget: 1,
-        clusters: vec![
-            static_cache_virtual_geometry_cluster(803, 15, 150, 1, Vec3::new(100.0, 0.0, 0.0), 9.0),
-            static_cache_virtual_geometry_cluster(803, 30, 300, 0, Vec3::ZERO, 8.0),
-            static_cache_virtual_geometry_cluster(803, 20, 200, 1, Vec3::new(0.1, 0.0, 0.0), 5.0),
-            static_cache_virtual_geometry_cluster(803, 10, 100, 2, Vec3::new(0.2, 0.0, 0.0), 2.0),
-        ],
-        hierarchy_nodes: Vec::new(),
-        hierarchy_child_ids: Vec::new(),
-        pages: vec![
-            static_cache_virtual_geometry_page(100, false),
-            static_cache_virtual_geometry_page(150, false),
-            static_cache_virtual_geometry_page(200, true),
-            static_cache_virtual_geometry_page(300, false),
-            static_cache_virtual_geometry_page(500, true),
-        ],
-        page_dependencies: Vec::new(),
-        instances: Vec::new(),
-        debug: Default::default(),
-    });
-    extract
-}
-
-fn static_cache_virtual_geometry_visibility_mesh() -> RenderMeshSnapshot {
-    RenderMeshSnapshot {
-        node_id: 803,
-        stable_instance_key: 803 << 16,
-        transform_revision: 1,
-        transform: Transform::default(),
-        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
-        mesh: None,
-        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-            "builtin://material/default",
-        )),
-        mesh_lod: None,
-        morph_weights: Vec::new(),
-        tint: Vec4::ONE,
-        mobility: Mobility::Dynamic,
-        static_state: RenderMeshStaticState::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
-    }
-}
-
 fn static_cache_extract(material_id: ResourceId, world: u64) -> RenderFrameExtract {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(world),
@@ -730,35 +595,6 @@ fn static_command_cache_mesh(material_id: ResourceId) -> RenderMeshSnapshot {
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::new(true, 1, 1),
         render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
-    }
-}
-
-fn static_cache_virtual_geometry_cluster(
-    entity: u64,
-    cluster_id: u32,
-    page_id: u32,
-    lod_level: u8,
-    bounds_center: Vec3,
-    screen_space_error: f32,
-) -> RenderVirtualGeometryCluster {
-    RenderVirtualGeometryCluster {
-        entity,
-        cluster_id,
-        hierarchy_node_id: None,
-        page_id,
-        lod_level,
-        parent_cluster_id: None,
-        bounds_center,
-        bounds_radius: 0.5,
-        screen_space_error,
-    }
-}
-
-fn static_cache_virtual_geometry_page(page_id: u32, resident: bool) -> RenderVirtualGeometryPage {
-    RenderVirtualGeometryPage {
-        page_id,
-        resident,
-        size_bytes: 4096,
     }
 }
 

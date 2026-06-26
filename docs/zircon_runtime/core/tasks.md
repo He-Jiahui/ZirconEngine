@@ -38,6 +38,10 @@ plan_sources:
   - docs/zircon_runtime/core/job_system.md
 tests:
   - zircon_runtime/src/tests/tasks.rs
+  - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_accessors_recover_poisoned_state_lock
+  - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_wait_recovers_poisoned_state_lock
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::pending_scheduled_job_recovers_poisoned_task_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles
   - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib tasks --locked
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\tasks\mod.rs zircon_runtime\src\graphics\visibility\mod.rs zircon_runtime\src\ui\component\catalog\material_foundation\form_controls.rs zircon_runtime\src\ui\component\catalog\material_foundation\selection_inputs.rs zircon_runtime\src\ui\component\state_reducer\keyboard.rs zircon_runtime\src\ui\tests\component_catalog\component_state\keyboard.rs zircon_runtime\src\ui\tests\component_catalog\material_foundation\form_controls.rs zircon_runtime\src\ui\tests\component_catalog\material_foundation\selection_inputs.rs (passed after private diagnostics-state import repair)
@@ -79,6 +83,10 @@ The concrete pools under `zircon_runtime::core::runtime::tasks` own thread creat
 
 The public execution surface now has two layers. The pool layer keeps `spawn` for detached work, `install` for running a closure inside the pool, and `join` for simple fork/join work. The JobSystem layer adds `JobHandle`, `JobScheduler::schedule`, `JobScheduler::schedule_after`, `JobScheduler::wait_all`, `JobHandle::combine`, and `parallel_for(...)`. The dependency scheduler launches dependent work through completion callbacks instead of consuming a worker while waiting on prerequisites; `JobHandle::wait()` remains the handle-level synchronization point, while `JobScheduler::wait_all(...)` is the scheduler-owned multi-handle synchronization point for owner-controlled frame or test boundaries.
 
+### Runtime 15 M3 core runtime task lock poison recovery
+
+Runtime 15 M3 extends the E9/F2 poison-safe lock rule to JobSystem state. `job_handle.rs` now centralizes job-state locking in `JobState::lock_inner()` and condvar wake paths in `wait_inner(...)` / `wait_inner_timeout(...)`, so handle wait, dependent callbacks, terminal marking, panic-message reads, and dependency decrement recover poisoned job state locks. `job_scheduler.rs` centralizes pending scheduled task access in `PendingScheduledJob::lock_task()`, so dependency-release launch and terminal cleanup recover poisoned pending-task locks. The public `JobHandle` / `JobScheduler` API, dependency scheduling model, panic propagation behavior, and diagnostics counters are unchanged.
+
 `parallel_for(...)` is the first data-parallel primitive. It accepts a runtime-owned `TaskPool`, a mutable slice, a chunk size, and a per-chunk closure. Chunk size `0` is normalized to `1`, and the function blocks until every chunk has been processed. Direct rayon use should move behind this module in Runtime 11 M2 so thread budget remains governed by `TaskPoolOptions`.
 
 ## Diagnostics
@@ -108,5 +116,7 @@ During the 2026-06-13 editor UI grouped-keyboard validation, the Material catalo
 `zircon_runtime/src/tests/tasks.rs` verifies default Bevy-style thread distribution, small-host minimum pool availability, execution on all three pools, formatted task-pool diagnostics, runtime/handle report access, and the `JobScheduler` facade relationship to the compute pool. Runtime 11 adds tests for handle waiting, dependency scheduling, worker-side wait assist, combined handles, scheduler `wait_all`, dependency scheduling on a single-worker pool, exact data-parallel visitation, chunk-size granularity, scheduler diagnostics, deep dependency chains, and wide fanout `JobHandle::combine`.
 
 `zircon_runtime/src/tests/prelude.rs` verifies that the stable runtime prelude exports the task-pool types and diagnostic report needed by app and module authors.
+
+`job_handle_accessors_recover_poisoned_state_lock`, `job_handle_wait_recovers_poisoned_state_lock`, and `pending_scheduled_job_recovers_poisoned_task_lock` deliberately poison JobHandle state and pending scheduled task locks, then verify dependent callbacks, wait, completion marking, and scheduled task launch still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles` keeps the task owner files, this document, Runtime 15 status rows, and plan mirrors synchronized under `runtime_15_core_runtime_task_lock_poison_recovery_static_passed_cargo_deferred`.
 
 `job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The 2026-06-21 inventory split moves module/Rayon source ownership into `job_system_source_inventory.py` and API/test/doc anchor ownership into `job_system_anchor_inventory.py`, leaving the boundary file as the audit reader and renderer. The behavior anchors now include panic-safe handle completion for scheduled jobs, dependent jobs, and worker-side wait assist through the task-pool-owned `assist_current_thread_once(...)` helper.

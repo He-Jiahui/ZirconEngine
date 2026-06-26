@@ -19,6 +19,9 @@ pub(super) fn push_chrome_button_glyph_shape(
         IconButtonGlyphKind::ChevronDown => {
             chrome_shapes::push_chevron_down_icon(commands, rect, clip, order, color, opacity)
         }
+        IconButtonGlyphKind::Close => {
+            chrome_shapes::push_close_icon(commands, rect, clip, order, color, opacity)
+        }
         IconButtonGlyphKind::Grid => {
             chrome_shapes::push_grid_icon(commands, rect, clip, order, color, opacity)
         }

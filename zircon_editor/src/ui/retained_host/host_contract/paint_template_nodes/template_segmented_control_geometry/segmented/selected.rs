@@ -1,10 +1,10 @@
 use super::super::super::super::data::FrameRect;
-use super::super::metrics::SEGMENT_SELECTED_INSET;
+use super::super::metrics::segment_selected_inset;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_rect(
     segment: &FrameRect,
 ) -> FrameRect {
-    inset_rect(segment, SEGMENT_SELECTED_INSET)
+    inset_rect(segment, segment_selected_inset())
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_underline_rect(

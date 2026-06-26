@@ -8,6 +8,9 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
     let tests = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests.rs",
     );
+    let post_process_diagnostics = read_runtime_src(
+        "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs",
+    );
     let plan_09 = read_repo("docs/plans/zircon_runtime/render/09-camera-render-ordering.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
@@ -23,8 +26,9 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
             "fn update_visibility_static_index_stats(",
             "fn update_hzb_occlusion_stats(",
             "fn graph_execution_coverage_report(",
-            "fn effect_stack_resource_status(",
-            "fn particle_velocity_missing_sprite_count(",
+            "mod post_process_diagnostics;",
+            "effect_stack_resource_status",
+            "particle_velocity_missing_sprite_count",
             "#[cfg(test)]\nmod tests;",
         ],
     );
@@ -40,10 +44,11 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
         "fn effect_stack_resource_status_detects_executed_motion_vector_prepass_chain",
         "fn particle_velocity_gap_counts_sprites_only_when_reconstructed_velocity_is_requested",
         "fn particle_velocity_anonymous_stream_ambiguity_requires_velocity_diagnostics",
+        "fn particle_velocity_diagnostics_enabled(",
     ] {
         assert!(
             !parent.contains(moved_test),
-            "base_stats.rs should mount the test child instead of defining {moved_test}"
+            "base_stats.rs should mount the test/helper child instead of defining {moved_test}"
         );
     }
 
@@ -65,6 +70,17 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
             "fn particle_velocity_anonymous_stream_ambiguity_requires_velocity_diagnostics",
         ],
     );
+    assert_contains_all(
+        "base stats post-process diagnostics child owns effect-stack and particle helper logic",
+        &post_process_diagnostics,
+        &[
+            "pub(super) fn effect_stack_resource_status(",
+            "fn effect_stack_uses_resource(",
+            "pub(super) fn particle_velocity_missing_sprite_count(",
+            "pub(super) fn particle_velocity_anonymous_stream_ambiguity_count(",
+            "fn particle_velocity_diagnostics_enabled(",
+        ],
+    );
 
     for (path, source) in [
         (
@@ -74,6 +90,10 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
         (
             "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests.rs",
             tests.as_str(),
+        ),
+        (
+            "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs",
+            post_process_diagnostics.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

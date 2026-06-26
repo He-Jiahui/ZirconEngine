@@ -31,7 +31,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_table_header(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    node.control_id.as_str() == "WorkbenchTableHeader"
+    let control_id = node.control_id.as_str();
+    control_id == "WorkbenchTableHeader" || control_id.ends_with("TableHeader")
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_table_tail(

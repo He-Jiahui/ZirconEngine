@@ -26,6 +26,7 @@ pub(in super::super) fn tab_drag_payload_for_route(
         } => drawer_tab_drag_payload(presentation, surface_key, *index),
         ChromePointerRoute::ActivityRail { .. }
         | ChromePointerRoute::HostPageTab { .. }
+        | ChromePointerRoute::HostPageOverflow { .. }
         | ChromePointerRoute::FloatingWindowHeader { .. }
         | ChromePointerRoute::Resize => None,
     }

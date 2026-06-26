@@ -1,5 +1,5 @@
 use std::fmt;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use super::pool::{assist_current_thread_once, TaskPoolYield};
@@ -111,11 +111,7 @@ impl JobHandle {
     }
 
     pub fn is_complete(&self) -> bool {
-        self.state
-            .inner
-            .lock()
-            .expect("job state lock poisoned")
-            .is_complete
+        self.state.lock_inner().is_complete
     }
 
     pub fn wait(&self) {
@@ -130,27 +126,18 @@ impl JobHandle {
     }
 
     fn wait_for_terminal(&self) -> Option<Arc<str>> {
-        let mut inner = self.state.inner.lock().expect("job state lock poisoned");
+        let mut inner = self.state.lock_inner();
         while !inner.is_complete {
             drop(inner);
             if let Some(result) = assist_current_thread_once() {
-                inner = self.state.inner.lock().expect("job state lock poisoned");
+                inner = self.state.lock_inner();
                 if !inner.is_complete && result == TaskPoolYield::Idle {
-                    inner = self
-                        .state
-                        .complete
-                        .wait_timeout(inner, WORKER_WAIT_IDLE_PARK)
-                        .expect("job state lock poisoned while worker wait-assisting")
-                        .0;
+                    inner = self.state.wait_inner_timeout(inner, WORKER_WAIT_IDLE_PARK);
                 }
             } else {
-                inner = self.state.inner.lock().expect("job state lock poisoned");
+                inner = self.state.lock_inner();
                 if !inner.is_complete {
-                    inner = self
-                        .state
-                        .complete
-                        .wait(inner)
-                        .expect("job state lock poisoned while waiting");
+                    inner = self.state.wait_inner(inner);
                 }
             }
         }
@@ -166,17 +153,12 @@ impl JobHandle {
     }
 
     pub(super) fn panic_message(&self) -> Option<Arc<str>> {
-        self.state
-            .inner
-            .lock()
-            .expect("job state lock poisoned")
-            .panic_message
-            .clone()
+        self.state.lock_inner().panic_message.clone()
     }
 
     fn mark_terminal(&self, panic_message: Option<Arc<str>>) {
         let dependents = {
-            let mut inner = self.state.inner.lock().expect("job state lock poisoned");
+            let mut inner = self.state.lock_inner();
             if inner.is_complete {
                 return;
             }
@@ -192,7 +174,7 @@ impl JobHandle {
     }
 
     pub(super) fn add_dependent(&self, dependent: JobContinuation) -> bool {
-        let mut inner = self.state.inner.lock().expect("job state lock poisoned");
+        let mut inner = self.state.lock_inner();
         if inner.is_complete {
             false
         } else {
@@ -202,13 +184,41 @@ impl JobHandle {
     }
 
     pub(super) fn dependency_completed(&self) -> bool {
-        let mut inner = self.state.inner.lock().expect("job state lock poisoned");
+        let mut inner = self.state.lock_inner();
         if inner.is_complete || inner.remaining_dependencies == 0 {
             return false;
         }
 
         inner.remaining_dependencies -= 1;
         inner.remaining_dependencies == 0 && !inner.is_complete
+    }
+}
+
+impl JobState {
+    fn lock_inner(&self) -> MutexGuard<'_, JobStateInner> {
+        self.inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn wait_inner<'a>(
+        &self,
+        inner: MutexGuard<'a, JobStateInner>,
+    ) -> MutexGuard<'a, JobStateInner> {
+        self.complete
+            .wait(inner)
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn wait_inner_timeout<'a>(
+        &self,
+        inner: MutexGuard<'a, JobStateInner>,
+        timeout: Duration,
+    ) -> MutexGuard<'a, JobStateInner> {
+        self.complete
+            .wait_timeout(inner, timeout)
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .0
     }
 }
 
@@ -223,5 +233,61 @@ impl fmt::Debug for JobHandle {
         f.debug_struct("JobHandle")
             .field("is_complete", &self.is_complete())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{self, AssertUnwindSafe};
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    use std::thread;
+    use std::time::Duration;
+
+    use super::JobHandle;
+
+    #[test]
+    fn job_handle_accessors_recover_poisoned_state_lock() {
+        let handle = JobHandle::pending_with_dependencies(1);
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.state.inner.lock().unwrap();
+            panic!("poison job handle state");
+        }));
+
+        assert!(!handle.is_complete());
+        let dependent_ran = Arc::new(AtomicBool::new(false));
+        let dependent_ran_for_callback = Arc::clone(&dependent_ran);
+        assert!(handle.add_dependent(Box::new(move || {
+            dependent_ran_for_callback.store(true, Ordering::SeqCst);
+        })));
+        assert!(handle.dependency_completed());
+        handle.mark_complete();
+
+        assert!(handle.is_complete());
+        assert!(handle.panic_message().is_none());
+        assert!(dependent_ran.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn job_handle_wait_recovers_poisoned_state_lock() {
+        let handle = JobHandle::pending_with_dependencies(0);
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.state.inner.lock().unwrap();
+            panic!("poison job handle wait state");
+        }));
+
+        let completer = handle.clone();
+        let completion_thread = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(1));
+            completer.mark_complete();
+        });
+
+        handle.wait();
+        completion_thread.join().unwrap();
+        assert!(handle.is_complete());
     }
 }

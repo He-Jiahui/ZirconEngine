@@ -16,7 +16,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
   - zircon_editor/assets/icons/editor_pages/**
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
@@ -38,7 +38,7 @@ implementation_files:
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
   - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 plan_sources:
@@ -125,8 +125,8 @@ Two build-boundary fixes were needed before the live Editor binary could compile
 | `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml` | `RemoveRecentProject` / `remove_recent` | `icon: editor_pages/workbench/tabs/close-tab.svg` | Remove a project from the recent list. | `zircon_editor/assets/icons/editor_pages/workbench/tabs/close-tab.svg` | `near` | Wired from former `close-circle-outline`; close-tab conveys removal/close, but a remove-recent or delete icon would be more exact. |
 | `zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml` | `ActivityRailButtonIcon0` / `activity_rail_button_icon_0` | `icon: editor_pages/asset_browser/navigation/folder.svg`; `value: editor_pages/asset_browser/navigation/folder.svg` | Static activity rail assets icon. | `zircon_editor/assets/icons/editor_pages/asset_browser/navigation/folder.svg` | `direct` | Wired from former `albums-outline` and `ionicons/albums-outline.svg`; maps the static assets rail icon to the same asset browser folder metaphor. |
 | `zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml` | `ActivityRailButtonIcon1` / `activity_rail_button_icon_1` | `icon: editor_pages/hierarchy/entity/scene.svg`; `value: editor_pages/hierarchy/entity/scene.svg` | Static activity rail hierarchy icon. | `zircon_editor/assets/icons/editor_pages/hierarchy/entity/scene.svg` | `direct` | Wired from former `layers-outline` and `ionicons/layers-outline.svg`; static hierarchy rail icon maps to the scene hierarchy icon. |
-| `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml` | `DockTabClose0` / `dock_tab_close_0` | `icon: editor_pages/workbench/tabs/close-tab.svg`; `value: editor_pages/workbench/tabs/close-tab.svg` | Close the first dock tab. | `zircon_editor/assets/icons/editor_pages/workbench/tabs/close-tab.svg` | `direct` | Wired from former `close-outline` and `ionicons/close-outline.svg`; exact tab close role. |
-| `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml` | `DockTabClose1` / `dock_tab_close_1` | `icon: editor_pages/workbench/tabs/close-tab.svg`; `value: editor_pages/workbench/tabs/close-tab.svg` | Close the second dock tab. | `zircon_editor/assets/icons/editor_pages/workbench/tabs/close-tab.svg` | `direct` | Wired from former `close-outline` and `ionicons/close-outline.svg`; exact tab close role. |
+| `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml` | `DockTabClose0` / `dock_tab_close_0` | `icon: editor_pages/workbench/tabs/close-tab.svg` | Close the first dock tab. | `zircon_editor/assets/icons/editor_pages/workbench/tabs/close-tab.svg` | `direct` | Wired from former `close-outline` and `ionicons/close-outline.svg`; exact tab close role. Current dock-tab close styling treats this as an icon-only toolbar control, so no separate `value` prop is required. |
+| `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml` | `DockTabClose1` / `dock_tab_close_1` | `icon: editor_pages/workbench/tabs/close-tab.svg` | Close the second dock tab. | `zircon_editor/assets/icons/editor_pages/workbench/tabs/close-tab.svg` | `direct` | Wired from former `close-outline` and `ionicons/close-outline.svg`; exact tab close role. Current dock-tab close styling treats this as an icon-only toolbar control, so no separate `value` prop is required. |
 | `zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml` | `FocusConsole` / `focus` | `icon: editor_pages/console_profiler/logs/log-info.svg` | Focus the console pane. | `zircon_editor/assets/icons/editor_pages/console_profiler/logs/log-info.svg` | `near` | Wired from former `terminal-outline`; current pack covers logs but not terminal. |
 | `zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml` | `SelectRoot` / `select_root` | `icon: editor_pages/hierarchy/entity/scene.svg` | Select the hierarchy root scene node. | `zircon_editor/assets/icons/editor_pages/hierarchy/entity/scene.svg` | `direct` | Wired from former `layers-outline`; exact scene/root hierarchy role. |
 | `zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml` | `AddNode` / `add_node` | `icon: editor_pages/graph_editor/nodes/state-node.svg` | Add an animation graph node. | `zircon_editor/assets/icons/editor_pages/graph_editor/nodes/state-node.svg` | `near` | Wired from former `plus-circle-outline`; graph node icon covers the domain, but current pack lacks an add-node overlay. |

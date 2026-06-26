@@ -5,6 +5,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/ellipsis.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
@@ -22,6 +23,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/ellipsis.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
@@ -40,6 +42,7 @@ tests:
   - host_contract paint-text draw clip-rect ownership scan
   - host_contract paint-text glyph row pixel ownership scan
   - host_contract paint-text draw entry ownership scan
+  - cargo test -p zircon_editor --lib ellipsis --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
   - scoped whitespace scan
   - scoped git diff --check
 doc_type: module-detail
@@ -58,6 +61,8 @@ doc_type: module-detail
 `paint_text/draw/clip_rect.rs` owns effective text-clip resolution plus frame-to-pixel clip conversion for draw calls.
 
 `paint_text/draw/layout.rs` owns fontdue layout construction for a retained text run, including the positive-Y-down coordinate system, vertical centering within the target frame, maximum width/height bounds, fallback font selection, and text-style append.
+
+`paint_text/draw/ellipsis.rs` owns single-line end-ellipsis prelayout. The draw layout owner asks it to measure available width before appending the text run, so narrow labels degrade to a bounded `...`/ellipsis form instead of letting fontdue drop trailing glyphs unpredictably.
 
 `paint_text/draw/recording.rs` owns font-size and line-height clamping plus retained recording handoff. It converts the clipped pixel bounds back into a frame-space recording rectangle before forwarding the existing text/style payload to `HostRgbaFrame::record_text(...)`.
 
@@ -100,3 +105,5 @@ The 2026-06-21 draw clip-rect split reduced `paint_text/draw.rs` from 101 lines 
 The 2026-06-21 glyph row pixel split reduced `paint_text/draw/glyphs.rs` from 88 lines to a 52-line glyph traversal entry. `draw/glyphs/row.rs` owns row/column clipping, emphasis offset, strong overdraw, coverage alpha, and blend dispatch, while `glyphs.rs` keeps cached raster lookup and per-row dispatch. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text glyph row pixel ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
 The 2026-06-21 draw entry split reduced `paint_text/draw.rs` from 85 lines to a 50-line text pipeline owner. `draw/entry.rs` owns the public draw entry chain, default font metrics, and default style selection, while `draw.rs` keeps clip resolution, metric clamping, recording handoff, layout, and glyph dispatch. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint-text draw entry ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-06-25 S15 text-primitive pass verified `draw/ellipsis.rs` with `cargo test -p zircon_editor --lib ellipsis --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never`, which passed 4/4. The same target later refreshed the M3 screenshots under `docs/tests/editor`, confirming the ellipsis path is now part of visual acceptance and not a target-local artifact.

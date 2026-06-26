@@ -20,12 +20,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_unav
     )
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_selection_state_hot(
-    state: UiPainterResolvedState,
-) -> bool {
-    is_hot(state)
-}
-
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_hot(
     state: UiPainterResolvedState,
 ) -> bool {

@@ -37,15 +37,14 @@ pub(super) fn pressed_button_style(
     match kind {
         WorkbenchButtonKind::Primary => {
             style.surface = PRIMARY_SURFACE_PRESSED;
-            style.border = PALETTE.focus_ring;
         }
         WorkbenchButtonKind::Secondary => {
             style.surface = OUTLINED_SURFACE_PRESSED;
-            style.border = PALETTE.focus_ring;
         }
         WorkbenchButtonKind::Tertiary => {
-            style.surface = PALETTE.surface_pressed;
-            style.border = PALETTE.focus_ring;
+            style.surface = PALETTE.popup;
+            style.text = PALETTE.text;
+            style.glyph = PALETTE.text;
         }
         WorkbenchButtonKind::Danger => {
             style.surface = DANGER_SURFACE_PRESSED;

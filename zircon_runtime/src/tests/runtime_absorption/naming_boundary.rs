@@ -59,15 +59,19 @@ fn runtime_non_network_server_naming_is_classified_by_owner() {
         .collect::<Vec<_>>();
 
     assert!(
-        classifications.contains("graphics-render-framework-debt"),
-        "runtime non-network server naming guard should keep render-framework owner debt classified"
-    );
-    assert!(
         unclassified.is_empty(),
         "runtime non-network server naming contains unclassified owner references:\n{}",
         unclassified.join("\n")
     );
+    assert!(
+        classifications
+            .iter()
+            .all(|classification| *classification != "unclassified-non-network-server"),
+        "runtime non-network server naming guard should never classify unknown owner debt"
+    );
 }
+
+mod runtime_15_m2;
 
 fn rust_source_files(root: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -242,6 +246,7 @@ fn allowed_server_context(relative_path: &str, line: &str) -> bool {
         relative_path,
         "src/ui/component/state_reducer/table.rs"
             | "src/ui/surface/surface/default_interactions/table/mod.rs"
+            | "src/ui/surface/surface/default_interactions/table/columns.rs"
     ) && line.contains("Some(\"server\")")
     {
         return true;
@@ -254,10 +259,7 @@ fn allowed_server_context(relative_path: &str, line: &str) -> bool {
     false
 }
 
-fn classify_server_reference(relative_path: &str, _line: &str) -> Option<&'static str> {
-    if relative_path.starts_with("src/graphics/runtime/render_framework/") {
-        return Some("graphics-render-framework-debt");
-    }
+fn classify_server_reference(_relative_path: &str, _line: &str) -> Option<&'static str> {
     None
 }
 
@@ -368,6 +370,32 @@ fn is_test_path(relative_path: &str) -> bool {
     relative_path.split('/').any(|part| part == "tests")
         || file_name == "tests.rs"
         || file_name.ends_with("_tests.rs")
+}
+
+pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
+    let missing = required
+        .iter()
+        .copied()
+        .filter(|anchor| !source.contains(anchor))
+        .collect::<Vec<_>>();
+    assert!(
+        missing.is_empty(),
+        "{label} missing required anchors: {missing:?}"
+    );
+}
+
+pub(super) fn read_text(path: &Path, label: &str) -> String {
+    fs::read_to_string(path).unwrap_or_else(|error| panic!("{label}: {error}"))
+}
+
+pub(super) fn read_repo_text(manifest_root: &Path, relative_path: &str) -> String {
+    let repo_root = manifest_root
+        .parent()
+        .expect("zircon_runtime manifest should live under repository root");
+    read_text(
+        &repo_root.join(relative_path),
+        "repository document should be readable",
+    )
 }
 
 fn relative_path(root: &Path, path: &Path) -> String {

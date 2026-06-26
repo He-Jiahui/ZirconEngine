@@ -136,7 +136,8 @@ pub(super) fn binding_target_payload_suggestions(
     match binding_action_kind(binding) {
         UiBindingActionKind::Route => {
             let route_target = binding_route_target(binding);
-            if route_target.contains("Selection.Changed") {
+            let route_key = normalized_route_target_key(&route_target);
+            if route_key.contains("selection.changed") {
                 return Some(vec![
                     (
                         "primary".to_string(),
@@ -159,7 +160,7 @@ pub(super) fn binding_target_payload_suggestions(
                     ),
                 ]);
             }
-            if route_target.contains("Form.ValueChanged") {
+            if route_key.contains("form.valuechanged") {
                 return Some(vec![
                     ("value".to_string(), Value::String("preview".to_string())),
                     ("committed".to_string(), Value::Boolean(true)),
@@ -215,6 +216,18 @@ pub(super) fn binding_target_payload_suggestions(
     }
 
     None
+}
+
+fn normalized_route_target_key(route_target: &str) -> String {
+    route_target
+        .trim()
+        .trim_start_matches("route.")
+        .chars()
+        .filter_map(|ch| match ch {
+            '_' | '-' | ':' | '/' | ' ' => None,
+            ch => Some(ch.to_ascii_lowercase()),
+        })
+        .collect()
 }
 
 pub(super) fn binding_value_kind_label(value: &Value) -> &'static str {
@@ -694,5 +707,78 @@ pub(super) fn format_binding_item(binding: &UiBindingRef) -> String {
             ),
         },
         UiBindingActionKind::None => format!("{} | {}", binding.event, binding.id),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn route_binding(route: &str) -> UiBindingRef {
+        UiBindingRef {
+            id: "Button/onClick".to_string(),
+            event: UiEventKind::Click,
+            route: Some(route.to_string()),
+            action: None,
+            targets: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn dotted_form_route_uses_form_value_changed_payload_suggestions() {
+        let suggestions =
+            binding_root_payload_suggestions(&route_binding("route.form.value_changed"));
+        assert_eq!(
+            suggestions,
+            vec![
+                ("value".to_string(), Value::String("preview".to_string())),
+                ("committed".to_string(), Value::Boolean(true)),
+                (
+                    "fields".to_string(),
+                    Value::Array(vec![Value::String("title".to_string())])
+                ),
+                (
+                    "context".to_string(),
+                    Value::Table(
+                        [
+                            ("source".to_string(), Value::String("ui.click".to_string())),
+                            ("subject".to_string(), Value::String("field".to_string())),
+                        ]
+                        .into_iter()
+                        .collect()
+                    )
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn dotted_selection_route_uses_selection_payload_suggestions() {
+        let suggestions =
+            binding_root_payload_suggestions(&route_binding("route.selection.changed"));
+        assert_eq!(
+            suggestions,
+            vec![
+                (
+                    "primary".to_string(),
+                    Value::String("SelectedNode".to_string())
+                ),
+                (
+                    "selection_ids".to_string(),
+                    Value::Array(vec![Value::String("SelectedNode".to_string())])
+                ),
+                (
+                    "context".to_string(),
+                    Value::Table(
+                        [
+                            ("additive".to_string(), Value::Boolean(false)),
+                            ("source".to_string(), Value::String("hierarchy".to_string())),
+                        ]
+                        .into_iter()
+                        .collect()
+                    )
+                ),
+            ]
+        );
     }
 }

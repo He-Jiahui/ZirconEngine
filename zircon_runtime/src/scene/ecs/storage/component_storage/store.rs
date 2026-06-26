@@ -6,10 +6,10 @@ use std::fmt;
 use crate::scene::ecs::{ChangeTick, ComponentId, ComponentTicks, InternalEntity, StorageType};
 
 use super::super::{ComponentRemoveResult, StorageError};
+use super::component_results::{downcast_component, sort_component_ids_if_needed};
 use super::location::ComponentStorageLocation;
 use super::sparse::SparseComponentStorage;
 use super::table::TableComponentStorage;
-use super::utils::{downcast_component, sort_component_ids_if_needed};
 
 #[derive(Default)]
 pub struct ComponentStorage {

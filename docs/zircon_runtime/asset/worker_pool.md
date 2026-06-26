@@ -1,25 +1,43 @@
 ---
 related_code:
   - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/asset/load/texture.rs
+  - zircon_runtime/src/asset/load/mesh.rs
+  - zircon_runtime/src/asset/formats/obj/error.rs
+  - zircon_runtime/src/asset/formats/obj/decode_obj_file.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/tests/load/texture.rs
+  - zircon_runtime/src/asset/tests/load/mesh.rs
+  - zircon_runtime/src/asset/tests/formats/obj.rs
   - zircon_runtime/src/asset/pipeline/types.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 implementation_files:
   - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/asset/load/texture.rs
+  - zircon_runtime/src/asset/load/mesh.rs
+  - zircon_runtime/src/asset/formats/obj/error.rs
+  - zircon_runtime/src/asset/formats/obj/decode_obj_file.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/tests/load/texture.rs
+  - zircon_runtime/src/asset/tests/load/mesh.rs
+  - zircon_runtime/src/asset/tests/formats/obj.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -38,6 +56,14 @@ tests:
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::concurrent_requests_for_same_asset_decode_once_and_notify_all
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_diagnostics_track_in_flight_and_failure_counts
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_frame_sampler_records_per_frame_completion_deltas
+  - zircon_runtime/src/asset/pipeline/worker_pool.rs::tests::asset_worker_pool_accessors_recover_poisoned_locks
+  - zircon_runtime/src/asset/tests/load/texture.rs::missing_image_file_reports_typed_texture_load_error
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs::review_f5_texture_loader_uses_typed_error
+  - zircon_runtime/src/asset/tests/load/mesh.rs::unsupported_mesh_file_reports_typed_mesh_load_error
+  - zircon_runtime/src/asset/tests/formats/obj.rs::obj_decode_reports_typed_read_error_source
+  - zircon_runtime/src/asset/tests/formats/obj.rs::obj_decode_reports_typed_scalar_parse_error_source
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs::review_f5_mesh_loader_and_obj_decoder_use_typed_errors
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool
   - rustfmt --edition 2021 --check zircon_runtime\src\asset\pipeline\worker_pool.rs zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs zircon_runtime\src\graphics\scene\scene_renderer\hzb\hzb_occlusion_culler.rs zircon_runtime\src\ui\component\state_reducer\keyboard.rs zircon_runtime\src\ui\tests\component_catalog\component_state\keyboard.rs (passed after workerless test constructor diagnostics-order repair)
   - cargo test -p zircon_runtime material_keyboard_action_skips_disabled_grouped_selection_options --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-keyboard-routes-0613-coremin --message-format short --color never -- --test-threads=1 --nocapture (passed after workerless test constructor diagnostics-order repair)
 doc_type: module-detail
@@ -93,13 +119,21 @@ This is intentionally pool-local coalescing. It does not persist cache state, do
 
 `AssetWorkerPoolFrameSampler` is the frame-local sampling cursor for Runtime 07 performance evidence. It reads cumulative `AssetWorkerPoolDiagnostics` without mutating the pool, then emits `AssetWorkerPoolFrameDiagnostics` for the caller's frame. The frame sample keeps current `in_flight` and `budgeted_threads`, and converts cumulative completion counters into `asset.worker.frame_completed` and `asset.worker.frame_failed` deltas. Multiple owners can keep independent sampler cursors around the same pool, so the worker pool does not gain a single global "last frame" state.
 
+Runtime 15 M3 asset worker pool lock poison recovery keeps those counters available after a panic while a worker-pool lock is held. `AssetWorkerPool::request(...)`, `diagnostics()`, `record_in_flight_locked(...)`, and `publish_completion(...)` now consume poison-recovery helpers for the in-flight map and diagnostics state instead of panicking on `lock poisoned`. The `AssetManager` service contract also reuses `ProjectAssetManager` importer and subscriber lock helpers for open/subscribe paths, so it inherits the same poison recovery policy as the manager runtime owner.
+
 ## Decode Loop
 
 Worker threads are named `zircon-asset-{index}`. Each worker receives an `AssetRequest`, calls the current mesh or texture CPU loader, and publishes either a typed `CpuAssetPayload` or `CpuAssetPayload::Failure { request, message }` to the completion receiver. Dropping the pool closes the request sender and joins all worker threads.
 
+Runtime 15 F5 texture loader typed errors keeps `asset/load/texture.rs` failures typed as `TextureLoadError::OpenImage` until `process_request(...)` converts them to `CpuAssetPayload::Failure { message }`. The worker pool is the lossy reporting boundary for async completion consumers; the texture loader itself preserves the `image::ImageError` source. `asset/tests/load/texture.rs::missing_image_file_reports_typed_texture_load_error` and `review_f5_texture_loader_uses_typed_error` lock this `asset/load/texture.rs` / `asset/pipeline/worker_pool.rs` split under `runtime_15_texture_loader_typed_errors_static_passed_cargo_deferred`.
+
+Runtime 15 F5 mesh loader typed errors keeps `asset/load/mesh.rs` failures typed as `MeshLoadError::{UnsupportedFormat, Obj}` until `process_request(...)` converts them to `CpuAssetPayload::Failure { message }`. The OBJ decoder owns its own source-preserving `ObjDecodeError` variants in `asset/formats/obj/error.rs`, including `ObjDecodeError::Read` and parse/index/face/empty-mesh variants. `asset/tests/load/mesh.rs::unsupported_mesh_file_reports_typed_mesh_load_error`, `asset/tests/formats/obj.rs::obj_decode_reports_typed_read_error_source`, `asset/tests/formats/obj.rs::obj_decode_reports_typed_scalar_parse_error_source`, and `review_f5_mesh_loader_and_obj_decoder_use_typed_errors` lock this `asset/load/mesh.rs` / `asset/formats/obj/error.rs` / worker boundary split under `runtime_15_mesh_loader_typed_errors_static_passed_cargo_deferred`.
+
 ## Validation
 
 The focused worker-pool tests cover the original builtin texture completion path, explicit unbounded mode, runtime IO-budget derivation, production manager default budget ownership, paired manager construction through `project_asset_manager_spawns_worker_pool_with_frame_sampler`, deterministic bounded-overflow behavior, duplicate request coalescing, queue-full rollback diagnostics, cumulative diagnostics publication through `DiagnosticStore`, and `worker_pool_frame_sampler_records_per_frame_completion_deltas`. The overflow, coalescing, and frame-sampler tests use a test-only workerless constructor to keep the receiving side alive without starting a worker, making queue state deterministic and avoiding timing races with real worker consumption.
+
+`asset_worker_pool_accessors_recover_poisoned_locks` deliberately poisons the in-flight and diagnostics mutexes, then verifies request registration, diagnostics readback, and completion publication still recover. `runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool` keeps the worker pool, service contract, Runtime 15 plans, status rows, and this document synchronized under `runtime_15_asset_worker_pool_lock_poison_recovery_static_passed_cargo_deferred`.
 
 The Runtime 04/11 plan-status mirror is protected by `asset_worker_pool_matches_runtime_04_and_11_decisions`, which keeps the worker pool tied to Runtime 04 asset backpressure decisions, the `request(...)` only public request entry, and Runtime 11 IO-thread budget accounting.
 

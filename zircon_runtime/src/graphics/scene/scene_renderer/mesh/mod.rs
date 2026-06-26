@@ -18,7 +18,12 @@ pub(crate) use mesh_pass::{
     MeshPassCommandBuffers, MeshPassIndirectDrawExecutions,
 };
 pub(crate) use mesh_pipeline::FALLBACK_MESH_SHADER;
-pub(crate) use mesh_pipeline_cache::MeshPipelineCache;
+pub(crate) use mesh_pipeline_cache::{
+    mesh_pipeline_standard_material_template_source,
+    mesh_pipeline_standard_material_template_source_for_geometry,
+    mesh_pipeline_standard_material_template_source_for_shader_pass, MeshPipelineCache,
+    MeshPipelineShaderSource,
+};
 pub(crate) use prepared_queue::{
     prepare_mesh_queue, PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,
     PreparedMeshVirtualGeometryIndirectStats,

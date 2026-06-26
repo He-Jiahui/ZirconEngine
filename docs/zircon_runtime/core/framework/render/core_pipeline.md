@@ -145,9 +145,9 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs::tests::build_sprite_vertices_routes_transparent3d_to_transparent3d_phase
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs::transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs::transparent3d_product_treats_world_space_ui_sprite_as_transparent_member
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_core2d_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs::default_core2d_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs::metadata_context_exposes_attachment_ops_for_written_resource
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs::preview_sky_executor_requires_preview_renderer_context_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs::screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output

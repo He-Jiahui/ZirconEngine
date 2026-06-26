@@ -5,8 +5,9 @@ use crate::ui::retained_host::primitives::{CloseRequestResponse, PhysicalPositio
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
 use super::super::data::{
-    HostDragStateData, HostMenuStateData, HostPaneInteractionStateData, HostResizeStateData,
-    HostTextInputFocusData, HostViewportImageData, HostWindowPresentationData, WelcomePaneData,
+    HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData,
+    HostPaneInteractionStateData, HostResizeStateData, HostTextInputFocusData,
+    HostViewportImageData, HostWindowPresentationData, WelcomePaneData,
 };
 use super::super::diagnostics::HostInvalidationDiagnostics;
 use super::super::redraw::HostRedrawRequest;
@@ -33,6 +34,7 @@ pub(crate) struct HostContractState {
     pub(crate) completed_frame_update_scenario: Option<UiPerfScenario>,
     pub(crate) viewport_image: Option<HostViewportImageData>,
     pub(crate) menu_state: HostMenuStateData,
+    pub(crate) host_page_overflow_menu_state: HostPageOverflowMenuStateData,
     pub(crate) pane_interaction_state: HostPaneInteractionStateData,
     pub(crate) drag_state: HostDragStateData,
     pub(crate) resize_state: HostResizeStateData,
@@ -61,6 +63,7 @@ impl HostContractState {
             completed_frame_update_scenario: None,
             viewport_image: None,
             menu_state: HostMenuStateData::default(),
+            host_page_overflow_menu_state: HostPageOverflowMenuStateData::default(),
             pane_interaction_state: HostPaneInteractionStateData::default(),
             drag_state: HostDragStateData::default(),
             resize_state: HostResizeStateData::default(),

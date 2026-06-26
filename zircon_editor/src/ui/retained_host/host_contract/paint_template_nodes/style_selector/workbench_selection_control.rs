@@ -15,4 +15,3 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palett
     WORKBENCH_SELECTION_MARK_IDLE_FILL,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_selection_control_style;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::is_workbench_selection_state_hot;

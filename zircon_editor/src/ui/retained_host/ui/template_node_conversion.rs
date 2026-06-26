@@ -1,7 +1,7 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host as host_contract;
-use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>
 where
@@ -80,8 +80,8 @@ pub(crate) fn to_host_contract_template_node(
         selected: data.selected,
         tree_depth: 0,
         tree_indent_px: 0.0,
-        options_text: "".into(),
-        options: ModelRc::default(),
+        options_text: options_text(&data.options).into(),
+        options: data.options.clone(),
         structured_options: ModelRc::default(),
         collection_items: ModelRc::default(),
         collection_fields: ModelRc::default(),
@@ -184,6 +184,14 @@ pub(crate) fn to_host_contract_template_node(
     }
 }
 
+fn options_text(options: &ModelRc<SharedString>) -> String {
+    (0..options.row_count())
+        .filter_map(|row| options.row_data(row))
+        .map(|option| option.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 pub(crate) fn to_host_contract_template_node_owned(
     data: ViewTemplateNodeData,
 ) -> host_contract::TemplatePaneNodeData {
@@ -211,6 +219,12 @@ mod tests {
             value_text: "albedo".into(),
             value_number: 42.0,
             value_percent: 0.42,
+            options: model_rc(vec![
+                "Name".into(),
+                "Type".into(),
+                "Size".into(),
+                "Rev".into(),
+            ]),
             z_index: 17,
             transition_kind: "fade".into(),
             transition_in: true,
@@ -233,6 +247,10 @@ mod tests {
         assert_eq!(node.value_text.as_str(), "albedo");
         assert_eq!(node.value_number, 42.0);
         assert_eq!(node.value_percent, 0.42);
+        assert_eq!(node.options_text.as_str(), "Name, Type, Size, Rev");
+        assert_eq!(node.options.row_count(), 4);
+        assert_eq!(node.options.row_data(0).as_deref(), Some("Name"));
+        assert_eq!(node.options.row_data(3).as_deref(), Some("Rev"));
         assert_eq!(node.z_index, 17);
         assert_eq!(node.transition_kind.as_str(), "fade");
         assert!(node.transition_in);

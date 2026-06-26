@@ -23,6 +23,7 @@ pub(crate) fn build_tool_region_state(
     slots: &[ActivityDrawerSlot],
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
     metrics: &WorkbenchChromeMetrics,
+    force_collapsed: bool,
 ) -> RegionState {
     let tab = active_tool_tab(model, slots);
     let has_tabs = tool_region_has_tabs(model, slots);
@@ -37,7 +38,7 @@ pub(crate) fn build_tool_region_state(
         };
     }
 
-    if !expanded {
+    if !expanded || force_collapsed {
         return RegionState {
             visible: true,
             expanded: false,

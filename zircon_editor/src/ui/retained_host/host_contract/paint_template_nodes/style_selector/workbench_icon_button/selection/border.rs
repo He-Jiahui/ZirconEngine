@@ -3,7 +3,7 @@ use super::super::palette::ICON_PANEL_BORDER;
 use super::super::state::is_unavailable_icon_button_state;
 use super::declared::declared_icon_button_border;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_border(
@@ -45,7 +45,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     state: UiPainterResolvedState,
 ) -> f32 {
     if context == WorkbenchIconButtonContext::Panel || state != UiPainterResolvedState::Normal {
-        1.0
+        METRICS.border_width
     } else {
         0.0
     }

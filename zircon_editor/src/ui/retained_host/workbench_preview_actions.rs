@@ -38,6 +38,7 @@ pub(crate) const WORKBENCH_PREVIEW_ACTION_IDS: &[&str] = &[
     "workbench.module.assets.select",
     "workbench.module.vfx.select",
     "workbench.module.hud.select",
+    "workbench.module.more.open",
     "workbench.module.save.invoke",
     "workbench.module.browse.invoke",
     "workbench.module.compile.invoke",

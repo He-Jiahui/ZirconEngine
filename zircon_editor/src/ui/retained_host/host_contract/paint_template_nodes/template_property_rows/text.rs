@@ -1,8 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_row_metrics::{row_text_line_height, ROW_TEXT_FONT_SIZE};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
-
-const PROPERTY_FONT_SIZE: f32 = 11.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_command(
     rect: FrameRect,
@@ -18,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_co
         order,
         text.to_string(),
         color,
-        PROPERTY_FONT_SIZE,
-        PROPERTY_FONT_SIZE * 1.2,
+        ROW_TEXT_FONT_SIZE,
+        row_text_line_height(),
         UiTextRunPaintStyle::default(),
         opacity,
     )

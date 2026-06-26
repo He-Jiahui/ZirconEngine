@@ -8,6 +8,16 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_compile_monolith_tests.rs
   - zircon_runtime/src/graphics/tests/pipeline_overlay_order.rs
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/types.rs
@@ -28,8 +38,8 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_smaa_terminal_input
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-pass-authoring-0617 --message-format short --color never
   - cargo test -p zircon_runtime --lib compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-required-external-0618
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619 --message-format short --color never
   - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::tests::pipeline_compile::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes --exact --test-threads=1 --nocapture
   - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::tests::pipeline_compile::default_deferred_pipeline_compiles_expected_stage_order_and_passes --exact --test-threads=1 --nocapture
@@ -96,6 +106,8 @@ Most broader pass-authoring focused lib-tests remain deferred to the milestone t
 On 2026-06-19, the Plan 09 texture-target Base+Overlay product guard first exposed a lower shared authoring bug: default post-process descriptors could author `post.uber` before `post.bloom-extract`, so a graph compile saw `post.uber` read `bloom-texture` before any producer wrote it. `ordered_stage_pass_descriptors(...)` now keeps descriptor filtering as the source of truth, but normalizes that current Bloom producer ahead of the uber consumer for `RenderPassStage::PostProcess`. After the dynamic-scene test fixture blocker was repaired in its owner path, the warmed lib-test binary passed the default Forward+ and Deferred pass-order exact tests listed in the header; the same binary also passed the FXAA terminal routing contract.
 
 On 2026-06-20, the Plan 09 UI graph-tail ordering slice moved default Forward+ and Deferred 3D pipeline assets so `RenderPassStage::Overlay` and `RenderPassStage::Debug` execute before `RenderPassStage::Ui`. The compiled pass order now places `overlay-gizmo` before terminal `runtime-ui`, matching the screen-space UI graph-tail contract. `pipeline_overlay_order.rs` locks the contract for both default 3D pipelines, while the existing default Forward+/Deferred pass-order snapshots cover the full pass list. The pluginized legacy pass-order tests also pass after their test fixture declares `FINAL_COMPOSITED` as a graph texture instead of an external output when builtin FXAA reads it. A follow-up runtime execution regression now verifies late graph stages execute in compiled pipeline order, preserving Core2D `Ui`-before-`Overlay` while default 3D pipelines run `Overlay`/`Debug` before `Ui`.
+
+The 2026-06-24 Pipeline compile monolith tests owner split keeps pass-authoring coverage available through folder-backed owners instead of a 3086-line `graphics/tests/pipeline_compile.rs` root. The root now keeps shared descriptor/extract fixtures, while `pipeline_compile/default_pipelines.rs` owns the default Forward+/Deferred pass-order snapshots and `pipeline_compile/plugin_features.rs` owns pluginized route regressions. Guard `runtime_15_pipeline_compile_monolith_tests_are_child_owners` locks the moved tests, child owner line budgets, and status anchor `render_pipeline_compile_monolith_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; this slice has scoped rustfmt/static/docs/diff evidence only, with Cargo/WGPU/RenderDoc deferred by the milestone implementation cadence.
 
 ## Open Issues Or Follow-up
 

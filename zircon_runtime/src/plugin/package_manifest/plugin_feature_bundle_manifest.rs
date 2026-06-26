@@ -62,6 +62,11 @@ impl PluginFeatureBundleManifest {
         self
     }
 
+    pub fn with_native_module(mut self, module: PluginModuleManifest) -> Self {
+        self.modules.push(module);
+        self
+    }
+
     pub fn with_default_packaging(
         mut self,
         packaging: impl IntoIterator<Item = ExportPackagingStrategy>,

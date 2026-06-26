@@ -7,6 +7,19 @@ use crate::{
     runtime_prepare_collector_registration, virtual_geometry_runtime_provider_registration,
     PLUGIN_ID,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{
+    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest,
+};
+
+pub const VIRTUAL_GEOMETRY_DIST_CRATE_NAME: &str = "zircon_plugin_virtual_geometry_dist";
+pub const VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY: &str =
+    "zircon_plugin_virtual_geometry_runtime_entry_v3";
+
+const VIRTUAL_GEOMETRY_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct VirtualGeometryRuntimePlugin {
@@ -21,9 +34,40 @@ impl VirtualGeometryRuntimePlugin {
     }
 }
 
+impl Default for VirtualGeometryRuntimePlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
     fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
         &self.descriptor
+    }
+
+    fn package_manifest(&self) -> PluginPackageManifest {
+        let mut manifest = self.descriptor().package_manifest();
+        manifest
+            .default_packaging
+            .push(ExportPackagingStrategy::NativeDynamic);
+        manifest = manifest.with_native_module(
+            PluginModuleManifest::native("virtual_geometry.dist", VIRTUAL_GEOMETRY_DIST_CRATE_NAME)
+                .with_target_modes([
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ])
+                .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
+        );
+        manifest.with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: VIRTUAL_GEOMETRY_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: VIRTUAL_GEOMETRY_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            runtime_entry: VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
     }
 
     fn register(

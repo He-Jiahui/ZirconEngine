@@ -47,13 +47,17 @@ fn graphics_debugger_status_defaults_to_idle_for_wgpu() {
 
 #[test]
 fn render_backend_config_honors_renderdoc_wgpu_env_selection() {
+    let default = RenderBackendConfig::from_env_values(None, None, None);
     let dx12 = RenderBackendConfig::from_env_values(Some("dx12"), None, None);
     let vulkan = RenderBackendConfig::from_env_values(Some("vulkan"), None, None);
+    let gl = RenderBackendConfig::from_env_values(Some("gl"), None, None);
     let flags_disabled = RenderBackendConfig::from_env_values(None, Some("0"), Some("0"));
     let flags_enabled = RenderBackendConfig::from_env_values(None, Some("1"), Some("1"));
 
+    assert_eq!(default.backends, wgpu::Backends::PRIMARY);
     assert_eq!(dx12.backends, wgpu::Backends::DX12);
     assert_eq!(vulkan.backends, wgpu::Backends::VULKAN);
+    assert_eq!(gl.backends, wgpu::Backends::GL);
     assert!(!flags_disabled
         .instance_flags
         .contains(wgpu::InstanceFlags::DEBUG));

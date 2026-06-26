@@ -8,10 +8,6 @@ mod surface;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_button_commands;
 
 #[cfg(test)]
-use super::super::data::{FrameRect, TemplatePaneNodeData};
-#[cfg(test)]
-use super::style_selector::WorkbenchButtonKind;
-#[cfg(test)]
 use content::button_glyph;
 #[cfg(test)]
 use geometry::button_paint_rect;

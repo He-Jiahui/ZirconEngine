@@ -14,7 +14,8 @@ pub use extension_ids::{
 };
 pub use plugin::{
     editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, TimelineSequenceEditorPlugin,
+    plugin_registration, timeline_sequence_dist_module_manifest, TimelineSequenceEditorPlugin,
+    TIMELINE_SEQUENCE_DIST_CRATE_NAME, TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY,
 };
 
 #[derive(Clone, Debug, PartialEq)]

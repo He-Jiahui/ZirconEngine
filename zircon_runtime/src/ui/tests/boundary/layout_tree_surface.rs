@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn root_surface_avoids_wildcard_flatten_for_namespace_owned_domains() {
-    let lib_source = include_str!("../mod.rs");
+    let lib_source = include_str!("../../mod.rs");
 
     for forbidden in [
         "pub use dispatch::*;",
@@ -20,8 +20,8 @@ fn root_surface_avoids_wildcard_flatten_for_namespace_owned_domains() {
 
 #[test]
 fn layout_solver_api_moves_under_layout_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let layout_mod_source = include_str!("../layout/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let layout_mod_source = include_str!("../../layout/mod.rs");
 
     assert!(
         lib_source.contains("pub mod layout;"),
@@ -53,10 +53,10 @@ fn layout_solver_api_moves_under_layout_namespace() {
 
 #[test]
 fn layout_constraint_model_api_moves_under_layout_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let layout_mod_source = include_str!("../layout/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let layout_mod_source = include_str!("../../layout/mod.rs");
     let interface_layout_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/layout/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/layout/mod.rs");
 
     for required in ["AxisConstraint", "LayoutBoundary", "StretchMode"] {
         assert!(
@@ -83,12 +83,12 @@ fn layout_constraint_model_api_moves_under_layout_namespace() {
 
 #[test]
 fn tree_specialist_api_moves_under_tree_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let tree_mod_source = include_str!("../tree/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let tree_mod_source = include_str!("../../tree/mod.rs");
     let interface_tree_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
     let interface_ui_tree_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/tree/node/ui_tree.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/tree/node/ui_tree.rs");
 
     assert!(
         lib_source.contains("pub mod tree;"),
@@ -159,10 +159,10 @@ fn tree_specialist_api_moves_under_tree_namespace() {
 
 #[test]
 fn tree_input_policy_api_moves_under_tree_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let tree_mod_source = include_str!("../tree/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let tree_mod_source = include_str!("../../tree/mod.rs");
     let interface_tree_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/tree/mod.rs");
 
     assert!(
         interface_tree_mod_source.contains("UiInputPolicy"),
@@ -182,10 +182,10 @@ fn tree_input_policy_api_moves_under_tree_namespace() {
 
 #[test]
 fn surface_render_api_moves_under_surface_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let surface_mod_source = include_str!("../surface/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let surface_mod_source = include_str!("../../surface/mod.rs");
     let interface_surface_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
 
     assert!(
         lib_source.contains("pub mod surface;"),
@@ -227,10 +227,10 @@ fn surface_render_api_moves_under_surface_namespace() {
 
 #[test]
 fn surface_state_api_moves_under_surface_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let surface_mod_source = include_str!("../surface/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let surface_mod_source = include_str!("../../surface/mod.rs");
     let interface_surface_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
 
     for required in ["UiFocusState", "UiNavigationState"] {
         assert!(
@@ -253,10 +253,10 @@ fn surface_state_api_moves_under_surface_namespace() {
 
 #[test]
 fn dispatch_api_moves_under_dispatch_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let dispatch_mod_source = include_str!("../dispatch/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let dispatch_mod_source = include_str!("../../dispatch/mod.rs");
     let interface_dispatch_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
 
     assert!(
         lib_source.contains("pub mod dispatch;"),

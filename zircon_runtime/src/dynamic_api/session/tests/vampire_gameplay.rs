@@ -8,7 +8,7 @@ use zircon_runtime_interface::{
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
-use super::helpers::*;
+use super::vampire_runtime_support::*;
 
 #[cfg_attr(
     not(feature = "zr-vm-real-backend"),
@@ -115,7 +115,9 @@ fn vampire_project_session_auto_blood_bolt_damages_nearest_enemy() {
         "automatic Blood Bolt should drive the player attack animation parameter"
     );
     assert!(
-        particles.as_array().is_some_and(|sprites| !sprites.is_empty())
+        particles
+            .as_array()
+            .is_some_and(|sprites| !sprites.is_empty())
             || particles
                 .get("sprites")
                 .and_then(serde_json::Value::as_array)

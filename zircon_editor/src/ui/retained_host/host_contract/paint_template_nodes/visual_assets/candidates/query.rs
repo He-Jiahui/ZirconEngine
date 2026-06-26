@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 
 use super::super::mui_icons;
+use super::aliases::shell_icon_alias;
 use super::paths::{editor_dev_asset_root, normalized_asset_relative_path, workspace_root};
 use super::variants::{push_candidate, push_direct_candidate, push_svg_variants};
 
@@ -41,6 +42,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_ca
     let assets = editor_dev_asset_root();
     let mut candidates = Vec::new();
     if !icon_name.is_empty() {
+        if let Some(shell_alias) = shell_icon_alias(icon_name) {
+            push_svg_variants(&mut candidates, assets.join("icons").join(shell_alias));
+        }
         let icon = normalized_asset_relative_path(icon_name);
         push_svg_variants(&mut candidates, assets.join("icons").join(&icon));
         push_svg_variants(

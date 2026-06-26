@@ -36,6 +36,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
@@ -109,6 +110,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
@@ -171,6 +173,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
   - cargo test -p zircon_editor --lib shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib retained_menu_pointer --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1
+  - zircon_runtime::tests::runtime_absorption::naming_boundary::runtime_15_m2::editor_workbench::runtime_15_editor_workbench_authority_label_uses_editor_name
 doc_type: module-detail
 ---
 
@@ -193,6 +196,8 @@ The workbench menu bar now projects directly from `EditorCommandRegistry::menu_b
 `component_adapter::command` is the committed CommandPalette bridge. It validates `UiComponentEventEnvelope` targets in the `command` domain, accepts only `Commit` events whose value is a non-empty string command id, builds an `EditorCommand` binding, and asks `EditorEventRuntime` to dispatch it as a retained-host event. This keeps palette execution on the same normalization path as keymap and native palette activation. `workbench_window.v2.ui.toml` mounts the Workbench `CommandPalette` as a collapsed overlay sibling and declares `CommandPalette/Commit` as a `Submit` route. `workbench_window_template_bindings.rs` registers that binding with an `EditorCommand("editor.command_palette")` placeholder so the route is discoverable, while `callback_dispatch::workbench::command_palette` takes the native commit value, builds a `command` domain `committed_command_id` envelope, reuses the adapter validation, and dispatches the resulting command id through the retained-host event path.
 
 The palette open route is now also connected. `UiHostEventEffects` carries `open_command_palette_requested` for the new command-palette effect, and `RetainedEditorHost::open_workbench_command_palette(...)` builds a fresh command list from `EditorCommandRegistry::default_workbench()` plus the current `EditorChromeSnapshot` enablement context. The host writes `commands`, `filtered_commands`, `disabled_commands`, `selected_command_id`, `focused_index`, clears the default source filter, and toggles `popup_open`/visibility through `BuiltinWorkbenchWindowTemplateSurfaceBridge::open_command_palette(...)`. Closing is represented by the same bridge through `close_command_palette(...)`, which collapses the mounted overlay and clears the popup state.
+
+Runtime 15 M2 editor workbench authority-label naming hard cutover is recorded as `runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred`. The Workbench extension feedback owner at `zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs` now emits `Selected Condition_Night   editor authority` for `workbench.extension.spawn_rules.condition_night_table_row.select`, replacing the old non-network `server authority` wording without changing action ids, callback routing, or template bridge behavior. `runtime_15_editor_workbench_authority_label_uses_editor_name` locks the new wording and the `non_network_server_naming.py` audit bucket removal.
 
 `EditorEventRuntime::dispatch_unhandled_input_keymap_command(...)` is the first runtime-keyboard bridge. It accepts a `UiInputDispatchResult`, verifies the runtime reply disposition is `Unhandled`, extracts the keyboard event, resolves it through `EditorKeymap::resolve_keyboard_input(...)`, then dispatches an `EditorCommand` binding through the same retained-host event path used by the CommandPalette commit adapter. Handled keyboard replies, released keys, non-keyboard events, and unmapped chords return `Ok(None)` and leave the editor journal untouched. The retained native host now calls the same bridge after native text/popup/focus handling declines a pressed key: `UiHostWindow` tracks current modifiers and input sequence, translates the `KeyEvent` into `UiKeyboardInputEvent`, invokes `UiHostContext::on_unhandled_keyboard_input`, and `RetainedEditorHost::dispatch_unhandled_native_keyboard_input(...)` applies the returned command record effects. The later full runtime `UiSurface` hard-cutover pump remains a separate migration edge.
 

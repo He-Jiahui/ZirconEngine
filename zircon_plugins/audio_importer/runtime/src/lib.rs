@@ -22,9 +22,10 @@ pub use capability::{
     WAV_IMPORTER_CAPABILITY,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, AudioImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    AudioImporterRuntimePlugin, AUDIO_IMPORTER_DIST_CRATE_NAME, AUDIO_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_wav(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -256,6 +257,53 @@ mod tests {
             .asset_importers
             .iter()
             .any(|importer| importer.id == "audio_importer.opus"));
+    }
+
+    #[test]
+    fn package_manifest_declares_audio_importer_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("audio importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(distribution.dist_crate, AUDIO_IMPORTER_DIST_CRATE_NAME);
+        assert_eq!(
+            distribution.runtime_entry,
+            AUDIO_IMPORTER_DIST_RUNTIME_ENTRY
+        );
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "audio_importer.dist")
+            .expect("audio importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(dist_module.crate_name, AUDIO_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+        assert!(dist_module
+            .capabilities
+            .contains(&WAV_IMPORTER_CAPABILITY.to_string()));
+        assert!(dist_module
+            .capabilities
+            .contains(&CODEC_IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

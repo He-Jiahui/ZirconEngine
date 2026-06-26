@@ -30,6 +30,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
         IconButtonGlyphKind::Play
     } else if key.contains("chevron") || key.contains("overflow") || key.contains("runmode") {
         IconButtonGlyphKind::ChevronDown
+    } else if key.contains("close") || key.contains("dismiss") {
+        IconButtonGlyphKind::Close
     } else if key.contains("layout")
         || key.contains("grid")
         || key.contains("columns")
@@ -60,5 +62,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
         IconButtonGlyphKind::Lock
     } else {
         IconButtonGlyphKind::More
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+
+    #[test]
+    fn close_outline_maps_to_close_glyph_instead_of_more_menu() {
+        let node = TemplatePaneNodeData {
+            control_id: "DockTabClose0".into(),
+            role: "IconButton".into(),
+            icon_name: "close-outline".into(),
+            ..TemplatePaneNodeData::default()
+        };
+
+        assert_eq!(icon_button_glyph_kind(&node), IconButtonGlyphKind::Close);
     }
 }

@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_segmented_control_geometry::{
-    selected_segment_rect, selected_segment_underline_rect, SEGMENT_RADIUS,
+    segment_radius, selected_segment_rect, selected_segment_underline_rect,
 };
 use super::super::style::segmented_control_style;
 
@@ -23,7 +23,7 @@ pub(super) fn push_selected_segment(
         Some(style.selected_surface),
         (border_width > 0.0).then_some(style.selected_border),
         border_width,
-        (SEGMENT_RADIUS - 1.0).max(0.0),
+        (segment_radius() - 1.0).max(0.0),
         opacity,
     ));
 

@@ -1,5 +1,5 @@
 use super::super::for_each_static_plugin_manifest;
-use super::helpers::package_kind_value;
+use super::package_kind_fields::package_kind_value;
 
 #[test]
 fn plugin_tomls_declare_known_package_kind_values() {

@@ -1,8 +1,9 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
+use super::super::super::super::paint_theme::METRICS;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchPopupRowStyle;
-use super::metrics::{POPUP_ROW_ORDER_OFFSET, POPUP_ROW_SELECTED_MARK_WIDTH};
+use super::metrics::POPUP_ROW_ORDER_OFFSET;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_popup_row_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -32,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
             FrameRect {
                 x: row_rect.x,
                 y: row_rect.y + 4.0,
-                width: POPUP_ROW_SELECTED_MARK_WIDTH,
+                width: METRICS.selection_indicator_width,
                 height: (row_rect.height - 8.0).max(1.0),
             },
             Some(clip.clone()),

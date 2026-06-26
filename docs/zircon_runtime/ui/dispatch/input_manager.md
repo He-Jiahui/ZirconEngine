@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/outcome.rs
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
@@ -20,10 +21,12 @@ related_code:
   - zircon_runtime_interface/src/ui/window/mod.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
 implementation_files:
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/outcome.rs
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
@@ -36,11 +39,14 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
 plan_sources:
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
   - docs/plans/zircon_editor/editor_ui/index.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
 tests:
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
   - 2026-06-12: cargo check -p zircon_runtime_interface --lib --locked (passed)
   - 2026-06-12: cargo test -p zircon_runtime_interface --lib ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults --locked --target-dir target/codex-editor-ui (passed)
   - 2026-06-12: target/codex-editor-ui-runtime/debug/deps/zircon_runtime-de6f737e1b69a0f9.exe runtime_input_manager --nocapture --test-threads=1 (passed, 3 passed)
@@ -101,6 +107,14 @@ The manager injects synthetic input events from retained deadlines rather than a
 `UiInputTimerState` stores Toast deadlines by target node together with the `toast_id` that was current when the timer was armed. `UiInputManager::arm_timers_from_component_events(...)` arms/replaces/clears that deadline from `toast_queue` payloads, `current_toast_id`, `auto_hide_duration_ms`/`autoHideDuration`, open/close events, or retained Snackbar/Toast state discovered through `UiSurface::toast_timer_for_component_node(...)`. `tick(...)` drains expired Toast timers and dispatches `UiInputEvent::ToastTimer`; `surface/input/toast_timer.rs` turns a matching current id into `Commit { property: "expired_toast_id" }` and annotates stale timers as ignored.
 
 The event is part of the public runtime-interface input contract through `UiToastTimerInputEvent`, so hosts and tests can observe the same route as internally injected manager ticks.
+
+## Runtime 15 M4 UI dispatch input manager test owner split
+
+Status: `runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred`.
+
+Runtime 15 M4 keeps the production input manager behavior in `ui/dispatch/input_manager/manager.rs` and moves only its inline test owner to `ui/dispatch/input_manager/manager/tests.rs`. The parent continues to own `UiInputManager`, `dispatch_input_event(...)`, `dispatch_window_input_pump_batch(...)`, `tick(...)`, timer arming/drain helpers, active pointer helpers, and timestamp extraction. The child test owner keeps the existing submenu hover, popup typeahead, Toast auto-hide, Tooltip hover/timer, and fixture coverage.
+
+`runtime_15_ui_dispatch_input_manager_tests_are_child_owner` verifies the parent still mounts `#[cfg(test)] mod tests;`, the seven moved tests do not return to the production file, both owners stay under the Runtime 15 file budget, and Runtime 15/status/UI/module docs contain the completion anchors. This is a structure-only split; it does not change route ordering, event payloads, timer deadlines, host requests, or dispatch replies. Cargo remains deferred by the Runtime 15 slice cadence while external cargo/rustc lanes are active.
 
 ## Current Limits
 

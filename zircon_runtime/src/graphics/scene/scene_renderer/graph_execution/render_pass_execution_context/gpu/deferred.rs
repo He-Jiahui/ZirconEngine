@@ -38,19 +38,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
             )
         })?;
+        let render_region = self.render_region();
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!("deferred graph executor for pass `{pass_name}` requires mesh draw context")
         })?;
+        let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
+            format!("deferred graph executor for pass `{pass_name}` requires mesh pipeline context")
+        })?;
         let replay_stats = deferred.record_gbuffer_geometry(
+            self.device,
             self.encoder,
             gbuffer_albedo_view,
             gbuffer_material_view,
             depth_view,
             self.scene_bind_group,
             mesh_draw_lists.gpu_scene_bind_group,
+            mesh_pipelines,
             albedo_attachment_ops,
             material_attachment_ops,
-            self.render_region(),
+            render_region,
             [
                 mesh_draw_lists.opaque_stream(),
                 mesh_draw_lists.alpha_mask_stream(),
@@ -127,6 +133,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_color_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let render_region = self.render_region();
         let deferred = self.deferred.ok_or_else(|| {
             format!(
                 "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
@@ -159,7 +166,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             background_view,
             scene_color_view,
             attachment_ops,
-            self.render_region(),
+            render_region,
         );
         Ok(())
     }

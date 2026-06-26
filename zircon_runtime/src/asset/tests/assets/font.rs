@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
-use crate::asset::{AssetImporter, AssetKind, AssetUri, FontAsset, ImportedAsset};
+use crate::asset::{AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError, ImportedAsset};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"
@@ -18,6 +18,15 @@ fn font_asset_wrapper_parses_runtime_font_manifest_fields() {
     assert_eq!(font.source, "FiraMono-subset.ttf");
     assert_eq!(font.family.as_deref(), Some("Fira Mono"));
     assert_eq!(font.render_mode, Some(UiTextRenderMode::Sdf));
+}
+
+#[test]
+fn font_asset_parse_reports_typed_toml_error_source() {
+    let error =
+        FontAsset::from_toml_str("render_mode = 7").expect_err("invalid font TOML should fail");
+
+    assert!(matches!(error, FontAssetError::Parse(_)));
+    assert!(std::error::Error::source(&error).is_some());
 }
 
 #[test]

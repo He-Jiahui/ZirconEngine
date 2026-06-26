@@ -27,3 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ma
     }
     false
 }
+
+#[cfg(test)]
+#[path = "template_material_feedback_tests/mod.rs"]
+mod tests;

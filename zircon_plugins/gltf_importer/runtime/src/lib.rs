@@ -24,9 +24,10 @@ pub use capability::{
     IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, GltfImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    GltfImporterRuntimePlugin, GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {

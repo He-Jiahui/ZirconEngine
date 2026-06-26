@@ -12,9 +12,11 @@ pub use capability::{
     RUNTIME_CRATE_NAME, WGSL_IMPORTER_CAPABILITY,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, ShaderAssetImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    ShaderAssetImporterRuntimePlugin, SHADER_ASSET_IMPORTER_DIST_CRATE_NAME,
+    SHADER_ASSET_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_shader(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -253,6 +255,56 @@ mod tests {
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));
         assert!(manifest
+            .capabilities
+            .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
+    }
+
+    #[test]
+    fn shader_asset_importer_package_manifest_declares_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("shader importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(
+            distribution.dist_crate,
+            SHADER_ASSET_IMPORTER_DIST_CRATE_NAME
+        );
+        assert_eq!(
+            distribution.runtime_entry,
+            SHADER_ASSET_IMPORTER_DIST_RUNTIME_ENTRY
+        );
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "asset_importer.shader.dist")
+            .expect("shader importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(
+            dist_module.crate_name,
+            SHADER_ASSET_IMPORTER_DIST_CRATE_NAME
+        );
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+        assert!(dist_module
             .capabilities
             .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
     }

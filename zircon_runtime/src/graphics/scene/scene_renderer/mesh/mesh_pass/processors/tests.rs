@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
     packed_sort_key_u64, CorePipelineKind, PrimitiveRelevance, RenderLayerSet,
     RenderMaterialAlphaMode, RenderPhase, RenderPhaseSortComponents,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH,
 };
 use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::default_pipeline_key;
@@ -116,11 +117,34 @@ fn render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shade
 
     let command = &list.commands()[0];
     assert_eq!(command.phase, RenderPhase::Opaque3d);
-    assert!(command.pipeline_key.uses_fallback_shader());
+    assert!(command.pipeline_key().uses_fallback_shader());
     assert_eq!(command.material.as_ref().map(MeshBindHandle::id), Some(207));
     assert_eq!(
         command.standard_material.as_ref().map(MeshBindHandle::id),
         Some(307)
+    );
+}
+
+#[test]
+fn render_mesh_draw_processor_uses_batch_geometry_source_for_pipeline_variant_key() {
+    let mut list = MeshDrawCommandList::new();
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
+    let skinned = batch_with_geometry(
+        MeshDrawQueuePhase::Opaque,
+        9,
+        MeshDrawGeometrySource::DynamicGpuSkinningSource,
+    );
+
+    OpaqueBasePassProcessor.add_mesh_batch(&skinned, &mut context, &mut list);
+
+    let command = &list.commands()[0];
+    let variant_key = variants
+        .key_for_variant(command.pipeline_variant_id)
+        .expect("opaque pass should register a pipeline variant");
+    assert_eq!(
+        variant_key.shader_variant_key().geometry_source,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH
     );
 }
 
@@ -165,6 +189,14 @@ fn render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_v
             ),
         ]
     );
+    assert!(list
+        .commands()
+        .iter()
+        .all(|command| command.pipeline_variant_id.value() > 0));
+    assert_eq!(variants.len(), 2);
+    assert!(list.commands().iter().all(|command| variants
+        .key_for_variant(command.pipeline_variant_id)
+        .is_some_and(|key| key.kind() == command.pipeline_kind)));
 }
 
 #[test]
@@ -308,13 +340,21 @@ fn shadow_processor_respects_shadow_view_visibility() {
 }
 
 fn batch(phase: MeshDrawQueuePhase, sort_key: u64) -> MeshBatchRef {
+    batch_with_geometry(phase, sort_key, MeshDrawGeometrySource::Prepared)
+}
+
+fn batch_with_geometry(
+    phase: MeshDrawQueuePhase,
+    sort_key: u64,
+    geometry_source: MeshDrawGeometrySource,
+) -> MeshBatchRef {
     MeshBatchRef::new(
         MeshDrawQueueProfile::new(
             phase,
-            MeshDrawGeometrySource::Prepared,
+            geometry_source,
             Mobility::Dynamic,
             false,
-            false,
+            geometry_source == MeshDrawGeometrySource::DynamicGpuSkinningSource,
             false,
         ),
         default_pipeline_key(),

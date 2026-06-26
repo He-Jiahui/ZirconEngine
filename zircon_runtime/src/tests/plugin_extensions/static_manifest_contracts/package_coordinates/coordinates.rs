@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use super::super::{for_each_static_plugin_manifest, non_empty_string_value};
-use super::helpers::declares_any_coordinate_field;
+use super::package_coordinate_resolution::declares_any_coordinate_field;
 
 #[test]
 fn plugin_tomls_declare_package_coordinates() {

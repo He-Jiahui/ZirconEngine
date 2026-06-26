@@ -15,6 +15,7 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
         ("Assets", "workbench.module.assets.select"),
         ("Vfx", "workbench.module.vfx.select"),
         ("Hud", "workbench.module.hud.select"),
+        ("More", "workbench.module.more.open"),
         ("Save", "workbench.module.save.invoke"),
         ("Browse", "workbench.module.browse.invoke"),
         ("Compile", "workbench.module.compile.invoke"),

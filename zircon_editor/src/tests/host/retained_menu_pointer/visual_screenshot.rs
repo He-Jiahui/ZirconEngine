@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::ui::retained_host::primitives::PhysicalSize;
+use crate::ui::retained_host::primitives::{PhysicalSize, SharedString};
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
@@ -16,9 +16,11 @@ use crate::ui::retained_host::callback_dispatch::{
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
-    apply_presentation, FrameRect, HostChromeControlFrameData, HostClosePromptData,
+    apply_presentation, paint_host_frame_for_test, paint_template_nodes_for_test_with_background,
+    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
     HostMenuChromeData, HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
-    HostWindowLayoutData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext, UiHostWindow,
+    HostPageOverflowMenuStateData, HostWindowLayoutData, TabData, TemplateNodeFrameData,
+    TemplatePaneNodeData, UiHostContext, UiHostWindow,
 };
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
@@ -29,8 +31,8 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
-    AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetWorkspaceSnapshot,
-    EditorChromeSnapshot,
+    AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
+    AssetSubassetSnapshot, AssetUtilityTab, AssetWorkspaceSnapshot, EditorChromeSnapshot,
 };
 use crate::ui::workbench::startup::{
     EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation,
@@ -51,9 +53,13 @@ const M3_WORKBENCH_SCREENSHOT: &str = "editor-window-m3-workbench-900x620.png";
 const M3_ASSET_BROWSER_SCREENSHOT: &str = "editor-window-m3-asset-browser-900x620.png";
 const M3_DRAWER_SCREENSHOT: &str = "editor-window-m3-assets-drawer-900x620.png";
 const M3_MENU_POPUP_SCREENSHOT: &str = "editor-window-m3-menu-popup-svg-icons-900x620.png";
+const M3_HOST_PAGE_OVERFLOW_SCREENSHOT: &str = "editor-window-m3-host-page-overflow-420x260.png";
 const M3_DRAG_AFTER_RELEASE_SCREENSHOT: &str = "editor-window-m3-drag-after-release-900x620.png";
 const M3_SVG_ICON_SMALL_SCREENSHOT: &str = "editor-window-m3-svg-icon-scale-small-640x420.png";
 const M3_SVG_ICON_LARGE_SCREENSHOT: &str = "editor-window-m3-svg-icon-scale-large-1260x780.png";
+const WORKBENCH_COMPONENT_ATLAS_SCREENSHOT: &str =
+    "editor-components-workbench-slate-atlas-900x620.png";
+const REFERENCE_WORKBENCH_MIN_DOCUMENT_WIDTH_FRACTION: f32 = 0.55;
 
 #[test]
 #[ignore = "writes visual screenshot artifact for manual popup closeout"]
@@ -124,13 +130,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         .window()
         .take_snapshot()
         .expect("software renderer should capture the scrolled Window popup");
-    let output_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("editor crate should live under the repository root")
-        .join("target")
-        .join("visual-layout");
-    std::fs::create_dir_all(&output_dir).expect("visual-layout output directory should exist");
-    let output_path = output_dir.join(SCROLLED_WINDOW_POPUP_SCREENSHOT);
+    let output_path = visual_layout_output_path(SCROLLED_WINDOW_POPUP_SCREENSHOT);
 
     image::save_buffer_with_format(
         &output_path,
@@ -219,13 +219,7 @@ fn capture_close_prompt_visual_artifact() {
         .window()
         .take_snapshot()
         .expect("software renderer should capture the close prompt");
-    let output_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("editor crate should live under the repository root")
-        .join("target")
-        .join("visual-layout");
-    std::fs::create_dir_all(&output_dir).expect("visual-layout output directory should exist");
-    let output_path = output_dir.join(CLOSE_PROMPT_SCREENSHOT);
+    let output_path = visual_layout_output_path(CLOSE_PROMPT_SCREENSHOT);
 
     image::save_buffer_with_format(
         &output_path,
@@ -275,13 +269,15 @@ fn capture_nested_menu_popup_visual_artifact() {
 fn capture_m3_gui_acceptance_visual_artifacts() {
     std::env::set_var("SLINT_BACKEND", "software");
 
-    let workbench = workbench_fixture_window(900, 620);
+    let workbench = reference_asset_workbench_window(900, 620);
+    assert_reference_asset_workbench_layout(&workbench, 900);
     save_window_snapshot(&workbench, M3_WORKBENCH_SCREENSHOT);
 
     let welcome = welcome_input_window(900, 620);
     save_window_snapshot(&welcome, M3_WELCOME_INPUT_SCREENSHOT);
 
     let asset_browser = asset_browser_window(900, 620);
+    assert_asset_browser_compact_visual_layout(&asset_browser);
     save_window_snapshot(&asset_browser, M3_ASSET_BROWSER_SCREENSHOT);
 
     let drawer = assets_drawer_window(900, 620);
@@ -310,6 +306,807 @@ fn capture_m3_gui_acceptance_visual_artifacts() {
     save_window_snapshot(&small, M3_SVG_ICON_SMALL_SCREENSHOT);
     let large = workbench_fixture_window(1260, 780);
     save_window_snapshot(&large, M3_SVG_ICON_LARGE_SCREENSHOT);
+}
+
+#[test]
+#[ignore = "writes host-page overflow screenshot artifact for component style review"]
+fn capture_host_page_overflow_menu_visual_artifact() {
+    std::env::set_var("SLINT_BACKEND", "software");
+
+    let ui = asset_browser_window(420, 260);
+    set_host_page_overflow_visual_state(
+        &ui,
+        HostPageOverflowMenuStateData {
+            open: false,
+            hovered_page_index: -1,
+        },
+    );
+    let closed_presentation = ui.get_host_presentation();
+    let closed_bytes = paint_host_frame_for_test(420, 260, &closed_presentation);
+
+    set_host_page_overflow_visual_state(
+        &ui,
+        HostPageOverflowMenuStateData {
+            open: true,
+            hovered_page_index: 2,
+        },
+    );
+    let opened_presentation = ui.get_host_presentation();
+    let opened_bytes = paint_host_frame_for_test(420, 260, &opened_presentation);
+
+    let popup_probe_frame = frame(48.0, 58.0, 178.0, 92.0);
+    let changed_pixels = changed_snapshot_pixel_count_in_frame(
+        &closed_bytes,
+        &opened_bytes,
+        420,
+        260,
+        popup_probe_frame,
+    );
+    assert!(
+        changed_pixels > 900,
+        "opened host-page overflow menu should repaint a visible popup area: changed_pixels={changed_pixels}"
+    );
+
+    let output_path = visual_layout_output_path(M3_HOST_PAGE_OVERFLOW_SCREENSHOT);
+    image::save_buffer_with_format(
+        &output_path,
+        &opened_bytes,
+        420,
+        260,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .expect("host-page overflow screenshot should be written as PNG");
+
+    assert!(
+        output_path.exists(),
+        "expected visual screenshot at {}",
+        output_path.display()
+    );
+}
+
+#[test]
+#[ignore = "writes local workbench component visual atlas for bottom-up style review"]
+fn capture_workbench_component_slate_atlas_visual_artifact() {
+    let width = 900;
+    let height = 620;
+    let bytes = paint_template_nodes_for_test_with_background(
+        width,
+        height,
+        [17, 20, 22, 255],
+        crate::ui::layouts::common::model_rc(workbench_component_atlas_nodes()),
+    );
+    let output_path = visual_layout_output_path(WORKBENCH_COMPONENT_ATLAS_SCREENSHOT);
+
+    image::save_buffer_with_format(
+        &output_path,
+        &bytes,
+        width,
+        height,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .expect("workbench component atlas screenshot should be written as PNG");
+
+    assert!(
+        output_path.exists(),
+        "expected visual screenshot at {}",
+        output_path.display()
+    );
+}
+
+fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
+    let mut nodes = vec![
+        atlas_surface("AtlasRoot", "shell", 0.0, 0.0, 900.0, 620.0),
+        atlas_label(
+            "AtlasTitle",
+            "Workbench Component Style Atlas",
+            22.0,
+            20.0,
+            360.0,
+            22.0,
+            13.0,
+            "",
+        ),
+        atlas_label(
+            "AtlasSubtitle",
+            "Buttons, text, inputs, image containers, rows, tables, bars and popups",
+            22.0,
+            42.0,
+            560.0,
+            18.0,
+            10.0,
+            "muted",
+        ),
+        atlas_surface("AtlasButtonsPanel", "panel", 18.0, 78.0, 272.0, 190.0),
+        atlas_surface("AtlasInputsPanel", "panel", 306.0, 78.0, 276.0, 190.0),
+        atlas_surface("AtlasRowsPanel", "panel", 598.0, 78.0, 284.0, 190.0),
+        atlas_surface("AtlasComplexPanel", "panel", 18.0, 286.0, 420.0, 230.0),
+        atlas_surface("AtlasContainersPanel", "panel", 454.0, 286.0, 428.0, 230.0),
+        atlas_surface("AtlasStatusBar", "inset", 0.0, 578.0, 900.0, 42.0),
+    ];
+
+    nodes.extend([
+        atlas_label(
+            "AtlasButtonsTitle",
+            "Buttons",
+            34.0,
+            96.0,
+            220.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_button(
+            "WorkbenchPrimaryButton",
+            "Primary",
+            "primary",
+            34.0,
+            128.0,
+            112.0,
+            26.0,
+        ),
+        atlas_button(
+            "WorkbenchSecondaryButton",
+            "Secondary",
+            "secondary",
+            156.0,
+            128.0,
+            112.0,
+            26.0,
+        ),
+        atlas_button(
+            "WorkbenchTertiaryButton",
+            "Tertiary",
+            "tertiary",
+            34.0,
+            162.0,
+            112.0,
+            26.0,
+        ),
+        atlas_button(
+            "WorkbenchDangerButton",
+            "Danger",
+            "danger",
+            156.0,
+            162.0,
+            112.0,
+            26.0,
+        ),
+        atlas_button_state(
+            "WorkbenchHoverButton",
+            "Hover",
+            "secondary",
+            34.0,
+            204.0,
+            70.0,
+            24.0,
+            "hover",
+        ),
+        atlas_button_state(
+            "WorkbenchPressedButton",
+            "Pressed",
+            "secondary",
+            112.0,
+            204.0,
+            76.0,
+            24.0,
+            "pressed",
+        ),
+        atlas_button_state(
+            "WorkbenchDisabledButton",
+            "Disabled",
+            "secondary",
+            196.0,
+            204.0,
+            72.0,
+            24.0,
+            "disabled",
+        ),
+    ]);
+
+    nodes.extend([
+        atlas_label(
+            "AtlasInputsTitle",
+            "Inputs And Selection",
+            322.0,
+            96.0,
+            220.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_field(
+            "WorkbenchInputSearch",
+            "Search assets...",
+            322.0,
+            128.0,
+            238.0,
+            28.0,
+            "",
+        ),
+        atlas_field(
+            "WorkbenchInputFocused",
+            "Focused field",
+            322.0,
+            164.0,
+            238.0,
+            28.0,
+            "focus",
+        ),
+        atlas_dropdown(
+            "WorkbenchDropdownAtlas",
+            "Kind: Mesh",
+            322.0,
+            200.0,
+            116.0,
+            28.0,
+            "",
+        ),
+        atlas_selection(
+            "WorkbenchCheckboxAtlas",
+            "Checkbox",
+            454.0,
+            199.0,
+            104.0,
+            28.0,
+            "checkbox",
+            true,
+        ),
+        atlas_selection(
+            "WorkbenchRadioAtlas",
+            "Radio",
+            322.0,
+            234.0,
+            96.0,
+            26.0,
+            "radio",
+            true,
+        ),
+        atlas_selection(
+            "WorkbenchToggleAtlas",
+            "Snap",
+            448.0,
+            234.0,
+            112.0,
+            26.0,
+            "toggle",
+            true,
+        ),
+    ]);
+
+    nodes.extend([
+        atlas_label(
+            "AtlasRowsTitle",
+            "Rows And Lists",
+            614.0,
+            96.0,
+            220.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_list_row(
+            "WorkbenchListAsset0",
+            "Neutral list row",
+            614.0,
+            126.0,
+            246.0,
+            30.0,
+            "",
+        ),
+        atlas_list_row(
+            "WorkbenchListAsset1",
+            "Selected list row",
+            614.0,
+            160.0,
+            246.0,
+            30.0,
+            "selected",
+        ),
+        atlas_tree_row(
+            "WorkbenchSceneAssetItem",
+            "Scene tree row",
+            614.0,
+            202.0,
+            246.0,
+            28.0,
+            1,
+            true,
+        ),
+        atlas_tree_row(
+            "WorkbenchSceneLightItem",
+            "Child row hover",
+            614.0,
+            234.0,
+            246.0,
+            28.0,
+            2,
+            false,
+        ),
+    ]);
+
+    nodes.extend([
+        atlas_label(
+            "AtlasComplexTitle",
+            "Complex Content",
+            34.0,
+            304.0,
+            240.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_segmented(
+            "WorkbenchSegmentedAtlas",
+            &["All", "Selected", "Recent"],
+            "Selected",
+            34.0,
+            338.0,
+            252.0,
+            34.0,
+        ),
+        atlas_table_row(
+            "WorkbenchTableHeader",
+            &["Name", "Type", "Size", "Modified"],
+            34.0,
+            390.0,
+            370.0,
+            28.0,
+            false,
+        ),
+        atlas_table_row(
+            "WorkbenchTableSelected",
+            &["Box_01.mesh", "Mesh", "2.4 MB", "2m ago"],
+            34.0,
+            418.0,
+            370.0,
+            30.0,
+            true,
+        ),
+        atlas_table_row(
+            "WorkbenchTableRowAsset",
+            &["M_Metal.zmat", "Material", "512 KB", "10m ago"],
+            34.0,
+            448.0,
+            370.0,
+            30.0,
+            false,
+        ),
+    ]);
+
+    nodes.extend([
+        atlas_label(
+            "AtlasContainersTitle",
+            "Containers, Images And Overlays",
+            470.0,
+            304.0,
+            280.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_surface("AtlasImageCard", "inset", 470.0, 338.0, 132.0, 128.0),
+        atlas_surface(
+            "AtlasImagePreview",
+            "asset-preview-visual",
+            486.0,
+            354.0,
+            100.0,
+            72.0,
+        ),
+        atlas_label(
+            "AtlasImageLabel",
+            "Image preview",
+            492.0,
+            434.0,
+            94.0,
+            18.0,
+            10.0,
+            "muted",
+        ),
+        atlas_surface("AtlasPopup", "popup", 624.0, 338.0, 220.0, 128.0),
+        atlas_label(
+            "AtlasPopupTitle",
+            "Popup / Picker",
+            640.0,
+            354.0,
+            160.0,
+            18.0,
+            11.0,
+            "",
+        ),
+        atlas_field(
+            "WorkbenchInputPopupFilter",
+            "Filter rows...",
+            640.0,
+            384.0,
+            184.0,
+            28.0,
+            "",
+        ),
+        atlas_list_row(
+            "WorkbenchListPopupSelected",
+            "Interactive option",
+            640.0,
+            426.0,
+            184.0,
+            28.0,
+            "selected",
+        ),
+        atlas_workbench_content_panel("WorkbenchAtlasLeftPanel", 470.0, 480.0, 374.0, 28.0),
+        atlas_label(
+            "WorkbenchAtlasContentPanelLabel",
+            "Workbench content panel",
+            486.0,
+            486.0,
+            180.0,
+            16.0,
+            10.0,
+            "muted",
+        ),
+    ]);
+
+    nodes.extend([
+        atlas_label(
+            "AtlasStatusReady",
+            "Ready",
+            26.0,
+            592.0,
+            80.0,
+            18.0,
+            10.0,
+            "",
+        ),
+        atlas_label(
+            "AtlasStatusWarn",
+            "2 Warnings",
+            122.0,
+            592.0,
+            96.0,
+            18.0,
+            10.0,
+            "warning",
+        ),
+        atlas_label(
+            "AtlasStatusMsg",
+            "0 Messages",
+            236.0,
+            592.0,
+            100.0,
+            18.0,
+            10.0,
+            "muted",
+        ),
+        atlas_label(
+            "AtlasStatusGrid",
+            "Grid: 10 cm    Snap: On    100%",
+            682.0,
+            592.0,
+            190.0,
+            18.0,
+            10.0,
+            "muted",
+        ),
+    ]);
+
+    nodes
+}
+
+fn atlas_surface(
+    control_id: &str,
+    surface_variant: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Panel".into(),
+        surface_variant: surface_variant.into(),
+        border_width: 1.0,
+        corner_radius: 4.0,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_workbench_content_panel(
+    control_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "VerticalGroup".into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_label(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    font_size: f32,
+    tone: &str,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Label".into(),
+        text: text.into(),
+        font_size,
+        text_tone: tone.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_button(
+    control_id: &str,
+    text: &str,
+    variant: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Button".into(),
+        component_role: "button".into(),
+        text: text.into(),
+        button_variant: variant.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_button_state(
+    control_id: &str,
+    text: &str,
+    variant: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    state: &str,
+) -> TemplatePaneNodeData {
+    let mut node = atlas_button(control_id, text, variant, x, y, width, height);
+    match state {
+        "hover" => node.hovered = true,
+        "pressed" => node.pressed = true,
+        "disabled" => node.disabled = true,
+        _ => {}
+    }
+    node
+}
+
+fn atlas_field(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    state: &str,
+) -> TemplatePaneNodeData {
+    let mut node = TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Input".into(),
+        component_role: "text-input".into(),
+        text: text.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    };
+    if state == "focus" {
+        node.focused = true;
+    }
+    node
+}
+
+fn atlas_dropdown(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    state: &str,
+) -> TemplatePaneNodeData {
+    let mut node = TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Dropdown".into(),
+        component_role: "dropdown".into(),
+        text: text.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    };
+    if state == "open" {
+        node.popup_open = true;
+    }
+    node
+}
+
+fn atlas_selection(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    family: &str,
+    checked: bool,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "SelectionControl".into(),
+        component_role: family.into(),
+        text: text.into(),
+        checked,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_segmented(
+    control_id: &str,
+    options: &[&str],
+    selected: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "SegmentedControl".into(),
+        component_role: "segmented-control".into(),
+        value_text: selected.into(),
+        options: crate::ui::layouts::common::model_rc(
+            options
+                .iter()
+                .map(|option| SharedString::from(*option))
+                .collect::<Vec<_>>(),
+        ),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_list_row(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    state: &str,
+) -> TemplatePaneNodeData {
+    let mut node = TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "ListRow".into(),
+        component_role: "list-row".into(),
+        text: text.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    };
+    match state {
+        "selected" => node.selected = true,
+        "hover" => node.hovered = true,
+        _ => {}
+    }
+    node
+}
+
+fn atlas_tree_row(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    depth: i32,
+    selected: bool,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "TreeRow".into(),
+        component_role: "tree-row".into(),
+        text: text.into(),
+        tree_depth: depth,
+        expanded: depth == 1,
+        hovered: !selected,
+        selected,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_table_row(
+    control_id: &str,
+    cells: &[&str],
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    selected: bool,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "TableRow".into(),
+        component_role: "table-row".into(),
+        selected,
+        options: crate::ui::layouts::common::model_rc(
+            cells
+                .iter()
+                .map(|cell| SharedString::from(*cell))
+                .collect::<Vec<_>>(),
+        ),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
 }
 
 fn workbench_fixture_window(width: u32, height: u32) -> UiHostWindow {
@@ -491,6 +1288,102 @@ fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
     )
 }
 
+fn reference_asset_workbench_window(width: u32, height: u32) -> UiHostWindow {
+    asset_browser_window(width, height)
+}
+
+fn assert_reference_asset_workbench_layout(ui: &UiHostWindow, width: u32) {
+    let presentation = ui.get_host_presentation();
+    let document = presentation.host_layout.document_region_frame;
+    let viewport = presentation.host_layout.viewport_content_frame;
+    let min_document_width = width as f32 * REFERENCE_WORKBENCH_MIN_DOCUMENT_WIDTH_FRACTION;
+
+    assert!(
+        document.width >= min_document_width,
+        "reference workbench screenshot should keep the main document readable: {document:?}"
+    );
+    assert!(
+        viewport.x >= document.x
+            && viewport.y >= document.y
+            && viewport.x + viewport.width <= document.x + document.width + 1.0
+            && viewport.y + viewport.height <= document.y + document.height + 1.0,
+        "reference workbench viewport should stay inside the document region: document={document:?}, viewport={viewport:?}"
+    );
+}
+
+fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
+    let presentation = ui.get_host_presentation();
+    let pane = &presentation.host_scene_data.document_dock.pane;
+    assert_eq!(pane.kind.as_str(), "AssetBrowser");
+
+    let nodes = &pane.asset_browser.nodes;
+    let content = find_template_node(nodes, "AssetBrowserContentPanel");
+    let table = find_template_node(nodes, "AssetBrowserAssetTablePanel");
+    let row04 = find_template_node(nodes, "WorkbenchAssetBrowserAssetRow04");
+    let preview = find_template_node(nodes, "AssetBrowserContentPreviewCard");
+
+    assert_eq!(
+        visible_template_node_count(nodes, "AssetBrowserContentPanel"),
+        1,
+        "asset browser compact content panel should not leave a second visible projected container"
+    );
+    assert_eq!(
+        visible_template_node_count(nodes, "AssetBrowserAssetTablePanel"),
+        1,
+        "asset browser compact table panel should not leave a second visible projected container"
+    );
+    assert!(
+        table.frame.y + table.frame.height <= row04.frame.y + row04.frame.height + 1.0,
+        "asset browser table should close on the last visible row"
+    );
+    assert!(
+        preview.frame.y >= row04.frame.y + row04.frame.height + 8.0,
+        "asset browser compact preview should sit below the visible rows"
+    );
+    assert!(
+        preview.frame.y + preview.frame.height <= content.frame.y + content.frame.height + 1.0,
+        "asset browser compact preview should stay inside content panel"
+    );
+    assert!(
+        preview.selected && preview.surface_variant.as_str() == "asset-preview",
+        "asset browser compact preview should use selected preview styling"
+    );
+}
+
+fn find_template_node(
+    nodes: &crate::ui::retained_host::primitives::ModelRc<TemplatePaneNodeData>,
+    control_id: &str,
+) -> TemplatePaneNodeData {
+    for index in 0..nodes.row_count() {
+        let Some(node) = nodes.row_data(index) else {
+            continue;
+        };
+        if node.control_id.as_str() == control_id {
+            return node;
+        }
+    }
+    panic!("missing template node `{control_id}`");
+}
+
+fn visible_template_node_count(
+    nodes: &crate::ui::retained_host::primitives::ModelRc<TemplatePaneNodeData>,
+    control_id: &str,
+) -> usize {
+    let mut count = 0;
+    for index in 0..nodes.row_count() {
+        let Some(node) = nodes.row_data(index) else {
+            continue;
+        };
+        if node.control_id.as_str() == control_id
+            && node.frame.width > 1.0
+            && node.frame.height > 1.0
+        {
+            count += 1;
+        }
+    }
+    count
+}
+
 fn presented_window_from_fixture(
     fixture: &PreviewFixture,
     width: u32,
@@ -590,6 +1483,68 @@ fn workbench_window_bridge_for_visual_artifact(
     bridge
 }
 
+fn set_host_page_overflow_visual_state(ui: &UiHostWindow, state: HostPageOverflowMenuStateData) {
+    let tabs = vec![
+        host_page_tab("page:workbench", "Workbench", true),
+        host_page_tab("page:assets", "Assets", false),
+        host_page_tab("page:materials", "Materials", false),
+        host_page_tab("page:animation", "Animation", false),
+    ];
+    let mut presentation = ui.get_host_presentation();
+
+    presentation.host_scene_data.page_chrome.tabs =
+        crate::ui::layouts::common::model_rc(tabs.clone());
+    presentation.host_scene_data.page_chrome.tab_frames =
+        crate::ui::layouts::common::model_rc(vec![HostChromeTabData {
+            control_id: "HostPageWorkbench".into(),
+            tab: tabs[0].clone(),
+            frame: frame(68.0, 29.0, 116.0, 28.0),
+            close_frame: frame(0.0, 0.0, 0.0, 0.0),
+        }]);
+    presentation.host_scene_data.page_chrome.overflow_frame = frame(188.0, 29.0, 34.0, 28.0);
+    presentation
+        .host_scene_data
+        .page_chrome
+        .overflow_hidden_tab_indices = vec![1, 2, 3];
+    presentation.host_page_overflow_menu_state = state.clone();
+
+    ui.set_host_presentation(presentation);
+    ui.global::<UiHostContext>()
+        .set_host_page_overflow_menu_state(state);
+}
+
+fn host_page_tab(id: &str, title: &str, active: bool) -> TabData {
+    TabData {
+        id: id.into(),
+        slot: SharedString::default(),
+        title: title.into(),
+        icon_key: SharedString::default(),
+        active,
+        closeable: false,
+    }
+}
+
+fn changed_snapshot_pixel_count_in_frame(
+    before: &[u8],
+    after: &[u8],
+    width: u32,
+    height: u32,
+    frame: FrameRect,
+) -> usize {
+    let start_x = frame.x.floor().max(0.0) as u32;
+    let start_y = frame.y.floor().max(0.0) as u32;
+    let end_x = (frame.x + frame.width).ceil().min(width as f32) as u32;
+    let end_y = (frame.y + frame.height).ceil().min(height as f32) as u32;
+
+    (start_y..end_y)
+        .flat_map(|y| (start_x..end_x).map(move |x| (x, y)))
+        .filter(|(x, y)| {
+            let offset = ((*y as usize * width as usize) + *x as usize) * 4;
+            before[offset..offset + 4] != after[offset..offset + 4]
+        })
+        .count()
+}
+
 fn assert_visible_workbench_layout_frames(
     frames: &BuiltinWorkbenchWindowLayoutFrames,
     width: u32,
@@ -609,19 +1564,31 @@ fn assert_visible_workbench_layout_frames(
         .expect("screenshot layout must expose a visible status bar frame");
 
     assert!(
-        center.y >= 56.0 && center.width > width as f32 * 0.5,
-        "screenshot center band should start below menu and host tabs: {center:?}"
+        center.y >= 44.0 && center.width > width as f32 * 0.5,
+        "screenshot center band should start below the compact toolbar: {center:?}"
     );
     assert!(
         document.y >= center.y && document.height > height as f32 * 0.45,
         "screenshot document region should live inside the center band: {document:?}"
     );
+    let document_right = document.x + document.width;
+    let document_bottom = document.y + document.height;
+    let viewport_right = viewport.x + viewport.width;
+    let viewport_bottom = viewport.y + viewport.height;
+    let min_viewport_width = if width >= 800 { 96.0 } else { 8.0 };
+    let min_viewport_height = if height >= 500 { 96.0 } else { 48.0 };
     assert!(
-        viewport.y >= document.y && viewport.width > width as f32 * 0.4,
-        "screenshot viewport should live inside the document region: {viewport:?}"
+        viewport.x >= document.x
+            && viewport.y >= document.y
+            && viewport_right <= document_right + 1.0
+            && viewport_bottom <= document_bottom + 1.0
+            && viewport.width >= min_viewport_width
+            && viewport.height >= min_viewport_height,
+        "screenshot viewport should live inside the document region: document={document:?}, viewport={viewport:?}"
     );
+    let status_bottom = status.y + status.height;
     assert!(
-        status.y >= height as f32 - 25.0,
+        (status_bottom - height as f32).abs() <= 1.0 && status.height > 20.0,
         "screenshot status bar should be anchored at the bottom: {status:?}"
     );
 }
@@ -654,9 +1621,7 @@ fn save_window_snapshot(ui: &UiHostWindow, filename: &str) -> PathBuf {
         .window()
         .take_snapshot()
         .unwrap_or_else(|error| panic!("software renderer should capture {filename}: {error}"));
-    let output_dir = visual_layout_output_dir();
-    std::fs::create_dir_all(&output_dir).expect("visual-layout output directory should exist");
-    let output_path = output_dir.join(filename);
+    let output_path = visual_layout_output_path(filename);
 
     image::save_buffer_with_format(
         &output_path,
@@ -680,8 +1645,15 @@ fn visual_layout_output_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("editor crate should live under the repository root")
-        .join("target")
-        .join("visual-layout")
+        .join("docs")
+        .join("tests")
+        .join("editor")
+}
+
+fn visual_layout_output_path(filename: &str) -> PathBuf {
+    let output_dir = visual_layout_output_dir();
+    std::fs::create_dir_all(&output_dir).expect("visual-layout output directory should exist");
+    output_dir.join(filename)
 }
 
 fn host_window_layout_for_visual_artifact(width: f32, height: f32) -> HostWindowLayoutData {
@@ -800,6 +1772,8 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
         library_root: "zircon_runtime/assets".to_string(),
         default_scene_uri: "res://scenes/editor_preview.zscene".to_string(),
         catalog_revision: 42,
+        utility_tab: AssetUtilityTab::Preview,
+        search_query: "workbench".to_string(),
         folder_tree: m3_asset_folders(),
         visible_folders: m3_asset_folders(),
         visible_assets: vec![
@@ -827,6 +1801,30 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
                 ResourceKind::Texture,
                 false,
             ),
+            asset_item(
+                "asset-accessibility-audit",
+                "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_workspace.zui",
+                "workbench_extension_accessibility_workspace.zui",
+                "zui",
+                ResourceKind::UiWidget,
+                false,
+            ),
+            asset_item(
+                "asset-material-workspace",
+                "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
+                "workbench_material_workspace.zui",
+                "zui",
+                ResourceKind::MaterialGraph,
+                false,
+            ),
+            asset_item(
+                "asset-scene-preview",
+                "res://scenes/editor_preview.zscene",
+                "editor_preview.zscene",
+                "zscene",
+                ResourceKind::Scene,
+                false,
+            ),
         ],
         selected_folder_id: Some("folder-ui".to_string()),
         selected_asset_uuid: Some("asset-ui-layout".to_string()),
@@ -835,19 +1833,63 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
             display_name: "workbench_host_window.ui.toml".to_string(),
             locator: "res://ui/editor/workbench_host_window.ui.toml".to_string(),
             kind: Some(ResourceKind::UiLayout),
-            preview_artifact_path: "target/visual-layout/editor-window-m3-workbench-900x620.png"
+            preview_artifact_path: "docs/tests/editor/editor-window-m3-workbench-900x620.png"
                 .to_string(),
             meta_path: "zircon_editor/assets/ui/editor/workbench_host_window.ui.toml".to_string(),
             adapter_key: "runtime-ui-template".to_string(),
-            package_id: None,
+            package_id: Some("zircon.editor.ui".to_string()),
             asset_unit: "single".to_string(),
-            included_files: Vec::new(),
-            subassets: Vec::new(),
-            diagnostics: vec!["SVG icons resolve through scalable template metadata.".to_string()],
+            included_files: vec![
+                "zircon_editor/assets/ui/editor/workbench_host_window.ui.toml".to_string(),
+                "zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml".to_string(),
+                "zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml".to_string(),
+            ],
+            subassets: vec![
+                asset_subasset(
+                    "subasset-content-table",
+                    "res://ui/editor/asset_browser.v2.ui.toml#AssetBrowserAssetTablePanel",
+                    ResourceKind::UiWidget,
+                ),
+                asset_subasset(
+                    "subasset-preview-card",
+                    "res://ui/editor/asset_browser.v2.ui.toml#AssetBrowserContentPreviewCard",
+                    ResourceKind::UiWidget,
+                ),
+            ],
+            diagnostics: vec![
+                "SVG icons resolve through scalable template metadata.".to_string(),
+                "Retained-host content table uses workbench table row painter.".to_string(),
+            ],
             resource_state: Some(ResourceState::Ready),
             resource_revision: Some(42),
-            references: Vec::new(),
-            used_by: Vec::new(),
+            references: vec![
+                asset_reference(
+                    "ref-editor-base",
+                    "res://ui/theme/editor_base.v2.ui.toml",
+                    "editor_base.v2.ui.toml",
+                    ResourceKind::UiStyle,
+                ),
+                asset_reference(
+                    "ref-editor-material",
+                    "res://ui/theme/editor_material.v2.ui.toml",
+                    "editor_material.v2.ui.toml",
+                    ResourceKind::UiStyle,
+                ),
+            ],
+            used_by: vec![
+                asset_reference(
+                    "used-asset-browser",
+                    "res://ui/editor/asset_browser.v2.ui.toml",
+                    "Asset Browser",
+                    ResourceKind::UiLayout,
+                ),
+                asset_reference(
+                    "used-workbench-shell",
+                    "res://ui/editor/host/workbench_shell.v2.ui.toml",
+                    "Workbench Shell",
+                    ResourceKind::UiLayout,
+                ),
+            ],
         },
         ..AssetWorkspaceSnapshot::default()
     }
@@ -859,7 +1901,7 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             folder_id: "folder-assets".to_string(),
             parent_folder_id: None,
             display_name: "Assets".to_string(),
-            recursive_asset_count: 3,
+            recursive_asset_count: 6,
             depth: 0,
             selected: false,
         },
@@ -867,7 +1909,7 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             folder_id: "folder-ui".to_string(),
             parent_folder_id: Some("folder-assets".to_string()),
             display_name: "ui".to_string(),
-            recursive_asset_count: 2,
+            recursive_asset_count: 4,
             depth: 1,
             selected: true,
         },
@@ -877,6 +1919,14 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             display_name: "icons".to_string(),
             recursive_asset_count: 1,
             depth: 1,
+            selected: false,
+        },
+        AssetFolderSnapshot {
+            folder_id: "folder-workbench".to_string(),
+            parent_folder_id: Some("folder-ui".to_string()),
+            display_name: "workbench".to_string(),
+            recursive_asset_count: 4,
+            depth: 2,
             selected: false,
         },
     ]
@@ -903,6 +1953,31 @@ fn asset_item(
         selected,
         resource_state: Some(ResourceState::Ready),
         resource_revision: Some(42),
+    }
+}
+
+fn asset_reference(
+    uuid: &str,
+    locator: &str,
+    display_name: &str,
+    kind: ResourceKind,
+) -> AssetReferenceSnapshot {
+    AssetReferenceSnapshot {
+        uuid: uuid.to_string(),
+        locator: locator.to_string(),
+        display_name: display_name.to_string(),
+        kind: Some(kind),
+        known_project_asset: true,
+    }
+}
+
+fn asset_subasset(uuid: &str, locator: &str, kind: ResourceKind) -> AssetSubassetSnapshot {
+    AssetSubassetSnapshot {
+        uuid: uuid.to_string(),
+        locator: locator.to_string(),
+        kind,
+        artifact_locator: Some(locator.to_string()),
+        dependency_locators: Vec::new(),
     }
 }
 

@@ -28,6 +28,14 @@ related_code:
   - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
   - zircon_runtime/src/scene/reflect/fixed/mobility.rs
   - zircon_runtime/src/scene/world/query.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
@@ -41,6 +49,13 @@ implementation_files:
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/dynamic_scene.rs
   - zircon_runtime/src/scene/tests/inspection.rs
@@ -63,10 +78,16 @@ plan_sources:
 tests:
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs::scene_assets_keep_script_only_entities_as_empty_nodes
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::scene_assets_instantiate_world_with_asset_bound_meshes
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs::scene_assets_roundtrip_camera_product_fields
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/dynamic_scene.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs::project_roundtrip_preserves_imported_meshes
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs::updated_transform_is_reflected_in_render_extract
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs::render_product_sprite_world_frame_extract_filters_by_camera_layers
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short
@@ -135,11 +156,15 @@ Forbidden serialized authoring data includes selection, editor viewport tools, g
 
 The structural audit reports this as `scene_project_serialization_boundary`, with its owner module in `runtime_structure_audits/scene_project_serialization_boundary.py`. The mirrored Rust source guard is `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state`, and runtime serialization guards share the explicit authoring-token list in `scene::tests::authoring_boundary`.
 
+The 2026-06-24 Runtime 15 M3 scene asset integration test folder split keeps scene asset inspection and serialization-adjacent coverage under the test-file budget. `scene/tests/asset_scene.rs` now owns only shared helpers and child mounts, while `scene/tests/asset_scene/mesh_bindings.rs`, `scene/tests/asset_scene/hierarchy_sources.rs`, and `scene/tests/asset_scene/product_fields.rs` own the moved asset-bound mesh, hierarchy/source, camera, physics, animation, and light product-field tests. Guard `runtime_15_scene_asset_integration_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_scene_asset_integration_tests_folder_split_static_passed_cargo_deferred`; Cargo remains deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M3 scene world basics test folder split keeps world project serialization, hierarchy, and render-extract smoke coverage under the test-file budget. `scene/tests/world_basics.rs` now owns only shared imports and child mounts, while `scene/tests/world_basics/world_state.rs`, `scene/tests/world_basics/render_extract.rs`, and `scene/tests/world_basics/sprites.rs` own the 15 world basics tests. Guard `runtime_15_scene_world_basics_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_scene_world_basics_tests_folder_split_static_passed_cargo_deferred`; Cargo remains deferred under the Runtime 15 implementation-slice cadence.
+
 ## Serialization Guard Matrix
 
 | Runtime outlet | Serialized token guard | Source token guard |
 |---|---|---|
-| World project JSON | `scene::tests::world_basics::project_roundtrip_preserves_imported_meshes` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
+| World project JSON | `scene::tests::world_basics::world_state::project_roundtrip_preserves_imported_meshes` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
 | Dynamic scene JSON | `scene::tests::dynamic_scene::dynamic_scene_roundtrips_reflected_components_with_entity_remap` and `scene::tests::dynamic_scene::versioned_json_migrates_legacy_world_project_documents` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
 | Asset scene JSON | `scene::tests::asset_scene::scene_assets_instantiate_world_with_asset_bound_meshes` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
 | World inspection JSON | `scene::tests::inspection::world_inspection_serialization_excludes_editor_authoring_tokens` | Neutral public-surface guard in `scene::tests::component_structure::runtime_scene_exposes_neutral_world_inspection_surface` |
@@ -152,6 +177,6 @@ The structural audit reports this as `scene_project_serialization_boundary`, wit
 
 `zircon_runtime/src/scene/tests/component_structure.rs` rejects reintroducing the old production `scene/editor_projection` module, checks that the runtime scene public inspection files do not expose `SceneEditor*` symbols, and guards scene/project serialization source files against editor authoring-state names.
 
-`zircon_runtime/src/scene/tests/world_basics.rs` keeps project roundtrip JSON free of selection, overlay, gizmo, preview override, editor viewport tool, and display-mode keys.
+`zircon_runtime/src/scene/tests/world_basics/world_state.rs` keeps project roundtrip JSON free of selection, overlay, gizmo, preview override, editor viewport tool, and display-mode keys, while `zircon_runtime/src/scene/tests/world_basics.rs` remains the shared parent mount.
 
 `zircon_runtime/src/scene/tests/dynamic_scene.rs` and `zircon_runtime/src/scene/tests/asset_scene.rs` keep dynamic scene and scene asset JSON on the same authoring-state boundary as world project JSON.

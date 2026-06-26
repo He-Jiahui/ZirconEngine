@@ -298,10 +298,9 @@ impl UiSurface {
         {
             return Ok(None);
         }
-        let target = self
-            .tree
-            .first_focusable_in_subtree(node_id)?
-            .unwrap_or(node_id);
+        let Some(target) = self.mui_modal_focus_scope_target(node_id)? else {
+            return Ok(None);
+        };
         self.focus_node_with_reason(
             target,
             UiFocusChangeReason::Autofocus,
@@ -352,7 +351,36 @@ impl UiSurface {
         if self.tree.node_is_descendant_of(root, requested) {
             return Ok(requested);
         }
-        Ok(self.tree.first_focusable_in_subtree(root)?.unwrap_or(root))
+        Ok(self
+            .mui_modal_focus_scope_target(root)?
+            .unwrap_or(requested))
+    }
+
+    fn mui_modal_focus_scope_target(
+        &self,
+        root: UiNodeId,
+    ) -> Result<Option<UiNodeId>, UiTreeError> {
+        self.first_valid_focusable_in_subtree(root)
+    }
+
+    fn first_valid_focusable_in_subtree(
+        &self,
+        root: UiNodeId,
+    ) -> Result<Option<UiNodeId>, UiTreeError> {
+        let mut stack = vec![root];
+        while let Some(node_id) = stack.pop() {
+            let node = self
+                .tree
+                .node(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            if node.is_focus_candidate() && is_valid_input_owner(self, node_id) {
+                return Ok(Some(node_id));
+            }
+            for child_id in node.children.iter().rev() {
+                stack.push(*child_id);
+            }
+        }
+        Ok(None)
     }
 
     fn is_open_mui_modal_focus_root(&self, node_id: UiNodeId) -> bool {

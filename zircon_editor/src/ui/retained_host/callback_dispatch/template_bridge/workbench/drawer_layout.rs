@@ -7,7 +7,10 @@ use zircon_runtime_interface::ui::{
     tree::UiVisibility,
 };
 
-use crate::ui::workbench::autolayout::{compact_bottom_height_limit, WorkbenchChromeMetrics};
+use crate::ui::workbench::autolayout::{
+    compact_bottom_height_limit, compact_side_width_limit, right_drawer_should_collapse_for_width,
+    ShellRegionId, WorkbenchChromeMetrics,
+};
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::ActivityDrawerSnapshot;
@@ -141,6 +144,18 @@ fn apply_workbench_drawer_layout(
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
 ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
     let rail_width = metrics.rail_width.max(0.0);
+    let left = compacted_side_region_input(
+        drawer_inputs.left,
+        ShellRegionId::Left,
+        shell_size,
+        rail_width,
+    );
+    let right = compacted_side_region_input(
+        drawer_inputs.right,
+        ShellRegionId::Right,
+        shell_size,
+        rail_width,
+    );
     let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
 
     mark_roots_layout_dirty(surface)?;
@@ -148,12 +163,12 @@ fn apply_workbench_drawer_layout(
     apply_fixed_control_width(
         surface,
         LEFT_DRAWER_SHELL_CONTROL_ID,
-        resolved_side_panel_extent(drawer_inputs.left, rail_width),
+        resolved_side_panel_extent(left, rail_width),
     )?;
     apply_fixed_control_width(
         surface,
         RIGHT_DRAWER_SHELL_CONTROL_ID,
-        resolved_side_panel_extent(drawer_inputs.right, rail_width),
+        resolved_side_panel_extent(right, rail_width),
     )?;
     apply_fixed_control_height(
         surface,
@@ -170,6 +185,30 @@ fn mark_roots_layout_dirty(
         surface.tree.mark_layout_dirty(root_id)?;
     }
     Ok(())
+}
+
+fn compacted_side_region_input(
+    region: WorkbenchDrawerRegionInput,
+    side: ShellRegionId,
+    shell_size: UiSize,
+    rail_width: f32,
+) -> WorkbenchDrawerRegionInput {
+    if !region.visible {
+        return region;
+    }
+
+    if side == ShellRegionId::Right && right_drawer_should_collapse_for_width(shell_size.width) {
+        return WorkbenchDrawerRegionInput {
+            extent: rail_width,
+            ..region
+        };
+    }
+
+    let extent = compact_side_width_limit(side, shell_size.width)
+        .map(|limit| region.extent.min(limit))
+        .unwrap_or(region.extent);
+
+    WorkbenchDrawerRegionInput { extent, ..region }
 }
 
 fn compacted_bottom_region_input(

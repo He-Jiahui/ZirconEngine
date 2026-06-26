@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_row_metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts/identity.rs
@@ -64,9 +65,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/focus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/input_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/property.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/values.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/focus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/property.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
@@ -316,6 +319,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/identity.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/search.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/text.rs
@@ -561,6 +565,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/actions/glyphs/gear.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/actions/glyphs/kebab.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/allocation.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/metrics.rs
@@ -577,6 +582,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/identity.rs
@@ -613,6 +619,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/success.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/warning.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels_tests/mod.rs
@@ -1187,6 +1194,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/tint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
@@ -1258,9 +1267,11 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/focus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/input_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/property.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/values.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/focus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/property.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
@@ -1755,6 +1766,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/actions/glyphs/gear.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/actions/glyphs/kebab.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/allocation.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/metrics.rs
@@ -1771,6 +1783,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/identity.rs
@@ -1807,6 +1820,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/success.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/warning.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels_tests/mod.rs
@@ -2376,6 +2390,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/target.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/template.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/tint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
@@ -2384,9 +2400,13 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
+  - user: 2026-06-24 editor UI architecture screenshot validation and Project Overview button readability acceptance
 tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_runtime -p zircon_editor
+  - cargo test -p zircon_editor --lib button_change_binding_label_prefers_authored_text_over_value --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
+  - cargo test -p zircon_editor --lib button_label_ignores_matching_text_input_focus_value --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
+  - cargo test -p zircon_editor --lib input_label_uses_matching_text_input_focus_value --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
   - cargo fmt -p zircon_runtime -p zircon_editor --check
   - cargo fmt -p zircon_editor --check
   - paint_template_nodes alert/toast glyph/test ownership scan
@@ -2624,7 +2644,11 @@ tests:
   - paint_template_nodes notification-center layout common/metric/panel/row subowner ownership scan
   - paint_template_nodes notification-center command sequencing subowner ownership scan
   - paint_template_nodes render-command conversion ownership scan
-  - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
+  - E:\cargo-targets\zircon-editor-layout-visual-fix-0624\debug\deps\zircon_editor-820618fe5427109a.exe ui::retained_host::host_contract::paint_template_nodes::template_buttons::tests::paint::editor_variant_button_uses_centered_button_text_path --exact --test-threads=1 --nocapture (2026-06-24: passed, 1 passed)
+  - E:\cargo-targets\zircon-editor-layout-visual-fix-0624\debug\deps\zircon_editor-820618fe5427109a.exe tests::ui::project_overview::bootstrap_assets::project_overview_projection_maps_bootstrap_asset_into_template_nodes ui::retained_host::host_contract::paint_template_nodes::template_buttons::tests::identity::workbench_button_matches_button_nodes_without_icon_or_tab_nodes --test-threads=1 --nocapture (2026-06-24: passed, 2 passed)
+  - E:\cargo-targets\zircon-editor-layout-visual-fix-0624\debug\deps\zircon_editor-820618fe5427109a.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --test-threads=1 --nocapture (2026-06-24: passed, refreshed 8 `target/visual-layout/editor-window-m3-*.png` screenshots at 09:43 +08)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-completion-audit-0624 --message-format short --color never (2026-06-24 09:59 +08: passed with existing warning noise)
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-completion-audit-0624 --message-format short --color never -- --test-threads=1 (2026-06-24: timed out after 20 minutes during compile; not counted as passing)
 doc_type: module-overview
 ---
 
@@ -2697,7 +2721,7 @@ Current command palette ownership is folder-backed: `template_command_palette.rs
 
 Current dialog ownership is folder-backed: `template_dialogs.rs` owns only structural exports; `template_dialogs/commands.rs` owns Dialog/ConfirmDialog command sequencing and child-owner fan-out; `identity.rs` owns role recognition and popup-open paint state; `layout.rs` owns pixel alignment plus title/body/action/severity mark rectangles; `surface.rs` owns dialog surface and severity mark command emission; `content.rs` owns title/body fallback and text command emission; `actions.rs` owns only action module wiring while `actions/commands.rs`, `actions/labels.rs`, `actions/metrics.rs`, and `actions/text.rs` own confirm/cancel/default action sequencing, action label/width extraction, action layout/font metrics, and action text command emission respectively. Dialog style is also folder-backed: `style.rs` owns only stable style exports, while `style/tokens.rs`, `severity.rs`, `state.rs`, and `variants.rs` own palette constants, severity parsing/mark colors, unavailable/confirm state, and variant token matching respectively; `style/colors.rs` owns only color structural exports, while `colors/actions.rs`, `border.rs`, `surface.rs`, and `text.rs` own dialog action, border, surface, and title/body text color rules respectively.
 
-Current button ownership is folder-backed: `template_buttons.rs` owns only module wiring, test imports, and the button command entry re-export; `template_buttons/commands.rs` owns Workbench button recognition gating, paint-rect validation, kind/opacity orchestration, surface/text ordering, and glyph content child-owner dispatch; `identity.rs` owns recognition, kind selection, key construction, and add-component classification; `geometry.rs` owns paint rects, radius, and pixel alignment; `style.rs` owns style and opacity resolution; `surface.rs` owns button surface command emission; `content.rs` owns only content module wiring while `content/entry.rs`, `content/glyph.rs`, `content/text.rs`, and `content/metrics.rs` own content layout sequencing, glyph mapping/placement/emission, label text emission, and content metrics respectively. Button regression coverage is now folder-backed under `template_buttons_tests/`: `identity.rs` owns recognition exclusions, `paint.rs` owns rendered pixel assertions, `style.rs` owns declared style/state priority assertions, `geometry.rs` owns layout offset assertions, and `support.rs` owns shared fixtures, resolved style builders, frame helpers, and pixel probes.
+Current button ownership is folder-backed: `template_buttons.rs` owns only module wiring, test imports, and the button command entry re-export; `template_buttons/commands.rs` owns Workbench button recognition gating, paint-rect validation, kind/opacity orchestration, surface/text ordering, and glyph content child-owner dispatch; `identity.rs` owns recognition, kind selection, key construction, and add-component classification; `geometry.rs` owns paint rects, radius, and pixel alignment; `style.rs` owns style and opacity resolution; `surface.rs` owns button surface command emission; `content.rs` owns only content module wiring while `content/entry.rs`, `content/glyph.rs`, `content/text.rs`, and `content/metrics.rs` own content layout sequencing, glyph mapping/placement/emission, label text emission, and content metrics respectively. Button regression coverage is now folder-backed under `template_buttons_tests/`: `identity.rs` owns recognition exclusions, `paint.rs` owns rendered pixel assertions, `style.rs` owns declared style/state priority assertions, `geometry.rs` owns layout offset assertions, and `support.rs` owns shared fixtures, resolved style builders, frame helpers, and pixel probes. The 2026-06-24 Project Overview screenshot pass extended Workbench button detection to ordinary editor `Button` variants such as `primary` and `secondary`; button label width now uses `paint_text::measure_fallback_text_width` and fontdue advance metrics instead of a character-count estimate, preventing the 128px `Asset Browser` button from wrapping into a clipped second line while keeping centered content layout.
 
 Current button glyph ownership is folder-backed: `template_button_glyphs.rs` owns only structural exports; `template_button_glyphs/identity.rs` owns glyph selection from button key; `metrics.rs` owns glyph icon size; `shapes.rs` owns plus, trash, and chevron shape dispatch; `segments.rs` owns shared 14px segment scaling and quad emission.
 
@@ -2733,7 +2757,7 @@ Current list-row ownership is folder-backed: `template_list_rows.rs` owns only l
 
 Current list-row test ownership is folder-backed: `template_list_rows.rs` points test builds at `template_list_rows_tests/mod.rs`; `adornment.rs` owns disabled/loading/selected/chevron adornment priority regressions, `paint.rs` owns selected and disabled list-row pixel-output regressions, `style.rs` owns declared surface/text/adornment color and shared state-priority regressions, and `support.rs` owns list-row fixtures plus pixel probes.
 
-Current shell-panel ownership is folder-backed: `template_shell_panels.rs` owns only shell-panel paint sequencing, pixel alignment, and child dispatch; `template_shell_panels/identity.rs` owns Workbench shell-panel control-id recognition and `ShellPanelKind` exposure; `surface.rs` owns chrome style selection, fill command emission, and separator dispatch; `separators.rs` owns separator pixel alignment plus separator line emission.
+Current shell-panel ownership is folder-backed: `template_shell_panels.rs` owns only shell-panel paint sequencing, pixel alignment, and child dispatch; `template_shell_panels/identity.rs` owns Workbench shell-panel control-id recognition and `ShellPanelKind` exposure, including conservative module content-panel suffix matching; `frame.rs` owns shell-panel frame policy for content-panel border/radius selection; `surface.rs` owns chrome style selection, fill command emission, frame application, and separator dispatch; `separators.rs` owns separator pixel alignment plus separator line emission.
 
 Current shell-panel test ownership is folder-backed: `template_shell_panels.rs` points test builds at `template_shell_panels_tests/mod.rs`; `identity.rs` owns container control-id classification regressions, `paint.rs` owns top-toolbar, side-panel, drawer/status-bar, and drawer-column separator pixel regressions, `state.rs` owns chrome selector loading/focused state paint regressions, and `support.rs` owns panel fixtures plus pixel probes.
 
@@ -2777,7 +2801,7 @@ Current generic template-node label test ownership is folder-backed: `template_n
 
 Current list-row glyph ownership is folder-backed: `template_list_row_glyphs.rs` owns only list-row adornment dispatch and test-visible re-exports; `template_list_row_glyphs/selection.rs` owns disabled/selected/check/chevron adornment selection; `geometry.rs` owns right-adornment placement; `segments.rs` owns shared segment-to-quad emission; `shapes.rs` owns only shape structural exports; `shapes/check.rs`, `shapes/chevron.rs`, and `shapes/disabled.rs` own check, right-chevron, and disabled-diamond pixel shapes respectively.
 
-Current field ownership is folder-backed: `template_fields.rs` owns only module wiring, test imports, and the field command entry re-export; `template_fields/commands.rs` owns Workbench text-field command sequencing plus stepper glyph dispatch; `template_fields/identity.rs` owns Workbench field recognition and stepper classification; `geometry.rs` owns paint rect layout-offset application and pixel alignment; `style.rs` owns inherited opacity and placeholder-aware field style lookup; `surface.rs` owns field surface command emission; `text.rs` owns label fallback, placeholder detection, stepper text reserve handling, and text command emission.
+Current field ownership is folder-backed: `template_fields.rs` owns only module wiring, test imports, and the field command entry re-export; `template_fields/commands.rs` owns Workbench text-field command sequencing plus stepper and search glyph dispatch; `template_fields/identity.rs` owns Workbench field recognition and stepper classification; `search.rs` owns search-field semantic detection, left magnifier glyph emission, search text inset, and search placeholder classification; `geometry.rs` owns paint rect layout-offset application and pixel alignment; `style.rs` owns inherited opacity and placeholder-aware field style lookup; `surface.rs` owns field surface command emission; `text.rs` owns label fallback, placeholder detection, stepper/search text reserve handling, and text command emission.
 
 Current field test ownership is folder-backed: `template_fields.rs` points test builds at `template_fields_tests/mod.rs`; `identity.rs` owns Workbench field classification regressions, `paint.rs` owns surface/border/text, focus, disabled, and stepper pixel coverage, `geometry.rs` owns half-pixel height alignment, `style.rs` owns declared focus border, opacity, and shared-state priority regressions, and `support.rs` owns field fixtures plus pixel probes.
 
@@ -2881,7 +2905,7 @@ Current render-command conversion ownership is folder-backed: `render_command_co
 
 Current render-command replay ownership is folder-backed: `render_commands.rs` owns retained command subtree wiring, runtime command conversion handoff, and the test RGBA entry; `render_commands/command.rs` owns only command module wiring; `command/model.rs` owns `HostPaintCommand`, `kind.rs` owns `HostPaintCommandKind`, and `quad.rs`, `text.rs`, `image.rs`, and `group.rs` own the concrete constructors. `render_commands/draw.rs` owns only the stable replay export while `draw/ordering.rs`, `dispatch.rs`, `quad.rs`, `text.rs`, `image.rs`, `border.rs`, and `color.rs` own stable z-ordering, per-kind dispatch, quad replay, text replay, image replay structural exports, border expansion, and opacity application respectively; `draw/image/entry.rs`, `pixels.rs`, and `placeholder.rs` own concrete image replay, opacity-adjusted image pixels, and image placeholder fallback.
 
-Current table-row cell ownership is folder-backed: `template_table_rows/cells.rs` owns only structural exports and test-visible stable helpers; `cells/text.rs` owns declared-option and legacy text cell extraction; `cells/geometry.rs` owns table-cell rectangles, header/tail content offsets, and declared per-column x offsets; `cells/commands.rs` owns text command emission and cell fan-out; `cells/metrics.rs` owns font/inset/action-width/column-ratio metrics.
+Current table-row cell ownership is folder-backed: `template_table_rows/cells.rs` owns only structural exports and test-visible stable helpers; `cells/text.rs` owns declared-option and legacy text cell extraction; `cells/allocation.rs` owns proportional column allocation, minimum widths, drop-priority visibility, and numeric-column alignment; `cells/geometry.rs` owns table-cell rectangles, header/tail content offsets, and declared per-column x offsets after allocation; `cells/commands.rs` owns text command emission, right-aligned numeric text frames, and cell fan-out; `cells/metrics.rs` owns font/inset/action-width/column-ratio/min-width/drop-order metrics.
 
 Current Workbench alert style-selector ownership is folder-backed: `style_selector/workbench_alert.rs` owns only structural exports and test-visible tone token re-exports; `workbench_alert/model.rs` owns alert tone/style DTOs; `palette.rs` owns info/success/warning/error tokens; `state.rs` owns state-to-style selection and unavailable-state checks; `colors.rs` owns declared style-color overrides; `selection.rs` owns style assembly; and `tests.rs` owns the loading-state regression.
 
@@ -3149,11 +3173,13 @@ The 2026-06-19 button glyph identity/metrics/shape/segment split reduced `templa
 
 The 2026-06-19 button identity/geometry/style/surface/content split reduced `template_buttons.rs` from 227 lines to a 48-line dispatch entry. `template_buttons/identity.rs` is 48 lines and owns recognition, kind selection, key construction, and add-component classification; `geometry.rs` is 33 lines and owns paint rects, radius, and pixel alignment; `style.rs` is 21 lines and owns style and opacity resolution; `surface.rs` is 27 lines and owns button surface command emission; `content.rs` is 108 lines and owns glyph/text content command emission. Validation for that slice used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a button identity/geometry/style/surface/content ownership scan, and scoped diff/whitespace checks; editor Cargo check timed out without compiler diagnostics and remains pending for the milestone testing stage.
 
-The 2026-06-20 button content entry/glyph/text/metric split reduced `template_buttons/content.rs` from 104 lines to a 6-line structural export entry. `content/entry.rs` owns content width calculation, leading/trailing glyph sequencing, and text/glyph command ordering; `content/glyph.rs` owns button glyph lookup, leading/trailing glyph classification, glyph rect placement, and glyph emission handoff; `content/text.rs` owns label text command emission and font-size fallback; `content/metrics.rs` owns button content font, line-height, inset, gap, chevron reserve, and label-width estimation. Validation for that slice used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a button content entry/glyph/text/metric ownership scan, and scoped `git diff --check`; package-level editor Cargo check remains pending because package checks are currently blocked by unrelated Runtime 08 ECS `component_storage` private re-export errors before editor diagnostics.
+The 2026-06-20 button content entry/glyph/text/metric split reduced `template_buttons/content.rs` from 104 lines to a 6-line structural export entry. `content/entry.rs` owns content width calculation, leading/trailing glyph sequencing, and text/glyph command ordering; `content/glyph.rs` owns button glyph lookup, leading/trailing glyph classification, glyph rect placement, and glyph emission handoff; `content/text.rs` owns label text command emission and font-size fallback; `content/metrics.rs` owns button content font, line-height, inset, gap, chevron reserve, and measured label width. Validation for that slice used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a button content entry/glyph/text/metric ownership scan, and scoped `git diff --check`; package-level editor Cargo check remains pending because package checks are currently blocked by unrelated Runtime 08 ECS `component_storage` private re-export errors before editor diagnostics.
 
 The 2026-06-20 button command sequencing split reduced `template_buttons.rs` from 48 lines to a 29-line module wiring and test-import entry by moving Workbench button recognition gating, pixel-aligned paint-rect validation, kind/opacity orchestration, surface command ordering, and content/glyph child-owner dispatch into `template_buttons/commands.rs`, which is 30 lines. Validation for that slice used `cargo fmt -p zircon_editor --check`, a button command sequencing ownership scan, scoped whitespace scan, and scoped `git diff --check`; editor Cargo check remains pending because current package checks are blocked by unrelated `zircon_runtime` render-history errors before editor diagnostics.
 
 The 2026-06-22 button test owner-tree split deleted the old single `template_buttons_tests.rs` file and moved the regression coverage into `template_buttons_tests/{identity,paint,style,geometry,support}.rs` with `mod.rs` as the structural test entry. This keeps `template_buttons.rs` at 26 lines and prevents test fixture/style/pixel assertions from accumulating in one mixed test file. Validation used `cargo fmt -p zircon_editor --check`, a button test owner-tree ownership scan, conflict marker scan, scoped `git diff --check`, and an attempted `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-template-button-tests-0622 --message-format short --color never`; the package check timed out after 300 seconds without editor diagnostics while unrelated runtime Cargo/Rustc lanes were active.
+
+The 2026-06-24 Project Overview button readability fix kept the behavior inside existing button owners: `template_buttons/identity.rs` accepts legacy editor variants as Workbench button variants, `content/metrics.rs` delegates label width to `paint_text::measure_fallback_text_width`, and `template_buttons_tests/paint.rs` locks the `Asset Browser` button to one centered text command with a full measured label frame. Direct test-binary validation passed the new button paint regression, the button identity regression, the Project Overview projection regression, and the ignored M3 screenshot harness; package-level Cargo remains unclaimed because the D-target rerun timed out during compile.
 
 Current tree-row action glyph ownership supersedes the older single-file summary above: `template_tree_row_glyphs/actions.rs` owns only action glyph module wiring, while `actions/eye.rs`, `actions/lock.rs`, and `actions/kebab.rs` own the eye, lock, and kebab action glyph segment lists respectively.
 
@@ -3538,5 +3564,25 @@ The 2026-06-20 retained-host owner visibility convergence aligned split module e
 The 2026-06-20 MUI X chart raster split reduced `mui_x_primitives/charts/raster.rs` from 166 lines to an 8-line structural export entry. `charts/raster/model.rs` owns the `ChartRaster` pixel buffer, dimensions, resource-visible fields, center lookup, normalized coordinate mapping, and pixel writes; `math.rs` owns pixel-range clamping, segment distance, and angle normalization; `line.rs` owns polyline and line stroke rasterization; `shape.rs` owns point/disc rasterization; `arc.rs` owns gauge arc rasterization; and `pie.rs` owns palette-backed pie/donut fill selection. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only.
 
 The 2026-06-20 template style color surface/border/text split keeps the shared template-style color API stable while moving concrete color policy out of the retained-host owner root. The color entry now re-exports only `surface_color`, `border_color`, and `text_color`, with surface/background, border/tone, and text/contrast rules isolated in separate child owners.
+
+The 2026-06-24 Unreal Slate style pass intentionally stays inside the existing retained-host paint owners. `paint_theme/tokens.rs` now carries the Slate-like dark material palette; `style_selector/workbench_chrome/palette.rs` owns shell/background/panel/separator color parity; `style_selector/workbench_button/{palette,states}` owns Primary/Secondary/Tertiary/Danger button state colors and keeps pressed Primary/Secondary borders on Slate Input instead of focus-ring blue; `style_selector/workbench_icon_button/palette.rs` owns Slate-like icon glyph/surface/radius defaults; `template_buttons/geometry.rs` owns the 4 px button radius; and `template_buttons/content/{entry,metrics,text}.rs` owns 10 px text, 12 px line height, and 1 px pressed-content offset. Focused validation passed for `paint_template_nodes::template_buttons::tests` and `template_icon_buttons`, then `capture_m3_gui_acceptance_visual_artifacts --ignored` refreshed the eight acceptance PNGs under `docs/tests/editor`.
+
+The 2026-06-24 component primitive baseline extends that work across the broader retained-host template families without adding a new style facade. `paint_text/font.rs` prefers the embedded FiraSans UI font; `paint_theme/tokens.rs` and the Workbench chrome/button/icon-button/text-field/dropdown/table-row palettes own the shared dark surface, border, hover, pressed, selected, and focus colors; `template_node_text`, `template_fields`, `template_dropdowns`, `template_list_rows`, `template_tree_row_geometry`, `template_segmented_control_geometry`, `template_selection_controls`, and `template_buttons/content` own their local text and spacing metrics. `visual_screenshot.rs::capture_workbench_component_slate_atlas_visual_artifact` now emits `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png` as the component-level visual baseline; full Workbench and Asset Browser composition is still tracked separately by S15.3-S15.5.
+
+The 2026-06-25 S15 label semantics pass keeps command-control display text separate from dispatch values. `template_node_labels/input_kind.rs` now owns the classification between real text inputs and command controls; `focus.rs` only applies active `HostTextInputFocusData` to text inputs, while `values.rs` only prefers `value_text` for text input display. Buttons, tabs, segmented controls, toggles, dropdown-like controls, and Change-bound command controls use authored display text and keep `value_text` for routing. Focused tests cover both sides of the boundary, including a Change-bound button, and the refreshed Asset Browser screenshot confirms `List`/`Thumb` and `Preview`/`References`/`Metadata`/`Plugins` render as display labels.
+
+The 2026-06-25 S15 table-row allocation pass keeps Asset Browser table behavior inside the existing table-row child owners. `template_table_rows/cells/allocation.rs` now owns the proportional/min-width/drop-priority allocation model and reports numeric-column alignment; `cells/geometry.rs` consumes that model for header/data cell rects, while `cells/commands.rs` measures text for Size/Rev right alignment before draw-command emission. Focused tests cover readable minimum widths, low-priority column hiding, and right-aligned numeric text; the broader `template_table_rows` suite remains green and the refreshed Asset Browser screenshot shows readable Name/Type/Size/Rev columns.
+
+The 2026-06-25 S15 status-chip alignment pass keeps status-bar value alignment inside the existing status-control child owners. `template_status_controls/chips/text.rs` now owns chip text splitting, fallback text measurement, and right-aligned value frame construction; `template_status_controls/chips.rs` keeps chip surface/chevron command sequencing and delegates text emission to that owner. Focused regressions cover both `Grid: 10 cm` label/value chips and `100%` value-only chips, the broader `template_status_controls` suite remains green, and the refreshed Workbench screenshot shows right-side Grid/Snap/Zoom values aligned inside their status chips.
+
+The 2026-06-25 S15 window-menu popup pass keeps popup density and hit-testing outside template-node roots in a neutral host-contract owner. `menu_popup_metrics.rs` owns the shared row height, gap, edge inset, shell margin, anchor gap, text inset, and shortcut reservation used by both `paint_workbench_renderer/menus/geometry/*` and `native_pointer/menu_geometry/frames/*`. `paint_workbench_renderer/menus/popup.rs` and `popup/submenus.rs` now use the neutral border color instead of the accent focus color for popup frames, while `menus/rows.rs` uses primary text for enabled menu items and disabled text for unavailable entries. Focused regressions cover the popup border pixel and primary-label color, `shared_menu_pointer_bridge` remains green, and the refreshed menu-popup screenshot shows the bright teal frame removed.
+
+The 2026-06-25 S15 row-density pass keeps list/tree/property row metrics inside a shared retained-host template owner. `template_row_metrics.rs` projects common body font, line height, surface radius, text inset, tree disclosure/icon/action spacing, and property label/field metrics from `paint_theme::METRICS` and `PALETTE`; `template_list_rows`, `template_tree_row_geometry`, and `template_property_rows` consume those constants instead of carrying separate local values. Focused regressions cover all three row families sharing the same density, the existing row-family suites remain green, and the refreshed assets-drawer screenshot shows the row stack using one tighter baseline before the next drawer/window adaptation pass.
+
+The 2026-06-25 S15 search-field pass keeps search-specific field composition inside the existing field child owners. `template_fields/search.rs` owns search identity matching, search placeholder classification, left magnifier glyph emission, and the `METRICS.input_pad + font_large + gap_s` text inset; `template_fields/identity.rs` lets search text inputs enter the Workbench field path without broadening unrelated fallback fields, while `template_fields/text.rs` consumes the search inset and placeholder flag. Focused regressions cover identity, placeholder tone, text inset, and pixel output, and the refreshed Asset Browser plus assets-drawer screenshots show the search icon and shifted text under `docs/tests/editor`.
+
+The 2026-06-25 S15 content-panel pass keeps module content-container framing inside the existing shell-panel owner. `template_shell_panels/frame.rs` owns the content-panel frame policy: 4 px radius from `METRICS.radius_control`, 1 px border from `METRICS.border_width`, and the Workbench chrome separator color. `identity.rs` only classifies controlled `Workbench*LeftPanel`/`CenterPanel`/`RightPanel` IDs as `ContentPanel`, while explicit row IDs such as `WorkbenchAssetsTableRow01` remain outside shell-panel ownership. Focused regressions cover identity, border/fill/radius pixels, and the component atlas screenshot includes a no-explicit-surface `WorkbenchAtlasLeftPanel` sample under `docs/tests/editor`.
+
+The 2026-06-26 S15 list/tree selected-row pass keeps selection-marker painting inside the existing row-family owners. `style_selector/workbench_list_row/surface.rs` and `style_selector/workbench_tree_row/surface.rs` now own the low-contrast selected fill policy, while `template_list_rows/surface.rs` and `template_tree_rows/surface.rs` paint the shared 2 px accent indicator from `METRICS.selection_indicator_width`. Tree rows now reserve focus-ring borders for focused/pressed states instead of using them for plain selected rows. Focused regressions cover style selection and pixel output for both row families; M3 screenshots were refreshed under `docs/tests/editor`.
 
 The broader retained-host paint responsibilities now live in neutral siblings: `paint_frame.rs`, `paint_recording.rs`, `paint_primitives.rs`, `paint_primitives/image.rs`, `paint_text.rs`, `paint_theme.rs`, `paint_diagnostics.rs`, `paint_workbench.rs`, and `paint_workbench_renderer.rs`. `paint_primitives/image.rs` owns retained RGBA image clipping, resource-key/atlas recording, identity-row copy, scaled sampling, alpha blending, and image-specific regressions. Future runtime UI cutover work should shrink this folder by moving responsibilities into runtime render extract/GPU command stream paths, not by recreating a `painter` namespace.

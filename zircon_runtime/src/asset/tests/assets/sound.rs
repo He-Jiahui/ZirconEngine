@@ -1,4 +1,4 @@
-use crate::asset::{AssetUri, SoundAsset};
+use crate::asset::{AssetUri, SoundAsset, SoundAssetError};
 use crate::core::framework::sound::SoundChannelLayout;
 
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xfffe;
@@ -60,9 +60,32 @@ fn sound_asset_rejects_wav_extensible_unsupported_speaker_mask_bits() {
     )
     .unwrap_err();
 
-    assert!(
-        error.contains("unsupported speaker bits"),
-        "unexpected error: {error}"
+    assert_eq!(
+        error,
+        SoundAssetError::UnsupportedSpeakerMaskBits {
+            channel_mask: SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_TOP_CENTER,
+            unsupported: SPEAKER_TOP_CENTER
+        }
+    );
+    assert!(error.to_string().contains("unsupported speaker bits"));
+}
+
+#[test]
+fn sound_asset_wav_parse_reports_typed_error_variants() {
+    let uri = AssetUri::parse("res://audio/bad.wav").unwrap();
+
+    assert_eq!(
+        SoundAsset::from_wav_bytes(&uri, b"RIFF").unwrap_err(),
+        SoundAssetError::WavFileTooSmall
+    );
+
+    let unsupported_bits =
+        SoundAsset::from_wav_bytes(&uri, &wav_bytes(1, 1, 20, None, &[0, 0])).unwrap_err();
+    assert_eq!(
+        unsupported_bits,
+        SoundAssetError::UnsupportedBitsPerSample {
+            bits_per_sample: 20
+        }
     );
 }
 

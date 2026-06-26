@@ -213,7 +213,7 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
 }
 
 #[test]
-fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metric_strip_estimate() {
+fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_host_page_projection_width");
@@ -231,9 +231,9 @@ fn root_host_page_pointer_click_prefers_shared_projection_shell_width_over_metri
         );
         host.sync_host_page_pointer_layout(&model);
 
-        let tab_width = 220.0;
-        let tab_x = shared_shell_frame.width - tab_width - 24.0;
-        (tab_x, tab_x + tab_width * 0.5, 12.0, tab_width)
+        let tab_x = 8.0;
+        let tab_width = 132.0;
+        (tab_x, 12.0, 12.0, tab_width)
     };
     let baseline = harness.journal_len();
 

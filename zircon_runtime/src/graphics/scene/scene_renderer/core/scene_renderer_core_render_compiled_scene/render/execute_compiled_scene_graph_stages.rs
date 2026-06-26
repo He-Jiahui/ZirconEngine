@@ -100,6 +100,7 @@ impl SceneRendererCore {
         for stage in EARLY_GRAPH_STAGES {
             let is_depth_prepass = *stage == RenderPassStage::DepthPrepass;
             let is_shadow = *stage == RenderPassStage::Shadow;
+            let uses_mesh_pipeline_context = is_depth_prepass || is_shadow;
             if is_depth_prepass {
                 push_group(encoder, RENDERDOC_MARKER_PREPASS);
             }
@@ -108,8 +109,8 @@ impl SceneRendererCore {
             } else {
                 None
             };
-            let depth_prepass_streamer = is_depth_prepass.then_some(streamer);
-            let depth_prepass_mesh_pipelines = if is_depth_prepass {
+            let stage_streamer = uses_mesh_pipeline_context.then_some(streamer);
+            let stage_mesh_pipelines = if uses_mesh_pipeline_context {
                 Some(&mut self.mesh_pipelines)
             } else {
                 None
@@ -130,13 +131,12 @@ impl SceneRendererCore {
                 Some(early_post_process_stack),
                 overlay_renderer,
                 None,
-                is_depth_prepass.then_some(&self.normal_prepass),
                 None,
                 None,
                 None,
-                depth_prepass_streamer,
-                depth_prepass_mesh_pipelines,
-                (is_depth_prepass || is_shadow).then_some(mesh_draw_lists),
+                stage_streamer,
+                stage_mesh_pipelines,
+                uses_mesh_pipeline_context.then_some(mesh_draw_lists),
                 self.hzb_occlusion_culler.as_ref(),
                 is_shadow.then_some(&self.shadow_map_renderer),
                 Some(&self.shadow_atlas_resources),
@@ -163,7 +163,6 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
-                None,
                 None,
                 None,
                 None,
@@ -235,7 +234,6 @@ impl SceneRendererCore {
             None,
             None,
             None,
-            None,
             Some(streamer),
             Some(&mut self.mesh_pipelines),
             Some(mesh_draw_lists),
@@ -295,7 +293,6 @@ impl SceneRendererCore {
                 None,
                 overlay_renderer,
                 prepared_overlay_buffers,
-                None,
                 None,
                 None,
                 None,

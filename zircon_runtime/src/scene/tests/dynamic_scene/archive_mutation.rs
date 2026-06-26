@@ -361,9 +361,9 @@ fn runtime_session_archive_diffs_slots_against_worlds() {
 #[test]
 fn runtime_session_archive_keeps_slot_mutation_surface_guarded() {
     let source = concat!(
-        include_str!("../dynamic_scene/session/facade/mutation/rename/commit.rs"),
-        include_str!("../dynamic_scene/session/facade/mutation/metadata/commit.rs"),
-        include_str!("../dynamic_scene/session/facade/validation/invariants.rs"),
+        include_str!("../../dynamic_scene/session/facade/mutation/rename/commit.rs"),
+        include_str!("../../dynamic_scene/session/facade/mutation/metadata/commit.rs"),
+        include_str!("../../dynamic_scene/session/facade/validation/invariants.rs"),
     );
 
     assert!(source.contains("pub fn rename_slot("));

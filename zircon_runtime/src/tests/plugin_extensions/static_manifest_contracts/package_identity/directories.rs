@@ -1,5 +1,5 @@
 use super::super::{for_each_static_plugin_manifest, non_empty_string_value};
-use super::helpers::assert_package_id_token;
+use super::package_id_tokens::assert_package_id_token;
 
 #[test]
 fn plugin_tomls_declare_package_ids_match_directories() {

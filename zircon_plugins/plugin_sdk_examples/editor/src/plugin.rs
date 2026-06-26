@@ -3,7 +3,11 @@ use zircon_editor::core::editor_extension::{
 };
 use zircon_plugin_sdk::editor::authoring_plugin;
 use zircon_plugin_sdk::prelude::PluginMaturity;
-use zircon_runtime::plugin::PluginPackageManifest;
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{
+    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
+    PluginPackageManifest,
+};
 
 use crate::capability::{
     ASSET_FIXTURE_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID, WINDOW_CAPABILITY,
@@ -12,6 +16,12 @@ use crate::extensions::{register_example_window, register_importer_and_inspector
 
 const DISPLAY_NAME: &str = "Plugin SDK Examples";
 const CRATE_NAME: &str = "zircon_plugin_sdk_examples_editor";
+pub const PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME: &str = "zircon_plugin_sdk_examples_dist";
+pub const PLUGIN_SDK_EXAMPLES_DIST_EDITOR_ENTRY: &str =
+    "zircon_plugin_sdk_examples_editor_entry_v3";
+const PLUGIN_SDK_EXAMPLES_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 authoring_plugin! {
     pub struct PluginSdkExamplesEditorPlugin {
@@ -106,7 +116,7 @@ pub fn editor_plugin() -> PluginSdkExamplesEditorPlugin {
 }
 
 pub fn package_manifest() -> PluginPackageManifest {
-    editor_plugin().package_manifest()
+    zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
 pub fn editor_capabilities() -> Vec<String> {
@@ -114,5 +124,39 @@ pub fn editor_capabilities() -> Vec<String> {
 }
 
 pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
-    editor_plugin().registration_report()
+    zircon_editor::EditorPluginRegistrationReport::from_plugin(
+        &editor_plugin(),
+        base_package_manifest(),
+    )
+}
+
+fn base_package_manifest() -> PluginPackageManifest {
+    editor_plugin()
+        .declaration()
+        .base_manifest()
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
+        ])
+        .with_native_module(plugin_sdk_examples_dist_module_manifest())
+        .with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: PLUGIN_SDK_EXAMPLES_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            editor_entry: PLUGIN_SDK_EXAMPLES_DIST_EDITOR_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
+}
+
+pub fn plugin_sdk_examples_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native(
+        "plugin_sdk_examples.dist",
+        PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME,
+    )
+    .with_target_modes([RuntimeTargetMode::EditorHost])
+    .with_capabilities(EDITOR_CAPABILITIES.iter().copied())
 }

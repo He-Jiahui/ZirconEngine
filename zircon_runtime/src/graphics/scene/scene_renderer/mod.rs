@@ -33,7 +33,12 @@ pub(crate) use lighting::{
     light_buffer::pack_lighting_extract, light_grid_pass::build_light_grid_for_frame,
 };
 pub(in crate::graphics::scene) use mesh::skinning::SkinnedMeshJointPaletteUniform;
-pub(crate) use mesh::FALLBACK_MESH_SHADER;
+pub(crate) use mesh::{
+    mesh_pipeline_standard_material_template_source,
+    mesh_pipeline_standard_material_template_source_for_geometry,
+    mesh_pipeline_standard_material_template_source_for_shader_pass, MeshPipelineShaderSource,
+    FALLBACK_MESH_SHADER,
+};
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
 pub(crate) use post_process::{

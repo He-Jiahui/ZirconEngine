@@ -47,7 +47,7 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
 
 mod commands;
 mod events;
-mod query_helpers;
+mod many_single_queries;
 mod removal_local;
 mod run_window_filters;
 mod state_params;

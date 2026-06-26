@@ -1,4 +1,4 @@
-use super::common::*;
+use super::container_fixtures::*;
 use crate::asset::{AssetUri, TextureAsset, TextureUploadSupport};
 
 #[test]

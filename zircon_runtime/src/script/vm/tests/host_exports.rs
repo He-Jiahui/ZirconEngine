@@ -23,7 +23,7 @@ fn host_registry_exposes_stable_capability_records_without_concrete_objects() {
     assert_eq!(records[1].handle, asset_core);
     assert!(records.iter().all(|record| !record.label.is_empty()));
     assert!(registry
-        .capability(super::super::super::HostHandle::new(999))
+        .capability(super::super::HostHandle::new(999))
         .is_none());
 }
 

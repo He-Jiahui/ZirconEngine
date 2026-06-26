@@ -39,8 +39,8 @@ layout_icon_size = 16.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 16.0, 132.0, 30.0)
-            && command.style.background_color.as_deref() == Some("#32b8c5")
-            && command.style.border_color.as_deref() == Some("#249aa6")
+            && command.style.background_color.as_deref() == Some("#1f3035")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
             && command.style.painter_family == UiPainterFamily::Button
             && command.style.painter_state == UiPainterResolvedState::Normal
     }));
@@ -49,14 +49,14 @@ layout_icon_size = 16.0
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("play".to_string()))
             && command.frame == UiFrame::new(24.0, 23.0, 16.0, 16.0)
-            && command.style.foreground_color.as_deref() == Some("#08181b")
+            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Text
             && command.text.as_deref() == Some("Compile")
             && command.frame == UiFrame::new(47.0, 24.4, 85.0, 13.200001)
-            && command.style.foreground_color.as_deref() == Some("#08181b")
+            && command.style.foreground_color.as_deref() == Some("#e6f1f4")
     }));
     assert_eq!(
         commands
@@ -114,8 +114,8 @@ corner_radius = 6.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(16.0, 20.0, 40.0, 40.0)
-            && command.style.background_color.as_deref() == Some("#14373c")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
             && command.style.corner_radius == 6.0
             && command.style.painter_family == UiPainterFamily::IconButton
             && command.style.painter_state == UiPainterResolvedState::Selected
@@ -125,7 +125,7 @@ corner_radius = 6.0
             && command.kind == UiRenderCommandKind::Image
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("transform".to_string()))
             && command.frame == UiFrame::new(27.0, 31.0, 18.0, 18.0)
-            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+            && command.style.foreground_color.as_deref() == Some("#2aa6b8")
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
     assert!(

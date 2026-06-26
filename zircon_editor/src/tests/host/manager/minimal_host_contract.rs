@@ -249,7 +249,7 @@ fn editor_manager_plugin_status_lists_rendering_owner_features_and_defaults() {
         .expect("rendering plugin should be projected into the plugin manager status");
 
     assert!(rendering.enabled);
-    assert_eq!(rendering.optional_features.len(), 8);
+    assert_eq!(rendering.optional_features.len(), 9);
     assert!(rendering
         .editor_capabilities
         .contains(&"editor.extension.rendering_authoring".to_string()));
@@ -262,6 +262,7 @@ fn editor_manager_plugin_status_lists_rendering_owner_features_and_defaults() {
         vec![
             "rendering.post_process",
             "rendering.ssao",
+            "rendering.contact_shadow",
             "rendering.decals",
             "rendering.reflection_probes",
             "rendering.baked_lighting",
@@ -284,6 +285,14 @@ fn editor_manager_plugin_status_lists_rendering_owner_features_and_defaults() {
             "rendering.baked_lighting",
         ]
     );
+
+    let contact_shadow = rendering
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "rendering.contact_shadow")
+        .expect("contact shadow feature status");
+    assert!(!contact_shadow.enabled);
+    assert!(contact_shadow.available);
 
     let shader_graph = rendering
         .optional_features
@@ -1043,6 +1052,7 @@ target_modes = ["client_runtime"]
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
+    .with_runtime_profile_id(zircon_runtime::plugin::RuntimeProfileId::Minimal)
     .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
 
     let editor_registrations = manager.native_editor_plugin_registration_reports(&project_root);
@@ -1057,6 +1067,8 @@ target_modes = ["client_runtime"]
         .execute_native_aware_export_build(&project_root, &output_root, &manifest, "client-native")
         .unwrap();
 
+    assert!(report.fatal_diagnostics.is_empty());
+    assert_eq!(report.plan.native_dynamic_packages, vec!["native_tool"]);
     assert!(!report.invoked_cargo);
     assert!(report.cargo_invocation.is_none());
     assert!(report.native_cargo_invocations.is_empty());
@@ -1202,12 +1214,15 @@ target_modes = ["client_runtime"]
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
+    .with_runtime_profile_id(zircon_runtime::plugin::RuntimeProfileId::Minimal)
     .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
 
     let report = manager
         .execute_native_aware_export_build(&project_root, &output_root, &manifest, "client-native")
         .unwrap();
 
+    assert!(report.fatal_diagnostics.is_empty());
+    assert_eq!(report.plan.native_dynamic_packages, vec!["native_tool"]);
     assert_eq!(report.native_cargo_invocations.len(), 1);
     assert!(report.native_cargo_invocations[0].success);
     assert!(!report.invoked_cargo);

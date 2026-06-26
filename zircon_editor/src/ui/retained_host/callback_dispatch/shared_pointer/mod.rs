@@ -19,7 +19,9 @@ pub(crate) use document_tab::{
 };
 pub(crate) use drawer_header::dispatch_shared_drawer_header_pointer_click;
 pub(crate) use hierarchy::dispatch_shared_hierarchy_pointer_click;
-pub(crate) use host_page::dispatch_shared_host_page_pointer_click;
+pub(crate) use host_page::{
+    dispatch_shared_host_page_overflow_pointer_click, dispatch_shared_host_page_pointer_click,
+};
 pub(crate) use menu::dispatch_shared_menu_pointer_click;
 pub(crate) use viewport_toolbar::{
     dispatch_shared_viewport_toolbar_pointer_click,

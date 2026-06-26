@@ -575,7 +575,10 @@ fn scene_bounds(cards: &[HybridGiCardDescriptor]) -> (Vec3, Vec3) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zircon_runtime::core::framework::render::RenderMeshSnapshot;
+    use zircon_runtime::core::framework::render::{
+        render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
+        RenderMeshSnapshot, RenderMeshStaticState,
+    };
     use zircon_runtime::core::framework::scene::Mobility;
     use zircon_runtime::core::math::{Transform, Vec4};
     use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -653,11 +656,15 @@ mod tests {
     }
 
     fn card_descriptor(card_id: u32, center: Vec3) -> HybridGiCardDescriptor {
+        let node_id = card_id as u64;
+        let transform = Transform::from_translation(center).with_scale(Vec3::splat(2.0));
         HybridGiCardDescriptor::new(
             card_id,
             RenderMeshSnapshot {
-                node_id: card_id as u64,
-                transform: Transform::from_translation(center).with_scale(Vec3::splat(2.0)),
+                node_id,
+                stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+                transform_revision: render_mesh_transform_revision(&transform),
+                transform,
                 model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                     "res://models/hgi-card.obj",
                 )),
@@ -665,10 +672,12 @@ mod tests {
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                     "res://materials/hgi-card.mat",
                 )),
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Static,
-                render_layer_mask: u32::MAX,
+                static_state: RenderMeshStaticState::from_transform_static(true),
+                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
             },
             center,
             1.0,

@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiPropSchema, UiRenderCapability, UiSlotSchema,
 };
 
-use helpers::{
+use descriptor_builders::{
     bool_prop, bool_value_prop, collection, container_descriptor, editor_collection,
     editor_feedback, expanded_prop, feedback, input, input_field, int_prop, layout_primitive,
     number_value_prop, numeric, options_prop, popup_descriptor, reference, selection,
@@ -19,7 +19,7 @@ use helpers::{
     validation_message_prop, value_text_prop, visual, with_palette_metadata,
 };
 
-mod helpers;
+mod descriptor_builders;
 
 static EDITOR_SHOWCASE_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
 

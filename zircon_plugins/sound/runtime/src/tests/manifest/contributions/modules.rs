@@ -7,6 +7,7 @@ fn static_plugin_manifest_keeps_runtime_modules_in_sync() {
     let mut runtime_modules = runtime_manifest
         .modules
         .iter()
+        .filter(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Runtime)
         .map(|module| {
             (
                 module.name.clone(),

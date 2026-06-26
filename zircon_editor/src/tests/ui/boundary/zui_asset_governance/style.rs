@@ -53,9 +53,9 @@ fn color_token_offenders(label: &str, table: &toml::Table) -> Vec<String> {
     if let Some(invalid_color) = string_token_metadata_offender(color, "style color token") {
         return vec![format!("{label}.{invalid_color}")];
     }
-    if !color.starts_with("material.") {
+    if !(color.starts_with("material.") || color.starts_with("editor.")) {
         return vec![format!(
-            "{label}.color `{color}` is not a material.* theme token"
+            "{label}.color `{color}` is not a material.* or editor.* theme token"
         )];
     }
     Vec::new()
@@ -210,7 +210,7 @@ fn production_zui_style_color_tables_use_material_tokens() {
     );
     assert!(
         offenders.is_empty(),
-        "production .zui style color tables must use clean material.* theme tokens for Style Inspector and theme hot reload: {offenders:#?}"
+        "production .zui style color tables must use clean material.* or editor.* theme tokens for Style Inspector and theme hot reload: {offenders:#?}"
     );
 }
 

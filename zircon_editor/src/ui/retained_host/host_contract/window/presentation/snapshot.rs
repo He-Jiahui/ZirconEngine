@@ -26,6 +26,7 @@ pub(in crate::ui::retained_host::host_contract) fn host_presentation_from_state(
 ) -> HostWindowPresentationData {
     let mut presentation = state.host_presentation.clone();
     presentation.menu_state = state.menu_state.clone();
+    presentation.host_page_overflow_menu_state = state.host_page_overflow_menu_state.clone();
     presentation.pane_interaction_state = state.pane_interaction_state.clone();
     presentation.text_input_focus = state.text_input_focus.clone();
     presentation.viewport_image = state.viewport_image.clone();

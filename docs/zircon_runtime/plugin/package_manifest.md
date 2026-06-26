@@ -519,6 +519,8 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_bridge_interfaces
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_declarations
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_accepts_interface_only_dependency_rows
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest/feature_modules.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_package_manifest.rs::runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/interfaces.rs
   - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui UI component descriptor suffix validation: planned for milestone testing stage)
   - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui plugin manifest boundary: planned for milestone testing stage)
@@ -672,6 +674,9 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-capability-status-references --message-format short --color never (2026-06-02 capability-status reference uniqueness subgroup: passed in 9m07s with 12 existing warnings)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-capability-status-reference-rows --message-format short --color never (2026-06-02 capability-status reference row subgroup: passed in 7m50s with 12 existing warnings)
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/editor_only.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/net.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/manifest_contributions.rs::runtime_15_manifest_contributions_tests_are_folder_backed
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/modules.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/modules/capabilities.rs
@@ -697,16 +702,16 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_layout/supported_platforms.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_kind.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_kind/feature_rows.rs
-  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_kind/helpers.rs
+  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_kind/package_kind_fields.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_kind/values.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity/directories.rs
-  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity/helpers.rs
+  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity/package_id_tokens.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity/namespaces.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_identity/uniqueness.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_coordinates.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_coordinates/coordinates.rs
-  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_coordinates/helpers.rs
+  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_coordinates/package_coordinate_resolution.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_coordinates/resolved_ids.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_metadata.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/package_metadata/arrays.rs
@@ -816,13 +821,13 @@ the package-kind enum must be re-exported next to `PluginPackageManifest` rather
 private package-manifest subtree.
 
 Static manifest package-kind tests keep that public enum boundary explicit. `static_manifest_contracts/package_kind.rs`
-is child-module wiring only, `package_kind/helpers.rs` owns the defaulted package-kind value lookup
+is child-module wiring only, `package_kind/package_kind_fields.rs` owns the defaulted package-kind value lookup
 and feature-row table counting helpers, `package_kind/values.rs` owns the known-value contract, and
 `package_kind/feature_rows.rs` owns the Standard versus FeatureExtension row-shape coherence checks.
 This keeps static TOML package-kind diagnostics separate from feature-extension row traversal.
 
 Static manifest package-identity tests are folder-backed as well. `static_manifest_contracts/package_identity.rs`
-is child-module wiring only, `package_identity/helpers.rs` owns the package-id token contract,
+is child-module wiring only, `package_identity/package_id_tokens.rs` owns the package-id token contract,
 `package_identity/directories.rs` owns package-id-to-directory matching, `package_identity/namespaces.rs`
 owns optional-feature dot-namespace and owner-prefix checks, and `package_identity/uniqueness.rs`
 owns static package and optional-feature id uniqueness. This keeps identity token shape, namespace
@@ -940,11 +945,13 @@ dispatch, `coordinates/presence.rs` owns presence orchestration,
 `coordinates/shape/segment.rs` owns company/name lowercase segment diagnostics.
 
 Static manifest package-coordinate tests now follow the same helper ownership. `static_manifest_contracts/package_coordinates.rs`
-is child-module wiring only, `package_coordinates/helpers.rs` owns coordinate-field presence and
+is child-module wiring only, `package_coordinates/package_coordinate_resolution.rs` owns coordinate-field presence and
 resolved package-id construction, `package_coordinates/coordinates.rs` owns coordinate field shape
 checks, and `package_coordinates/resolved_ids.rs` owns global resolved-package-id uniqueness. This
 keeps coordinate parsing separate from row-level assertions before catalog identity and native
 package loading consume package coordinates.
+
+Runtime 15 M2 的 `Runtime 15 M2 plugin static manifest contract owner naming hard cutover` / `runtime_15_plugin_static_manifest_contract_owner_naming_hard_cutover_static_passed_cargo_deferred` 同步收口 static manifest contract 的剩余 banned helper owner。`plugin_extensions/static_manifest_contracts/feature_bundles/feature_bundle_rows.rs` owns feature-bundle row traversal，`plugin_extensions/static_manifest_contracts/package_coordinates/package_coordinate_resolution.rs` owns coordinate-field presence and resolved package-id construction，`plugin_extensions/static_manifest_contracts/package_identity/package_id_tokens.rs` owns package-id token validation，`plugin_extensions/static_manifest_contracts/package_kind/package_kind_fields.rs` owns package-kind field lookup/table-row counting；`runtime_15_plugin_static_manifest_contract_owners_use_domain_names` 防止四个旧 `helpers.rs` 回流。
 
 Static manifest package-metadata tests are folder-backed around the same public metadata surface.
 `static_manifest_contracts/package_metadata.rs` is child-module wiring only,
@@ -1095,6 +1102,10 @@ The independent plugin follow-up adds focused runtime coverage proving `RuntimeP
 The review follow-up adds package-manifest coverage for overriding `default_packaging` through the builder API and validates the plugin workspace with `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1`.
 
 The workspace-shape plugin contract now also checks `RuntimePluginDescriptor::builtin_catalog()` optional-feature rows against each first-party static `plugin.toml` manifest. That guard catches catalog drift for Sound, Net, Particles, Rendering, and future owner-embedded feature bundles before profile, export, or editor status code consumes divergent feature metadata.
+
+The 2026-06-24 Runtime 15 M3 manifest contributions test folder split (`Runtime 15 M3 manifest contributions test folder split` / `runtime_15_manifest_contributions_tests_folder_split_static_passed_cargo_deferred`) keeps these static manifest contribution guards folder-backed. `manifest_contributions.rs` now mounts `manifest_contributions/editor_only.rs` and `manifest_contributions/net.rs`; the parent plus children preserve 13 tests, each owner stays below the Runtime 15 800-line test-file budget, and `runtime_15_manifest_contributions_tests_are_folder_backed` locks the layout. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
+
+The 2026-06-24 Runtime 15 M3 runtime plugin package manifest test folder split (`Runtime 15 M3 runtime plugin package manifest test folder split` / `runtime_15_runtime_plugin_package_manifest_tests_folder_split_static_passed_cargo_deferred`) keeps package-manifest registration-report guards folder-backed. `runtime_plugin_package_manifest.rs` now mounts `runtime_plugin_package_manifest/feature_modules.rs`; the parent plus child preserve 35 tests, each owner stays below the Runtime 15 800-line test-file budget, and `runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed` locks the layout. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
 
 The plugin architecture follow-up extends `RuntimePluginDescriptor` projection coverage so descriptor
 `system_sets` and `system_anchors` appear on the generated runtime module row. It also adds

@@ -5,13 +5,12 @@ use crate::core::framework::physics::{
     PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
 };
 use crate::core::framework::render::{
-    ProjectionMode, RenderBloomSettings, RenderCameraClearColor, RenderCameraTarget,
-    RenderColorGradingSettings, RenderMaterialAlphaMode, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolumeProfile, RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100,
-    DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER_MASK,
+    ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderMaterialAlphaMode,
+    RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
-use crate::core::math::{Mat4, Real, Transform, Vec2, Vec3, Vec4};
+use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
@@ -21,6 +20,12 @@ use serde::{Deserialize, Serialize};
 
 use super::{Mesh2dComponent, Sprite2dComponent};
 use crate::scene::EntityId;
+
+mod lighting;
+mod post_process;
+
+pub use self::lighting::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
+pub use self::post_process::{PostProcessSettingsComponent, PostProcessVolumeComponent};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeKind {
@@ -410,186 +415,6 @@ pub struct AnimationStateMachinePlayerComponent {
     pub parameters: BTreeMap<String, AnimationParameterValue>,
     pub active_state: Option<String>,
     pub playing: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AmbientLight {
-    pub color: Vec3,
-    pub intensity: Real,
-    pub affects_lightmapped_meshes: bool,
-}
-
-impl Default for AmbientLight {
-    fn default() -> Self {
-        Self {
-            color: Vec3::splat(1.0),
-            intensity: 80.0,
-            affects_lightmapped_meshes: true,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DirectionalLight {
-    pub direction: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-}
-
-impl Default for DirectionalLight {
-    fn default() -> Self {
-        Self {
-            direction: Vec3::new(-0.4, -1.0, -0.25).normalize_or_zero(),
-            color: Vec3::splat(1.0),
-            intensity: 2.0,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PointLight {
-    pub color: Vec3,
-    pub intensity: Real,
-    pub range: Real,
-}
-
-impl Default for PointLight {
-    fn default() -> Self {
-        Self {
-            color: Vec3::splat(1.0),
-            intensity: 4.0,
-            range: 8.0,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct RectLight {
-    pub color: Vec3,
-    pub intensity: Real,
-    pub range: Real,
-    pub size: Vec2,
-}
-
-impl Default for RectLight {
-    fn default() -> Self {
-        Self {
-            color: Vec3::splat(1.0),
-            intensity: 1_000_000.0,
-            range: 20.0,
-            size: Vec2::new(1.0, 1.0),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct SpotLight {
-    pub direction: Vec3,
-    pub color: Vec3,
-    pub intensity: Real,
-    pub range: Real,
-    pub inner_angle_radians: Real,
-    pub outer_angle_radians: Real,
-}
-
-impl Default for SpotLight {
-    fn default() -> Self {
-        Self {
-            direction: Vec3::new(0.0, -1.0, 0.0),
-            color: Vec3::splat(1.0),
-            intensity: 8.0,
-            range: 12.0,
-            inner_angle_radians: 0.3,
-            outer_angle_radians: 0.55,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PostProcessSettingsComponent {
-    pub bloom: RenderBloomSettings,
-    pub color_grading: RenderColorGradingSettings,
-    pub effect_stack: RenderPostProcessEffectStackSettings,
-}
-
-impl Default for PostProcessSettingsComponent {
-    fn default() -> Self {
-        Self {
-            bloom: RenderBloomSettings::default(),
-            color_grading: RenderColorGradingSettings::default(),
-            effect_stack: RenderPostProcessEffectStackSettings::default(),
-        }
-    }
-}
-
-impl PostProcessSettingsComponent {
-    pub fn from_parts(
-        bloom: RenderBloomSettings,
-        color_grading: RenderColorGradingSettings,
-        effect_stack: RenderPostProcessEffectStackSettings,
-    ) -> Self {
-        Self {
-            bloom,
-            color_grading,
-            effect_stack,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PostProcessVolumeComponent {
-    pub active: bool,
-    pub is_global: bool,
-    pub priority: Real,
-    pub weight: Real,
-    /// Scene-space fade distance outside a local volume collider.
-    /// Global volumes ignore this field.
-    pub blend_distance: Real,
-    pub profile: RenderPostProcessVolumeProfile,
-}
-
-impl Default for PostProcessVolumeComponent {
-    fn default() -> Self {
-        Self {
-            active: true,
-            is_global: true,
-            priority: 0.0,
-            weight: 1.0,
-            blend_distance: 0.0,
-            profile: RenderPostProcessVolumeProfile::default(),
-        }
-    }
-}
-
-impl PostProcessVolumeComponent {
-    pub fn global(priority: Real, profile: RenderPostProcessVolumeProfile) -> Self {
-        Self {
-            priority,
-            profile,
-            ..Self::default()
-        }
-    }
-
-    pub fn local(
-        priority: Real,
-        weight: Real,
-        blend_distance: Real,
-        profile: RenderPostProcessVolumeProfile,
-    ) -> Self {
-        Self {
-            is_global: false,
-            priority,
-            weight,
-            blend_distance,
-            profile,
-            ..Self::default()
-        }
-    }
-
-    pub const fn with_weight(mut self, weight: Real) -> Self {
-        self.weight = weight;
-        self
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

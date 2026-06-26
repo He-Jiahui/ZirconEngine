@@ -88,11 +88,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             template_surface.recompute_layout(runtime.as_ref(), shell_size)?;
         }
 
-        Ok(Self {
+        let mut bridge = Self {
             runtime,
             bindings_by_id,
             template_surface,
-        })
+        };
+        bridge.apply_responsive_toolbar_layout(shell_size)?;
+        bridge
+            .template_surface
+            .refresh_after_state_change(bridge.runtime.as_ref())?;
+        Ok(bridge)
     }
 
     pub(crate) fn recompute_layout(
@@ -101,6 +106,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.template_surface
             .recompute_layout(self.runtime.as_ref(), shell_size)?;
+        self.apply_responsive_toolbar_layout(shell_size)?;
+        self.template_surface
+            .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(())
     }
 
@@ -701,7 +709,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 node_id,
                 property,
                 UiValue::Bool(value),
-            ))?;
+            ))
+            .map_err(
+                |source| BuiltinHostWindowTemplateBridgeError::LayoutMutation {
+                    node_id,
+                    property: property.to_string(),
+                    source,
+                },
+            )?;
         Ok(())
     }
 

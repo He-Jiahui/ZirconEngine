@@ -1,6 +1,6 @@
 use super::super::super::*;
 
-pub(super) fn render_sidechain_tap_mix(pre_effects: bool) -> Vec<f32> {
+pub(crate) fn render_sidechain_tap_mix(pre_effects: bool) -> Vec<f32> {
     let sound = DefaultSoundManager::default();
     let target_clip =
         sound.insert_clip_for_test(test_clip("res://sound/sidechain-target.wav", &[0.5]));

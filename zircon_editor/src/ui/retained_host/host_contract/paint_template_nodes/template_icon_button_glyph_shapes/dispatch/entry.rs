@@ -28,6 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
         }
         IconButtonGlyphKind::Play
         | IconButtonGlyphKind::ChevronDown
+        | IconButtonGlyphKind::Close
         | IconButtonGlyphKind::Grid
         | IconButtonGlyphKind::Sun
         | IconButtonGlyphKind::More => chrome::push_chrome_button_glyph_shape(

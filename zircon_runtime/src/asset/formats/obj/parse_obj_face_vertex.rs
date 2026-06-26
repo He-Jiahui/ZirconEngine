@@ -1,3 +1,4 @@
+use super::error::ObjDecodeResult;
 use super::obj_vertex_key::ObjVertexKey;
 use super::resolve_obj_index::resolve_obj_index;
 
@@ -6,7 +7,7 @@ pub(super) fn parse_obj_face_vertex(
     position_count: usize,
     uv_count: usize,
     normal_count: usize,
-) -> Result<ObjVertexKey, String> {
+) -> ObjDecodeResult<ObjVertexKey> {
     let mut parts = token.split('/');
     let position = resolve_obj_index(
         parts.next().unwrap_or_default(),

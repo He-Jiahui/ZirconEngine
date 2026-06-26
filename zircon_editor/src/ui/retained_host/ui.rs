@@ -14,6 +14,8 @@ mod root_template_overlay;
 #[cfg(test)]
 #[path = "ui/structure_component_tests.rs"]
 mod structure_component_tests;
+#[path = "ui/template_layout_context.rs"]
+mod template_layout_context;
 #[path = "ui/template_node_conversion.rs"]
 mod template_node_conversion;
 #[cfg(test)]

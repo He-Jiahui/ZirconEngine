@@ -58,21 +58,22 @@ selected = true
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 26.0, 150.0, 30.0)
             && command.style.background_color.as_deref() == Some("#1d2327")
-            && command.style.border_color.as_deref() == Some("#4b626d")
+            && command.style.border_color.as_deref() == Some("#323a41")
             && command.style.corner_radius == 5.0
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 28.0, 46.0, 26.0)
-            && command.style.background_color.as_deref() == Some("#0f6574")
-            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.is_none()
+            && command.style.border_width == 0.0
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(64.0, 53.0, 46.0, 1.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#2aa6b8")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -104,7 +105,7 @@ selected = true
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(12.0, 98.0, 132.0, 2.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && command.style.background_color.as_deref() == Some("#2aa6b8")
             && command.style.painter_family == UiPainterFamily::Tab
             && command.style.painter_state == UiPainterResolvedState::Selected
     }));
@@ -126,6 +127,47 @@ selected = true
             .count(),
         1
     );
+}
+
+#[test]
+fn render_extract_segmented_defaults_to_slate_underline_selected_indicator() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.segmented_controls.selected_defaults",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 190.0, 56.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "SegmentedControl",
+        UiFrame::new(12.0, 8.0, 150.0, 30.0),
+        r##"
+value = "center"
+options = ["left", "center", "right"]
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(64.0, 10.0, 46.0, 26.0)
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.is_none()
+            && command.style.border_width == 0.0
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(64.0, 34.0, 46.0, 2.0)
+            && command.style.background_color.as_deref() == Some("#2aa6b8")
+    }));
 }
 
 #[test]
@@ -208,7 +250,8 @@ selected_foreground_color = "#e6f1f4"
             && command.frame == UiFrame::new(64.0, 28.0, 46.0, 26.0)
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#191d22")
-            && command.style.border_color.as_deref() == Some("#334852")
+            && command.style.border_color.is_none()
+            && command.style.border_width == 0.0
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)

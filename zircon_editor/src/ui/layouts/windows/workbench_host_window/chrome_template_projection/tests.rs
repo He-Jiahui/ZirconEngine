@@ -1,6 +1,9 @@
 use super::*;
 
 use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
+use crate::ui::workbench::document_tabs::{
+    DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
+};
 
 #[test]
 fn dock_header_nodes_hide_close_controls_for_non_closeable_tabs() {
@@ -36,6 +39,26 @@ fn dock_header_nodes_keep_close_controls_for_closeable_tabs() {
         maybe_node(&nodes, "DockTabClose1").is_none(),
         "close controls beyond the live tab count should still be filtered"
     );
+}
+
+#[test]
+fn dock_header_nodes_keep_document_tabs_readable_and_close_control_clean() {
+    let tabs = model_rc(vec![
+        test_tab("Asset Browser", true, true),
+        test_tab("Zircon M3 Visual", false, true),
+    ]);
+
+    let nodes = document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 900.0, 31.0);
+    let asset = node(&nodes, "DockTab0");
+    let visual = node(&nodes, "DockTab1");
+    let close = node(&nodes, "DockTabClose0");
+
+    assert_eq!(asset.text.as_str(), "Asset Browser");
+    assert!(asset.frame.width >= 160.0);
+    assert!(visual.frame.width >= DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH);
+    assert_eq!(close.surface_variant.as_str(), "");
+    assert_eq!(close.frame.width, DOCUMENT_TAB_CLOSE_EXTENT);
+    assert!(close.frame.x + close.frame.width <= asset.frame.x + asset.frame.width);
 }
 
 #[test]
@@ -290,6 +313,128 @@ fn fallback_page_chrome_preserves_clickable_tab_and_project_path_frames() {
     assert_eq!(second_tab.text_tone.as_str(), "subtle");
     assert_eq!(project_path.text.as_str(), "ZirconProject4");
     assert!(project_path.frame.width > 0.0);
+}
+
+#[test]
+fn fallback_page_chrome_collapses_overflow_tabs_and_keeps_active_visible() {
+    let tabs = model_rc(vec![
+        test_tab("Welcome", false, false),
+        test_tab("Asset Browser", false, false),
+        test_tab("Scene", false, false),
+        test_tab("Effects", false, false),
+        test_tab("Animation State Machine", true, false),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"ZirconProject4".into(), 420.0, 0.0);
+    let overflow = node(&nodes, "PageTabOverflow");
+    let active = node(&nodes, "PageTab4");
+
+    assert!(
+        maybe_node(&nodes, "PageTab3").is_none(),
+        "non-active tabs beyond the available page bar width should collapse behind overflow"
+    );
+    assert!(active.selected, "the active page tab should remain visible");
+    assert_eq!(active.text.as_str(), "Animation State Machine");
+    assert_eq!(overflow.role.as_str(), "IconButton");
+    assert_eq!(overflow.icon_name.as_str(), "ellipsis-horizontal-outline");
+    assert!(overflow.frame.x > active.frame.x);
+}
+
+#[test]
+fn fallback_page_chrome_keeps_medium_width_tabs_readable_before_overflow() {
+    let tabs = model_rc(vec![
+        test_tab("Scene Editor", false, false),
+        test_tab("Effects", false, false),
+        test_tab("Abilities", true, false),
+        test_tab("Tags", false, false),
+        test_tab("Perception", false, false),
+        test_tab("Material", false, false),
+        test_tab("Behavior", false, false),
+        test_tab("Rendering", false, false),
+        test_tab("Assets", false, false),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"Zircon M3 Visual".into(), 900.0, 0.0);
+    let visible_tabs = (0..tabs.row_count())
+        .filter_map(|row| maybe_node(&nodes, &format!("PageTab{row}")))
+        .collect::<Vec<_>>();
+
+    assert!(
+        visible_tabs.len() < tabs.row_count(),
+        "medium-width host chrome should collapse extra main pages instead of compressing all tabs"
+    );
+    assert!(maybe_node(&nodes, "PageTabOverflow").is_some());
+    assert!(
+        visible_tabs
+            .iter()
+            .all(|tab| tab.frame.width >= MAIN_PAGE_TAB_MIN_WIDTH),
+        "all visible main-page tabs should remain at the readable minimum width"
+    );
+    assert!(
+        maybe_node(&nodes, "PageTab2").is_some_and(|tab| tab.selected),
+        "the active tab should remain visible when overflow is active"
+    );
+}
+
+#[test]
+fn fallback_page_chrome_narrow_tier_caps_visible_tabs_before_project_path() {
+    let tabs = model_rc(vec![
+        test_tab("Scene Editor", false, false),
+        test_tab("Effects", false, false),
+        test_tab("Abilities", false, false),
+        test_tab("Animation", true, false),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"Zircon M3 Visual".into(), 640.0, 0.0);
+    let visible_tabs = (0..tabs.row_count())
+        .filter_map(|row| maybe_node(&nodes, &format!("PageTab{row}")))
+        .collect::<Vec<_>>();
+    let overflow = node(&nodes, "PageTabOverflow");
+    let project_path = node(&nodes, PAGE_PROJECT_PATH_CONTROL_ID);
+
+    assert_eq!(
+        visible_tabs.len(),
+        2,
+        "narrow host chrome should use the layout tier to keep only two readable page tabs"
+    );
+    assert!(
+        maybe_node(&nodes, "PageTab3").is_some_and(|tab| tab.selected),
+        "the active page tab should replace a non-active visible tab before overflow"
+    );
+    assert!(
+        maybe_node(&nodes, "PageTab2").is_none(),
+        "non-active rows beyond the narrow visible cap should stay behind overflow"
+    );
+    assert!(
+        overflow.frame.x + overflow.frame.width <= project_path.frame.x,
+        "overflow must stay inside the tab lane before the project path label"
+    );
+}
+
+#[test]
+fn fallback_page_chrome_wide_tier_does_not_force_overflow_when_tabs_fit() {
+    let tabs = model_rc(vec![
+        test_tab("Scene Editor", true, false),
+        test_tab("Effects", false, false),
+        test_tab("Abilities", false, false),
+        test_tab("Tags", false, false),
+        test_tab("Perception", false, false),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"Zircon M3 Visual".into(), 1260.0, 0.0);
+    let visible_tabs = (0..tabs.row_count())
+        .filter_map(|row| maybe_node(&nodes, &format!("PageTab{row}")))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        visible_tabs.len(),
+        tabs.row_count(),
+        "wide host chrome should show every page tab when the tab lane can hold them"
+    );
+    assert!(
+        maybe_node(&nodes, "PageTabOverflow").is_none(),
+        "wide host chrome should not show overflow just because the component supports it"
+    );
 }
 
 #[test]

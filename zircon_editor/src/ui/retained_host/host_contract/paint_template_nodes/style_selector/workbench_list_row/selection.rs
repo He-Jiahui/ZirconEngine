@@ -9,13 +9,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     node: &TemplatePaneNodeData,
 ) -> WorkbenchListRowStyle {
     let state = resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::ListRow);
-    let marked = node.checked || node.selected;
+    let row_marked = node.checked || node.selected;
+    let adornment_marked = node.checked;
     WorkbenchListRowStyle {
-        background: list_row_background(node, state, marked),
+        background: list_row_background(node, state, row_marked),
         border: list_row_border(state),
         border_width: list_row_border_width(state),
-        text: list_row_text_color(node, state, marked),
-        adornment: list_row_adornment_color(node, state, marked),
+        text: list_row_text_color(node, state, row_marked),
+        adornment: list_row_adornment_color(node, state, adornment_marked),
         state,
     }
 }

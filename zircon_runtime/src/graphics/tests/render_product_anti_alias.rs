@@ -1,35 +1,30 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
     AntiAliasFallbackReason, AntiAliasMode, AntiAliasSettings, CapturedFrame, FallbackSkyboxKind,
-    GeometryExtract, GeometryPhaseInput, PreviewEnvironmentExtract, ProjectionMode,
-    RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderMotionBlurSettings,
-    RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderPipelineHandle,
+    PreviewEnvironmentExtract, ProjectionMode, RenderCapabilitySummary, RenderFrameExtract,
+    RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderPipelineHandle,
     RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
     RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
     ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
-use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
-use crate::core::resource::{
-    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
-};
+use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::graphics::scene::anti_alias::fxaa::{FXAA_EXECUTOR_ID, FXAA_PASS_NAME};
 use crate::graphics::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPassExecutionContext,
-    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset, WgpuRenderFramework,
+    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPassStage, RenderPipelineAsset,
+    WgpuRenderFramework,
 };
 use crate::scene::world::World;
 
-use super::plugin_render_feature_fixtures::particle_render_feature_descriptor;
+mod particle;
+mod reactive_mask;
 
 const TAA_RESOLVE_EXECUTOR_ID: &str = "temporal.taa-resolve";
 const TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID: &str = "temporal.taa-reactive-mask-clear";
 const TAA_REACTIVE_MASK_MESH_EXECUTOR_ID: &str = "temporal.taa-reactive-mask-mesh";
-const PARTICLE_TRANSPARENT_EXECUTOR_ID: &str = "particle.transparent";
 
 #[test]
 fn anti_alias_settings_report_structured_fallbacks() {
@@ -362,246 +357,6 @@ fn render_product_taa_dynamic_occlusion_change_converges_after_history_seed() {
     );
 }
 
-#[test]
-fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let inert_material = register_taa_reactive_product_material(
-        &asset_manager,
-        "res://materials/taa-reactive-none.zmaterial",
-        0.0,
-    );
-    let reactive_material = register_taa_reactive_product_material(
-        &asset_manager,
-        "res://materials/taa-reactive-authored.zmaterial",
-        1.0,
-    );
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
-    let viewport_size = UVec2::new(320, 240);
-    let viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-
-    framework
-        .set_quality_profile(
-            viewport,
-            anti_alias_product_profile("runtime-taa-authored-reactive-mask", true)
-                .with_temporal_history(true),
-        )
-        .unwrap();
-
-    let (_, inert_stats) = submit_and_capture_anti_alias_product(
-        &framework,
-        viewport,
-        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
-    );
-    let (_, reactive_stats) = submit_and_capture_anti_alias_product(
-        &framework,
-        viewport,
-        authored_reactive_mask_taa_product_extract(viewport_size, reactive_material),
-    );
-
-    assert_taa_resolve_product_stats(&inert_stats);
-    assert_taa_reactive_mask_graph_executed(&inert_stats);
-    assert_eq!(inert_stats.last_material_count, 1);
-    assert_eq!(inert_stats.last_material_ready_count, 1);
-    assert_eq!(inert_stats.last_material_fallback_count, 0);
-    assert_eq!(inert_stats.last_mesh_opaque_draw_count, 1);
-    assert_eq!(inert_stats.last_mesh_taa_reactive_mask_command_count, 0);
-
-    assert_taa_resolve_product_stats(&reactive_stats);
-    assert_taa_reactive_mask_graph_executed(&reactive_stats);
-    assert_eq!(reactive_stats.last_material_count, 1);
-    assert_eq!(reactive_stats.last_material_ready_count, 1);
-    assert_eq!(reactive_stats.last_material_fallback_count, 0);
-    assert_eq!(reactive_stats.last_mesh_opaque_draw_count, 1);
-    assert_eq!(reactive_stats.last_mesh_taa_reactive_mask_command_count, 1);
-}
-
-#[test]
-fn render_product_taa_transparent_reactive_mask_records_alpha_writer_path() {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    let transparent_material = register_taa_reactive_product_material_with_alpha(
-        &asset_manager,
-        "res://materials/taa-reactive-transparent-alpha.zmaterial",
-        0.0,
-        AlphaMode::Blend,
-        0.45,
-    );
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
-    let viewport_size = UVec2::new(320, 240);
-    let viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-
-    framework
-        .set_quality_profile(
-            viewport,
-            anti_alias_product_profile("runtime-taa-transparent-reactive-mask", true)
-                .with_temporal_history(true),
-        )
-        .unwrap();
-
-    let (_, transparent_stats) = submit_and_capture_anti_alias_product(
-        &framework,
-        viewport,
-        authored_reactive_mask_taa_product_extract_with_alpha_mode(
-            viewport_size,
-            transparent_material,
-            RenderMaterialAlphaMode::Blend,
-        ),
-    );
-
-    assert_taa_resolve_product_stats(&transparent_stats);
-    assert_taa_reactive_mask_graph_executed(&transparent_stats);
-    assert_eq!(transparent_stats.last_material_count, 1);
-    assert_eq!(transparent_stats.last_material_ready_count, 1);
-    assert_eq!(transparent_stats.last_material_fallback_count, 0);
-    assert_eq!(transparent_stats.last_mesh_opaque_draw_count, 0);
-    assert_eq!(transparent_stats.last_mesh_alpha_mask_draw_count, 0);
-    assert_eq!(transparent_stats.last_mesh_transparent_draw_count, 1);
-    assert_eq!(
-        transparent_stats.last_mesh_taa_reactive_mask_command_count,
-        1
-    );
-}
-
-#[test]
-fn render_product_taa_particle_transparent_pass_contributes_before_resolve() {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
-        Arc::new(ProjectAssetManager::default()),
-        [particle_render_feature_descriptor()],
-        [RenderPassExecutorRegistration::new(
-            PARTICLE_TRANSPARENT_EXECUTOR_ID,
-            particle_transparent_billboard_executor,
-        )],
-        Vec::new(),
-    )
-    .unwrap();
-    let viewport_size = UVec2::new(320, 240);
-    let empty_viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-    let particle_viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-
-    framework
-        .set_quality_profile(
-            empty_viewport,
-            anti_alias_product_profile("runtime-taa-particle-empty", true)
-                .with_temporal_history(true)
-                .with_particle_rendering(true),
-        )
-        .unwrap();
-    framework
-        .set_quality_profile(
-            particle_viewport,
-            anti_alias_product_profile("runtime-taa-particle-transparent", true)
-                .with_temporal_history(true)
-                .with_particle_rendering(true),
-        )
-        .unwrap();
-
-    let (empty_frame, empty_stats) = submit_and_capture_anti_alias_product(
-        &framework,
-        empty_viewport,
-        empty_temporal_taa_product_extract(viewport_size),
-    );
-    let (particle_frame, particle_stats) = submit_and_capture_anti_alias_product(
-        &framework,
-        particle_viewport,
-        particle_taa_product_extract(viewport_size),
-    );
-
-    assert_taa_resolve_product_stats(&empty_stats);
-    assert_taa_resolve_product_stats(&particle_stats);
-    assert_eq!(empty_stats.last_particle_graph_executed_pass_count, 1);
-    assert_eq!(particle_stats.last_particle_graph_executed_pass_count, 1);
-    assert_executor_order(
-        &empty_stats,
-        PARTICLE_TRANSPARENT_EXECUTOR_ID,
-        TAA_RESOLVE_EXECUTOR_ID,
-    );
-    assert_executor_order(
-        &particle_stats,
-        PARTICLE_TRANSPARENT_EXECUTOR_ID,
-        TAA_RESOLVE_EXECUTOR_ID,
-    );
-    assert_eq!(empty_stats.last_particle_velocity_missing_sprite_count, 0);
-    assert_eq!(
-        particle_stats.last_particle_velocity_missing_sprite_count,
-        0
-    );
-    assert!(
-        frame_rgba_abs_delta(&empty_frame, &particle_frame) > 0,
-        "particle transparent pass should visibly change the TAA product frame"
-    );
-}
-
-#[test]
-fn render_product_particle_previous_state_suppresses_velocity_gap_stats() {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
-        Arc::new(ProjectAssetManager::default()),
-        [particle_render_feature_descriptor()],
-        [RenderPassExecutorRegistration::new(
-            PARTICLE_TRANSPARENT_EXECUTOR_ID,
-            particle_transparent_billboard_executor,
-        )],
-        Vec::new(),
-    )
-    .unwrap();
-    let viewport_size = UVec2::new(320, 240);
-    let missing_previous_viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-    let previous_state_viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-
-    for viewport in [missing_previous_viewport, previous_state_viewport] {
-        framework
-            .set_quality_profile(
-                viewport,
-                anti_alias_product_profile("taa-particle-velocity-state", true)
-                    .with_temporal_history(true)
-                    .with_particle_rendering(true),
-            )
-            .unwrap();
-    }
-
-    framework
-        .submit_frame_extract(
-            missing_previous_viewport,
-            particle_motion_blur_taa_product_extract(viewport_size, false),
-        )
-        .unwrap();
-    let missing_previous_stats = framework.query_stats().unwrap();
-
-    framework
-        .submit_frame_extract(
-            previous_state_viewport,
-            particle_motion_blur_taa_product_extract(viewport_size, true),
-        )
-        .unwrap();
-    let previous_state_stats = framework.query_stats().unwrap();
-
-    assert_taa_resolve_product_stats(&missing_previous_stats);
-    assert_taa_resolve_product_stats(&previous_state_stats);
-    assert_eq!(
-        missing_previous_stats.last_particle_velocity_missing_sprite_count,
-        1
-    );
-    assert_eq!(
-        previous_state_stats.last_particle_velocity_missing_sprite_count,
-        0
-    );
-    assert_executor_order(
-        &previous_state_stats,
-        PARTICLE_TRANSPARENT_EXECUTOR_ID,
-        TAA_RESOLVE_EXECUTOR_ID,
-    );
-}
-
 fn anti_alias_product_profile(name: &str, anti_alias_enabled: bool) -> RenderQualityProfile {
     RenderQualityProfile::new(name)
         .with_pipeline_asset(RenderPipelineHandle::new(1))
@@ -632,48 +387,6 @@ fn empty_temporal_taa_product_extract(viewport_size: UVec2) -> RenderFrameExtrac
     );
     extract.apply_viewport_size(viewport_size);
     extract.view.anti_alias = AntiAliasSettings::taa();
-    extract
-}
-
-fn particle_taa_product_extract(viewport_size: UVec2) -> RenderFrameExtract {
-    let mut extract = empty_temporal_taa_product_extract(viewport_size);
-    extract.particles.emitters = vec![831];
-    extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
-        entity: 831,
-        stable_sprite_key: 1,
-        position: Vec3::new(0.0, 0.0, -2.5),
-        size: 1.1,
-        aspect_ratio: 1.0,
-        billboard_offset: Vec2::ZERO,
-        rotation: 0.0,
-        sort_order: 0,
-        color: Vec4::new(1.0, 0.48, 0.12, 0.85),
-        intensity: 1.0,
-        depth_test: true,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
-        material: None,
-        texture: None,
-    }];
-    extract
-}
-
-fn particle_motion_blur_taa_product_extract(
-    viewport_size: UVec2,
-    include_previous_state: bool,
-) -> RenderFrameExtract {
-    let mut extract = particle_taa_product_extract(viewport_size);
-    extract.post_process.effect_stack.motion_blur = RenderMotionBlurSettings {
-        shutter_angle: 0.5,
-        samples: 1,
-    };
-    if include_previous_state {
-        extract.particles.previous_sprites = extract
-            .particles
-            .sprites
-            .iter()
-            .map(RenderParticlePreviousSpriteSnapshot::from_current)
-            .collect();
-    }
     extract
 }
 
@@ -761,163 +474,6 @@ fn dynamic_occlusion_mesh(
     }
 }
 
-fn register_taa_reactive_product_material(
-    asset_manager: &ProjectAssetManager,
-    locator: &str,
-    strength: f32,
-) -> ResourceId {
-    register_taa_reactive_product_material_asset(
-        asset_manager,
-        locator,
-        taa_reactive_product_material(strength),
-    )
-}
-
-fn register_taa_reactive_product_material_with_alpha(
-    asset_manager: &ProjectAssetManager,
-    locator: &str,
-    strength: f32,
-    alpha_mode: AlphaMode,
-    alpha: f32,
-) -> ResourceId {
-    register_taa_reactive_product_material_asset(
-        asset_manager,
-        locator,
-        taa_reactive_product_material_with_alpha(strength, alpha_mode, alpha),
-    )
-}
-
-fn register_taa_reactive_product_material_asset(
-    asset_manager: &ProjectAssetManager,
-    locator: &str,
-    material: MaterialAsset,
-) -> ResourceId {
-    let material_uri = AssetUri::parse(locator).unwrap();
-    let material_id = ResourceId::from_locator(&material_uri);
-    asset_manager
-        .assets::<MaterialAsset>()
-        .insert(
-            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
-            material,
-        )
-        .expect("material insert");
-    material_id
-}
-
-fn taa_reactive_product_material(strength: f32) -> MaterialAsset {
-    taa_reactive_product_material_with_alpha(strength, AlphaMode::Opaque, 1.0)
-}
-
-fn taa_reactive_product_material_with_alpha(
-    strength: f32,
-    alpha_mode: AlphaMode,
-    alpha: f32,
-) -> MaterialAsset {
-    let mut property_values = BTreeMap::new();
-    property_values.insert(
-        "taa_reactive_mask_strength".to_string(),
-        toml::Value::Float(strength as f64),
-    );
-    MaterialAsset {
-        name: Some(format!("TaaReactiveMask{strength:.2}")),
-        shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
-        base_color: [0.1, 0.85, 0.65, alpha],
-        base_color_texture: None,
-        normal_texture: None,
-        metallic: 0.0,
-        roughness: 1.0,
-        metallic_roughness_texture: None,
-        occlusion_texture: None,
-        emissive: [0.0, 0.0, 0.0],
-        emissive_texture: None,
-        alpha_mode,
-        double_sided: false,
-        property_values,
-        texture_slots: Default::default(),
-        validation_diagnostics: Vec::new(),
-    }
-}
-
-fn authored_reactive_mask_taa_product_extract(
-    viewport_size: UVec2,
-    material: ResourceId,
-) -> RenderFrameExtract {
-    authored_reactive_mask_taa_product_extract_with_alpha_mode(
-        viewport_size,
-        material,
-        RenderMaterialAlphaMode::Opaque,
-    )
-}
-
-fn authored_reactive_mask_taa_product_extract_with_alpha_mode(
-    viewport_size: UVec2,
-    material: ResourceId,
-    alpha_mode: RenderMaterialAlphaMode,
-) -> RenderFrameExtract {
-    let node_id = 821;
-    let mesh = authored_reactive_mask_mesh(node_id, material);
-    let mut extract = RenderFrameExtract::from_snapshot(
-        RenderWorldSnapshotHandle::new(803),
-        RenderSceneSnapshot {
-            scene: RenderSceneGeometryExtract {
-                camera: ViewportCameraSnapshot {
-                    transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
-                    ..ViewportCameraSnapshot::default()
-                },
-                meshes: vec![mesh.clone()],
-                directional_lights: Vec::new(),
-                point_lights: Vec::new(),
-                spot_lights: Vec::new(),
-                ambient_lights: Vec::new(),
-                rect_lights: Vec::new(),
-            },
-            overlays: Default::default(),
-            preview: PreviewEnvironmentExtract {
-                lighting_enabled: false,
-                skybox_enabled: false,
-                fallback_skybox: FallbackSkyboxKind::None,
-                clear_color: Vec4::ZERO,
-            },
-            virtual_geometry_debug: None,
-        },
-    );
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
-        extract.view.core_pipeline,
-        vec![mesh.clone()],
-        vec![GeometryPhaseInput::new(
-            node_id,
-            0,
-            alpha_mode,
-            mesh.transform.translation.z,
-        )],
-    );
-    extract.apply_viewport_size(viewport_size);
-    extract.view.anti_alias = AntiAliasSettings::taa();
-    extract
-}
-
-fn authored_reactive_mask_mesh(node_id: u64, material: ResourceId) -> RenderMeshSnapshot {
-    RenderMeshSnapshot {
-        node_id,
-        stable_instance_key: node_id << 16,
-        transform_revision: 0,
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, -3.0),
-            scale: Vec3::splat(0.8),
-            ..Transform::default()
-        },
-        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
-        mesh: None,
-        material: ResourceHandle::<MaterialMarker>::new(material),
-        mesh_lod: None,
-        morph_weights: Vec::new(),
-        tint: Vec4::ONE,
-        mobility: Mobility::Static,
-        static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
-    }
-}
-
 fn submit_and_capture_anti_alias_product(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
@@ -964,23 +520,6 @@ fn assert_taa_resolve_product_stats(stats: &RenderStats) {
         .contains(&FXAA_PASS_NAME.to_string()));
 }
 
-fn assert_taa_reactive_mask_graph_executed(stats: &RenderStats) {
-    for executor_id in [
-        TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID,
-        TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
-        TAA_RESOLVE_EXECUTOR_ID,
-    ] {
-        assert!(
-            stats
-                .last_graph_executed_executor_ids
-                .contains(&executor_id.to_string()),
-            "expected executor `{}` in executed executor ids: {:?}",
-            executor_id,
-            stats.last_graph_executed_executor_ids
-        );
-    }
-}
-
 fn assert_executor_order(stats: &RenderStats, before: &str, after: &str) {
     let before_index = stats
         .last_graph_executed_executor_ids
@@ -1007,14 +546,6 @@ fn assert_executor_order(stats: &RenderStats, before: &str, after: &str) {
         "expected executor `{before}` to run before `{after}`, executed executor ids: {:?}",
         stats.last_graph_executed_executor_ids
     );
-}
-
-fn particle_transparent_billboard_executor(
-    context: &mut RenderPassExecutionContext<'_>,
-) -> Result<(), String> {
-    context
-        .require_gpu()?
-        .record_particle_billboards_to_resources("scene-color", "scene-depth")
 }
 
 fn assert_captured_frames_equal(actual: &CapturedFrame, expected: &CapturedFrame, label: &str) {

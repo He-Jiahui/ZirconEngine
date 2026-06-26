@@ -4,7 +4,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipel
 
 use super::super::{
     MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassPipelineKind,
-    MeshPassProcessor, MeshPipelineVariantId,
+    MeshPassProcessor,
 };
 
 pub(crate) struct ShadowPassProcessor;
@@ -13,7 +13,7 @@ impl MeshPassProcessor for ShadowPassProcessor {
     fn add_mesh_batch<R>(
         &mut self,
         batch: &MeshBatchRef,
-        _context: &mut MeshPassBuildContext<'_, R>,
+        context: &mut MeshPassBuildContext<'_, R>,
         out: &mut MeshDrawCommandList,
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
@@ -26,10 +26,7 @@ impl MeshPassProcessor for ShadowPassProcessor {
             MeshDrawQueuePhase::Opaque => MeshPassPipelineKind::ShadowDepth,
             MeshDrawQueuePhase::Transparent => return,
         };
-        out.push(batch.command(
-            RenderPhase::Shadow,
-            pipeline_kind,
-            MeshPipelineVariantId::new(0),
-        ));
+        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
+        out.push(batch.command(RenderPhase::Shadow, pipeline_kind, pipeline_variant_id));
     }
 }

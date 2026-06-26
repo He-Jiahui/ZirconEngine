@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::super::for_each_static_plugin_manifest;
-use super::helpers::resolved_package_id;
+use super::package_coordinate_resolution::resolved_package_id;
 
 #[test]
 fn plugin_tomls_declare_unique_resolved_package_ids() {

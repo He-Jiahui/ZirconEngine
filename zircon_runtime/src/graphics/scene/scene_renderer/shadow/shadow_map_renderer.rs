@@ -4,115 +4,26 @@ use bytemuck::bytes_of;
 
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{is_finite_mat4, Mat4};
-use crate::graphics::scene::resources::GpuMeshVertex;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
-    MeshPipelineVariantId, MeshSceneDataBindHandle, GPU_SCENE_BIND_GROUP_SLOT,
+    MeshSceneDataBindHandle,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::plan::ShadowAtlasSlotPass;
-use super::shadow_map_shader_source::SHADOW_MAP_SHADER;
-
-const SHADOW_DEPTH_BIAS_CONSTANT: i32 = 2;
-const SHADOW_DEPTH_BIAS_SLOPE_SCALE: f32 = 2.0;
-const SHADOW_DEPTH_BIAS_CLAMP: f32 = 0.0;
 
 pub(crate) struct ShadowMapRenderer {
-    pipeline: wgpu::RenderPipeline,
-    alpha_mask_pipeline: wgpu::RenderPipeline,
     scene_uniform_buffer: wgpu::Buffer,
     scene_bind_group: wgpu::BindGroup,
 }
 
 impl ShadowMapRenderer {
-    pub(crate) fn new(
-        device: &wgpu::Device,
-        scene_layout: &wgpu::BindGroupLayout,
-        material_layout: &wgpu::BindGroupLayout,
-        gpu_scene_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("zircon-shadow-map-shader"),
-            source: wgpu::ShaderSource::Wgsl(SHADOW_MAP_SHADER.into()),
-        });
-        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("zircon-shadow-map-layout"),
-            bind_group_layouts: &[Some(scene_layout), None, None, Some(gpu_scene_layout)],
-            immediate_size: 0,
-        });
-        debug_assert_eq!(GPU_SCENE_BIND_GROUP_SLOT, 3);
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("zircon-shadow-map-pipeline"),
-            layout: Some(&layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[GpuMeshVertex::layout()],
-            },
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: super::super::core::DEPTH_FORMAT,
-                depth_write_enabled: Some(true),
-                depth_compare: Some(wgpu::CompareFunction::LessEqual),
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState {
-                    constant: SHADOW_DEPTH_BIAS_CONSTANT,
-                    slope_scale: SHADOW_DEPTH_BIAS_SLOPE_SCALE,
-                    clamp: SHADOW_DEPTH_BIAS_CLAMP,
-                },
-            }),
-            multisample: wgpu::MultisampleState::default(),
-            fragment: None,
-            multiview_mask: None,
-            cache: None,
-        });
-        let alpha_mask_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("zircon-shadow-map-alpha-mask-layout"),
-            bind_group_layouts: &[
-                Some(scene_layout),
-                None,
-                Some(material_layout),
-                Some(gpu_scene_layout),
-            ],
-            immediate_size: 0,
-        });
-        let alpha_mask_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("zircon-shadow-map-alpha-mask-pipeline"),
-            layout: Some(&alpha_mask_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[GpuMeshVertex::layout()],
-            },
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: super::super::core::DEPTH_FORMAT,
-                depth_write_enabled: Some(true),
-                depth_compare: Some(wgpu::CompareFunction::LessEqual),
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState {
-                    constant: SHADOW_DEPTH_BIAS_CONSTANT,
-                    slope_scale: SHADOW_DEPTH_BIAS_SLOPE_SCALE,
-                    clamp: SHADOW_DEPTH_BIAS_CLAMP,
-                },
-            }),
-            multisample: wgpu::MultisampleState::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_alpha_mask"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                targets: &[],
-            }),
-            multiview_mask: None,
-            cache: None,
-        });
+    pub(crate) fn new(device: &wgpu::Device, scene_layout: &wgpu::BindGroupLayout) -> Self {
         let scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-shadow-map-scene-uniform"),
             size: std::mem::size_of::<SceneUniform>() as u64,
@@ -129,8 +40,6 @@ impl ShadowMapRenderer {
         });
 
         Self {
-            pipeline,
-            alpha_mask_pipeline,
             scene_uniform_buffer,
             scene_bind_group,
         }
@@ -138,10 +47,12 @@ impl ShadowMapRenderer {
 
     pub(crate) fn record_atlas_commands_with_attachment_ops<'a>(
         &self,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         pass_name: &str,
         atlas_view: &wgpu::TextureView,
+        mesh_pipelines: &mut MeshPipelineCache,
         slot_passes: &[ShadowAtlasSlotPass],
         frame: &ViewportRenderFrame,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
@@ -202,6 +113,8 @@ impl ShadowMapRenderer {
             add_replay_stats(
                 &mut combined,
                 self.replay_shadow_command_stream(
+                    device,
+                    mesh_pipelines,
                     &mut pass,
                     gpu_scene_bind_group,
                     mesh_draw_commands,
@@ -218,27 +131,44 @@ impl ShadowMapRenderer {
 
     fn replay_shadow_command_stream<'pass>(
         &self,
+        device: &wgpu::Device,
+        mesh_pipelines: &mut MeshPipelineCache,
         pass: &mut wgpu::RenderPass<'pass>,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'pass>>,
         mesh_draw_commands: MeshDrawCommandStream<'pass>,
         visible_entities: Option<&BTreeSet<EntityId>>,
     ) -> MeshDrawReplayStats {
         let mut replayer = MeshDrawCommandReplayer::default();
-        let fixed_shadow_variant = MeshPipelineVariantId::new(0);
         replayer.replay_command_stream(pass, mesh_draw_commands, |replayer, pass, command| {
             if visible_entities.is_some_and(|entities| !entities.contains(&command.source_entity)) {
                 return false;
             }
             match command.pipeline_kind {
                 MeshPassPipelineKind::ShadowDepthAlphaMask => {
-                    if replayer.should_set_pipeline(command.pipeline_kind, fixed_shadow_variant) {
-                        pass.set_pipeline(&self.alpha_mask_pipeline);
+                    if replayer.should_set_pipeline(
+                        command.pipeline_kind,
+                        command.pipeline_variant_id,
+                    ) {
+                        let pipeline = mesh_pipelines
+                            .ensure_shadow_pipeline_for_variant(device, command.pipeline_variant_id)
+                            .expect(
+                                "shadow alpha mask command must resolve a cache-backed pipeline variant",
+                            );
+                        pass.set_pipeline(pipeline);
                     }
                     replayer.bind_standard_material_if_needed(pass, command);
                 }
                 MeshPassPipelineKind::ShadowDepth => {
-                    if replayer.should_set_pipeline(command.pipeline_kind, fixed_shadow_variant) {
-                        pass.set_pipeline(&self.pipeline);
+                    if replayer.should_set_pipeline(
+                        command.pipeline_kind,
+                        command.pipeline_variant_id,
+                    ) {
+                        let pipeline = mesh_pipelines
+                            .ensure_shadow_pipeline_for_variant(device, command.pipeline_variant_id)
+                            .expect(
+                                "shadow depth command must resolve a cache-backed pipeline variant",
+                            );
+                        pass.set_pipeline(pipeline);
                     }
                 }
                 _ => return false,
@@ -334,21 +264,6 @@ mod tests {
     };
 
     #[test]
-    fn shadow_map_shader_keeps_opaque_depth_path_and_alpha_mask_cutoff_path() {
-        assert!(super::SHADOW_MAP_SHADER.contains("@vertex"));
-        assert!(super::SHADOW_MAP_SHADER.contains("fn fs_alpha_mask"));
-        assert!(super::SHADOW_MAP_SHADER.contains(
-            "@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;"
-        ));
-        assert!(super::SHADOW_MAP_SHADER.contains("@location(7) uv1: vec2<f32>"));
-        assert!(super::SHADOW_MAP_SHADER.contains(
-            "let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);"
-        ));
-        assert!(super::SHADOW_MAP_SHADER.contains("discard"));
-        assert!(super::SHADOW_MAP_SHADER.contains("shadow_params.y"));
-    }
-
-    #[test]
     fn shadow_atlas_view_filter_keeps_only_visible_source_entities() {
         let commands = vec![test_command(11), test_command(22), test_command(33)];
         let visible_entities = [22, 33].into_iter().collect::<BTreeSet<_>>();
@@ -370,7 +285,7 @@ mod tests {
             RenderPhase::Shadow,
             MeshPassPipelineKind::ShadowDepth,
             default_pipeline_key(),
-            MeshPipelineVariantId::new(0),
+            MeshPipelineVariantId::new(1),
             source_entity,
             DrawInstanceSource::GpuSceneInstance {
                 first_instance_index: 0,

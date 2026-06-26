@@ -1,10 +1,12 @@
 use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::data::{FrameRect, HostMenuChromeItemData, HostWindowPresentationData};
+use super::super::super::menu_popup_metrics::{
+    MENU_POPUP_SHORTCUT_RESERVED_WIDTH, MENU_POPUP_TEXT_INSET_X, MENU_POPUP_TEXT_INSET_Y,
+};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_primitives::{draw_rect_clipped, draw_text_bars_clipped};
 use super::super::super::paint_theme::PALETTE;
-use super::super::{MUTED_TEXT, SEPARATOR};
 use super::geometry::menu_popup_row_frame;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
@@ -27,11 +29,15 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
         if hovered {
             draw_rect_clipped(frame, row_frame.clone(), Some(popup), PALETTE.surface_hover);
         }
-        let text_color = if item.enabled { MUTED_TEXT } else { SEPARATOR };
+        let text_color = if item.enabled {
+            PALETTE.text
+        } else {
+            PALETTE.text_disabled
+        };
         draw_text_bars_clipped(
             frame,
-            row_frame.x + 8.0,
-            row_frame.y + 6.0,
+            row_frame.x + MENU_POPUP_TEXT_INSET_X,
+            row_frame.y + MENU_POPUP_TEXT_INSET_Y,
             item.label.as_str(),
             Some(popup),
             text_color,
@@ -39,8 +45,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
         if !item.shortcut.is_empty() {
             draw_text_bars_clipped(
                 frame,
-                (row_frame.x + row_frame.width - 34.0).max(row_frame.x + 8.0),
-                row_frame.y + 6.0,
+                (row_frame.x + row_frame.width - MENU_POPUP_SHORTCUT_RESERVED_WIDTH)
+                    .max(row_frame.x + MENU_POPUP_TEXT_INSET_X),
+                row_frame.y + MENU_POPUP_TEXT_INSET_Y,
                 item.shortcut.as_str(),
                 Some(popup),
                 text_color,

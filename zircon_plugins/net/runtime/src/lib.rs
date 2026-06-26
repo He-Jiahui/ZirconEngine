@@ -24,8 +24,9 @@ pub use package::{
     NET_RUNTIME_EVENT_NAMESPACE,
 };
 pub use plugin::{
-    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
-    runtime_plugin_descriptor, NetRuntimePlugin, PLUGIN_RUNTIME_MODULE_NAME,
+    package_manifest, plugin_registration, runtime_capabilities, runtime_package_manifest,
+    runtime_plugin, runtime_plugin_descriptor, NetRuntimePlugin, NET_DIST_CRATE_NAME,
+    NET_DIST_RUNTIME_ENTRY, PLUGIN_RUNTIME_MODULE_NAME,
 };
 pub use runtime_system::{
     record_net_diagnostics, register_runtime_systems, NET_DIAGNOSTIC_INBOUND_BYTES,

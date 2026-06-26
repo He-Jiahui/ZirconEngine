@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -22,12 +22,18 @@ impl fmt::Debug for ConfigStore {
 }
 
 impl ConfigStore {
+    fn lock_values(&self) -> MutexGuard<'_, HashMap<String, Value>> {
+        self.values
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn store_value(&self, key: impl Into<String>, value: Value) {
-        self.values.lock().unwrap().insert(key.into(), value);
+        self.lock_values().insert(key.into(), value);
     }
 
     pub fn load_value(&self, key: &str) -> Option<Value> {
-        self.values.lock().unwrap().get(key).cloned()
+        self.lock_values().get(key).cloned()
     }
 
     pub fn store<T: Serialize>(&self, key: impl Into<String>, value: &T) -> Result<(), CoreError> {
@@ -47,6 +53,37 @@ impl ConfigStore {
     }
 
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
-        self.values.lock().unwrap().clone()
+        self.lock_values().clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use super::*;
+
+    fn poison_values_lock(store: &ConfigStore) {
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = store.values.lock().unwrap();
+            panic!("poison config store values lock");
+        }));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn config_store_accessors_recover_poisoned_values_lock() {
+        let store = ConfigStore::default();
+
+        store.store_value("before", Value::from(1));
+        poison_values_lock(&store);
+
+        store.store_value("after", Value::from(2));
+        assert_eq!(store.load_value("before"), Some(Value::from(1)));
+        assert_eq!(store.load::<u64>("after").unwrap(), 2);
+
+        let snapshot = store.snapshot_values();
+        assert_eq!(snapshot.get("before"), Some(&Value::from(1)));
+        assert_eq!(snapshot.get("after"), Some(&Value::from(2)));
     }
 }

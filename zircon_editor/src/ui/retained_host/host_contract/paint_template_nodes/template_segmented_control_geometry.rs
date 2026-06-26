@@ -3,8 +3,8 @@ mod segmented;
 mod tabs;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    segment_group_label_line_height, segment_line_height, tab_line_height, SEGMENT_FONT_SIZE,
-    SEGMENT_GROUP_LABEL_FONT_SIZE, SEGMENT_RADIUS, TAB_FONT_SIZE,
+    segment_font_size, segment_group_label_font_size, segment_group_label_line_height,
+    segment_line_height, segment_radius, tab_font_size, tab_line_height,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use segmented::{
     segment_divider_rect, segment_label_rect, segment_rect, segmented_body_rect,

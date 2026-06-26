@@ -52,6 +52,10 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/plugin.toml
+  - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
+  - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
@@ -115,6 +119,10 @@ implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/plugin.toml
+  - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
+  - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
+  - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
   - zircon_plugins/Cargo.toml
   - tools/plugin_structure_audits/manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
@@ -160,6 +168,8 @@ tests:
   - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-standalone-m2-registration-0623 --message-format short --color never native_dynamic_registration_manifest_round_trips -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features native dist_plugin_one_file_export_compiles --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-sdk: 1 passed, 0 failed on 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --no-default-features --features dist --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m2-t3-fixture: passed 2026-06-23
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sdk --no-default-features --features native dist_plugin_one_file_export_compiles --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-editor-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-25 after adding editor-only dist helper export
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_runtime_diagnostics_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-runtime-diagnostics-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-25, covering `native_dist_editor_plugin_v3!`
 doc_type: module-detail
 ---
 
@@ -180,7 +190,7 @@ Ownership stays split as follows:
 - `zircon_plugin_sdk::runtime_plugin_exports!` owns the standard runtime export helper functions for trait-backed runtime plugins.
 - `zircon_plugin_sdk::editor` owns editor authoring declaration helpers and the `authoring_plugin!` macro for editor plugin boilerplate.
 - `zircon_plugin_sdk::native` owns the author-facing native ABI v3 declarations, callback helpers, SDK-owned byte buffers, entry capability checks, export macros, and registration manifest TOML DTOs. Its feature depends on `zircon_runtime_interface`, `serde`, and `toml`, not the full runtime crate.
-- `zircon_plugin_sdk::dist` owns one-file native distribution macros that project crate-local manifest/callback declarations into ABI v3 descriptor, runtime/editor entries, bridge method tables, and symbol exports.
+- `zircon_plugin_sdk::dist` owns one-file native distribution macros that project crate-local manifest/callback declarations into ABI v3 descriptor, runtime/editor entries, bridge method tables, and symbol exports. It now exposes dual-entry, runtime-only, and editor-only helpers so dist crates can model their real host surface without dummy entries.
 - `zircon_plugin_sdk::test` owns runtime test fixture construction for plugin integration tests. It consumes public runtime/catalog APIs and does not bypass `CoreRuntime` lifecycle registration.
 
 ## Native ABI
@@ -191,7 +201,7 @@ The `native` feature exports ABI v3 structures and helpers for dist plugins. Plu
 - `NativePluginBehaviorV3::registration_manifest` carries the ABI-safe TOML text for module, system, resource, event, extension, and capability declarations.
 - `NativePluginRegistrationManifestV3` plus `registration_manifest_v3_to_toml(...)`, `registration_manifest_v3_from_toml(...)`, and `registration_manifest_v3_schema_is_current(...)` provide the SDK round-trip surface.
 
-The current schema id is `zircon.native.registration-manifest/3`. `native_dynamic_fixture` publishes a runtime registration manifest through this path; Plugins 13 M2/T2 added system bridge replay on the runtime host side, and Plugins 13 M2/T3 moved the fixture's one-file cdylib exports to `zircon_plugin_sdk::dist`.
+The current schema id is `zircon.native.registration-manifest/3`. `native_dynamic_fixture` publishes a runtime registration manifest through this path; Plugins 13 M2/T2 added system bridge replay on the runtime host side, Plugins 13 M2/T3 moved the fixture's one-file cdylib exports to `zircon_plugin_sdk::dist`, and the 2026-06-25 runtime_diagnostics rollout added the editor-only projection path.
 
 ## Manifest Builders
 
@@ -231,7 +241,7 @@ The `native` feature is intentionally lightweight:
 - `NativePluginEntryPointV3` centralizes required/denied capability selection and optional host-ready callbacks.
 - `owned_bytes(...)`, `free_owned_bytes_v2(...)`, `bytes_from_slice(...)`, `callback_status(...)`, and `catch_native_callback_panic(...)` centralize owner-token memory and panic-boundary boilerplate.
 - `export_native_plugin_descriptor_v3!` and `export_native_plugin_entry_v3!` export ABI symbols without hand-writing `#[no_mangle]` functions. `native_command_plugin_v3!` is the simple stateless command-plugin macro for future one-file native authors.
-- `zircon_plugin_sdk::dist::{native_dist_plugin_v3!, native_dist_runtime_plugin_v3!}` generate descriptor/static report/behavior/schema/manifest/bridge-method tables and entry exports from a crate-local declaration. `dist_plugin_one_file_export_compiles` covers descriptor export, runtime entry gating, registration manifest pointer, and bridge table emission.
+- `zircon_plugin_sdk::dist::{native_dist_plugin_v3!, native_dist_runtime_plugin_v3!, native_dist_editor_plugin_v3!}` generate descriptor/static report/behavior/schema/manifest/bridge-method tables and entry exports from a crate-local declaration. `dist_plugin_one_file_export_compiles` covers descriptor export, runtime entry gating, registration manifest pointer, and bridge table emission; `zircon_plugin_runtime_diagnostics_dist` covers editor-only descriptor/editor entry export with no runtime entry.
 
 `zircon_plugin_native_dynamic_fixture_native` now depends on `zircon_plugin_sdk` with `default-features = false, features = ["native"]`. Its source keeps fixture-specific command handling, state save/restore, asset import, bridge tick callback, and host diagnostics, but no longer defines local ABI structs, owner-token free logic, panic hook handling, capability-list parsing, descriptor/report statics, bridge method table statics, or native export functions by hand.
 
@@ -294,7 +304,7 @@ Completed in this area:
 
 - M2/T1 builder baseline for package, module, and runtime declaration builders.
 - M2/T2 first skeleton sample using `zircon_plugin_sdk_examples_editor`, with `plugins_12_crate_skeleton_conformance` keeping that sample clean.
-- M2/T3 native ABI helper feature and macros, with `native_dynamic_fixture` consuming SDK-owned ABI helpers.
+- M2/T3 native ABI helper feature and macros, with `native_dynamic_fixture` consuming SDK-owned runtime ABI helpers and `runtime_diagnostics` consuming the editor-only dist helper.
 - Plugins 13 M2/T1 native registration manifest schema/DTO round-trip for dist registration declarations.
 - M2/T4 editor `authoring_plugin!` macro and first workspace dependency inheritance guard/sample.
 - M2/T5 `plugin_sdk::test::TestRuntime::builder()` fixture with SDK self-tests covering module activation and level ticking.

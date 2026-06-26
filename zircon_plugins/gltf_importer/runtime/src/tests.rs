@@ -26,6 +26,43 @@ fn package_declares_gltf_importer() {
 }
 
 #[test]
+fn package_manifest_declares_gltf_importer_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    let distribution = manifest.distribution.as_ref().expect("dist metadata");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, GLTF_IMPORTER_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(distribution.runtime_entry, GLTF_IMPORTER_DIST_RUNTIME_ENTRY);
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "gltf_importer.dist")
+        .expect("dist native module");
+    assert_eq!(dist_module.crate_name, GLTF_IMPORTER_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert!(manifest
+        .asset_importers
+        .iter()
+        .any(|importer| importer.id == "gltf_importer.gltf"));
+}
+
+#[test]
 fn registration_contributes_module_and_importer() {
     let report = plugin_registration();
 

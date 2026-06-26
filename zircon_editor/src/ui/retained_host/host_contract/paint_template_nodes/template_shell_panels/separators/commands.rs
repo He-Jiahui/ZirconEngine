@@ -49,6 +49,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
                 opacity,
             );
         }
-        ShellPanelKind::WindowRoot | ShellPanelKind::MainBand | ShellPanelKind::DrawerBody => {}
+        ShellPanelKind::WindowRoot
+        | ShellPanelKind::MainBand
+        | ShellPanelKind::ContentPanel
+        | ShellPanelKind::DrawerBody => {}
     }
 }

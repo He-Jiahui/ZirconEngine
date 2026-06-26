@@ -9,8 +9,9 @@ use zircon_runtime::dynamic_api::{
 
 use super::args::{parse, usage};
 use super::manifest::{
-    asset_root_manifest_for_quality_tiers, builtin_fallback_manifest_for_quality_tiers,
-    merge_manifests, read_manifest,
+    asset_root_manifest_with_resource_registry_revisions,
+    builtin_fallback_manifest_for_quality_tiers_and_geometry_sources, merge_manifests,
+    read_manifest, resource_registry::ShaderPrewarmResourceRegistryOverlay,
 };
 
 pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String> {
@@ -23,16 +24,30 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     if args.builtin_fallback {
         manifest = merge_manifests(
             manifest,
-            builtin_fallback_manifest_for_quality_tiers(&args.quality_tiers),
+            builtin_fallback_manifest_for_quality_tiers_and_geometry_sources(
+                &args.quality_tiers,
+                &args.geometry_sources,
+            ),
         )?;
     }
     if let Some(path) = &args.manifest {
         manifest = merge_manifests(manifest, read_manifest(path)?)?;
     }
+    let resource_registry = args
+        .resource_registry
+        .as_deref()
+        .map(ShaderPrewarmResourceRegistryOverlay::read)
+        .transpose()?;
     for asset_root in &args.asset_roots {
         manifest = merge_manifests(
             manifest,
-            asset_root_manifest_for_quality_tiers(asset_root, &args.quality_tiers)?,
+            asset_root_manifest_with_resource_registry_revisions(
+                asset_root,
+                &args.quality_tiers,
+                &args.geometry_sources,
+                &args.shading_model_ids,
+                resource_registry.as_ref(),
+            )?,
         )?;
     }
 

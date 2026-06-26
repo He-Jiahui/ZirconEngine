@@ -3,6 +3,7 @@ mod dimensions;
 mod elevation;
 mod overlay;
 mod state;
+mod surface_roles;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use colors::{
     border_color, surface_color, text_color,

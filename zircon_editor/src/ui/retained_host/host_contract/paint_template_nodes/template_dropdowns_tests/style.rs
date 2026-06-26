@@ -1,5 +1,8 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::style_selector::WORKBENCH_DROPDOWN_FOCUS_BORDER as DROPDOWN_FOCUS_BORDER;
+use super::super::super::style_selector::{
+    WORKBENCH_DROPDOWN_FOCUS_BORDER as DROPDOWN_FOCUS_BORDER,
+    WORKBENCH_DROPDOWN_OPEN_SURFACE as DROPDOWN_OPEN_SURFACE,
+};
 use super::super::style::dropdown_style;
 use super::support::{dropdown_node, resolved_background_and_border};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -35,7 +38,7 @@ fn workbench_dropdown_selector_uses_shared_state_priority() {
         dropdown_visual_state(&pressed_open),
         UiPainterResolvedState::Pressed
     );
-    assert_eq!(dropdown_surface(&pressed_open), [15, 24, 28, 255]);
+    assert_eq!(dropdown_surface(&pressed_open), DROPDOWN_OPEN_SURFACE);
     assert_eq!(dropdown_border(&pressed_open), DROPDOWN_FOCUS_BORDER);
     assert_eq!(
         dropdown_visual_state(&disabled_pressed),

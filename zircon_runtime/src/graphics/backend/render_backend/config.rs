@@ -29,7 +29,7 @@ impl RenderBackendConfig {
         Self {
             backends: backend
                 .map(wgpu::Backends::from_comma_list)
-                .unwrap_or_default(),
+                .unwrap_or(wgpu::Backends::PRIMARY),
             instance_flags,
         }
     }

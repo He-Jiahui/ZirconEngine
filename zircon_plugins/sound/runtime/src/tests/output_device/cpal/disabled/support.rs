@@ -1,3 +1,3 @@
 mod descriptors;
 
-pub(super) use descriptors::{cpal_disabled_descriptor, software_null_recovery_descriptor};
+pub(crate) use descriptors::{cpal_disabled_descriptor, software_null_recovery_descriptor};

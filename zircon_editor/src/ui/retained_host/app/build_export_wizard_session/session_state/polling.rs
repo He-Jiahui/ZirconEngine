@@ -23,20 +23,11 @@ impl DesktopExportWizardSessions {
                 .and_then(|session| session.handle_request(ExportWizardPanelRequest::Poll));
             let changed = match &result {
                 Ok(update) => {
-                    update.events_drained > 0
-                        || before.as_ref() != Some(&update.snapshot)
-                        || self
-                            .last_updates
-                            .get(profile_name.as_str())
-                            .is_some_and(|previous| previous != update)
+                    update.events_drained > 0 || before.as_ref() != Some(&update.snapshot)
                 }
                 Err(_) => true,
             };
             if changed {
-                if let Ok(update) = &result {
-                    self.last_updates
-                        .insert(profile_name.clone(), update.clone());
-                }
                 updates.push((profile_name, result));
             }
         }

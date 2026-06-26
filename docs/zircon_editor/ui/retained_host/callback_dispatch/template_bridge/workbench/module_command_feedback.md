@@ -5,13 +5,21 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
 plan_sources:
   - user: 2026-06-03 Continue the componentized editor workbench; keep layout component-based and make every button visibly responsive
   - docs/ui-and-layout/componentized-workbench-shell.md
@@ -22,6 +30,8 @@ tests:
   - node --check docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - cargo test -p zircon_editor --lib workbench_shared_module_commands_route_feedback_to_active_module_output --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-workbench-preview-0603 --message-format short --color never -- --nocapture --test-threads=1
+  - direct zircon_editor test binary declared_workbench_module_events_dispatch_preview_actions --test-threads=1 --nocapture (2026-06-24: passed)
+  - cargo test -p zircon_editor --lib workbench_toolbar --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: passed, 7 passed / 1 ignored)
 doc_type: module-detail
 ---
 
@@ -36,6 +46,8 @@ The browser prototype has the same semantic boundary in `routes.js`: shared tool
 ## Shared Commands
 
 The top module toolbar exposes one set of shared command controls in `workbench_top_toolbar.zui`: Save, Browse, Compile, Diff, and Simulate. `componentized_window.rs` still handles selection state and special Browse navigation. Once the action is recognized as a Workbench module action, it delegates to `apply_workbench_module_command_feedback(...)`.
+
+The same toolbar asset is also the density authority for the compact Workbench command strip. Its top band is 44 px high, primary command buttons are 30 px high, and `toolbar_layout.rs` mutates the module command group width between compact and full modes so hidden Diff/Simulate controls do not leave visible slack in the 900 px screenshot tier.
 
 The feedback module resolves the active module by reading the selected or checked state of the module tabs. That active module chooses the output row family:
 
@@ -63,3 +75,7 @@ Module-local panel buttons such as Material Compile, Behavior Validate, Assets I
 `workbench_shared_module_commands_route_feedback_to_active_module_output` covers the module-scoped shared toolbar semantics. It selects Material, Behavior, Assets, and VFX, dispatches the same shared Compile command, and asserts that feedback lands on each module's own output row. The same test dispatches Diff and Simulate while VFX is active so the active-module route is not limited to Compile.
 
 `verify-native-module-contract.mjs` also reads this Rust module directly. Its static contract requires the ten module tabs to resolve to the matching native output rows, keeps Save/Compile/Diff/Simulate routed through `active_module`, and links browser module-scoped commands such as `material:compile` and `vfx:compile` to the same native shared command action.
+
+The 2026-06-24 architecture closeout also covers `declared_workbench_module_events_dispatch_preview_actions`. That regression dispatches declared module controls through the componentized Workbench bridge and verifies preview actions reach the retained feedback path. The bridge now reports boolean layout mutation failures as `LayoutMutation { node_id, property, source }`, so invalid node/property failures preserve enough context for diagnosis instead of collapsing into a generic dispatch error.
+
+The 2026-06-26 density pass adds `compact_workbench_toolbar_uses_slate_command_density`, which locks the 44 px toolbar band, 34 px module tabs, 30 px command buttons, 4 px command gaps, and compact command-group width. The follow-up no longer treats toolbar popup placement as a static 44 px asset coordinate: `window_menu_state.rs` computes the open menu frame from the trigger control frame, the toolbar frame bottom, the menu node constraints, and the root frame clamp. It writes both the retained node position and `popup_anchor_*` metadata so render state and native popup state agree. `workbench_toolbar_window_menus_anchor_to_toolbar_controls_across_widths` covers Main, More, Run Mode, and Layout menus across 900/1260/1672 widths. `capture_workbench_module_overflow_visual_artifact --ignored` refreshes `docs/tests/editor/editor-window-m3-workbench-module-overflow-900x620.png` without writing screenshots under Cargo `target`.

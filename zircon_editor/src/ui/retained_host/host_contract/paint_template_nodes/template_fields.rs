@@ -1,6 +1,7 @@
 mod commands;
 mod geometry;
 mod identity;
+mod search;
 mod style;
 mod surface;
 mod text;

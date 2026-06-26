@@ -1,11 +1,11 @@
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_TRACK_HEIGHT:
-    f32 = 3.0;
+    f32 = 4.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_TRACK_RADIUS:
     f32 = 2.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_THUMB_SIZE: f32 =
-    11.0;
+    8.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_THUMB_HALO_SIZE:
-    f32 = 20.0;
+    f32 = 16.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_HORIZONTAL_INSET:
     f32 = 8.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SLIDER_LABEL_WIDTH:

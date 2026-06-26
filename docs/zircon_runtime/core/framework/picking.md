@@ -63,6 +63,11 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/tests/picking/mod.rs
+  - zircon_runtime/src/tests/picking/rays.rs
+  - zircon_runtime/src/tests/picking/hits_and_hover.rs
+  - zircon_runtime/src/tests/picking/diagnostics.rs
+  - zircon_runtime/src/tests/picking/pipeline.rs
+  - zircon_runtime/src/tests/picking/pointer_events.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - cargo test -p zircon_runtime picking --locked
   - cargo test -p zircon_editor viewport --locked
@@ -163,7 +168,15 @@ The M2 editor adapter begins that cutover by converting stacked editor precision
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/picking/mod.rs` covers:
+`zircon_runtime/src/tests/picking/mod.rs` is now a folder-backed parent that keeps shared fixture helpers and mounts:
+
+- `tests/picking/rays.rs` for viewport ray generation, ray-map rebuild, multi-pointer, multi-camera, and viewport aspect coverage,
+- `tests/picking/hits_and_hover.rs` for target priority, backend order, pickability, primitive backend, and hover-map reduction coverage,
+- `tests/picking/diagnostics.rs` for pipeline reports, ray-only rows, blocking targets, and debug-feed metrics,
+- `tests/picking/pipeline.rs` for stage runner ordering, report carry-through, and disabled-frame state clearing,
+- `tests/picking/pointer_events.rs` for hover, click/release, drag/drop/scroll, and cancel event-state sequencing.
+
+Together the child owners cover:
 
 - perspective viewport-center pointer to camera ray conversion,
 - multi-pointer, multi-viewport, active-camera filtering in `RayMap`,
@@ -191,6 +204,7 @@ The M2 editor adapter begins that cutover by converting stacked editor precision
 
 Milestone testing evidence for this slice:
 
+- Runtime 15 M3 picking test folder split on 2026-06-24 moved the 20-test `zircon_runtime/src/tests/picking/mod.rs` body into `tests/picking/{rays,hits_and_hover,diagnostics,pipeline,pointer_events}.rs`; parent is fixture-only, all owners are below 800 lines, and `runtime_15_picking_tests_are_folder_backed` locks the layout. Status: `runtime_15_picking_tests_folder_split_static_passed_cargo_deferred`; scoped rustfmt/static scans, moved-test scan, line-budget scan, docs/status anchor scan, trailing-whitespace scan, and scoped diff-check passed; Cargo was deferred because external cargo/rustc lanes were active.
 - `cargo test -p zircon_runtime picking --locked` passed on 2026-05-08 before review fixes with 4 focused picking tests passing and existing runtime warning noise.
 - During the M2 implementation slice, `cargo fmt` was attempted but stopped on an unrelated locked file handle at `zircon_runtime/tests/native_plugin_loader_contract.rs` with OS error 1224. The touched picking Rust files were then formatted directly with `rustfmt --edition 2021`.
 - Review follow-up validation initially exposed unrelated active blockers in manifest locking, UI pool wiring, asset animation conversion, and scene ECS work outside `zircon_runtime::core::framework::picking`. Those blockers were not fixed from the picking lane except for allowing Cargo to refresh generated lock data already required by active platform/plugin manifest changes.

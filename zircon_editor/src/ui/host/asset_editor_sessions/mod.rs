@@ -11,7 +11,10 @@ mod watcher;
 mod workspace_state;
 
 use crate::ui::template::EditorTemplateRuntimeService;
-use crate::ui::{asset_editor::UiAssetEditorRoute, asset_editor::UiAssetEditorSession};
+use crate::ui::{
+    asset_editor::UiAssetEditorRoute,
+    asset_editor::{UiAssetEditorSession, UiAssetEditorSessionError},
+};
 use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind, v2::UiV2AssetKind};
@@ -34,30 +37,29 @@ pub(super) fn build_ui_asset_editor_session_from_source(
     route: UiAssetEditorRoute,
     source: String,
     preview_size: UiSize,
-) -> Result<UiAssetEditorSession, String> {
+) -> Result<UiAssetEditorSession, UiAssetEditorSessionError> {
     if is_v2_backed_ui_asset_id(&route.asset_id) {
         UiAssetEditorSession::from_v2_source(route, source, preview_size)
     } else {
         UiAssetEditorSession::from_source(route, source, preview_size)
     }
-    .map_err(|error| error.to_string())
 }
 
 pub(super) fn ui_asset_editor_route_from_source(
     asset_id: impl Into<String>,
     source: &str,
     mode: crate::ui::asset_editor::UiAssetEditorMode,
-) -> Result<UiAssetEditorRoute, String> {
+) -> Result<UiAssetEditorRoute, UiAssetEditorSessionError> {
     let asset_id = asset_id.into();
     let asset_kind = if is_v2_backed_ui_asset_id(&asset_id) {
         let document = if is_zui_asset_id(&asset_id) {
-            UiZuiAssetLoader::load_zui_str(source).map_err(|error| error.to_string())?
+            UiZuiAssetLoader::load_zui_str(source)?
         } else {
-            UiV2AssetLoader::load_toml_str(source).map_err(|error| error.to_string())?
+            UiV2AssetLoader::load_toml_str(source)?
         };
         legacy_asset_kind_for_v2(document.asset.kind)
     } else {
-        let document = parse_ui_asset_document_source(source).map_err(|error| error.to_string())?;
+        let document = parse_ui_asset_document_source(source)?;
         document.asset.kind
     };
     Ok(UiAssetEditorRoute::new(asset_id, asset_kind, mode))

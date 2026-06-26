@@ -16,7 +16,7 @@ use zircon_runtime::asset::{
     VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
 use zircon_runtime::core::framework::render::{
-    RenderFrameExtract, RenderFramework, RenderMeshSnapshot, RenderQualityProfile,
+    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderQualityProfile,
     RenderSceneSnapshot, RenderViewportDescriptor, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryCluster,
     RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
@@ -47,6 +47,10 @@ use zircon_runtime::core::math::{view_matrix, Mat4, Transform, UVec2, Vec2, Vec3
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 use zircon_runtime::scene::world::World;
+
+fn default_render_layer_set() -> RenderLayerSet {
+    RenderLayerSet::from_legacy_mask(default_render_layer_mask())
+}
 
 #[test]
 fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visible_clusters() {
@@ -578,7 +582,7 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_mask(),
+        render_layer_mask: default_render_layer_set(),
     }];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
         forced_mip: Some(3),
@@ -960,7 +964,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: default_render_layer_mask(),
+            render_layer_mask: default_render_layer_set(),
         },
     ];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
@@ -1357,7 +1361,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: default_render_layer_mask(),
+            render_layer_mask: default_render_layer_set(),
         },
     ];
     snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
@@ -1770,7 +1774,7 @@ fn automatic_virtual_geometry_frame_extract(
         tint: Vec4::new(0.08, 0.08, 0.08, 1.0),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: default_render_layer_mask(),
+        render_layer_mask: default_render_layer_set(),
     }];
     snapshot.overlays = Default::default();
     snapshot.virtual_geometry_debug = Some(debug);

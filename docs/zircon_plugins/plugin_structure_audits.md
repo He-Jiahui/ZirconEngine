@@ -15,29 +15,65 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - zircon_plugins/asset_importers/data/runtime/src/capability.rs
+  - zircon_plugins/asset_importers/data/plugin.toml
+  - zircon_plugins/asset_importers/data/dist/Cargo.toml
+  - zircon_plugins/asset_importers/data/dist/src/lib.rs
+  - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/model/runtime/src/capability.rs
   - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
   - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
+  - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/src/capability.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
+  - zircon_plugins/gltf_importer/dist/Cargo.toml
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/obj_importer/runtime/src/capability.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
+  - zircon_plugins/obj_importer/plugin.toml
+  - zircon_plugins/obj_importer/dist/Cargo.toml
+  - zircon_plugins/obj_importer/dist/src/lib.rs
+  - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/src/capability.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
+  - zircon_plugins/texture_importer/dist/Cargo.toml
+  - zircon_plugins/texture_importer/dist/src/lib.rs
   - zircon_plugins/audio_importer/runtime/src/capability.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
+  - zircon_plugins/audio_importer/plugin.toml
+  - zircon_plugins/audio_importer/dist/Cargo.toml
+  - zircon_plugins/audio_importer/dist/src/lib.rs
+  - zircon_plugins/opus_importer/plugin.toml
   - zircon_plugins/opus_importer/runtime/src/capability.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
+  - zircon_plugins/opus_importer/dist/Cargo.toml
+  - zircon_plugins/opus_importer/dist/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/plugin.toml
   - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
+  - zircon_plugins/shader_wgsl_importer/dist/Cargo.toml
+  - zircon_plugins/shader_wgsl_importer/dist/src/lib.rs
+  - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/src/capability.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
+  - zircon_plugins/ui_document_importer/dist/Cargo.toml
+  - zircon_plugins/ui_document_importer/dist/src/lib.rs
+  - zircon_plugins/sound/plugin.toml
+  - zircon_plugins/sound/runtime/src/plugin.rs
+  - zircon_plugins/sound/dist/Cargo.toml
+  - zircon_plugins/sound/dist/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/plugin.toml
+  - zircon_plugins/asset_importers/audio/dist/Cargo.toml
+  - zircon_plugins/asset_importers/audio/dist/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
   - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/plugin.toml
+  - zircon_plugins/asset_importers/texture/dist/Cargo.toml
+  - zircon_plugins/asset_importers/texture/dist/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/texture/runtime/src/capability.rs
   - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
   - zircon_plugins/ai/plugin.toml
@@ -80,20 +116,61 @@ related_code:
   - zircon_plugins/texture/plugin.toml
   - zircon_plugins/texture/dist/Cargo.toml
   - zircon_plugins/texture/dist/src/lib.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/dist/Cargo.toml
+  - zircon_plugins/net/dist/src/lib.rs
+  - zircon_plugins/net/runtime/src/plugin.rs
+  - zircon_plugins/net/runtime/src/tests/manifest.rs
+  - zircon_plugins/rendering/plugin.toml
+  - zircon_plugins/rendering/dist/Cargo.toml
+  - zircon_plugins/rendering/dist/src/lib.rs
+  - zircon_plugins/rendering/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/plugin.toml
+  - zircon_plugins/virtual_geometry/dist/Cargo.toml
+  - zircon_plugins/virtual_geometry/dist/src/lib.rs
+  - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/runtime/src/tests.rs
   - zircon_plugins/native_window_hosting/editor/src/capability.rs
   - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
   - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/plugin.toml
+  - zircon_plugins/native_window_hosting/dist/Cargo.toml
+  - zircon_plugins/native_window_hosting/dist/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
   - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/plugin.toml
+  - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
+  - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
   - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
   - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/plugin.toml
+  - zircon_plugins/ui_asset_authoring/dist/Cargo.toml
+  - zircon_plugins/ui_asset_authoring/dist/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/capability.rs
+  - zircon_plugins/material_editor/editor/src/extension_ids.rs
+  - zircon_plugins/material_editor/editor/src/plugin.rs
+  - zircon_plugins/material_editor/plugin.toml
+  - zircon_plugins/material_editor/dist/Cargo.toml
+  - zircon_plugins/material_editor/dist/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/capability.rs
+  - zircon_plugins/animation_graph/editor/src/extension_ids.rs
+  - zircon_plugins/animation_graph/editor/src/plugin.rs
+  - zircon_plugins/animation_graph/plugin.toml
+  - zircon_plugins/animation_graph/dist/Cargo.toml
+  - zircon_plugins/animation_graph/dist/src/lib.rs
   - zircon_plugins/prefab_tools/runtime/src/plugin.rs
   - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/plugin.toml
+  - zircon_plugins/prefab_tools/dist/Cargo.toml
+  - zircon_plugins/prefab_tools/dist/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/authoring.rs
   - zircon_plugins/prefab_tools/editor/src/plugin.rs
   - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/plugin.toml
+  - zircon_plugins/terrain/dist/Cargo.toml
+  - zircon_plugins/terrain/dist/src/lib.rs
   - zircon_plugins/terrain/runtime/src/plugin.rs
   - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_plugins/terrain/editor/src/authoring.rs
@@ -101,6 +178,9 @@ related_code:
   - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
   - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/plugin.toml
+  - zircon_plugins/tilemap_2d/dist/Cargo.toml
+  - zircon_plugins/tilemap_2d/dist/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/authoring.rs
   - zircon_plugins/tilemap_2d/editor/src/plugin.rs
   - zircon_plugins/tilemap_2d/editor/src/tests.rs
@@ -148,6 +228,20 @@ related_code:
   - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
   - zircon_plugins/timeline_sequence/editor/src/plugin.rs
   - zircon_plugins/timeline_sequence/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/dist/Cargo.toml
+  - zircon_plugins/timeline_sequence/dist/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/plugin.toml
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/dist/Cargo.toml
+  - zircon_plugins/editor_build_export_desktop/dist/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/plugin.toml
+  - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
+  - zircon_plugins/plugin_sdk_examples/dist/Cargo.toml
+  - zircon_plugins/plugin_sdk_examples/dist/src/lib.rs
 implementation_files:
   - tools/audit_plugin_structure.py
   - tools/plugin_structure_audits/__init__.py
@@ -164,20 +258,41 @@ implementation_files:
   - zircon_plugins/asset_importers/data/runtime/src/capability.rs
   - zircon_plugins/asset_importers/model/runtime/src/capability.rs
   - zircon_plugins/asset_importers/shader/runtime/src/capability.rs
+  - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/src/capability.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
+  - zircon_plugins/gltf_importer/dist/Cargo.toml
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/obj_importer/runtime/src/capability.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
+  - zircon_plugins/obj_importer/plugin.toml
+  - zircon_plugins/obj_importer/dist/Cargo.toml
+  - zircon_plugins/obj_importer/dist/src/lib.rs
+  - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/src/capability.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
+  - zircon_plugins/texture_importer/dist/Cargo.toml
+  - zircon_plugins/texture_importer/dist/src/lib.rs
   - zircon_plugins/audio_importer/runtime/src/capability.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
+  - zircon_plugins/audio_importer/plugin.toml
+  - zircon_plugins/audio_importer/dist/Cargo.toml
+  - zircon_plugins/audio_importer/dist/src/lib.rs
+  - zircon_plugins/opus_importer/plugin.toml
   - zircon_plugins/opus_importer/runtime/src/capability.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
+  - zircon_plugins/opus_importer/dist/Cargo.toml
+  - zircon_plugins/opus_importer/dist/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/plugin.toml
   - zircon_plugins/shader_wgsl_importer/runtime/src/capability.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/plugin.rs
+  - zircon_plugins/shader_wgsl_importer/dist/Cargo.toml
+  - zircon_plugins/shader_wgsl_importer/dist/src/lib.rs
+  - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/src/capability.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
+  - zircon_plugins/ui_document_importer/dist/Cargo.toml
+  - zircon_plugins/ui_document_importer/dist/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
   - zircon_plugins/asset_importers/audio/runtime/src/capability.rs
   - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
@@ -220,20 +335,61 @@ implementation_files:
   - zircon_plugins/texture/plugin.toml
   - zircon_plugins/texture/dist/Cargo.toml
   - zircon_plugins/texture/dist/src/lib.rs
+  - zircon_plugins/net/plugin.toml
+  - zircon_plugins/net/dist/Cargo.toml
+  - zircon_plugins/net/dist/src/lib.rs
+  - zircon_plugins/net/runtime/src/plugin.rs
+  - zircon_plugins/net/runtime/src/tests/manifest.rs
+  - zircon_plugins/rendering/plugin.toml
+  - zircon_plugins/rendering/dist/Cargo.toml
+  - zircon_plugins/rendering/dist/src/lib.rs
+  - zircon_plugins/rendering/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/plugin.toml
+  - zircon_plugins/virtual_geometry/dist/Cargo.toml
+  - zircon_plugins/virtual_geometry/dist/src/lib.rs
+  - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/runtime/src/tests.rs
   - zircon_plugins/native_window_hosting/editor/src/capability.rs
   - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
   - zircon_plugins/native_window_hosting/editor/src/plugin.rs
+  - zircon_plugins/native_window_hosting/plugin.toml
+  - zircon_plugins/native_window_hosting/dist/Cargo.toml
+  - zircon_plugins/native_window_hosting/dist/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
   - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
+  - zircon_plugins/runtime_diagnostics/plugin.toml
+  - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
+  - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
   - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
   - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
+  - zircon_plugins/ui_asset_authoring/plugin.toml
+  - zircon_plugins/ui_asset_authoring/dist/Cargo.toml
+  - zircon_plugins/ui_asset_authoring/dist/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/capability.rs
+  - zircon_plugins/material_editor/editor/src/extension_ids.rs
+  - zircon_plugins/material_editor/editor/src/plugin.rs
+  - zircon_plugins/material_editor/plugin.toml
+  - zircon_plugins/material_editor/dist/Cargo.toml
+  - zircon_plugins/material_editor/dist/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/capability.rs
+  - zircon_plugins/animation_graph/editor/src/extension_ids.rs
+  - zircon_plugins/animation_graph/editor/src/plugin.rs
+  - zircon_plugins/animation_graph/plugin.toml
+  - zircon_plugins/animation_graph/dist/Cargo.toml
+  - zircon_plugins/animation_graph/dist/src/lib.rs
   - zircon_plugins/prefab_tools/runtime/src/plugin.rs
   - zircon_plugins/prefab_tools/runtime/src/tests.rs
+  - zircon_plugins/prefab_tools/plugin.toml
+  - zircon_plugins/prefab_tools/dist/Cargo.toml
+  - zircon_plugins/prefab_tools/dist/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/authoring.rs
   - zircon_plugins/prefab_tools/editor/src/plugin.rs
   - zircon_plugins/prefab_tools/editor/src/tests.rs
+  - zircon_plugins/terrain/plugin.toml
+  - zircon_plugins/terrain/dist/Cargo.toml
+  - zircon_plugins/terrain/dist/src/lib.rs
   - zircon_plugins/terrain/runtime/src/plugin.rs
   - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_plugins/terrain/editor/src/authoring.rs
@@ -241,6 +397,9 @@ implementation_files:
   - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
   - zircon_plugins/tilemap_2d/runtime/src/tests.rs
+  - zircon_plugins/tilemap_2d/plugin.toml
+  - zircon_plugins/tilemap_2d/dist/Cargo.toml
+  - zircon_plugins/tilemap_2d/dist/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/authoring.rs
   - zircon_plugins/tilemap_2d/editor/src/plugin.rs
   - zircon_plugins/tilemap_2d/editor/src/tests.rs
@@ -288,6 +447,20 @@ implementation_files:
   - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
   - zircon_plugins/timeline_sequence/editor/src/plugin.rs
   - zircon_plugins/timeline_sequence/editor/src/tests.rs
+  - zircon_plugins/timeline_sequence/dist/Cargo.toml
+  - zircon_plugins/timeline_sequence/dist/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/plugin.toml
+  - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
+  - zircon_plugins/editor_build_export_desktop/dist/Cargo.toml
+  - zircon_plugins/editor_build_export_desktop/dist/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/plugin.toml
+  - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
+  - zircon_plugins/plugin_sdk_examples/dist/Cargo.toml
+  - zircon_plugins/plugin_sdk_examples/dist/src/lib.rs
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
   - docs/plans/engine-code-structure-convention.md
@@ -410,6 +583,150 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Hybrid GI dist rollout
   - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=10, standalone_distribution_conformance.dist_build_matrix_count=10, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","particles","physics","solari","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Hybrid GI dist rollout
   - python -m tools.zircon_export plugin build hybrid_gi --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-hybrid-gi --target-dir target\codex-plugin-build-hybrid-gi-target --offline: passed 2026-06-24; emitted `hybrid_gi\hybrid_gi.dll`, `hybrid_gi\native\zircon_plugin_hybrid_gi_dist.dll`, `hybrid_gi\hybrid_gi.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\terrain\runtime\src\plugin.rs zircon_plugins\terrain\runtime\src\lib.rs zircon_plugins\terrain\runtime\src\tests.rs zircon_plugins\terrain\dist\src\lib.rs: passed 2026-06-24 after Terrain dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-terrain-dist-check --message-format short --color never: passed 2026-06-24 and refreshed zircon_plugins/Cargo.lock for the new terrain/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-terrain-dist-test --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_terrain_runtime terrain_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-terrain-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing warning noise after waiting for the first too-broad runtime test attempt to finish
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Terrain dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Terrain dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Terrain dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=11, standalone_distribution_conformance.dist_build_matrix_count=11, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","particles","physics","solari","terrain","texture","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Terrain dist rollout
+  - python -m tools.zircon_export plugin build terrain --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-terrain-final --target-dir target\codex-plugin-build-terrain-target-final --offline: passed 2026-06-24; emitted `terrain\terrain.dll`, `terrain\native\zircon_plugin_terrain_dist.dll`, `terrain\terrain.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\tilemap_2d\runtime\src\plugin.rs zircon_plugins\tilemap_2d\runtime\src\lib.rs zircon_plugins\tilemap_2d\runtime\src\tests.rs zircon_plugins\tilemap_2d\dist\src\lib.rs: passed 2026-06-24 after Tilemap 2D dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_tilemap_2d_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-tilemap-2d-dist-check-locked --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock for the new tilemap_2d/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_tilemap_2d_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-tilemap-2d-dist-test --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_tilemap_2d_runtime tilemap_2d_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-tilemap-2d-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Tilemap 2D dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Tilemap 2D dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Tilemap 2D dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=12, standalone_distribution_conformance.dist_build_matrix_count=12, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","particles","physics","solari","terrain","texture","tilemap_2d","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Tilemap 2D dist rollout
+  - python -m tools.zircon_export plugin build tilemap_2d --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-tilemap-2d-final --target-dir target\codex-plugin-build-tilemap-2d-target-final --offline: passed 2026-06-24; emitted `tilemap_2d\tilemap_2d.dll`, `tilemap_2d\native\zircon_plugin_tilemap_2d_dist.dll`, `tilemap_2d\tilemap_2d.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\prefab_tools\dist\src\lib.rs zircon_plugins\prefab_tools\runtime\src\plugin.rs zircon_plugins\prefab_tools\runtime\src\lib.rs zircon_plugins\prefab_tools\runtime\src\tests.rs: passed 2026-06-24 after Prefab Tools dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-prefab-tools-dist-check-locked --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock for the new prefab_tools/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-prefab-tools-dist-test --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_prefab_tools_runtime prefab_tools_package_manifest_declares_dist_contract --offline --locked --target-dir target\codex-plugin-prefab-tools-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m tools.zircon_export plugin build prefab_tools --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-prefab-tools-final --target-dir target\codex-plugin-build-prefab-tools-target-final --offline: passed 2026-06-24; emitted `prefab_tools\prefab_tools.dll`, `prefab_tools\native\zircon_plugin_prefab_tools_dist.dll`, `prefab_tools\prefab_tools.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\net\dist\src\lib.rs zircon_plugins\net\runtime\src\plugin.rs zircon_plugins\net\runtime\src\lib.rs zircon_plugins\net\runtime\src\tests\manifest.rs: passed 2026-06-24 after Net dist rollout
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_net_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-net-dist-check-locked --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock for the new net/dist workspace member
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_net_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-net-dist-test --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_net_runtime net_package_manifest_declares_dist_contract --offline --target-dir target\codex-plugin-net-runtime-test --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m py_compile tools\audit_plugin_structure.py tools\zircon_export\cli.py tools\zircon_export\plugin_build.py: passed 2026-06-24 after Net dist rollout
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Net dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Net dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=14, standalone_distribution_conformance.dist_build_matrix_count=14, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","solari","terrain","texture","tilemap_2d","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0 on 2026-06-24 after Net dist rollout
+  - python -m tools.zircon_export plugin build net --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-net-final --target-dir target\codex-plugin-build-net-target-final --offline: passed 2026-06-24; emitted `net\net.dll`, `net\native\zircon_plugin_net_dist.dll`, `net\net.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\rendering\dist\src\lib.rs zircon_plugins\rendering\runtime\src\plugin.rs zircon_plugins\rendering\runtime\src\lib.rs zircon_plugins\virtual_geometry\dist\src\lib.rs zircon_plugins\virtual_geometry\runtime\src\plugin.rs zircon_plugins\virtual_geometry\runtime\src\lib.rs zircon_plugins\virtual_geometry\runtime\src\tests.rs: passed 2026-06-24 after Rendering and Virtual Geometry dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_rendering_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-rendering-dist-check: passed 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_rendering_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-rendering-dist-test --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_rendering_runtime rendering_package_manifest_declares_dist_contract --offline --target-dir target\codex-plugin-rendering-runtime-test-2 --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing zircon_runtime warning noise
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_dist --no-default-features --features dist --offline --target-dir target\codex-plugin-virtual-geometry-dist-check: passed 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_dist --no-default-features --features dist --offline --locked --target-dir target\codex-plugin-virtual-geometry-dist-test-2 --message-format short --color never: 2 passed, 0 failed on 2026-06-24
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --offline --target-dir target\codex-plugin-virtual-geometry-runtime-check --message-format short --color never: passed 2026-06-24 with existing warning noise
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime virtual_geometry_package_manifest_declares_dist_contract --offline --target-dir target\codex-plugin-virtual-geometry-runtime-test-2 --message-format short --color never -- --test-threads=1 --nocapture: blocked before target focused test by unrelated render test fixture drift (`RenderMeshSnapshot` missing fields, `RenderLayerSet` mask type drift, missing `RenderQualityProfile::with_history_resolve`); not counted as passing
+  - python -m unittest discover -s tools/tests -p test_plugin_standalone_ci_matrix.py: 1 passed, 0 failed on 2026-06-24 after Rendering and Virtual Geometry dist rollout
+  - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-24 after Rendering and Virtual Geometry dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=16, standalone_distribution_conformance.dist_build_matrix_count=16, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after Rendering and Virtual Geometry dist rollout
+  - python -m tools.zircon_export plugin build rendering --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-rendering-final --target-dir target\codex-plugin-build-rendering-target-final --offline: passed 2026-06-24; emitted `rendering\rendering.dll`, `rendering\native\zircon_plugin_rendering_dist.dll`, `rendering\rendering.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - python -m tools.zircon_export plugin build virtual_geometry --form dist --repo-root E:\Git\ZirconEngine --out target\codex-plugin-build-virtual-geometry-final --target-dir target\codex-plugin-build-virtual-geometry-target-final --offline: passed 2026-06-24; emitted `virtual_geometry\virtual_geometry.dll`, `virtual_geometry\native\zircon_plugin_virtual_geometry_dist.dll`, `virtual_geometry\virtual_geometry.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\asset_importers\data\runtime\src\lib.rs zircon_plugins\asset_importers\data\runtime\src\plugin.rs zircon_plugins\asset_importers\data\dist\src\lib.rs: passed 2026-06-24 after asset_importer.data dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_data_dist --no-default-features --features dist --offline --target-dir D:\cargo-targets\zircon-plugin-asset-importer-data-dist-0624 --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock for the new data/dist workspace member; locked rerun passed
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_data_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-data-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_data_runtime data_asset_importer_package_manifest_declares_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-data-runtime-0624 --message-format short --color never -- --test-threads=1 --nocapture: 1 passed, 0 failed on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after asset_importer.data CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=17, standalone_distribution_conformance.dist_build_matrix_count=17, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.data","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after asset_importer.data dist rollout
+  - python -m tools.zircon_export plugin build asset_importer.data --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-asset-importer-data-package-0624 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-data-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `asset_importer_data.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\asset_importers\model\runtime\src\lib.rs zircon_plugins\asset_importers\model\runtime\src\plugin.rs zircon_plugins\asset_importers\model\runtime\src\tests\registration.rs zircon_plugins\asset_importers\model\dist\src\lib.rs: passed 2026-06-24 after asset_importer.model dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-model-dist-0624 --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock with the new model/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-model-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime model_asset_importer_package_manifest_declares_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-model-runtime-0624 --message-format short --color never -- --test-threads=1 --nocapture: first 604s compile attempt timed out without a test result, rerun passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after asset_importer.model CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=18, standalone_distribution_conformance.dist_build_matrix_count=18, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.data","asset_importer.model","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after asset_importer.model dist rollout
+  - python -m tools.zircon_export plugin build asset_importer.model --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-asset-importer-model-package-0624 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-model-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `asset_importer_model.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\asset_importers\shader\runtime\src\lib.rs zircon_plugins\asset_importers\shader\runtime\src\plugin.rs zircon_plugins\asset_importers\shader\dist\src\lib.rs: passed 2026-06-24 after asset_importer.shader dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_shader_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-shader-dist-0624 --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock with the new shader/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_shader_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-shader-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_shader_runtime shader_asset_importer_package_manifest_declares_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-shader-runtime-0624 --message-format short --color never -- --test-threads=1 --nocapture: first 904s compile attempt timed out without a test result and residual cargo/rustc processes were stopped, rerun with CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after asset_importer.shader CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=19, standalone_distribution_conformance.dist_build_matrix_count=19, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.data","asset_importer.model","asset_importer.shader","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after asset_importer.shader dist rollout
+  - python -m tools.zircon_export plugin build asset_importer.shader --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-asset-importer-shader-package-0624 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-shader-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `asset_importer_shader.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\asset_importers\audio\runtime\src\lib.rs zircon_plugins\asset_importers\audio\runtime\src\plugin.rs zircon_plugins\asset_importers\audio\dist\src\lib.rs: passed 2026-06-24 after asset_importer.audio dist rollout
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_audio_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-audio-dist-0624 --message-format short --color never: passed 2026-06-24 after refreshing zircon_plugins/Cargo.lock with the new audio/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_audio_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-audio-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_audio_runtime audio_asset_importer_package_manifest_declares_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-audio-runtime-0624 --message-format short --color never -- --test-threads=1 --nocapture: first 604s compile attempt timed out without a test result and residual cargo/rustc processes were stopped, rerun with CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after asset_importer.audio CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=20, standalone_distribution_conformance.dist_build_matrix_count=20, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after asset_importer.audio dist rollout
+  - python -m tools.zircon_export plugin build asset_importer.audio --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-asset-importer-audio-package-0624 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-audio-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `asset_importer_audio.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\asset_importers\texture\runtime\src\lib.rs zircon_plugins\asset_importers\texture\runtime\src\plugin.rs zircon_plugins\asset_importers\texture\dist\src\lib.rs: passed 2026-06-24 after asset_importer.texture dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-24 after adding the asset_importer.texture/dist workspace member
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_texture_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-texture-dist-0624 --message-format short --color never: passed 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_texture_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-texture-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_texture_runtime texture_asset_importer_package_manifest_declares_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-texture-runtime-0624-nodebug --message-format short --color never -- --test-threads=1 --nocapture: first parallel compile attempt timed out after 1204s without a test result, rerun with CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after asset_importer.texture CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=21, standalone_distribution_conformance.dist_build_matrix_count=21, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after asset_importer.texture dist rollout
+  - python -m tools.zircon_export plugin build asset_importer.texture --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-asset-importer-texture-package-0624 --target-dir D:\cargo-targets\zircon-plugin-asset-importer-texture-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `asset_importer_texture.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\audio_importer\runtime\src\plugin.rs zircon_plugins\audio_importer\runtime\src\lib.rs zircon_plugins\audio_importer\dist\src\lib.rs: passed 2026-06-24 after audio_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-24 after adding the audio_importer/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_audio_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-audio-importer-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_audio_importer_runtime package_manifest_declares_audio_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-audio-importer-runtime-0624-nodebug --message-format short --color never -- --test-threads=1 --nocapture: first cold compile command exited without a target test result after dependency compilation and left same target-dir cargo processes; residual process overlap was cleared, then rerun passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after audio_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=22, standalone_distribution_conformance.dist_build_matrix_count=22, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","audio_importer","hybrid_gi","native_dynamic_fixture","navigation","net","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after audio_importer dist rollout
+  - python -m tools.zircon_export plugin build audio_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-audio-importer-package-0624 --target-dir D:\cargo-targets\zircon-plugin-audio-importer-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `audio_importer.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 --check zircon_plugins\obj_importer\runtime\src\plugin.rs zircon_plugins\obj_importer\runtime\src\lib.rs zircon_plugins\obj_importer\dist\src\lib.rs: passed 2026-06-24 after obj_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-24 after adding the obj_importer/dist workspace member
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_obj_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-obj-importer-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_obj_importer_runtime package_manifest_declares_obj_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-obj-importer-runtime-0624-nodebug --message-format short --color never -- --test-threads=1 --nocapture: two cold compile attempts timed out without target test result, residual cargo process was allowed to finish, then rerun with CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after obj_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=23, standalone_distribution_conformance.dist_build_matrix_count=23, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","audio_importer","hybrid_gi","native_dynamic_fixture","navigation","net","obj_importer","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after obj_importer dist rollout
+  - cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1: passed 2026-06-24 and includes zircon_plugin_obj_importer_dist
+  - python -m tools.zircon_export plugin build obj_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-obj-importer-package-0624 --target-dir D:\cargo-targets\zircon-plugin-obj-importer-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `obj_importer.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 --check zircon_plugins\gltf_importer\runtime\src\plugin.rs zircon_plugins\gltf_importer\runtime\src\lib.rs zircon_plugins\gltf_importer\runtime\src\tests.rs zircon_plugins\gltf_importer\dist\src\lib.rs: passed 2026-06-24 after gltf_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-24 after adding the gltf_importer/dist workspace member
+  - cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1: passed 2026-06-24 and includes zircon_plugin_gltf_importer_dist
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_gltf_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-gltf-importer-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-24
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_gltf_importer_runtime package_manifest_declares_gltf_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-gltf-importer-runtime-0624-nodebug --message-format short --color never -- --test-threads=1 --nocapture: first long compile attempt timed out before target test result and a follow-up run exposed/fixed the PluginModuleKind assertion, then rerun with CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-24 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-24 after gltf_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=24, standalone_distribution_conformance.dist_build_matrix_count=24, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","audio_importer","gltf_importer","hybrid_gi","native_dynamic_fixture","navigation","net","obj_importer","particles","physics","prefab_tools","rendering","solari","terrain","texture","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-24 after gltf_importer dist rollout
+  - python -m tools.zircon_export plugin build gltf_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-gltf-importer-package-0624 --target-dir D:\cargo-targets\zircon-plugin-gltf-importer-build-0624 --offline: passed 2026-06-24; emitted root loadable, native loader-compatible copy, `gltf_importer.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 --check zircon_plugins\texture_importer\runtime\src\plugin.rs zircon_plugins\texture_importer\runtime\src\lib.rs zircon_plugins\texture_importer\runtime\src\tests\registration.rs zircon_plugins\texture_importer\dist\src\lib.rs: passed 2026-06-25 after texture_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-25 after adding the texture_importer/dist workspace member
+  - cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1: passed 2026-06-25 and includes zircon_plugin_texture_importer_dist
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-texture-importer-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-25
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_importer_runtime package_manifest_declares_texture_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-texture-importer-runtime-0625-nodebug --message-format short --color never -- --test-threads=1 --nocapture: first two 305s compile attempts timed out before target test result, then rerun with a 20-minute timeout and CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 on 2026-06-25 with existing zircon_runtime warning noise
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after texture_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=25, standalone_distribution_conformance.dist_build_matrix_count=25, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","audio_importer","gltf_importer","hybrid_gi","native_dynamic_fixture","navigation","net","obj_importer","particles","physics","prefab_tools","rendering","solari","terrain","texture","texture_importer","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after texture_importer dist rollout
+  - python -m tools.zircon_export plugin build texture_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-texture-importer-package-0625 --target-dir D:\cargo-targets\zircon-plugin-texture-importer-build-0625 --offline: passed 2026-06-25; emitted root loadable, native loader-compatible copy, `texture_importer.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 --check zircon_plugins\opus_importer\runtime\src\plugin.rs zircon_plugins\opus_importer\runtime\src\lib.rs zircon_plugins\opus_importer\dist\src\lib.rs: passed 2026-06-25 after opus_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-25 after adding the opus_importer/dist workspace member
+  - cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1: passed 2026-06-25 and includes zircon_plugin_opus_importer_dist
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_opus_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-opus-importer-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-25
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_opus_importer_runtime package_manifest_declares_opus_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-opus-importer-runtime-0625-nodebug --message-format short --color never -- --test-threads=1 --nocapture: attempted 2026-06-25; blocked before target test result by concurrent external zircon_runtime Cargo/rustc lanes returning Windows -1/4294967295 without Rust error diagnostics, so this focused runtime test is not counted as passed
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after opus_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=26, standalone_distribution_conformance.dist_build_matrix_count=26, standalone_distribution_conformance.dist_capable_plugins=["ai","animation","asset_importer.audio","asset_importer.data","asset_importer.model","asset_importer.shader","asset_importer.texture","audio_importer","gltf_importer","hybrid_gi","native_dynamic_fixture","navigation","net","obj_importer","opus_importer","particles","physics","prefab_tools","rendering","solari","terrain","texture","texture_importer","tilemap_2d","virtual_geometry","zr_vm_language"], standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after opus_importer dist rollout
+  - python -m tools.zircon_export plugin build opus_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-opus-importer-package-0625 --target-dir D:\cargo-targets\zircon-plugin-opus-importer-dist-0625 --offline: passed 2026-06-25; emitted root loadable, native loader-compatible copy, `opus_importer.sig`, `native_plugins.toml`, and `plugins\native_plugins.toml`
+  - rustfmt --edition 2021 zircon_plugins\shader_wgsl_importer\runtime\src\plugin.rs zircon_plugins\shader_wgsl_importer\runtime\src\lib.rs zircon_plugins\shader_wgsl_importer\dist\src\lib.rs zircon_plugins\ui_document_importer\runtime\src\plugin.rs zircon_plugins\ui_document_importer\runtime\src\lib.rs zircon_plugins\ui_document_importer\dist\src\lib.rs: passed 2026-06-25 after shader_wgsl_importer/ui_document_importer dist rollout
+  - cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml --offline: passed 2026-06-25 after adding shader_wgsl_importer/dist and ui_document_importer/dist workspace members
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_shader_wgsl_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-shader-wgsl-importer-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-25
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-ui-document-importer-dist-0625 --message-format short --color never -- --test-threads=1 --nocapture: 2 passed, 0 failed on 2026-06-25
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after shader_wgsl_importer/ui_document_importer CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=28, standalone_distribution_conformance.dist_build_matrix_count=28, standalone_distribution_conformance.dist_capable_plugins includes shader_wgsl_importer and ui_document_importer, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after shader_wgsl_importer/ui_document_importer dist rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=29, standalone_distribution_conformance.dist_build_matrix_count=29, standalone_distribution_conformance.dist_capable_plugins includes sound, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after sound dist rollout
+  - python -m py_compile tools\plugin_structure_audits\dependency_boundary.py: passed 2026-06-25 after editor-only runtime_diagnostics distribution entry validation
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=30, standalone_distribution_conformance.dist_build_matrix_count=30, standalone_distribution_conformance.dist_capable_plugins includes runtime_diagnostics, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after runtime_diagnostics editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after native_window_hosting CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=31, standalone_distribution_conformance.dist_build_matrix_count=31, standalone_distribution_conformance.dist_capable_plugins includes native_window_hosting, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after native_window_hosting editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after ui_asset_authoring CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=32, standalone_distribution_conformance.dist_build_matrix_count=32, standalone_distribution_conformance.dist_capable_plugins includes ui_asset_authoring, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after ui_asset_authoring editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after material_editor CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=33, standalone_distribution_conformance.dist_build_matrix_count=33, standalone_distribution_conformance.dist_capable_plugins includes material_editor, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after material_editor editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after animation_graph CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=34, standalone_distribution_conformance.dist_build_matrix_count=34, standalone_distribution_conformance.dist_capable_plugins includes animation_graph, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after animation_graph editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after timeline_sequence CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=35, standalone_distribution_conformance.dist_build_matrix_count=35, standalone_distribution_conformance.dist_capable_plugins includes timeline_sequence, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after timeline_sequence editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after editor_build_export_desktop CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=36, standalone_distribution_conformance.dist_build_matrix_count=36, standalone_distribution_conformance.dist_capable_plugins includes editor_build_export_desktop, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after editor_build_export_desktop editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after plugin_sdk_examples CI matrix rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=37, standalone_distribution_conformance.dist_build_matrix_count=37, standalone_distribution_conformance.dist_capable_plugins includes plugin_sdk_examples, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after plugin_sdk_examples editor-only dist rollout
+  - plugin.toml distribution scan across zircon_plugins roots: count=0 on 2026-06-25 after plugin_sdk_examples editor-only dist rollout
 doc_type: module-detail
 ---
 
@@ -419,7 +736,7 @@ doc_type: module-detail
 
 The first landed audit is `plugin_manifest_schema_uniform`. It derives expected plugin roots from `zircon_plugins/Cargo.toml`, skips workspace support crates that are not plugins (`editor_support`, `first_party_runtime_catalog`, and `plugin_sdk`), folds `features/*` members back to their parent plugin, and treats `asset_importers/<kind>/runtime` as separate importer plugin roots. The current expected manifest set is 37 roots.
 
-Plugins 12 M2/T2 adds `skeleton_conformance`. It uses the same expected plugin root set, checks the first blessed sample root `plugin_sdk_examples`, and classifies non-sample violations as migration debt instead of failing the M2 sample gate. The 2026-06-23 M5/T1 importer capability-owner slice removed 10 importer runtime roots from that debt list, the follow-up runtime-only skeleton owner slice removed `ai`, `solari`, `zr_vm_language`, `asset_importers/audio`, and `asset_importers/texture`, the editor-only skeleton owner slice removed `native_window_hosting`, `runtime_diagnostics`, and `ui_asset_authoring`, the authoring runtime/editor skeleton owner slice removed `prefab_tools`, `terrain`, and `tilemap_2d`, the particles/physics/texture skeleton owner slice removed `particles`, `physics`, and `texture`, the editor_build_export_desktop skeleton owner slice removed `editor_build_export_desktop`, the sound skeleton owner slice removed `sound`, the timeline_sequence skeleton owner slice removed `timeline_sequence`, and final owner rollout removed `animation`, `animation_graph`, `hybrid_gi`, `material_editor`, `navigation`, `net`, `rendering`, and `virtual_geometry`; current `plugin_skeleton_gate.m2_gate_status` is `sample-clean-migration-debt-clear`, `migration_debt_count` is 0, and `migration_debt_roots` is empty. Plugins 13 dependency-boundary audit currently reports ten dist-capable plugins, `ai`, `animation`, `hybrid_gi`, `native_dynamic_fixture`, `navigation`, `particles`, `physics`, `solari`, `texture`, and `zr_vm_language`, with `dist_build_matrix_count = 10` and `dist_dependency_boundary_violations = 0`.
+Plugins 12 M2/T2 adds `skeleton_conformance`. It uses the same expected plugin root set, checks the first blessed sample root `plugin_sdk_examples`, and classifies non-sample violations as migration debt instead of failing the M2 sample gate. The 2026-06-23 M5/T1 importer capability-owner slice removed 10 importer runtime roots from that debt list, the follow-up runtime-only skeleton owner slice removed `ai`, `solari`, `zr_vm_language`, `asset_importers/audio`, and `asset_importers/texture`, the editor-only skeleton owner slice removed `native_window_hosting`, `runtime_diagnostics`, and `ui_asset_authoring`, the authoring runtime/editor skeleton owner slice removed `prefab_tools`, `terrain`, and `tilemap_2d`, the particles/physics/texture skeleton owner slice removed `particles`, `physics`, and `texture`, the editor_build_export_desktop skeleton owner slice removed `editor_build_export_desktop`, the sound skeleton owner slice removed `sound`, the timeline_sequence skeleton owner slice removed `timeline_sequence`, and final owner rollout removed `animation`, `animation_graph`, `hybrid_gi`, `material_editor`, `navigation`, `net`, `rendering`, and `virtual_geometry`; current `plugin_skeleton_gate.m2_gate_status` is `sample-clean-migration-debt-clear`, `migration_debt_count` is 0, and `migration_debt_roots` is empty. Plugins 13 dependency-boundary audit currently reports thirty-seven dist-capable plugins, including the latest editor-only `editor_build_export_desktop` and `plugin_sdk_examples` rollouts, with `dist_build_matrix_count = 37`, `dist_dependency_boundary_violations = 0`, and `distribution_section_violations = 0`; a direct `plugin.toml` distribution scan also reports `count=0`. The `[distribution]` section check still requires `engine_compat`, `dist_crate`, and `descriptor_symbol`, but runtime/editor entry validation now accepts at least one of `runtime_entry` or `editor_entry` so editor-only dist plugins remain first-class without fake runtime exports.
 
 Plugins 12 M3/T1 adds `registration_conformance` for both importer tracks. The first slice covered the `asset_importers/*` family; the follow-up extends the same scan to root-level split importer packages. It scans runtime source files outside tests for public `pub fn register(...)` free functions and for `runtime/src/registration.rs` owner files.
 

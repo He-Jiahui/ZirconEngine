@@ -201,12 +201,7 @@ impl EventBus {
                         (false, false, false) => false,
                     }
                 }
-                [
-                    first_subscriber,
-                    second_subscriber,
-                    third_subscriber,
-                    fourth_subscriber,
-                ] => {
+                [first_subscriber, second_subscriber, third_subscriber, fourth_subscriber] => {
                     let first_failed =
                         Self::subscriber_failed(first_subscriber, failed_subscribers);
                     let second_failed =
@@ -346,13 +341,8 @@ impl EventBus {
                         (false, false, false, false) => false,
                     }
                 }
-                [
-                    first_subscriber,
-                    second_subscriber,
-                    third_subscriber,
-                    fourth_subscriber,
-                    fifth_subscriber,
-                ] => {
+                [first_subscriber, second_subscriber, third_subscriber, fourth_subscriber, fifth_subscriber] =>
+                {
                     let first_failed =
                         Self::subscriber_failed(first_subscriber, failed_subscribers);
                     let second_failed =

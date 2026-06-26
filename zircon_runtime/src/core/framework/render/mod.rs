@@ -202,14 +202,18 @@ pub use scene_extract::{
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
-    GeometrySourceId, RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderDefinitionValue, RenderShaderDependency,
-    RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
-    RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-    ShaderVariantMissReport, ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest,
-    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, GEOMETRY_SOURCE_ID_MORPHED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START,
+    builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
+    GeometrySourceDescriptor, GeometrySourceId, RenderShaderBindGroupLayoutDescriptor,
+    RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
+    RenderShaderDependency, RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor,
+    RenderShaderStage, RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType,
+    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport, ShaderVariantPrewarmFailure,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
 };
 pub use shadow::RenderShadowExecutionReport;
 pub use solari::{

@@ -1,5 +1,8 @@
 use crate::core::framework::render::RenderPhase;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{MeshBatchRef, MeshDrawCommand};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    MeshBatchRef, MeshDrawCommand, MeshPassBuildContext,
+};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::{non_material_rebuild, PendingMeshCommandCacheExtractionStats};
 
@@ -10,12 +13,16 @@ enum PendingMeshCommandCacheResidualReason {
     RebuildRejected,
 }
 
-pub(super) fn rebuild_non_material_command_or_record_residual(
+pub(super) fn rebuild_non_material_command_or_record_residual<R>(
     rebuild_batch_for_phase: &mut impl FnMut(RenderPhase) -> Option<MeshBatchRef>,
     phase: RenderPhase,
+    build_context: &mut MeshPassBuildContext<'_, R>,
     extraction_stats: &mut Option<&mut PendingMeshCommandCacheExtractionStats>,
-) -> Option<MeshDrawCommand> {
-    match rebuild_non_material_command(rebuild_batch_for_phase, phase) {
+) -> Option<MeshDrawCommand>
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    match rebuild_non_material_command(rebuild_batch_for_phase, phase, build_context) {
         Ok(command) => Some(command),
         Err(reason) => {
             record_residual_reason(extraction_stats, reason);
@@ -24,16 +31,20 @@ pub(super) fn rebuild_non_material_command_or_record_residual(
     }
 }
 
-fn rebuild_non_material_command(
+fn rebuild_non_material_command<R>(
     rebuild_batch_for_phase: &mut impl FnMut(RenderPhase) -> Option<MeshBatchRef>,
     phase: RenderPhase,
-) -> Result<MeshDrawCommand, PendingMeshCommandCacheResidualReason> {
+    build_context: &mut MeshPassBuildContext<'_, R>,
+) -> Result<MeshDrawCommand, PendingMeshCommandCacheResidualReason>
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
     if !non_material_rebuild::can_rebuild_non_material_command_phase(phase) {
         return Err(PendingMeshCommandCacheResidualReason::MaterialPhase);
     }
     let rebuild_batch = rebuild_batch_for_phase(phase)
         .ok_or(PendingMeshCommandCacheResidualReason::RebuildInputMissing)?;
-    non_material_rebuild::rebuild_non_material_command(&rebuild_batch, phase)
+    non_material_rebuild::rebuild_non_material_command(&rebuild_batch, phase, build_context)
         .ok_or(PendingMeshCommandCacheResidualReason::RebuildRejected)
 }
 

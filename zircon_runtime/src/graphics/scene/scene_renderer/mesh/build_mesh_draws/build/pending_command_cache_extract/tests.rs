@@ -102,6 +102,10 @@ fn pending_command_cache_extract_rebuilds_shadow_only_miss_before_mesh_draw() {
         extracted.commands[0].pipeline_kind,
         MeshPassPipelineKind::ShadowDepth
     );
+    assert_ne!(
+        extracted.commands[0].pipeline_variant_id,
+        MeshPipelineVariantId::new(0)
+    );
     assert_eq!(extracted.cache_stats.cache_miss_count, 1);
     assert_eq!(extracted.cache_stats.command_rebuild_count, 1);
     assert_eq!(cache.len(), 1);

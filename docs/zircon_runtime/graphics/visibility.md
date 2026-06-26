@@ -1,5 +1,10 @@
 ---
 related_code:
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility/virtual_geometry_page_plan.rs
+  - zircon_runtime/src/graphics/tests/visibility/virtual_geometry_frontier.rs
+  - zircon_runtime/src/graphics/tests/visibility/virtual_geometry_priority.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_visibility_virtual_geometry_tests.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
@@ -20,6 +25,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_visibility_context_construct_tests.rs
   - zircon_runtime/src/graphics/visibility/planning/build_draw_commands.rs
   - zircon_runtime/src/graphics/visibility/culling/visibility_entries.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
@@ -244,13 +251,14 @@ tests:
   - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_keeps_shadow_eligibility_separate_from_main_view_layers
   - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs::tests::parallel_frustum_visibility_matches_serial_order_and_results
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_records_relevance_and_filters_main_view_layers
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_batch_key_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_records_relevance_and_filters_main_view_layers
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_batch_key_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_scene_world_render_visibility_input_is_child_owner
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_shadow_view_independent_from_main_layers
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_shadow_views_for_atlas_light_slots
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_builds_custom_target_view_from_camera_descriptors
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_builds_shadow_view_independent_from_main_layers
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_builds_shadow_views_for_atlas_light_slots
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_builds_custom_target_view_from_camera_descriptors
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_visibility_context_construct_tests.rs::runtime_15_visibility_context_construct_tests_are_child_owner
   - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs::tests::frame_submission_context_exposes_view_visibility_by_key
@@ -294,9 +302,9 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_builds_compaction_plan_from_uploaded_args
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs::tests::visibility_static_index_incremental_update_matches_full_rebuild_queries
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs::tests::visibility_static_index_full_rebuild_strategy_replaces_existing_rows
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_reuses_static_index_without_frame_rebuild
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_rebuilds_static_index_when_previous_index_is_missing
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs::tests::visibility_context_uses_static_index_prefilter_above_threshold
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_reuses_static_index_without_frame_rebuild
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_rebuilds_static_index_when_previous_index_is_missing
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_uses_static_index_prefilter_above_threshold
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::update_visibility_static_index_stats_records_latest_report
   - zircon_runtime/src/graphics/tests/render_framework_visibility_submit.rs::render_framework_reuses_static_index_and_reports_main_view_prefilter
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs::render_product_hzb_occlusion_wall_scene
@@ -314,7 +322,7 @@ tests:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::update_hzb_occlusion_stats_resets_when_no_report
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::hzb_occlusion_culling_requires_storage_buffers_gpu_driven_and_binding_capacity
   - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs::tests::compile_options_gate_hzb_occlusion_from_backend_capabilities
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compile_options_gate_hzb_occlusion_cull_without_removing_hzb_build
+  - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs::compile_options_gate_hzb_occlusion_cull_without_removing_hzb_build
   - zircon_runtime/src/graphics/tests/render_framework_post_process_submit.rs::render_framework_submits_advanced_postprocess_graph_passes
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_hzb_stats
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
@@ -604,6 +612,10 @@ The scoped format and whitespace checks passed again after the VC-M3 indirect ar
 The scoped checks passed again after the VC-M3 local WGPU wall/front args rewrite test and params-upload ordering fix: `rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs` passed, scoped `git diff --check` and trailing-whitespace scans passed with only Git LF-to-CRLF notices, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-coremin --message-format short --color never` completed with the repository warning set, reporting 74 existing warnings.
 
 The 2026-06-24 HZB occlusion culler test owner split keeps the WGPU cull pipeline owner below the structure budget: `graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs` owns the production compute pipeline, bind group layout, dispatch/readback stats, and `#[cfg(test)] mod tests;` mount, while `graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs` owns WGPU/static tests and fixtures. `runtime_15_hzb_occlusion_culler_tests_are_child_owner` locks that boundary and the status anchor `render_plan04_hzb_occlusion_culler_test_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
+
+The 2026-06-24 VisibilityContext construct tests owner split keeps `graphics/visibility/context/from_extract_with_history/construct.rs` focused on frame visibility construction, static-index prefiltering, and child test mounting, while `graphics/visibility/context/from_extract_with_history/construct/tests.rs` owns the relevance/main-view layer, shadow view, custom-target view, and static-index behavior tests. `runtime_15_visibility_context_construct_tests_are_child_owner` locks that boundary and the status anchor `render_plan04_visibility_context_construct_tests_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
+
+The 2026-06-24 Visibility virtual-geometry tests owner split keeps `graphics/tests/visibility.rs` focused on base visibility batching, frustum, BVH history, particle upload history, and shared fixtures. `graphics/tests/visibility/virtual_geometry_page_plan.rs` owns VG feedback/page-request/refinement tests, `graphics/tests/visibility/virtual_geometry_frontier.rs` owns split-merge hysteresis and hot-resident lineage tests, and `graphics/tests/visibility/virtual_geometry_priority.rs` owns draw-segment splitting plus page-priority tests. `runtime_15_visibility_virtual_geometry_tests_are_child_owners` locks those child owners, the four-file 800-line budget, and the status anchor `render_plan04_visibility_virtual_geometry_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; current evidence is scoped rustfmt/static/line-count/docs-anchor/stale-path/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred by milestone implementation cadence.
 
 Focused lib-test execution still has no clean result for this latest slice. `cargo test -p zircon_runtime --lib hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-test --message-format short --color never -- --test-threads=1 --nocapture` timed out after 10 minutes without returning a filtered test result. `cargo test -p zircon_runtime --lib hzb_occlusion_uploads_phase_params_in_encoder_order --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-wgpu-local-coremin --message-format short --color never -- --test-threads=1 --nocapture` timed out after 15 minutes while still compiling the shared `zircon_runtime` lib-test target. The leftover cargo/rustc processes for those two target dirs were stopped.
 

@@ -1,4 +1,8 @@
 use super::*;
+use zircon_runtime::{
+    builtin::RuntimeTargetMode,
+    plugin::{ExportPackagingStrategy, PluginModuleKind},
+};
 
 #[test]
 fn ui_asset_authoring_plugin_contributes_view_template_and_capability() {
@@ -40,4 +44,46 @@ fn ui_asset_authoring_plugin_contributes_view_template_and_capability() {
         .operations()
         .descriptors()
         .any(|operation| operation.path().as_str() == "View.editor.ui_asset.Open"));
+}
+
+#[test]
+fn ui_asset_authoring_package_manifest_declares_editor_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("ui_asset_authoring declares standalone distribution");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.dist_crate, UI_ASSET_AUTHORING_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert!(distribution.runtime_entry.is_empty());
+    assert_eq!(
+        distribution.editor_entry,
+        UI_ASSET_AUTHORING_DIST_EDITOR_ENTRY
+    );
+
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "ui_asset_authoring.dist")
+        .expect("ui_asset_authoring dist module is declared");
+    assert_eq!(dist_module.kind, PluginModuleKind::Native);
+    assert_eq!(dist_module.crate_name, UI_ASSET_AUTHORING_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.target_modes,
+        vec![RuntimeTargetMode::EditorHost]
+    );
+    assert_eq!(dist_module.capabilities, vec![CAPABILITY.to_string()]);
 }

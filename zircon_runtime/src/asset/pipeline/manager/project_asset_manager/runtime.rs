@@ -1,11 +1,12 @@
-use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
+use crate::asset::{AssetImporterRegistry, ProjectManager};
+use crate::core::framework::channel::ChannelSender;
 use crate::core::CoreError;
 
 use super::super::errors::{asset_error, asset_error_message};
 use super::super::resource_sync::register_project_resource;
 use super::ProjectAssetManager;
-use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetWatchError, AssetWatcher};
 use crate::core::resource::ResourceState;
 
@@ -13,13 +14,55 @@ impl ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) fn project_read(
         &self,
     ) -> RwLockReadGuard<'_, Option<ProjectManager>> {
-        self.project.read().expect("asset project lock poisoned")
+        self.project
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(in crate::asset::pipeline::manager) fn project_write(
         &self,
     ) -> RwLockWriteGuard<'_, Option<ProjectManager>> {
-        self.project.write().expect("asset project lock poisoned")
+        self.project
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(in crate::asset::pipeline::manager) fn importer_registry_read(
+        &self,
+    ) -> RwLockReadGuard<'_, AssetImporterRegistry> {
+        self.asset_importers
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(in crate::asset::pipeline::manager) fn importer_registry_write(
+        &self,
+    ) -> RwLockWriteGuard<'_, AssetImporterRegistry> {
+        self.asset_importers
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(in crate::asset::pipeline::manager) fn lock_change_subscribers(
+        &self,
+    ) -> MutexGuard<'_, Vec<ChannelSender<AssetChange>>> {
+        self.change_subscribers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(in crate::asset::pipeline::manager) fn lock_watch_error_subscribers(
+        &self,
+    ) -> MutexGuard<'_, Vec<ChannelSender<AssetWatchError>>> {
+        self.watch_error_subscribers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn lock_watcher(&self) -> MutexGuard<'_, Option<AssetWatcher>> {
+        self.watcher
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(in crate::asset::pipeline::manager) fn broadcast(&self, changes: Vec<AssetChange>) {
@@ -27,10 +70,7 @@ impl ProjectAssetManager {
             return;
         }
 
-        let mut subscribers = self
-            .change_subscribers
-            .lock()
-            .expect("asset subscribers lock poisoned");
+        let mut subscribers = self.lock_change_subscribers();
         subscribers.retain(|sender| {
             changes
                 .iter()
@@ -42,10 +82,7 @@ impl ProjectAssetManager {
         &self,
         error: AssetWatchError,
     ) {
-        let mut subscribers = self
-            .watch_error_subscribers
-            .lock()
-            .expect("asset watch error subscribers lock poisoned");
+        let mut subscribers = self.lock_watch_error_subscribers();
         subscribers.retain(|sender| sender.send(error.clone()).is_ok());
     }
 
@@ -69,7 +106,7 @@ impl ProjectAssetManager {
             },
         )
         .map_err(asset_error)?;
-        *self.watcher.lock().expect("asset watcher lock poisoned") = Some(watcher);
+        *self.lock_watcher() = Some(watcher);
         Ok(())
     }
 
@@ -122,5 +159,49 @@ impl ProjectAssetManager {
                 .map(|change| AssetChange::new(change.kind, change.uri, change.previous_uri))
                 .collect(),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use super::*;
+
+    #[test]
+    fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
+        let manager = ProjectAssetManager::new(1);
+
+        assert!(catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.project.write().unwrap();
+            panic!("poison project lock");
+        }))
+        .is_err());
+        assert!(catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.asset_importers.write().unwrap();
+            panic!("poison importer registry lock");
+        }))
+        .is_err());
+        assert!(catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.change_subscribers.lock().unwrap();
+            panic!("poison change subscribers lock");
+        }))
+        .is_err());
+        assert!(catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watch_error_subscribers.lock().unwrap();
+            panic!("poison watch error subscribers lock");
+        }))
+        .is_err());
+        assert!(catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watcher.lock().unwrap();
+            panic!("poison watcher lock");
+        }))
+        .is_err());
+
+        assert!(manager.project_read().is_none());
+        assert!(manager.importer_registry_read().importers().is_empty());
+        assert!(manager.lock_change_subscribers().is_empty());
+        assert!(manager.lock_watch_error_subscribers().is_empty());
+        assert!(manager.lock_watcher().is_none());
     }
 }

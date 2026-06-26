@@ -1,12 +1,15 @@
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
-use super::super::WorkbenchChromeMetrics;
+use super::super::{
+    window_min_height_limit_for_height, window_min_width_limit_for_width, WorkbenchChromeMetrics,
+};
 
 pub(super) fn compute_window_min_width(
     left: RegionState,
     document: RegionState,
     right: RegionState,
     metrics: &WorkbenchChromeMetrics,
+    shell_width: f32,
 ) -> f32 {
     let mut widths = Vec::new();
     if left.visible {
@@ -17,7 +20,8 @@ pub(super) fn compute_window_min_width(
         widths.push(right.constraints);
     }
     let separators = widths.len().saturating_sub(1) as f32 * metrics.separator_thickness;
-    aggregate_row_constraints(&widths).width.resolved().min + separators
+    let content_min_width = aggregate_row_constraints(&widths).width.resolved().min + separators;
+    content_min_width.min(window_min_width_limit_for_width(shell_width))
 }
 
 pub(super) fn compute_window_min_height(
@@ -26,6 +30,7 @@ pub(super) fn compute_window_min_height(
     right: RegionState,
     bottom: RegionState,
     metrics: &WorkbenchChromeMetrics,
+    shell_height: f32,
 ) -> f32 {
     let mut min_height = metrics.top_bar_height
         + metrics.separator_thickness
@@ -42,5 +47,5 @@ pub(super) fn compute_window_min_height(
     } else {
         min_height += center_min;
     }
-    min_height
+    min_height.min(window_min_height_limit_for_height(shell_height))
 }

@@ -1,4 +1,4 @@
-use super::{SceneResult, World};
+use super::{SceneError, SceneResult, World};
 use crate::scene::components::{
     ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
 };
@@ -63,7 +63,7 @@ impl World {
 
     pub fn insert_node_record(&mut self, record: NodeRecord) -> SceneResult<()> {
         if self.entities.contains(&record.id) {
-            return Err(format!("entity {} already exists", record.id).into());
+            return Err(SceneError::DuplicateEntity { entity: record.id });
         }
 
         self.register_stable_entity(record.id)?;
@@ -165,10 +165,17 @@ impl World {
         let name = name.into();
         let trimmed = name.trim();
         if trimmed.is_empty() {
-            return Err("node name cannot be empty".to_string().into());
+            return Err(SceneError::EmptyNodeName);
         }
         let Some(current) = self.names.get(&entity) else {
-            return Err(format!("cannot rename missing node {entity}").into());
+            if !self.contains_entity(entity) {
+                return Err(SceneError::missing_entity("rename", entity));
+            }
+            return Err(SceneError::MissingRequiredComponent {
+                operation: "rename",
+                entity,
+                component: "Name",
+            });
         };
         if current.0 == trimmed {
             return Ok(false);

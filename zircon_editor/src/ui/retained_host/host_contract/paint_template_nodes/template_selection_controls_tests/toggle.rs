@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::{
     control_border_color, selection_label_gap, toggle_thumb_color, toggle_thumb_rect,
-    toggle_track_color, toggle_track_rect, TOGGLE_TRACK_WIDTH,
+    toggle_track_color, toggle_track_rect, PALETTE, TOGGLE_TRACK_WIDTH,
 };
 use super::support::{node_with_role, resolved_background_foreground_and_border};
 
@@ -65,7 +65,7 @@ fn toggle_honors_declared_track_and_thumb_metrics() {
 }
 
 #[test]
-fn toggle_consumes_declared_track_border_and_thumb_tones() {
+fn toggle_standardizes_checked_track_border_and_thumb_tones() {
     let checked = TemplatePaneNodeData {
         checked: true,
         selected: true,
@@ -85,9 +85,9 @@ fn toggle_consumes_declared_track_border_and_thumb_tones() {
         ..node_with_role("Toggle", "toggle", "WorkbenchToggleOff")
     };
 
-    assert_eq!(toggle_track_color(&checked), [53, 199, 208, 255]);
-    assert_eq!(toggle_thumb_color(&checked), [255, 255, 255, 255]);
-    assert_eq!(control_border_color(&checked), [49, 191, 201, 255]);
+    assert_eq!(toggle_track_color(&checked), PALETTE.surface_selected);
+    assert_eq!(toggle_thumb_color(&checked), PALETTE.text);
+    assert_eq!(control_border_color(&checked), PALETTE.accent);
     assert_eq!(toggle_track_color(&unchecked), [15, 20, 23, 255]);
     assert_eq!(toggle_thumb_color(&unchecked), [124, 135, 142, 255]);
     assert_eq!(control_border_color(&unchecked), [53, 64, 71, 255]);

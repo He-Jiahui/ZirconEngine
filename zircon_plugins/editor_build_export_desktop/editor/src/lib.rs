@@ -35,8 +35,10 @@ pub use extension_ids::{
     SOURCE_TEMPLATE_REPORT_ID,
 };
 pub use plugin::{
-    editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, EditorBuildExportDesktopPlugin,
+    editor_build_export_desktop_dist_module_manifest, editor_capabilities, editor_plugin,
+    editor_plugin_descriptor, package_manifest, plugin_registration,
+    EditorBuildExportDesktopPlugin, EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME,
+    EDITOR_BUILD_EXPORT_DESKTOP_DIST_EDITOR_ENTRY,
 };
 pub use zircon_editor::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,

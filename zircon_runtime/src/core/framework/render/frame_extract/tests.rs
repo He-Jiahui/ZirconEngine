@@ -1,7 +1,13 @@
 use super::*;
-use crate::core::framework::render::{RenderCameraTarget, RenderLayerSet, RenderViewportRect};
+use crate::core::framework::render::{
+    RenderCameraTarget, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderViewportRect,
+};
+use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec4};
-use crate::core::resource::TextureMarker;
+use crate::core::resource::{
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+};
 
 #[test]
 fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {

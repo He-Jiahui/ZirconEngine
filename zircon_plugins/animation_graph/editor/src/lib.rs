@@ -12,8 +12,9 @@ pub use extension_ids::{
     ANIMATION_GRAPH_DRAWER_ID, ANIMATION_GRAPH_TEMPLATE_ID, ANIMATION_GRAPH_VIEW_ID,
 };
 pub use plugin::{
-    editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, AnimationGraphEditorPlugin,
+    animation_graph_dist_module_manifest, editor_capabilities, editor_plugin,
+    editor_plugin_descriptor, package_manifest, plugin_registration, AnimationGraphEditorPlugin,
+    ANIMATION_GRAPH_DIST_CRATE_NAME, ANIMATION_GRAPH_DIST_EDITOR_ENTRY,
 };
 use zircon_runtime::asset::{
     AnimationConditionOperatorAsset, AnimationGraphAsset, AnimationGraphNodeAsset,

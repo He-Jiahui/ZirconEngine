@@ -1,6 +1,9 @@
 use zircon_runtime::plugin::{CapabilityStatus, PluginMaturity, RuntimePlugin};
 
-use crate::{runtime_plugin, NET_FLUSH_EGRESS_SYSTEM, NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET};
+use crate::{
+    runtime_plugin, NET_DIST_CRATE_NAME, NET_DIST_RUNTIME_ENTRY, NET_FLUSH_EGRESS_SYSTEM,
+    NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET, RUNTIME_CAPABILITIES,
+};
 
 #[test]
 fn net_plugin_manifest_advertises_layered_optional_features() {
@@ -87,4 +90,53 @@ fn net_plugin_manifest_advertises_layered_optional_features() {
             && dependency.capability == "runtime.feature.net.http"
             && !dependency.primary
     }));
+}
+
+#[test]
+fn net_package_manifest_declares_dist_contract() {
+    let manifest = runtime_plugin().package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("net distribution manifest");
+    assert_eq!(distribution.forms, vec!["dist".to_string()]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, NET_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(distribution.runtime_entry, NET_DIST_RUNTIME_ENTRY);
+
+    let native_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "net.dist")
+        .expect("net native dist module");
+    assert_eq!(
+        native_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert_eq!(native_module.crate_name, NET_DIST_CRATE_NAME);
+    assert_eq!(
+        native_module.target_modes,
+        vec![
+            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    for capability in RUNTIME_CAPABILITIES {
+        assert!(native_module.capabilities.contains(&capability.to_string()));
+    }
 }

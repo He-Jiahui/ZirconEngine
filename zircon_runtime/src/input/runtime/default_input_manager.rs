@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::input::InputManager as InputManagerFacade;
@@ -16,9 +16,17 @@ pub struct DefaultInputManager {
     state: Mutex<InputState>,
 }
 
+impl DefaultInputManager {
+    fn lock_state(&self) -> MutexGuard<'_, InputState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
 impl InputManagerFacade for DefaultInputManager {
     fn begin_frame(&self) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state.buttons.clear_transitions();
         state.wheel_accumulator = 0.0;
         state.mouse_wheel_accumulator = [0.0, 0.0];
@@ -36,7 +44,7 @@ impl InputManagerFacade for DefaultInputManager {
     }
 
     fn submit_event(&self, event: InputEvent) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state.next_sequence += 1;
         let sequence = state.next_sequence;
         let timestamp_millis = SystemTime::now()
@@ -259,7 +267,7 @@ impl InputManagerFacade for DefaultInputManager {
     }
 
     fn snapshot(&self) -> InputSnapshot {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         InputSnapshot {
             cursor_position: state.cursor_position,
             pressed_buttons: state.buttons.pressed_inputs(),
@@ -268,7 +276,7 @@ impl InputManagerFacade for DefaultInputManager {
     }
 
     fn frame_snapshot(&self) -> InputFrameSnapshot {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         InputFrameSnapshot {
             cursor_position: state.cursor_position,
             cursor_inside_window: state.cursor_inside_window,
@@ -296,27 +304,27 @@ impl InputManagerFacade for DefaultInputManager {
     }
 
     fn drain_ime_host_requests(&self) -> Vec<ImeHostRequest> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         std::mem::take(&mut state.ime_host_requests)
     }
 
     fn drain_gamepad_rumble_requests(&self) -> Vec<crate::input::GamepadRumbleRequest> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         std::mem::take(&mut state.gamepad_rumble_requests)
     }
 
     fn drain_cursor_host_requests(&self) -> Vec<CursorHostRequest> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         std::mem::take(&mut state.cursor_host_requests)
     }
 
     fn drain_events(&self) -> Vec<InputEvent> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         std::mem::take(&mut state.events)
     }
 
     fn drain_event_records(&self) -> Vec<InputEventRecord> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         std::mem::take(&mut state.records)
     }
 }
@@ -330,4 +338,36 @@ fn button_should_press(value: f32, currently_pressed: bool, host_pressed: bool) 
 
 fn button_should_release(value: f32, host_pressed: bool) -> bool {
     !host_pressed || GamepadButtonSettings::default().is_released(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{self, AssertUnwindSafe};
+
+    use crate::core::framework::input::InputManager;
+    use crate::input::{InputButton, InputEvent};
+
+    use super::DefaultInputManager;
+
+    #[test]
+    fn input_manager_accessors_recover_poisoned_state_lock() {
+        let manager = DefaultInputManager::default();
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.lock_state();
+            panic!("poison input manager state");
+        }));
+
+        manager.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
+        assert!(manager
+            .snapshot()
+            .pressed_buttons
+            .contains(&InputButton::MouseLeft));
+        assert_eq!(
+            manager.drain_events(),
+            vec![InputEvent::ButtonPressed(InputButton::MouseLeft)]
+        );
+
+        manager.begin_frame();
+        assert!(manager.frame_snapshot().mouse_wheel_events.is_empty());
+    }
 }

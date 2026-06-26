@@ -12,6 +12,8 @@ impl HostPagePointerBridge {
             layout: HostPagePointerLayout {
                 strip_frame: UiFrame::default(),
                 items: Vec::new(),
+                tabs: Vec::new(),
+                overflow: None,
             },
             measured_frames: Vec::new(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.host_page.pointer")),

@@ -22,9 +22,9 @@ const MARK_IDLE_FILL: &str = "#141a1e";
 const MARK_IDLE_BORDER: &str = "#424e56";
 const MARK_DISABLED_FILL: &str = "#252c31";
 const MARK_DISABLED_BORDER: &str = "#343f47";
-const ACCENT: &str = "#209fa8";
-const ACCENT_BRIGHT: &str = "#43d8e2";
-const CHECK_TICK: &str = "#0b1013";
+const SURFACE_SELECTED: &str = "#173942";
+const ACCENT: &str = "#2aa6b8";
+const CHECK_TICK: &str = "#2aa6b8";
 const RADIO_CHECKED_FILL: &str = "#1b272d";
 const RADIO_CHECKED_BORDER: &str = "#4c5b63";
 const RADIO_DOT_SIZE: f32 = 7.0;
@@ -35,7 +35,7 @@ const TOGGLE_RIGHT_INSET: f32 = 8.0;
 const TOGGLE_THUMB_INSET: f32 = 2.0;
 const TOGGLE_TRACK_IDLE: &str = "#232d33";
 const TOGGLE_THUMB_IDLE: &str = "#7c878e";
-const TOGGLE_THUMB_ON: &str = "#ffffff";
+const TOGGLE_THUMB_ON: &str = "#e8ecee";
 const TOGGLE_HOVER: &str = "#1a2429";
 const TOGGLE_PRESSED: &str = "#223139";
 const BORDER_FOCUS: &str = "#35c7d0";
@@ -480,7 +480,7 @@ fn checkbox_background<'a>(
     if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
-        color_attribute(metadata, "background_color").unwrap_or(ACCENT)
+        SURFACE_SELECTED
     } else {
         color_attribute(metadata, "background_color").unwrap_or(MARK_IDLE_FILL)
     }
@@ -495,9 +495,7 @@ fn checkbox_border_color<'a>(
     } else if state.hot() {
         BORDER_FOCUS
     } else if state.active() {
-        color_attribute(metadata, "border_color")
-            .or_else(|| color_attribute(metadata, "background_color"))
-            .unwrap_or(ACCENT)
+        ACCENT
     } else {
         color_attribute(metadata, "border_color").unwrap_or(MARK_IDLE_BORDER)
     }
@@ -510,7 +508,7 @@ fn radio_background<'a>(
     if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
-        color_attribute(metadata, "background_color").unwrap_or(RADIO_CHECKED_FILL)
+        RADIO_CHECKED_FILL
     } else {
         color_attribute(metadata, "background_color").unwrap_or(MARK_IDLE_FILL)
     }
@@ -525,20 +523,20 @@ fn radio_border_color<'a>(
     } else if state.hot() {
         BORDER_FOCUS
     } else if state.active() {
-        color_attribute(metadata, "border_color").unwrap_or(RADIO_CHECKED_BORDER)
+        RADIO_CHECKED_BORDER
     } else {
         color_attribute(metadata, "border_color").unwrap_or(MARK_IDLE_BORDER)
     }
 }
 
 fn radio_dot_color<'a>(
-    metadata: &'a UiTemplateNodeMetadata,
+    _metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
     if state.unavailable() {
         LABEL_DISABLED
     } else {
-        color_attribute(metadata, "dot_color").unwrap_or(ACCENT_BRIGHT)
+        ACCENT
     }
 }
 
@@ -549,7 +547,7 @@ fn toggle_track_color<'a>(
     if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
-        color_attribute(metadata, "background_color").unwrap_or(ACCENT)
+        SURFACE_SELECTED
     } else if matches!(state.visual_state, UiPainterResolvedState::Pressed) {
         TOGGLE_PRESSED
     } else if state.hot() {
@@ -565,7 +563,9 @@ fn toggle_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         MARK_DISABLED_BORDER
-    } else if state.active() || state.hot() {
+    } else if state.active() {
+        ACCENT
+    } else if state.hot() {
         color_attribute(metadata, "border_color").unwrap_or(BORDER_FOCUS)
     } else {
         color_attribute(metadata, "border_color").unwrap_or(MARK_IDLE_BORDER)
@@ -579,7 +579,7 @@ fn toggle_thumb_color<'a>(
     if state.unavailable() {
         LABEL_DISABLED
     } else if state.active() {
-        color_attribute(metadata, "foreground_color").unwrap_or(TOGGLE_THUMB_ON)
+        TOGGLE_THUMB_ON
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TOGGLE_THUMB_IDLE)
     }

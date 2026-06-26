@@ -1,5 +1,5 @@
+mod feature_bundle_rows;
 mod feature_rows;
-mod helpers;
 mod module_rows;
 
 pub(super) use feature_rows::{for_each_feature_extension, for_each_optional_feature};

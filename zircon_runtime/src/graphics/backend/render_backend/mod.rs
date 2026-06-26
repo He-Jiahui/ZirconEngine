@@ -1,7 +1,7 @@
 mod config;
 mod graphics_debugger_capture;
 mod offscreen_target;
-mod offscreen_target_new;
+mod offscreen_target_construct;
 #[cfg(test)]
 mod read_buffer_f32x4;
 mod read_texture_rgba;

@@ -8,6 +8,8 @@ use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
     MaterialGraphNodeKindAsset, MaterialGraphParameterAsset,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
 
 #[test]
 fn material_authoring_registration_exposes_menu_items_and_payload_schemas() {
@@ -51,6 +53,45 @@ fn material_editor_package_manifest_declares_editor_only_metadata() {
     );
     assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
     assert_eq!(editor_module.capabilities, manifest.capabilities);
+}
+
+#[test]
+fn material_editor_package_manifest_declares_editor_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("material_editor declares standalone distribution");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.dist_crate, MATERIAL_EDITOR_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert!(distribution.runtime_entry.is_empty());
+    assert_eq!(distribution.editor_entry, MATERIAL_EDITOR_DIST_EDITOR_ENTRY);
+
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "material_editor.dist")
+        .expect("material_editor dist module is declared");
+    assert_eq!(dist_module.kind, PluginModuleKind::Native);
+    assert_eq!(dist_module.crate_name, MATERIAL_EDITOR_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.target_modes,
+        vec![RuntimeTargetMode::EditorHost]
+    );
+    assert_eq!(dist_module.capabilities, vec![CAPABILITY.to_string()]);
 }
 
 #[test]

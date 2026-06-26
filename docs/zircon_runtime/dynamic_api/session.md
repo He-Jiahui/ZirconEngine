@@ -17,13 +17,16 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
+  - zircon_runtime/src/dynamic_api/session/registry.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
-  - zircon_runtime/src/dynamic_api/session/tests/helpers.rs
+  - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_hud.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/tests/runtime_errors.rs
+  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/surface.rs
@@ -100,13 +103,16 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
+  - zircon_runtime/src/dynamic_api/session/registry.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
-  - zircon_runtime/src/dynamic_api/session/tests/helpers.rs
+  - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_hud.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/tests/runtime_errors.rs
+  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
   - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime/src/dynamic_api/tests/support.rs
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
@@ -185,12 +191,13 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
-  - zircon_runtime/src/dynamic_api/session/tests/helpers.rs
+  - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_hud.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/tests/runtime_errors.rs
+  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs
@@ -199,6 +206,8 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/runtime_diagnostics.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
@@ -275,7 +284,7 @@ The session module is intentionally private to `zircon_runtime`. Its job is to a
 
 ## Owner Split
 
-- `session.rs` keeps the Rust-ABI session owner functions, session registry, `RuntimeDynamicSessionProfile`, and `RuntimeDynamicSession` lifecycle/orchestration. The exported C ABI entry points live in `exports.rs` wrappers.
+- `session.rs` keeps the Rust-ABI session owner functions, session registry, and `RuntimeDynamicSession` lifecycle/orchestration. The exported C ABI entry points live in `exports.rs` wrappers.
 - `session/events.rs` owns dynamic session event dispatch and input adaptation: pointer, mouse, touch, keyboard, IME, file-drag, window, gamepad, and accessibility events are translated into `core::framework::input` DTOs or camera/menu preview actions there. `session.rs` keeps only the private Rust-ABI `handle_event(...)` owner entry and delegates through `with_session(...)`.
 - `session/diagnostics.rs` owns the `ProfileControlCommand::RuntimeDiagnosticsSnapshot` projection. It reuses the existing `profile_control` JSON ABI entry, collects `DiagnosticStore` series through `collect_runtime_diagnostics(...)`, and adds the last dynamic scene-asset reload frame report as neutral `RuntimeSceneAssetReloadDiagnostics` counts.
 - `session/project.rs` adapts the optional ABI project-manifest byte slice into a runtime project root, loads `zircon-project.toml`, discovers startup ZrVM packages, and loads the manifest default scene through the existing scene/project asset path.
@@ -287,11 +296,17 @@ The session module is intentionally private to `zircon_runtime`. Its job is to a
 - `session/host_requests.rs` converts neutral runtime input-manager host requests into ABI host request payloads.
 - `session/input_events.rs` maps ABI numeric input/window/gamepad/IME constants into `core::framework::input` DTOs, including the ASCII-style WASD and digit-key codes emitted by the standalone app's physical-key converter for gameplay scripts and choice prompts.
 - `session/preview.rs` owns fallback frame and accessibility preview payloads used when the dynamic preview cannot extract a full UI surface.
+- `session/profile.rs` owns `RuntimeDynamicSessionProfile`, ABI profile byte parsing, fixed-step policy, diagnostic-log schedule selection, and render-bridge enablement policy. `session.rs` imports only the profile type and keeps session creation, ticking, rendering, and lifecycle orchestration.
+- `session/registry.rs` owns the global runtime session registry, session handle allocation, poison-safe registry/session lock helpers, and `with_session` lookup/dispatch. `session.rs` imports only the registry entry points it needs for ABI create/destroy/dispatch, while `session/tests/lock_poison.rs` keeps validating poison recovery through the parent module.
 - `session/hud.rs` extracts runtime HUD UI from gameplay dynamic components such as `gameplay.hud_text` and passes it through the normal frame presentation path. Generic text still has a fallback path, while the vampire sample HUD parser converts structured HP/XP/time/weapon/buff text into a graphical screen-space panel with bars, icon slots, and prompt rows. Combat health bars for the sample must remain in this HUD layer instead of reappearing as scene mesh/cube entities.
 - `session/menu.rs` extracts the runtime gameplay menu overlay from `gameplay.menu_state` and handles pointer hit-testing for its single command button. It writes the selected command back through `gameplay.control_state`, keeping Start/Retry interaction in the same dynamic-component channel the project script can consume on the next tick.
-- `session/tests/` owns focused tests for the private session orchestrator. `helpers.rs` keeps shared project-session fixtures, `vampire_gameplay.rs` owns movement/combat/AI assertions, `vampire_menu.rs` owns Start/Game Over flows, `vampire_hud.rs` owns world-HUD capture checks, `frame_diagnostics.rs` owns extract/FPS diagnostics, and `runtime_errors.rs` owns narrow error-format coverage.
+- `session/tests/` owns focused tests for the private session orchestrator. `vampire_runtime_support.rs` keeps shared project-session fixtures, `vampire_gameplay.rs` owns movement/combat/AI assertions, `vampire_menu.rs` owns Start/Game Over flows, `vampire_hud.rs` owns world-HUD capture checks, `frame_diagnostics.rs` owns extract/FPS diagnostics, and `runtime_errors.rs` owns narrow error-format coverage.
 - `tests/` mirrors the same owner split for the exported API table, profile control, viewport/frame validation, session lifecycle, session entry-point handle validation, session profile/source-shape guards, host requests, accessibility, and input-event rejection paths.
 - `tests/structure.rs` keeps that mirror executable by rejecting a recreated `tests.rs`, missing owner modules, non-navigational `mod.rs` content, and owner files that grow past the split threshold.
+
+Runtime 15 M4 dynamic API session profile owner split is recorded as `runtime_15_dynamic_api_session_profile_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, while `dynamic_api/session/profile.rs` owns `RuntimeDynamicSessionProfile`, profile byte parsing, fixed-step policy, diagnostic-log schedule selection, and render-bridge enablement. The structure guard `runtime_15_dynamic_api_session_profile_is_child_owner` keeps the profile enum/constants/methods from returning to the parent and keeps both owners below the production-file budget.
+
+Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, while `dynamic_api/session/registry.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation, poison-safe `lock_registry`/`lock_session`, and `with_session` lookup/dispatch. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps registry static/struct/helper code from returning to the parent and keeps both owners below the production-file budget.
 
 This keeps the FFI boundary file below the large-file warning line while preserving the exported `ZrRuntimeApiV1` shape.
 
@@ -363,9 +378,19 @@ The 2026-06-14 event split moved the private event router and input handlers out
 
 ## Dynamic Session Test Owner Split
 
-The 2026-06-14 test split replaces the removed `session/tests.rs` monolith with `session/tests/{mod,helpers,vampire_gameplay,vampire_menu,vampire_hud,frame_diagnostics,runtime_errors}.rs`. `mod.rs` is only the navigation surface. `helpers.rs` owns shared vampire project-session setup, entity/component inspection, capture export, diagnostics lookup, and frame-request helpers. Gameplay, menu, HUD, frame-diagnostic, and error-format assertions now live in separate owner modules so new dynamic-session coverage can grow by feature without reopening an unrelated thousand-line test file.
+The 2026-06-14 test split replaces the removed `session/tests.rs` monolith with `session/tests/{mod,vampire_runtime_support,vampire_gameplay,vampire_menu,vampire_hud,frame_diagnostics,runtime_errors,lock_poison}.rs`. `mod.rs` is only the navigation surface. `vampire_runtime_support.rs` owns shared vampire project-session setup, entity/component inspection, capture export, diagnostics lookup, and frame-request support. Gameplay, menu, HUD, frame-diagnostic, error-format, and lock-poison recovery assertions now live in separate owner modules so new dynamic-session coverage can grow by feature without reopening an unrelated thousand-line test file.
 
 `frame_diagnostics.rs` is also the Runtime 07 evidence owner for `headless_session_capture_records_frame_extract_diagnostics`, `frame_extract_rebuild_skips_unchanged_entities`, `frame_extract_rebuilds_after_scene_change`, and `vampire_project_session_reports_runtime_fps_and_render_work`. The performance-hotpath audit therefore points at that file rather than the removed monolithic test module. `runtime_10_dynamic_session_test_owner_split_keeps_focused_modules` rejects recreating `session/tests.rs`, requires the folder-backed declarations, and keeps the module docs, Runtime 10 plan, and runtime index aligned with this owner split.
+
+Fresh 2026-06-25 Runtime 15 M2 dynamic API vampire runtime support module naming hard cutover evidence (`Runtime 15 M2 dynamic API vampire runtime support module naming hard cutover` / `runtime_15_dynamic_api_vampire_runtime_support_naming_hard_cutover_static_passed_cargo_deferred`): `dynamic_api/session/tests/helpers.rs` has been removed and the shared vampire project-session, HUD pixel, capture, diagnostics, and frame-request support owner now lives at `dynamic_api/session/tests/vampire_runtime_support.rs`. `dynamic_api/session/tests/mod.rs` mounts only `mod vampire_runtime_support;`, and `frame_diagnostics.rs`, `vampire_gameplay.rs`, `vampire_hud.rs`, and `vampire_menu.rs` import from that owner. `naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_dynamic_api_vampire_runtime_support_uses_owner_name` pins the missing old file, the new owner/caller import shape, and the Runtime 15/status/docs anchors. Static validation covered rustfmt, old-path/source scans, docs/status anchor scan, whitespace scan, line-budget scan, and scoped diff hygiene. Cargo is deferred while active shared cargo/rustc lanes are running and is not claimed as passing.
+
+## Runtime 15 M3 dynamic API session lock poison recovery
+
+状态：`runtime_15_dynamic_api_session_lock_poison_recovery_static_passed_cargo_deferred`。
+
+Runtime 15 E9/F2 now treats the dynamic session registry and per-session execution mutex as recoverable private runtime state. `session.rs` owns `lock_registry()` for `SESSION_REGISTRY` and `lock_session()` for each stored `RuntimeDynamicSession`; `destroy_session`, `insert_session`, and `with_session` all use those helpers instead of direct `registry().lock().unwrap()` or `session.lock().unwrap()`.
+
+`session/tests/lock_poison.rs::dynamic_api_session_registry_accessors_recover_poisoned_locks` deliberately poisons both locks, then verifies that `with_session` still dispatches an action and `destroy_session` still removes the handle. `structure_convention/lock_poison_policy.rs::runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry` mirrors the same contract into Runtime 15 status output and plan docs. This does not change the ABI table, session handle shape, profile parsing, or panic-wrapper boundary; it only prevents a poisoned private mutex from becoming a process-level dynamic API failure path.
 
 ## Boundary Rules
 

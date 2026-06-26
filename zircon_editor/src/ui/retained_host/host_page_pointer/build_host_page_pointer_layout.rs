@@ -3,19 +3,22 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::page_tabs::{
+    MAIN_PAGE_TAB_GAP, MAIN_PAGE_TAB_HEIGHT, MAIN_PAGE_TAB_MAX_WIDTH, MAIN_PAGE_TAB_STRIP_X,
+};
 
-use super::constants::{STRIP_X, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH};
 use super::host_page_pointer_item::HostPagePointerItem;
 use super::host_page_pointer_layout::HostPagePointerLayout;
+use super::tab_strip_geometry::allocate_host_page_tabs;
 
 pub(crate) fn build_host_page_pointer_layout(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     outer_shell_frames: Option<&BuiltinHostOuterShellFrames>,
 ) -> HostPagePointerLayout {
-    let estimated_width = STRIP_X * 2.0
-        + model.host_strip.pages.len() as f32 * TAB_MIN_WIDTH
-        + model.host_strip.pages.len().saturating_sub(1) as f32 * TAB_GAP;
+    let estimated_width = MAIN_PAGE_TAB_STRIP_X * 2.0
+        + model.host_strip.pages.len() as f32 * MAIN_PAGE_TAB_MAX_WIDTH
+        + model.host_strip.pages.len().saturating_sub(1) as f32 * MAIN_PAGE_TAB_GAP;
     let shared_strip_frame = outer_shell_frames.and_then(|frames| frames.host_page_strip_frame);
     let shared_shell_frame = outer_shell_frames.and_then(|frames| frames.shell_frame);
     let strip_x = shared_strip_frame
@@ -35,16 +38,29 @@ pub(crate) fn build_host_page_pointer_layout(
         .unwrap_or(estimated_width.max(1.0));
     let strip_height = shared_strip_frame
         .map(|frame| frame.height.max(0.0))
-        .unwrap_or_else(|| metrics.host_bar_height.max(TAB_HEIGHT));
+        .unwrap_or_else(|| metrics.host_bar_height.max(MAIN_PAGE_TAB_HEIGHT));
+    let strip_frame = UiFrame::new(strip_x, strip_y, strip_width, strip_height);
+    let items = model
+        .host_strip
+        .pages
+        .iter()
+        .map(|page| HostPagePointerItem {
+            page_id: page.id.0.clone(),
+        })
+        .collect::<Vec<_>>();
+    let page_ids = items
+        .iter()
+        .map(|item| item.page_id.clone())
+        .collect::<Vec<_>>();
+    let active_index = page_ids
+        .iter()
+        .position(|page_id| page_id == model.host_strip.active_page.0.as_str());
+    let (tabs, overflow) = allocate_host_page_tabs(strip_frame, &page_ids, active_index);
+
     HostPagePointerLayout {
-        strip_frame: UiFrame::new(strip_x, strip_y, strip_width, strip_height),
-        items: model
-            .host_strip
-            .pages
-            .iter()
-            .map(|page| HostPagePointerItem {
-                page_id: page.id.0.clone(),
-            })
-            .collect(),
+        strip_frame,
+        items,
+        tabs,
+        overflow,
     }
 }

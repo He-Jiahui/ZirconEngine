@@ -3,12 +3,9 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
 use super::super::template_field_stepper::STEPPER_WIDTH;
 use super::super::template_node_labels::template_node_label;
+use super::search::{search_field_label_is_placeholder, search_field_text_left};
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
-
-const FIELD_FONT_SIZE: f32 = 11.0;
-const FIELD_LINE_HEIGHT: f32 = FIELD_FONT_SIZE * 1.25;
-const FIELD_TEXT_LEFT: f32 = 10.0;
-const FIELD_TEXT_RIGHT: f32 = 8.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_text(
     commands: &mut Vec<HostPaintCommand>,
@@ -24,24 +21,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     if label.trim().is_empty() {
         return;
     }
+    let line_height = METRICS.line_height(METRICS.font_body);
     let right_reserve = if stepper {
-        STEPPER_WIDTH + FIELD_TEXT_RIGHT
+        STEPPER_WIDTH + METRICS.input_pad[1]
     } else {
-        FIELD_TEXT_RIGHT
+        METRICS.input_pad[1]
     };
+    let text_left = search_field_text_left(node);
     commands.push(HostPaintCommand::text(
         FrameRect {
-            x: rect.x + FIELD_TEXT_LEFT,
-            y: rect.y + (rect.height - FIELD_LINE_HEIGHT).max(0.0) * 0.5,
-            width: (rect.width - FIELD_TEXT_LEFT - right_reserve).max(1.0),
-            height: FIELD_LINE_HEIGHT,
+            x: rect.x + text_left,
+            y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+            width: (rect.width - text_left - right_reserve).max(1.0),
+            height: line_height,
         },
         Some(clip.clone()),
         order,
         label,
         style.text,
-        FIELD_FONT_SIZE,
-        FIELD_LINE_HEIGHT,
+        METRICS.font_body,
+        line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));
@@ -61,6 +60,14 @@ fn field_label(node: &TemplatePaneNodeData) -> String {
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_label_is_placeholder(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    template_node_label(node, None).trim().is_empty()
-        && node.control_id.as_str() == "WorkbenchInputDisabled"
+    let label = template_node_label(node, None);
+    (label.trim().is_empty() && node.control_id.as_str() == "WorkbenchInputDisabled")
+        || search_field_label_is_placeholder(node, &label)
+        || import_path_field_label_is_placeholder(node, &label)
+}
+
+fn import_path_field_label_is_placeholder(node: &TemplatePaneNodeData, label: &str) -> bool {
+    node.control_id.as_str() == "AssetBrowserImportPathField"
+        && node.value_text.trim().is_empty()
+        && !label.trim().is_empty()
 }

@@ -30,14 +30,14 @@ use super::update_particle_previous_state::update_particle_previous_state_after_
 use super::update_temporal_camera_history::update_temporal_camera_history_after_success;
 
 pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     frame: ViewportRenderFrame,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_runtime_frame");
-    let _operation_guard = server.lock_operation();
+    let _operation_guard = framework.lock_operation();
     submit_camera_loop_frame(
-        server,
+        framework,
         viewport,
         frame,
         fail_pending_capture_after_preflight_error,
@@ -46,7 +46,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
 }
 
 fn submit_selected_runtime_frame(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     frame: &mut ViewportRenderFrame,
     output_policy: CameraLoopOutputPolicy,
@@ -58,14 +58,14 @@ fn submit_selected_runtime_frame(
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context_from_runtime_frame_extract(
-            server,
+            framework,
             viewport,
             &mut frame.extract,
             frame.ui.as_ref(),
         ) {
             Ok(context) => context,
             Err(error) => {
-                fail_pending_capture_after_preflight_error(server, viewport, &error);
+                fail_pending_capture_after_preflight_error(framework, viewport, &error);
                 return Err(error);
             }
         }
@@ -73,7 +73,7 @@ fn submit_selected_runtime_frame(
     apply_submission_extract_to_runtime_frame(frame, &context);
     apply_submission_output_target_to_runtime_frame(frame, &context);
     apply_submission_visibility_to_runtime_frame(frame, &context);
-    let mut state = server.lock_state();
+    let mut state = framework.lock_state();
     let active_capture =
         owns_shared_viewport_products && begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
@@ -82,7 +82,7 @@ fn submit_selected_runtime_frame(
             Ok(prepared) => prepared,
             Err(error) => {
                 finish_or_fail_capture_after_submission_error(
-                    server,
+                    framework,
                     state,
                     viewport,
                     active_capture,
@@ -110,7 +110,7 @@ fn submit_selected_runtime_frame(
             Err(error) => {
                 let error = render_framework_backend_error(error);
                 finish_or_fail_capture_after_submission_error(
-                    server,
+                    framework,
                     state,
                     viewport,
                     active_capture,
@@ -122,7 +122,7 @@ fn submit_selected_runtime_frame(
     };
     let frame_generation = rendered_frame.generation;
     state = finish_active_capture_and_relock(
-        server,
+        framework,
         state,
         active_capture,
         Some(frame_generation),
@@ -205,11 +205,11 @@ fn apply_submission_extract_to_runtime_frame(
 }
 
 fn fail_pending_capture_after_preflight_error(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
-    let mut state = server.lock_state();
+    let mut state = framework.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
 }
 
@@ -248,7 +248,7 @@ fn attach_prepared_sidebands_to_runtime_frame(
 }
 
 fn finish_or_fail_capture_after_submission_error(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     mut state: MutexGuard<'_, RenderFrameworkState>,
     viewport: RenderViewportHandle,
     active_capture: bool,
@@ -256,7 +256,7 @@ fn finish_or_fail_capture_after_submission_error(
 ) {
     if active_capture {
         drop(finish_active_capture_and_relock(
-            server,
+            framework,
             state,
             active_capture,
             None,

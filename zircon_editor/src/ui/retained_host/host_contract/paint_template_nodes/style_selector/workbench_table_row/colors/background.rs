@@ -19,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_r
     if is_unavailable_table_row_state(state) {
         PALETTE.surface_disabled
     } else if marked {
-        declared_background_color(node).unwrap_or(WORKBENCH_TABLE_SELECTED_BG)
+        WORKBENCH_TABLE_SELECTED_BG
     } else if state == UiPainterResolvedState::Pressed {
         PALETTE.surface_pressed
     } else if is_hot(state) {

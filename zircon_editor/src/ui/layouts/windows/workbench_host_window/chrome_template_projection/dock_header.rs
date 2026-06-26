@@ -1,4 +1,9 @@
 use super::*;
+use crate::ui::workbench::document_tabs::{
+    document_tab_close_x, document_tab_preferred_width, DOCUMENT_TAB_CLOSE_EXTENT,
+    DOCUMENT_TAB_CLOSE_TOP_INSET, DOCUMENT_TAB_GAP, DOCUMENT_TAB_HEIGHT, DOCUMENT_TAB_STRIP_X,
+    DOCUMENT_TAB_STRIP_Y,
+};
 
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
@@ -6,7 +11,7 @@ pub(super) fn side_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, &"".into(), width, height)
+    dock_header_nodes(tabs, &"".into(), width, height)
 }
 
 pub(super) fn document_dock_header_nodes(
@@ -16,7 +21,7 @@ pub(super) fn document_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, subtitle, width, height)
+    dock_header_nodes(tabs, subtitle, width, height)
 }
 
 pub(super) fn bottom_dock_header_nodes(
@@ -25,7 +30,7 @@ pub(super) fn bottom_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, &"".into(), width, height)
+    dock_header_nodes(tabs, &"".into(), width, height)
 }
 
 pub(super) fn floating_window_header_nodes(
@@ -34,7 +39,43 @@ pub(super) fn floating_window_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    fallback_dock_header_nodes(tabs, title, width, height)
+    dock_header_nodes(tabs, title, width, height)
+}
+
+fn dock_header_nodes(
+    tabs: &ModelRc<TabData>,
+    subtitle: &SharedString,
+    width: f32,
+    height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    if FAST_PROCEDURAL_CHROME_NODES {
+        return fallback_dock_header_nodes(tabs, subtitle, width, height);
+    }
+
+    let mut text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
+    text_overrides.insert(DOCK_SUBTITLE_CONTROL_ID.to_string(), subtitle.to_string());
+    let nodes = template_nodes(
+        "host.dock.header",
+        DOCK_HEADER_ASSET,
+        width,
+        height,
+        &text_overrides,
+        &[
+            SlotFilter::new(DOCK_TAB_PREFIX, tabs.row_count()),
+            SlotFilter::new(DOCK_TAB_CLOSE_PREFIX, tabs.row_count()),
+        ],
+    );
+    if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
+        return fallback_dock_header_nodes(tabs, subtitle, width, height);
+    }
+
+    model_rc(
+        (0..nodes.row_count())
+            .filter_map(|row| nodes.row_data(row))
+            .filter(|node| node_survives_dock_tab_close_filter(node, tabs))
+            .map(|node| tab_node_with_state(node, DOCK_TAB_PREFIX, tabs))
+            .collect(),
+    )
 }
 
 pub(super) fn dock_header_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
@@ -74,12 +115,12 @@ pub(super) fn fallback_dock_header_nodes(
         ..ViewTemplateNodeData::default()
     });
 
-    let mut x = 4.0;
+    let mut x = DOCUMENT_TAB_STRIP_X;
     for row in 0..tabs.row_count() {
         let Some(tab) = tabs.row_data(row) else {
             continue;
         };
-        let tab_width = ((tab.title.as_str().len() as f32 * 7.0) + 36.0).clamp(56.0, 150.0);
+        let tab_width = document_tab_preferred_width(tab.title.as_str(), tab.closeable);
         let text_tone = if tab.active { "default" } else { "subtle" };
         let font_weight = if tab.active { 600 } else { 400 };
         let icon_name = chrome_tab_icon_name(&tab);
@@ -97,9 +138,9 @@ pub(super) fn fallback_dock_header_nodes(
             focused: tab.active,
             frame: ViewTemplateFrameData {
                 x,
-                y: CHROME_TAB_HEIGHT_INSET_PX,
+                y: DOCUMENT_TAB_STRIP_Y,
                 width: tab_width,
-                height: (header_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
+                height: DOCUMENT_TAB_HEIGHT.min(header_height.max(DOCUMENT_TAB_HEIGHT)),
             },
             ..ViewTemplateNodeData::default()
         };
@@ -111,21 +152,21 @@ pub(super) fn fallback_dock_header_nodes(
                 control_id: format!("{DOCK_TAB_CLOSE_PREFIX}{row}").into(),
                 role: "IconButton".into(),
                 text_tone: "muted".into(),
-                font_size: 11.0,
-                surface_variant: "inset".into(),
+                font_size: CHROME_TEXT_FONT_SIZE_PX,
                 button_variant: "ghost".into(),
+                value_number: 14.0,
                 frame: ViewTemplateFrameData {
-                    x: x + tab_width - 19.0,
-                    y: 7.0,
-                    width: 14.0,
-                    height: 16.0,
+                    x: document_tab_close_x(x, tab_width),
+                    y: DOCUMENT_TAB_CLOSE_TOP_INSET,
+                    width: DOCUMENT_TAB_CLOSE_EXTENT,
+                    height: DOCUMENT_TAB_CLOSE_EXTENT,
                 },
                 ..ViewTemplateNodeData::default()
             };
             apply_template_icon(&mut close_node, DOCK_TAB_CLOSE_ICON);
             nodes.push(close_node);
         }
-        x += tab_width + 3.0;
+        x += tab_width + DOCUMENT_TAB_GAP;
     }
 
     if !subtitle.is_empty() {

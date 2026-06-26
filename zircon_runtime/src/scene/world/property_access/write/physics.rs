@@ -1,7 +1,7 @@
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::Vec3;
 use crate::scene::components::ColliderShape;
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError, SceneResult};
 
 use super::super::super::World;
 use super::super::value_conversion::{
@@ -18,7 +18,7 @@ impl World {
         segments: &[String],
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         let Some(rigid_body) = self.rigid_bodies.get_mut(&entity) else {
             return missing_component_error(entity, property_path);
         };
@@ -115,9 +115,7 @@ impl World {
                 rigid_body.lock_rotation[axis] = next;
             }
             _ => {
-                return self
-                    .set_dynamic_component_property(entity, property_path, value)
-                    .map_err(|error| error.to_string());
+                return self.set_dynamic_component_property(entity, property_path, value);
             }
         }
         self.mark_node_cache_dirty();
@@ -130,7 +128,7 @@ impl World {
         segments: &[String],
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         let Some(collider) = self.colliders.get_mut(&entity) else {
             return missing_component_error(entity, property_path);
         };
@@ -244,7 +242,10 @@ impl World {
                                 half_height: 0.5,
                             }
                         } else {
-                            return Err(format!("unsupported collider shape `{next_kind}`"));
+                            return Err(SceneError::UnsupportedPropertyValue {
+                                kind: "collider shape",
+                                value: next_kind,
+                            });
                         };
                         if *shape == replacement {
                             return Ok(false);
@@ -294,7 +295,7 @@ impl World {
         segments: &[String],
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         let Some(joint) = self.joints.get_mut(&entity) else {
             return missing_component_error(entity, property_path);
         };

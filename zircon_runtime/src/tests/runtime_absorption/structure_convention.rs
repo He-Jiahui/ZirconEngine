@@ -1,9 +1,15 @@
+#[path = "structure_convention/animation_manager.rs"]
+mod animation_manager;
 #[path = "structure_convention/diagnostics_surface.rs"]
 mod diagnostics_surface;
 #[path = "structure_convention/facade_surface.rs"]
 mod facade_surface;
 #[path = "structure_convention/graphics_dead_code/mod.rs"]
 mod graphics_dead_code;
+#[path = "structure_convention/lock_poison_policy.rs"]
+mod lock_poison_policy;
+#[path = "structure_convention/native_live_host_lock_poison.rs"]
+mod native_live_host_lock_poison;
 #[path = "structure_convention/production_file_budget.rs"]
 mod production_file_budget;
 #[path = "structure_convention/provider_boilerplate.rs"]
@@ -26,8 +32,12 @@ mod render_post_process_stack;
 mod render_post_process_volume_component;
 #[path = "structure_convention/render_prepared_mesh_queue.rs"]
 mod render_prepared_mesh_queue;
+#[path = "structure_convention/rhi_wgpu_lock_poison.rs"]
+mod rhi_wgpu_lock_poison;
 #[path = "structure_convention/runtime_dead_code.rs"]
 mod runtime_dead_code;
+#[path = "structure_convention/script_vm_lock_poison.rs"]
+mod script_vm_lock_poison;
 #[path = "structure_convention/test_file_budget/mod.rs"]
 mod test_file_budget;
 

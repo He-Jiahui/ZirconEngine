@@ -1,7 +1,18 @@
 ---
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
+  - zircon_runtime/src/asset/load/texture.rs
+  - zircon_runtime/src/asset/tests/load/texture.rs
+  - zircon_runtime/src/asset/load/mesh.rs
+  - zircon_runtime/src/asset/formats/obj/error.rs
+  - zircon_runtime/src/asset/formats/obj/decode_obj_file.rs
+  - zircon_runtime/src/asset/formats/obj/parse_obj_face_vertex.rs
+  - zircon_runtime/src/asset/formats/obj/parse_obj_scalar.rs
+  - zircon_runtime/src/asset/formats/obj/resolve_obj_index.rs
+  - zircon_runtime/src/asset/tests/load/mesh.rs
+  - zircon_runtime/src/asset/tests/formats/obj.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/late_api_cleanup.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs
@@ -10,9 +21,19 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
@@ -25,6 +46,10 @@ related_code:
   - zircon_runtime/src/graphics/runtime_provider/prepare_input.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/assets/sound.rs
+  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
+  - zircon_runtime/src/asset/tests/assets/sound.rs
   - zircon_runtime/src/asset/prelude.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/prelude.rs
@@ -48,8 +73,73 @@ related_code:
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/accessibility/extract/state.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
-  - zircon_runtime/src/ui/component/catalog/editor_showcase/helpers.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptor_builders.rs
+  - zircon_runtime/src/asset/artifact/cache_payload.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
+  - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
+  - zircon_runtime/src/asset/assets/mesh/mesh_asset/management.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/management.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets/material.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
+  - zircon_runtime/src/rhi/device.rs
+  - zircon_runtime/src/rhi/device/handles.rs
+  - zircon_runtime/src/rhi_wgpu/device.rs
+  - docs/zircon_runtime/rhi/descriptors.md
+  - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
+  - zircon_runtime/src/dynamic_api/session/registry.rs
+  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs
+  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_boundary.py
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/root_entries.rs
+  - docs/zircon_runtime/dynamic_api/session.md
+  - zircon_runtime/src/scene/dynamic_scene/spawn_task/task.rs
+  - zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs
+  - docs/zircon_runtime/scene/dynamic_scene.md
+  - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
+  - docs/zircon_runtime/scene/ecs.md
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/core/resource/manager/registry_ops.rs
+  - zircon_runtime/src/core/resource/manager/payload_ops.rs
+  - zircon_runtime/src/core/resource/manager/lease_ops.rs
+  - zircon_runtime/src/core/resource/manager/events.rs
+  - docs/zircon_runtime/core/resource.md
+  - zircon_runtime/src/animation/manager/mod.rs
+  - docs/zircon_runtime/animation/runtime.md
+  - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/default_input_action_manager.rs
+  - docs/zircon_runtime/input/input_state.md
+  - zircon_runtime/src/core/runtime/config_store.rs
+  - docs/zircon_runtime/core/runtime/config_store.md
+  - zircon_runtime/src/navigation/runtime.rs
+  - zircon_runtime/src/navigation/runtime/tests.rs
+  - docs/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/mesh_asset.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/material_asset.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_project_scan_import.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_asset_integration.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_world_basics.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/module_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_command_validation.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_render_setup.rs
@@ -63,21 +153,57 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_document.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+  - zircon_runtime/src/asset/watch/asset_change_construction.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/ui/tests/runtime_ui_support
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/prelude.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
+  - zircon_runtime/src/core/runtime/handle/core_handle.rs
+  - zircon_runtime/src/core/runtime/handle/activation.rs
+  - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
+  - zircon_runtime/src/core/runtime/handle/diagnostics.rs
+  - zircon_runtime/src/core/runtime/handle/time.rs
+  - zircon_runtime/src/core/runtime/handle/states.rs
+  - zircon_runtime/src/core/runtime/tasks/job_handle.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - docs/zircon_runtime/core/diagnostics.md
+  - docs/zircon_runtime/core/runtime/lifecycle.md
+  - docs/zircon_runtime/core/state.md
+  - docs/zircon_runtime/core/tasks.md
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
+  - zircon_runtime/src/script/vm/host/host_registry.rs
+  - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
+  - docs/zircon_runtime/script/vm/zr_vm_host_reflection.md
+  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/mod.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_particle_gpu_readback_outputs.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
@@ -130,6 +256,12 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/native_live_host_lock_poison.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/script_vm_lock_poison.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/root_layout.rs
@@ -368,14 +500,14 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
   - zircon_runtime/src/scene/tests/ecs_systems/events.rs
   - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
-  - zircon_runtime/src/scene/tests/ecs_systems/query_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
   - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
   - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
   - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
-  - zircon_runtime/src/scene/tests/ecs_query/cache_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
@@ -387,6 +519,15 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/management.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets/material.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/material_asset.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_geometry.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_rows.rs
@@ -430,7 +571,19 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_geometry.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_asset_integration.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_world_basics.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime_provider/mod.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
@@ -439,6 +592,10 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime_provider/prepare_input.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/asset/prelude.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/assets/sound.rs
+  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/scene/prelude.rs
   - zircon_runtime/src/ui/prelude.rs
   - zircon_runtime/src/graphics/prelude.rs
@@ -460,12 +617,61 @@ implementation_files:
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/accessibility/extract/state.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
-  - zircon_runtime/src/ui/component/catalog/editor_showcase/helpers.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptor_builders.rs
+  - zircon_runtime/src/asset/artifact/cache_payload.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/rhi/device.rs
+  - zircon_runtime/src/rhi/device/handles.rs
+  - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
+  - docs/zircon_runtime/rhi/descriptors.md
+  - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
+  - zircon_runtime/src/dynamic_api/session/registry.rs
+  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs
+  - zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs
+  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_boundary.py
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/root_entries.rs
+  - docs/zircon_runtime/dynamic_api/session.md
+  - zircon_runtime/src/scene/dynamic_scene/spawn_task/task.rs
+  - zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs
+  - docs/zircon_runtime/scene/dynamic_scene.md
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/core/resource/manager/registry_ops.rs
+  - zircon_runtime/src/core/resource/manager/payload_ops.rs
+  - zircon_runtime/src/core/resource/manager/lease_ops.rs
+  - zircon_runtime/src/core/resource/manager/events.rs
+  - docs/zircon_runtime/core/resource.md
+  - zircon_runtime/src/animation/manager/mod.rs
+  - docs/zircon_runtime/animation/runtime.md
+  - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/default_input_action_manager.rs
+  - docs/zircon_runtime/input/input_state.md
+  - zircon_runtime/src/core/runtime/config_store.rs
+  - docs/zircon_runtime/core/runtime/config_store.md
+  - zircon_runtime/src/navigation/runtime.rs
+  - zircon_runtime/src/navigation/runtime/tests.rs
+  - docs/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_project_scan_import.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/module_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_command_validation.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_render_setup.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_scene_world.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_render_lights.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shadow.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_stats_graph.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_fixed_lights.rs
@@ -478,12 +684,71 @@ implementation_files:
   - zircon_runtime/src/ui/tests/runtime_ui_support
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
+  - zircon_runtime/src/core/runtime/handle/core_handle.rs
+  - zircon_runtime/src/core/runtime/handle/activation.rs
+  - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/behavior_layout.rs
+  - zircon_runtime/src/core/runtime/handle/diagnostics.rs
+  - zircon_runtime/src/core/runtime/handle/time.rs
+  - zircon_runtime/src/core/runtime/handle/states.rs
+  - zircon_runtime/src/core/runtime/tasks/job_handle.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - docs/zircon_runtime/core/diagnostics.md
+  - docs/zircon_runtime/core/state.md
+  - docs/zircon_runtime/core/tasks.md
+  - zircon_runtime/src/plugin/bridge/table.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/native_host_api_adapter.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_live_host_tests.rs
+  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
+  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_plugin_loader.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/basics.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/diagnostics.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/extension_registry_bridge.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/editor_only.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/net.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/manifest_contributions.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest/feature_modules.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_package_manifest.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
+  - docs/zircon_runtime/plugin/bridge.md
+  - docs/zircon_runtime/plugin/package_manifest.md
+  - docs/zircon_runtime/plugin/export_build_plan.md
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
+  - zircon_runtime/src/script/vm/host/host_registry.rs
+  - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
+  - docs/zircon_runtime/script/vm/zr_vm_host_reflection.md
+  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/mod.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_particle_gpu_readback_outputs.rs
@@ -528,6 +793,12 @@ implementation_files:
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/native_live_host_lock_poison.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/script_vm_lock_poison.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/module_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/renderer_output_accessors.rs
@@ -668,14 +939,14 @@ implementation_files:
   - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
   - zircon_runtime/src/scene/tests/ecs_systems/events.rs
   - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
-  - zircon_runtime/src/scene/tests/ecs_systems/query_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
   - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
   - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
   - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
-  - zircon_runtime/src/scene/tests/ecs_query/cache_helpers.rs
+  - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs
@@ -792,6 +1063,8 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
+  - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_wav_parse_reports_typed_error_variants
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_sound_asset_uses_typed_error
   - cargo test -p zircon_runtime --lib runtime_15_mixed_visibility_has_facade_note --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib prelude --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_prelude_covers_required_types --no-default-features --features core-min --locked
@@ -818,7 +1091,50 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_15_asset_gltf_importer_tests_are_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_asset_importer_tests_are_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_test_file_budget_guard_is_folder_backed --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_root_entries_guard_child_owners_are_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_asset_test_budget_guard_child_owner_split --no-default-features --features core-min --locked
+  - runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task
+  - dynamic_scene_spawn_task_accessors_recover_poisoned_locks
+  - runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots
+  - schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock
+  - runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
+  - vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock
+  - runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector
+  - vm_backend_registry_accessors_recover_poisoned_family_lock
+  - host_registry_accessors_recover_poisoned_handle_lock
+  - host_export_registry_accessors_recover_poisoned_module_lock
+  - hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock
+  - runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager
+  - project_asset_manager_runtime_accessors_recover_poisoned_locks
+  - runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool
+  - asset_worker_pool_accessors_recover_poisoned_locks
+  - runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_framework
+  - wgpu_render_framework_accessors_recover_poisoned_locks
+  - runtime_15_native_live_host_tests_are_folder_backed
+  - native_live_host_runtime_descriptor_includes_validation_report
+  - native_live_host_reuses_installed_bridge_bindings_for_loaded_manifest_scopes
+  - native_hot_reload_state_saves_and_restores_runtime_snapshot
+  - runtime_15_extension_registry_bridge_tests_are_folder_backed
+  - duplicate_interface_export_rejected
+  - bridge_table_summarizes_diagnostics_for_matrix
+  - bridge_table_reports_owner_enabled_transition
+  - runtime_15_manifest_contributions_tests_are_folder_backed
+  - editor_only_plugin_tomls_declare_package_level_targets_and_capabilities
+  - net_plugin_toml_declares_content_download_http_dependency
+  - runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed
+  - native_runtime_plugin_registration_report_rejects_invalid_package_optional_features
+  - native_runtime_plugin_registration_report_rejects_invalid_package_module_identities
+  - runtime_15_export_build_plan_tests_are_folder_backed
+  - source_template_preserves_builtin_catalog_target_modes_after_manifest_completion
+  - source_template_links_rendering_default_owner_features
+  - source_template_with_native_dynamic_merges_native_loader_reports
+  - runtime_15_export_build_plan_platform_tests_are_folder_backed
+  - generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins
+  - runtime_15_native_host_api_adapter_tests_are_child_owner
+  - native_host_api_v3_registers_systems_and_components_into_runtime_registry
+  - native_host_bridge_call_scope_dispatches_registered_method
+  - runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state
+  - wgpu_render_device_state_accessors_recover_poisoned_lock
   - cargo test -p zircon_runtime --lib runtime_15_gameplay_host_tests_are_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_manifest_tests_are_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_scene_ecs_schedule_tests_are_folder_backed --no-default-features --features core-min --locked
@@ -845,6 +1161,27 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_15_advanced_plugin_output_test_accessor_cleanup --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_graphics_dead_code_guard_is_folder_backed --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_provider_boilerplate_guard_is_folder_backed --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_material_asset_management_records_are_child_owner --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_gltf_labeled_material_subassets_are_child_owner --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_texture_descriptor_settings_parser_is_child_owner --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_scene_world_render_light_collectors_are_child_owner --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib core_handle_diagnostic_accessors_recover_poisoned_store_lock --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib core_handle_time_accessors_recover_poisoned_runtime_clocks --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib core_handle_state_accessors_recover_poisoned_state_registry_lock --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib job_handle_accessors_recover_poisoned_state_lock --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib pending_scheduled_job_recovers_poisoned_task_lock --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib profile_recorder_accessors_recover_poisoned_global_lock --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib core_handle_registry_accessors_recover_poisoned_runtime_locks --no-default-features --features core-min --locked
+  - cargo test -p zircon_runtime --lib runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_accessors --no-default-features --features core-min --locked
+  - bridge_entry_provider_accessors_recover_poisoned_provider_lock
+  - runtime_15_plugin_bridge_table_lock_poison_recovery_guard_covers_provider_slot
+  - native_live_host_bridge_method_bindings_recover_poisoned_lock
+  - runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_binding_registry
   - cargo test -p zircon_runtime --lib runtime_15_core_runtime_service_lists_are_folder_backed --no-default-features --features core-min --locked
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked
 doc_type: module-detail
@@ -855,6 +1192,30 @@ doc_type: module-detail
 > 本文是 [Runtime 15](../../plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md) 的镜像文档，固定 `module_convention_gate` 的结构审计事实，由 `runtime_15_module_convention_mirror_docs_match_structure_audit_counts` 守卫锁定计数。上游规范：[`engine-code-structure-convention.md`](../../plans/engine-code-structure-convention.md)。
 >
 > 状态：in_progress（Runtime 15 F9 runtime prelude required type coverage、Runtime 15 graphics facade visibility note、Runtime 15 runtime UI dead-code support split、Runtime 15 F12 runtime-owned dead-code suppression cleanup、Runtime 15 F12 script host value descriptor dead-code cleanup、Runtime 15 F12 script reflection macro fixture dead-code cleanup、Runtime 15 F12 offscreen target texture owner cleanup、Runtime 15 F12 render backend state owner cleanup、Runtime 15 F12 gpu texture resource owner cleanup、Runtime 15 F12 gpu material uniform owner cleanup、Runtime 15 F12 gpu mesh order signature cleanup、Runtime 15 F12 gpu model identity cleanup、Runtime 15 F12 post-process LUT texture owner cleanup、Runtime 15 F12 output target texture owner cleanup、Runtime 15 F12 material runtime capture seed cleanup、Runtime 15 F12 resource streamer diagnostics accessor cleanup、Runtime 15 F12 resource streamer resolve texture id cleanup、Runtime 15 F12 particle GPU readback output accessor cleanup、Runtime 15 F12 advanced plugin output test accessor cleanup、Runtime 15 M3 graphics dead-code guard module split、Runtime 15 M3 graphics dead-code guard child-owner split、Runtime 15 M3 provider boilerplate guard module split、Runtime 15 M3 facade surface guard module split、Runtime 15 M3 runtime dead-code guard module split、Runtime 15 M3 diagnostics guard module split、Runtime 15 M3 core framework test folder split、Runtime 15 M3 core runtime deactivation blocked test folder split、Runtime 15 M3 UI v2 asset test folder split、Runtime 15 M3 UI shared core test folder split、Runtime 15 M3 UI accessibility test folder split、Runtime 15 M3 UI accessibility widget actions test folder split、Runtime 15 M3 UI layout slots test folder split、Runtime 15 M3 UI surface-frame authority test folder split、Runtime 15 M3 UI surface dirty domains test folder split、Runtime 15 M3 UI material layout test folder split、Runtime 15 M3 UI event routing test folder split、Runtime 15 M3 UI runtime input reply routes test folder split、Runtime 15 M3 UI runtime input reply route child folder split、Runtime 15 M3 runtime diagnostics test folder split、Runtime 15 M3 RHI command list test folder split、Runtime 15 M3 RHI device contract test folder split、Runtime 15 M3 asset pack test folder split、Runtime 15 M3 asset facade test folder split、Runtime 15 M3 asset project zmeta test folder split、Runtime 15 M3 asset project manager test folder split、Runtime 15 M3 asset project flow sample test folder split、Runtime 15 M3 asset material test folder split、Runtime 15 M3 asset glTF importer test folder split、Runtime 15 M3 asset glTF primitive fixture folder split、Runtime 15 M3 asset importer test folder split、Runtime 15 M3 asset scene test folder split、Runtime 15 M3 test file budget guard folder split、Runtime 15 M3 Runtime 07 performance hotspot guard folder split、Runtime 15 M3 script VM test folder split、Runtime 15 M3 scene ECS schedule test folder split、Runtime 15 F14 diagnostics normalization、Runtime 15 F13 provider registration shared owner、Runtime 15 F13 provider update shared stats owner、Runtime 15 F13 provider feedback shared payload owner、Runtime 15 F13 provider prepare input shared frame owner 与 Runtime 15 F13 full provider boilerplate audit 已落地；完整 `module_convention_boundary.py` 审计计数、全量 dead-code sweep 与测试组织拆分仍 pending）。
+>
+> 最新完成：Runtime 15 F5 texture loader typed errors（`runtime_15_texture_loader_typed_errors_static_passed_cargo_deferred`）已把 `asset/load/texture.rs` 的 `load_texture(...)` / `decode_image_file(...)` 从 `Result<CpuTexturePayload, String>` / `format!("open image ...")` 收敛到 `TextureLoadError` / `TextureLoadResult`；`TextureLoadError::OpenImage` 保留 `image::ImageError` source，`asset/pipeline/worker_pool.rs` 只在 `CpuAssetPayload::Failure { message }` 出口 stringify，`review_f5_texture_loader_uses_typed_error` 已同步锁定 loader owner、worker boundary、test 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 mesh loader typed errors（`runtime_15_mesh_loader_typed_errors_static_passed_cargo_deferred`）已把 `asset/load/mesh.rs` 的 `load_mesh(...)` / `decode_mesh_file(...)` 从 `Result<CpuMeshPayload, String>` / `Err(format!(...))` 收敛到 `MeshLoadError` / `MeshLoadResult`；`asset/formats/obj/error.rs` 拥有 `ObjDecodeError` / `ObjDecodeResult`，OBJ read/scalar/index/face/empty-mesh failures 均为 typed variants，worker pool 只在 mesh `CpuAssetPayload::Failure { message }` 出口 stringify；`review_f5_mesh_loader_and_obj_decoder_use_typed_errors` 已同步锁定 loader/decoder owner、worker boundary、test 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 animation manager typed errors（`runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`）已新增 `core/framework/animation/error.rs` 的 `AnimationError` / `AnimationResult` typed-error owner，并把 `core/framework/animation/manager.rs`、`animation/manager/{mod,pose,sampling}.rs` 与 `animation/sequence/{apply,conversion}.rs` 的公共 manager/apply、pose sampling 和 channel conversion 入口收敛到 `AnimationResult`；新增 `review_f5_animation_manager_uses_animation_error` 锁定无 `Result<_, String>` / `Err(format!)` 回归；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 asset authoring typed errors（`runtime_15_asset_authoring_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/authoring.rs` 的 Terrain/TileMap/MaterialGraph authoring 校验从 `Result<(), String>` / `Err(format!(...))` 收敛到 `AssetAuthoringError` / `AssetAuthoringResult`；`asset/importer/ingest/import_authoring_asset.rs` 只在 `AssetImportError::Parse` 边界 stringify，`review_f5_asset_authoring_uses_typed_error` 已同步锁定 authoring owner、facade exports、import boundary 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 navigation asset typed errors（`runtime_15_navigation_asset_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/navigation.rs` 的 `NavMeshAsset::to_bytes(...)` / `from_bytes(...)` 从 `Result<_, String>` / `error.to_string()` 收敛到 `NavigationAssetError` / `NavigationAssetResult`；`asset/assets/mod.rs` 与 `asset/mod.rs` 公开导出 typed surface，`review_f5_navigation_asset_uses_typed_error` 已同步锁定 navigation owner、test mount、module doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 font asset typed errors（`runtime_15_font_asset_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/font.rs` 的 `FontAsset::from_toml_str(...)` 从 `FontAssetError::Parse(String)` / `error.to_string()` 收敛到 `FontAssetError::Parse(#[source] toml::de::Error)` / `FontAssetResult`；`asset/importer/ingest/import_font_asset.rs` 只在 `AssetImportError::Parse` 边界格式化错误，`review_f5_font_asset_uses_typed_error_source` 已同步锁定 font owner、facade exports、import boundary、module doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 sound asset typed errors（`runtime_15_sound_asset_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/sound.rs` 的 `SoundAsset::from_wav_bytes(...)` 与 WAV parser helpers 从 `Result<_, String>` / `Err(format!(...))` / `.to_string()` 收敛到 `SoundAssetError` / `SoundAssetResult`；`asset/importer/ingest/import_sound.rs` 只在 `AssetImportError::Parse` 边界格式化错误，`review_f5_sound_asset_uses_typed_error` 已同步锁定 sound owner、facade exports、import boundary、module doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 zshader definition typed errors（`runtime_15_zshader_definition_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/shader/zshader.rs` 的 `ZShaderDefinitionValueDocument::to_render_definition(...)` 与 `ZShaderDocument::shader_definition_values(...)` 从 `Result<_, String>` / `format!` 字符串错误收敛到 `ZShaderDefinitionError` / `ZShaderDefinitionResult`；`review_f5_zshader_definition_values_use_typed_error` 已同步锁定 zshader owner、facade exports、import boundary、shader/material doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 asset meta typed errors（`runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred`）已把 `.zmeta` `asset/project/meta.rs::migrate_to_current(...)` 从 `Result<(), String>` / `Err(format!(...))` 收敛到 `AssetMetaError` / `AssetMetaResult`；`AssetMetaError::UnsupportedFormatVersion` 保留 found/supported 版本，`AssetMetaDocument::load(...)` 只在 `std::io::ErrorKind::InvalidData` 边界 stringify，`review_f5_asset_meta_uses_typed_error` 已同步锁定 meta owner、facade exports、importer doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 fixed world mutation typed errors（`runtime_15_fixed_world_mutation_typed_errors_static_passed_cargo_deferred`）已把 `scene/world/{component_access,hierarchy,query,records}.rs` 的固定 World mutation helper 从内部 `Err(format!(...)).into()` / `to_string().into()` 收敛到显式 `SceneError` 变体；`SceneError::MissingRequiredComponent`、joint/hierarchy/mobility/record/name typed variants 与 `review_f5_fixed_world_mutation_uses_scene_error_variants` 已同步锁定 owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 typed API residual typed errors（`runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred`）已把 `scene/world/typed_api.rs` 的 dynamic component presence helper 与 `scene/world/identity.rs::register_stable_entity(...)` 从内部 `Result<_, String>` / `error.to_string()` 收敛到 `SceneResult`；`SceneError::EntityRegistry(#[from] EntityRegistryError)` 保留 stable entity registry source，`review_f5_world_spawn_bundle_surface_uses_scene_error` 已同步锁定 typed API、identity owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 scene property access typed errors（`runtime_15_scene_property_access_typed_errors_static_passed_cargo_deferred`）已把 `scene/world/property_access/{read,write,value_conversion}.rs` 与 `scene/world/property_access/write/physics.rs` 的公共 property 读取/写入入口和转换 helper 收敛到 `SceneResult` / `SceneError`，新增 `review_f5_scene_property_access_uses_scene_error` 锁定 `World::property`、`World::set_property`、`SceneError::PropertyUnavailable` 与无 `Result<_, String>` 回归；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
 >
 > 最新完成：Runtime 15 M3 facade surface guard module split（`runtime_15_facade_surface_guard_module_split_static_passed_cargo_lock_blocked`）已把 façade/prelude 结构守卫迁入 `structure_convention/facade_surface.rs`；完整测试组织拆分仍 pending。
 >
@@ -868,7 +1229,7 @@ doc_type: module-detail
 >
 > 最新完成：Runtime 15 M3 core runtime deactivation blocked test folder split（`runtime_15_core_runtime_deactivation_blocked_tests_folder_split_static_passed_cargo_deferred`）已把 `core/runtime/tests/activation/behavior/deactivation/blocked.rs` 降到 7 行并迁出五个新增 folder-backed blocked deactivation owner；10 个测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
-> 最新完成：Runtime 15 M3 code review findings test folder split（`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/code_review_findings.rs` 降到 3 行并迁出 `typed_error_convergence.rs`、`f8_api_convergence.rs` 与 `late_api_cleanup.rs` 三个 folder-backed review guard owner；14 个评审守卫保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
+> 最新完成：Runtime 15 M3 code review findings test folder split（`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/code_review_findings.rs` 降到 3 行并迁出 `typed_error_convergence/`、`f8_api_convergence.rs` 与 `late_api_cleanup.rs` 三个 folder-backed review guard owner；25 个评审守卫保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
 > 最新完成：Runtime 15 M3 UI architecture test folder split（`runtime_15_ui_architecture_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/ui_architecture.rs` 降到 104 行并迁出 `tests/runtime_absorption/ui_architecture/architecture_boundaries.rs`、`tests/runtime_absorption/ui_architecture/legacy_renames.rs` 与 `tests/runtime_absorption/ui_architecture/mirror_docs.rs` 三个 folder-backed absorption guard owner；18 个 UI architecture 守卫保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
@@ -940,7 +1301,9 @@ doc_type: module-detail
 >
 > 最新完成：Runtime 15 M4 UI accessibility extract state owner split（`runtime_15_ui_accessibility_extract_state_owner_split_static_passed_cargo_deferred`）已把 `ui/accessibility/extract.rs` 降到 668 行，并迁出 339 行 `ui/accessibility/extract/state.rs` 承接 accessibility state projection owner；完整 `large_file_ownership_gate` 仍 pending。
 >
-> 最新完成：Runtime 15 M4 UI component catalog editor-showcase helper owner split（`runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result`）已把 `ui/component/catalog/editor_showcase.rs` 降到 663 行，并迁出 384 行 `ui/component/catalog/editor_showcase/helpers.rs` 承接 editor showcase descriptor helper owner；完整 `large_file_ownership_gate` 仍 pending。
+> 最新完成：Runtime 15 M4 UI component catalog editor-showcase helper owner split（`runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result`）已把 `ui/component/catalog/editor_showcase.rs` 降到 674 行，并迁出 429 行 `ui/component/catalog/editor_showcase/descriptor_builders.rs` 承接 editor showcase descriptor builder owner；完整 `large_file_ownership_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 UI editor showcase descriptor builders module naming hard cutover（`runtime_15_ui_editor_showcase_descriptor_builders_naming_hard_cutover_static_passed_cargo_deferred`）已删除 `ui/component/catalog/editor_showcase/helpers.rs` 并硬切为 `ui/component/catalog/editor_showcase/descriptor_builders.rs`；`runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name` 锁定旧路径不回流，完整 banned-name sweep 与 `module_convention_gate` 仍 pending。
 >
 > 最新完成：Runtime 15 M4 UI surface event-routing owner split（`runtime_15_ui_surface_event_routing_owner_split_static_passed_cargo_deferred`）已把 `ui/surface/surface.rs` 降到 317 行，并迁出 578 行 `ui/surface/surface/event_routing.rs` 与 356 行 `ui/surface/surface/pointer_component_events.rs` 承接 surface input routing 和 pointer component event owners；完整 `large_file_ownership_gate` 仍 pending。
 >
@@ -953,6 +1316,18 @@ doc_type: module-detail
 > 最新完成：Runtime 15 M4 UI surface default-interactions keyboard/timer owner split（`runtime_15_ui_surface_default_interactions_keyboard_timer_owner_split_static_passed_cargo_deferred`）已把 `ui/surface/surface/default_interactions.rs` 降到 596 行，并迁出 229 行 `ui/surface/surface/default_interactions/keyboard.rs` 与 172 行 `ui/surface/surface/default_interactions/timers.rs` 承接 keyboard default actions 和 timer-derived component event owners；完整 `large_file_ownership_gate` 仍 pending。
 >
 > 最新完成：Runtime 15 M4 UI surface table column helper owner split（`runtime_15_ui_surface_table_column_helper_owner_split_static_passed_cargo_deferred`）已把 `ui/surface/surface/default_interactions/table/mod.rs` 降到 677 行，并迁出 292 行 `ui/surface/surface/default_interactions/table/columns.rs` 承接 column metadata、sort/width helper 与 resize drag-token owner；完整 `large_file_ownership_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 UI table sortingMode server literal allowed-context sync（`runtime_15_ui_table_sorting_mode_server_literal_allowed_context_static_passed_cargo_deferred`）已把 `ui/surface/surface/default_interactions/table/columns.rs` 中的 `sortingMode = "server"` 登记到非网络 `server` 命名审计和 Rust 守卫的新 owner allowlist；graphics render-framework server naming debt 已由后续 M2 hard cutover 关闭，完整 `module_convention_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 graphics render-framework receiver naming hard cutover（`runtime_15_graphics_render_framework_receiver_naming_hard_cutover_static_passed_cargo_deferred`）已把 `graphics/runtime/render_framework/**` 的非网络 receiver/context 变量从 `server` 硬切为 `framework`，并用 `runtime_15_render_framework_receiver_uses_framework_name` 锁定 `framework: &WgpuRenderFramework`；Rust guard 与 Python `non_network_server_naming.py` 均不再保留 retired graphics debt bucket，后续 editor workbench authority-label M2 cutover 已继续清掉当时剩余的非网络 `server` 命名债。
+>
+> 最新完成：Runtime 15 M2 editor workbench authority-label naming hard cutover（`runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred`）已把 `zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs` 的输出文案从 `Selected Condition_Night   server authority` 硬切为 `Selected Condition_Night   editor authority`；`runtime_15_editor_workbench_authority_label_uses_editor_name` 与 `non_network_server_naming.py` 锁定 retired editor workbench debt bucket 不回流，当前 non-network server naming gate 为 `classified-and-clear`。
+>
+> 最新完成：Runtime 15 M2 asset change construction module naming hard cutover（`runtime_15_asset_change_construction_naming_hard_cutover_static_passed_cargo_deferred`）已删除 `asset/watch/asset_change_new.rs` 并硬切为 `asset/watch/asset_change_construction.rs`；`runtime_15_asset_change_construction_uses_owner_name` 锁定旧 `*_new` construction owner 不回流，完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 resource streamer construction module naming hard cutover（`runtime_15_resource_streamer_construction_naming_hard_cutover_static_passed_cargo_deferred`）已删除 `graphics/scene/resources/resource_streamer/resource_streamer_new.rs` 并硬切为 `graphics/scene/resources/resource_streamer/resource_streamer_construction.rs`；`runtime_15_resource_streamer_construction_uses_owner_name` 锁定旧 `*_new` construction owner 不回流，完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 offscreen target construct directory naming hard cutover（`runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result`）已删除 `graphics/backend/render_backend/offscreen_target_new/` 并硬切为 `graphics/backend/render_backend/offscreen_target_construct/`；`runtime_15_offscreen_target_construct_uses_owner_name` 锁定旧 `*_new` construction directory 不回流，完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
 >
 > 最新完成：Runtime 15 M3 UI runtime input ownership test folder split（`runtime_15_ui_runtime_input_ownership_tests_folder_split_static_passed_cargo_deferred`）已把 `ui/tests/runtime_input_ownership.rs` 降到 203 行并迁出六个 folder-backed input ownership owner；16 个 input-method、owner validation、high-precision、drag/drop、popup/tooltip 与 route-trace 测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
@@ -1082,13 +1457,15 @@ doc_type: module-detail
 
 > 最新完成：Runtime 15 M3 script VM test folder split（`runtime_15_script_vm_tests_folder_split_static_passed_cargo_timeout_no_result`）已把 `script/vm/tests.rs` 降到 41 行并迁出六个 folder-backed 脚本 VM 测试/夹具 owner；32 个测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 
+> 最新完成：Runtime 15 M3 script VM hot-reload coordinator test folder split（`runtime_15_script_vm_hot_reload_coordinator_tests_folder_split_static_passed_cargo_deferred`）已把 `script/vm/runtime/hot_reload_coordinator.rs` 的 5 个内嵌 hot-reload/poison-recovery 测试迁入 `script/vm/runtime/hot_reload_coordinator/tests.rs`；父文件降到 282 行并只保留生产 coordinator owner 和 `#[cfg(test)] mod tests;` 挂载，子 owner 为 407 行，完整 `runtime_15_no_oversized_test_files` 仍 pending。
+
 > 最新完成：Runtime 15 M3 gameplay host test folder split（`runtime_15_gameplay_host_tests_folder_split_static_passed_cargo_deferred`）已把 `script/vm/gameplay_host/tests.rs` 降到 46 行并迁出四个 folder-backed gameplay host 测试 owner；9 个玩法宿主测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 
 > 最新完成：Runtime 15 M3 shader prewarm manifest test folder split（`runtime_15_shader_prewarm_manifest_tests_folder_split_static_passed_cargo_deferred`）已把 `bin/zircon_shader_prewarm/manifest.rs` 降到 672 行并迁出 `bin/zircon_shader_prewarm/manifest/tests.rs` 测试 owner；1 个资产扫描预热 manifest 测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 
 > 最新完成：Runtime 15 M3 scene ECS schedule test folder split（`runtime_15_scene_ecs_schedule_tests_folder_split_static_passed_cargo_deferred`）已把 `scene/tests/ecs_schedule.rs` 降到 32 行并迁出四个 folder-backed ECS schedule 行为 owner；57 个 schedule 测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 
-> 最新完成：Runtime 15 M3 scene ECS systems test folder split（`runtime_15_scene_ecs_systems_tests_folder_split_static_passed_cargo_deferred`）已把 `scene/tests/ecs_systems.rs` 降到 53 行并迁出六个 folder-backed ECS systems 行为 owner；24 个系统参数/事件/查询 helper 测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
+> 最新完成：Runtime 15 M3 scene ECS systems test folder split（`runtime_15_scene_ecs_systems_tests_folder_split_static_passed_cargo_deferred`）已把 `scene/tests/ecs_systems.rs` 降到 53 行并迁出六个 folder-backed ECS systems 行为 owner；24 个系统参数/事件/查询行为测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。2026-06-25 后续 M2 命名硬切已把 many/single query owner 从 `query_helpers.rs` 收束为 `many_single_queries.rs`。
 
 > 最新完成：Runtime 15 M3 test file budget root-layout child split（`runtime_15_test_file_budget_root_layout_child_split_static_passed_cargo_deferred`）已把 `structure_convention/test_file_budget.rs` 的根布局自守卫迁入 `structure_convention/test_file_budget/root_layout.rs`，父文件降到 428 行；完整 `runtime_15_no_oversized_test_files` 仍 pending。
 > 最新完成：Runtime 15 M3 test file budget root-layout UI child split（`runtime_15_test_file_budget_root_layout_ui_child_split_static_passed_cargo_deferred`）已把 `structure_convention/test_file_budget/root_layout.rs` 的 UI child guard scan 迁入 `structure_convention/test_file_budget/root_layout/ui_children.rs`，父文件降到 499 行，新子文件为 207 行；完整 `runtime_15_no_oversized_test_files` 仍 pending。
@@ -1127,6 +1504,126 @@ doc_type: module-detail
 ## 联动
 
 与 `large-file-ownership-m1.md` 共享 hotspot 清单；render 子计划 graphics 热点纳入本治理。
+
+## Runtime 15 M1 animation manager folder-backed cutover
+
+状态：`runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred`。
+
+R1.2 的当前新增落地部分是 animation manager root 去 `manager.rs` + `manager/` 共存债。`animation/manager.rs` 已删除，当前 root owner 为 `animation/manager/mod.rs`；`animation/mod.rs` 只通过 `mod manager;` 挂载并重导出 `DefaultAnimationManager`，`animation/manager/mod.rs` 只挂载 `graph`、`parameters`、`pose`、`sampling` 与 `state_machine` child owners，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_animation_manager_is_folder_backed` 验证旧文件不存在、新 folder root/child owner 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、animation runtime 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片关闭 animation manager 的 folder-backed root 切换；完整 `module_convention_gate` 与 M1 full structure sweep 仍 pending。
+
+## Runtime 15 M2 core runtime state module naming hard cutover
+
+状态：`runtime_15_core_runtime_state_module_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 core runtime state owner 去 `_inner` 文件名债。`core/runtime/state/runtime_inner.rs` 已删除，当前 owner 为 `core/runtime/state/core_runtime_state.rs`；`core/runtime/state/mod.rs` 只通过 `mod core_runtime_state;` 挂载并从该 owner 重导出 `CoreRuntimeInner`，没有保留旧模块、alias 或兼容 re-export。`core/runtime/tests/registration/structure/mod.rs` 的 fixture 同步改为 `runtime_state` 并读取 `../../../state/core_runtime_state.rs`，因此 registration 结构守卫继续验证同一 service registry 存储形状。
+
+守卫：`runtime_15_core_runtime_state_module_uses_owner_name` 验证旧文件不存在、新 owner/入口/fixture 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、core state 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 core runtime state 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 scene ECS observer callback registry module naming hard cutover
+
+状态：`runtime_15_scene_ecs_observer_callback_registry_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 scene ECS observer callback registry 去 `utils` 文件名债。`scene/ecs/observer/utils.rs` 已删除，当前 owner 为 `scene/ecs/observer/callback_registry.rs`；`scene/ecs/observer/mod.rs` 只通过 `mod callback_registry;` 挂载，`scene/ecs/observer/store.rs` 只从该 owner 读取 `lifecycle_callback_count`、`event_callback_count`、`entity_event_callback_count` 与 `remove_observer_by_id`，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_scene_ecs_observer_callback_registry_uses_owner_name` 验证旧文件不存在、新 owner/入口/store import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、scene ECS 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 scene ECS observer callback registry 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 scene ECS query-state many-item array module naming hard cutover
+
+状态：`runtime_15_scene_ecs_query_state_many_item_array_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 scene ECS query-state many-item array 去 `helpers` 文件名债。`scene/ecs/query/query_state/helpers.rs` 已删除，当前 owner 为 `scene/ecs/query/query_state/many_item_array.rs`；`scene/ecs/query/query_state/mod.rs` 只通过 `mod many_item_array;` 挂载，`cached_direct.rs`、`mutable.rs`、`read_only.rs` 与 `read_only_cached.rs` 只从该 owner 读取 `collect_many_query_items`，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_scene_ecs_query_state_many_item_array_uses_owner_name` 验证旧文件不存在、新 owner/入口/调用方 import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、scene ECS 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 scene ECS query-state many-item array 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 scene ECS component-storage component results module naming hard cutover
+
+状态：`runtime_15_scene_ecs_component_storage_component_results_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 scene ECS component-storage component results 去 `utils` 文件名债。`scene/ecs/storage/component_storage/utils.rs` 已删除，当前 owner 为 `scene/ecs/storage/component_storage/component_results.rs`；`scene/ecs/storage/component_storage/mod.rs` 只通过 `mod component_results;` 挂载，`store.rs` 只从该 owner 读取 `downcast_component` 与 `sort_component_ids_if_needed`，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_scene_ecs_component_storage_component_results_uses_owner_name` 验证旧文件不存在、新 owner/入口/store import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、scene ECS 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 scene ECS component-storage component results 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 asset watcher shutdown-on-drop module naming hard cutover
+
+状态：`runtime_15_asset_watcher_shutdown_on_drop_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 asset watcher shutdown-on-drop 去 `_impl` 文件名债。`asset/watch/drop_impl.rs` 已删除，当前 owner 为 `asset/watch/shutdown_on_drop.rs`；`asset/watch/mod.rs` 只通过 `mod shutdown_on_drop;` 挂载，该 owner 继续承接 `AssetWatcher` 的 drop-time stop signal 与 watcher thread join，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_asset_watcher_shutdown_on_drop_uses_owner_name` 验证旧文件不存在、新 owner/入口形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、asset watcher 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 asset watcher shutdown-on-drop 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 asset change construction module naming hard cutover
+
+状态：`runtime_15_asset_change_construction_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.5 的当前新增落地部分是 asset watcher `AssetChange` construction 去 `*_new` 文件名债。`asset/watch/asset_change_new.rs` 已删除，当前 owner 为 `asset/watch/asset_change_construction.rs`；`asset/watch/mod.rs` 只通过 `mod asset_change_construction;` 挂载，该 owner 继续承接 `AssetChange::new(...)` 构造逻辑，`fold_events.rs` 继续消费同一 API，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_asset_change_construction_uses_owner_name` 验证旧文件不存在、新 owner/入口/调用方形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、asset watcher 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 asset change construction 文件名债；完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 resource streamer construction module naming hard cutover
+
+状态：`runtime_15_resource_streamer_construction_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.5 的当前新增落地部分是 graphics ResourceStreamer construction 去 `*_new` 文件名债。`graphics/scene/resources/resource_streamer/resource_streamer_new.rs` 已删除，当前 owner 为 `graphics/scene/resources/resource_streamer/resource_streamer_construction.rs`；`resource_streamer/mod.rs` 只通过 `mod resource_streamer_construction;` 挂载，该 owner 继续承接 `ResourceStreamer::new(...)`、fallback texture/material uniform 初始化和 output-target writeback converter 构造逻辑，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_resource_streamer_construction_uses_owner_name` 验证旧文件不存在、新 owner/入口形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、graphics render-product 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 ResourceStreamer construction 文件名债；完整 construction-owner `_new` sweep、graphics Cargo sweep 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 offscreen target construct directory naming hard cutover
+
+状态：`runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result`。
+
+R2.5 的当前新增落地部分是 render backend OffscreenTarget construction 去 `*_new` 目录名债。`graphics/backend/render_backend/offscreen_target_new/` 已删除，当前 owner 目录为 `graphics/backend/render_backend/offscreen_target_construct/`；`graphics/backend/render_backend/mod.rs` 只通过 `mod offscreen_target_construct;` 挂载，该目录继续承接 `OffscreenTarget::new(...)`、固定 offscreen frame target texture bundle 构造、cluster buffer 构造和 texture bundle owner 拆分，没有保留旧目录、alias 或兼容 re-export。
+
+守卫：`runtime_15_offscreen_target_construct_uses_owner_name` 验证旧目录不存在、新目录/父模块/construct owner 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、graphics render-product 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Focused `cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir target\codex-runtime15-offscreen-construct-check --message-format short --color never` 首跑 exit=1 但保留输出无错误尾部；同目标目录复跑 304s 超时，日志无 `Finished` / `error:` 结论，不计 Cargo 通过。该切片只关闭 OffscreenTarget construction directory 命名债；完整 construction-owner `_new` sweep、graphics Cargo sweep 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 asset texture upload readiness container fixtures module naming hard cutover
+
+状态：`runtime_15_asset_texture_upload_readiness_container_fixtures_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 asset texture upload readiness container fixtures 去 `common` 文件名债。`asset/tests/assets/texture_upload_readiness/common.rs` 已删除，当前 owner 为 `asset/tests/assets/texture_upload_readiness/container_fixtures.rs`；`asset/tests/assets/texture_upload_readiness.rs` 只通过 `mod container_fixtures;` 挂载，`boundaries.rs`、`containers.rs`、`dds.rs` 与 `ktx.rs` 只从该 owner 读取 DDS/KTX/ASTC fixture bytes、container header writers 与 upload-readiness constants，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name` 验证旧文件不存在、新 owner/入口/调用方 import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、render-assets 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 asset texture upload readiness container fixtures 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 scene ECS query cached queries module naming hard cutover
+
+状态：`runtime_15_scene_ecs_query_cached_queries_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 scene ECS query cached queries 去 `helpers` 文件名债。`scene/tests/ecs_query/cache_helpers.rs` 已删除，当前 owner 为 `scene/tests/ecs_query/cached_queries.rs`；`scene/tests/ecs_query.rs` 只通过 `mod cached_queries;` 挂载，该 test owner 继续承接 cache rebuild、count/empty/get/many/unique、cached-direct table/sparse location、archetype movement 和 optional archetype membership 用例，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_scene_ecs_query_cached_queries_uses_owner_name` 验证旧文件不存在、新 owner/入口形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、scene ECS 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 scene ECS query cached queries 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 dynamic API vampire runtime support module naming hard cutover
+
+状态：`runtime_15_dynamic_api_vampire_runtime_support_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 dynamic API vampire runtime support 去 `helpers` 文件名债。`dynamic_api/session/tests/helpers.rs` 已删除，当前 owner 为 `dynamic_api/session/tests/vampire_runtime_support.rs`；`dynamic_api/session/tests/mod.rs` 只通过 `mod vampire_runtime_support;` 挂载，`frame_diagnostics.rs`、`vampire_gameplay.rs`、`vampire_hud.rs` 与 `vampire_menu.rs` 只从该 owner 读取 vampire project/session/HUD/diagnostics 测试支撑函数，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_dynamic_api_vampire_runtime_support_uses_owner_name` 验证旧文件不存在、新 owner/入口/调用方 import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、dynamic API session 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 dynamic API vampire runtime support 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 camera controller output module naming hard cutover
+
+状态：`runtime_15_camera_controller_output_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 camera controller output 去 `common` 文件名债。`core/framework/camera_controller/common.rs` 已删除，当前 owner 为 `core/framework/camera_controller/controller_output.rs`；`core/framework/camera_controller/mod.rs` 只通过 `mod controller_output;` 挂载，并从该 owner 重导出 `CameraControllerOutput`、`CursorGrabIntent` 与 `CursorGrabMode`，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_camera_controller_output_uses_owner_name` 验证旧文件不存在、新 owner/入口形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、camera controller 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 camera controller output 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 scene ECS systems many/single queries module naming hard cutover
+
+状态：`runtime_15_scene_ecs_systems_many_single_queries_naming_hard_cutover_static_passed_cargo_timeout_no_result`。
+
+R2.3 的当前新增落地部分是 scene ECS systems many/single queries 去 `query_helpers` 文件名债。`scene/tests/ecs_systems/query_helpers.rs` 已删除，当前 owner 为 `scene/tests/ecs_systems/many_single_queries.rs`；`scene/tests/ecs_systems.rs` 只通过 `mod many_single_queries;` 挂载，该 owner 继续承接 `get_many` / `iter_many` / `single` query behavior 覆盖，没有保留旧模块、alias 或兼容 re-export。既有 `runtime_15_scene_ecs_systems_tests_are_folder_backed` 守卫和相关 M3 文档锚点已同步新路径。
+
+守卫：`runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name` 验证旧文件不存在、新 owner/入口形状、M3 test-budget guard 已切到新路径、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、scene ECS 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 复跑在 305 秒超时，临时日志只到编译 warning 且没有 test result，不计通过。该切片只关闭 scene ECS systems many/single query 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+## Runtime 15 M2 plugin static manifest contract owner naming hard cutover
+
+状态：`runtime_15_plugin_static_manifest_contract_owner_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3 的当前新增落地部分是 static manifest contract 测试去 `helpers` 文件名债。`plugin_extensions/static_manifest_contracts/feature_bundles/helpers.rs`、`package_coordinates/helpers.rs`、`package_identity/helpers.rs` 与 `package_kind/helpers.rs` 已删除，当前 owner 为 `plugin_extensions/static_manifest_contracts/feature_bundles/feature_bundle_rows.rs`、`plugin_extensions/static_manifest_contracts/package_coordinates/package_coordinate_resolution.rs`、`plugin_extensions/static_manifest_contracts/package_identity/package_id_tokens.rs` 与 `plugin_extensions/static_manifest_contracts/package_kind/package_kind_fields.rs`；父模块只挂载职责命名 owner，调用方只从这些 owner import，没有保留旧模块、alias 或兼容 re-export。
+
+守卫：`runtime_15_plugin_static_manifest_contract_owners_use_domain_names` 验证旧文件不存在、新 owner/入口/调用方 import 形状、Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、package manifest 文档和 status-output expectations 同步。验证按实施切片节奏使用 scoped rustfmt/static scans、旧路径不存在扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo deferred，不计通过。该切片只关闭 static manifest contract test owner 文件名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
 
 ## Runtime 15 graphics facade visibility note
 
@@ -1210,6 +1707,100 @@ R1.4/M4 的当前新增落地部分是 RHI WGPU UI surface geometry test owner �
 
 验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；focused `cargo test -p zircon_runtime --lib runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner --locked --jobs 1` 10 分钟超时无测试结果，且超时后未发现 cargo/rustc 残留进程，不计 Cargo 通过。
 
+## Runtime 15 M4 RHI device handle owner split
+
+状态：`runtime_15_rhi_device_handles_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 RHI device handle owner 减压。`rhi/device.rs` 从 799 行减压为 702 行，继续拥有 typed `RhiError`、command/render-pass DTOs、`CommandList` 与 `RenderDevice` contract；新增 `rhi/device/handles.rs` 作为 105 行 child owner，承接 `BufferHandle`、`TextureHandle`、`SamplerHandle`、`BindGroupLayoutHandle`、`BindGroupHandle`、`ShaderModuleHandle`、`PipelineLayoutHandle` 与 `PipelineHandle` 这组 neutral resource handle newtypes。
+
+该切片不改变 RHI handle raw/new API、不改变 command-list recording semantics、不改 backend device contract，也不新增兼容 re-export。父模块通过 `mod handles;` 与 `pub use self::handles::{...}` 保留原 `rhi::device::*` 和 `rhi::*` public paths。守卫：`runtime_15_rhi_device_handles_are_child_owner` 验证父/子 owner 挂载、handle newtypes 不回流、`rhi/mod.rs` handle export 保持、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、RHI descriptors 文档和 status-output expectations 的状态锚同步。该切片只关闭 RHI device handle owner 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 RHI Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 scene component lighting/post-process owner split
+
+状态：`runtime_15_scene_component_light_postprocess_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 scene component production owner 减压。`scene/components/scene.rs` 从 711 行减压为 481 行，继续拥有 `NodeKind`、基础 active/transform/render-layer、camera、mesh renderer、physics、animation、scene node/record DTO 与 serde default helpers；`scene/components/scene/lighting.rs` 作为 85 行 child owner 承接 `AmbientLight`、`DirectionalLight`、`PointLight`、`RectLight`、`SpotLight` 与 defaults；`scene/components/scene/post_process.rs` 作为 84 行 child owner 承接 `PostProcessSettingsComponent`、`PostProcessVolumeComponent`、defaults 与 `global`/`local`/`with_weight` builders。
+
+父模块通过 `mod lighting;`、`mod post_process;` 与 `pub use self::lighting::{...}` / `pub use self::post_process::{...}` 保留原 `scene::components` 公开类型路径，不新增兼容 facade，不改变 scene asset serialization、render extract component lookup、post-process volume extraction 或 authoring semantics。
+
+守卫：`runtime_15_scene_components_light_postprocess_are_child_owners` 验证父模块挂载并 re-export 两个 child owners、light/post-process declarations 不回流到父文件、子 owner 承接对应 component/default/builder 逻辑、三侧均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/scene/ecs.md`、`docs/zircon_runtime/scene/render_extract.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `scene/components/scene.rs` 的 light/post-process owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 scene Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 texture descriptor settings parser owner split
+
+状态：`runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 texture descriptor settings parser owner 减压。`asset/assets/texture/descriptor.rs` 从 635 行减压为 393 行，继续拥有 `TextureArrayLayout`、`TextureAssetDescriptor` DTO、`apply_import_settings(...)`、render descriptor projection、extent normalization 与默认 texture descriptor contract；新增 `asset/assets/texture/descriptor/settings.rs` 作为 189 行 child owner，承接 TOML settings parser helpers、usage/asset_usage token parsing、sampler shorthand/table parsing、array layout/color-space/dimension parsing 与 Bevy-style token normalization。
+
+父模块通过 `mod settings;` 与窄 `use self::settings::{...}` 消费子 owner；fallible apply API 名称保持不变，并已由后续 F8 typed-error 切片改为 `TextureDescriptorResult<_>`，同时保留 Bevy alias diagnostics、RGBA8 linear-format normalization、2D/3D extent validation、serialized descriptor shape 与 `TextureAsset::render_image_descriptor()` 语义，也不新增兼容 re-export。守卫：`runtime_15_texture_descriptor_settings_parser_is_child_owner` 验证父模块保留 public descriptor behavior、settings parser helper 不回流到父文件、子 owner 承接 parser/token normalization、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/importer.md`、`docs/zircon_runtime/asset/render-assets.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 texture descriptor settings parser 的 M4 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 texture importer/render assets Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F5 sound asset typed errors
+
+状态：`runtime_15_sound_asset_typed_errors_static_passed_cargo_deferred`。
+
+F5/E1/E2 的当前新增落地部分是 sound asset WAV parser 的 typed-error 收束。`asset/assets/sound.rs` 新增 `SoundAssetError` / `SoundAssetResult`，`SoundAsset::from_wav_bytes(...)`、format/extensible-format parser、sample decoder、channel-mask layout projection 和 header reader helpers 不再返回 `Result<_, String>`。
+
+错误 variants 覆盖 RIFF/WAVE container shape、fmt/data chunk 缺失、zero channel/sample-rate declaration、WAVE_FORMAT_EXTENSIBLE valid-bits/subformat/channel-mask failures、unsupported bits/format、block-align mismatch、sample/frame alignment 和 header/chunk overflow。`asset/assets/mod.rs` 与 `asset/mod.rs` 公开 typed surface；`asset/importer/ingest/import_sound.rs` 继续只在 `AssetImportError::Parse` 边界格式化 `SoundAssetError` Display 文案，不把 importer 诊断反推为资产层字符串错误。
+
+守卫：`review_f5_sound_asset_uses_typed_error` 锁定 sound owner、facade exports、import boundary、`docs/zircon_runtime/asset/assets/sound.md` 和 status/docs anchors，并拒绝 `asset/assets/sound.rs` 回退到 `Result<_, String>`、`Err(format!(...))` 或 `.to_string()`。验证：scoped rustfmt/static scans、docs/status/session anchor scan 已通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。完整 `module_convention_gate`、全量 asset/audio Cargo sweep 与剩余 String-error sweep 仍 pending。
+
+## Runtime 15 F8 texture descriptor typed errors
+
+状态：`runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred`。
+
+F8/E3 的当前新增落地部分是 texture descriptor fallible apply API 的 typed-error 收束。`asset/assets/texture/descriptor.rs` 新增 `TextureDescriptorError` / `TextureDescriptorResult`，`TextureArrayLayout::from_import_settings(...)` 与 `TextureAssetDescriptor::apply_import_settings(...)` 不再返回 `Result<_, String>`；`asset/assets/texture/descriptor/settings.rs` 把 TOML setting type、u32 overflow、unsupported token 与 array-layout mode errors 映射到 typed variants；`asset/assets/texture/texture_asset.rs` 把 array-layout RGBA8/2D/single-layer/divisibility/byte-length/extent overflow 校验纳入同一错误类型。
+
+`asset/assets/texture/mod.rs` 与 `asset/assets/mod.rs` 公开 typed error/result，runtime built-in texture ingest 与 first-party texture importer plugin 仍只在 `AssetImportError::Parse` 边界格式化 Display 文案，不恢复 builder-style `with_*`、`Result<_, String>` 或 `Err(format!(...))`。守卫：`review_f8_texture_import_settings_use_fallible_apply_not_with` 锁定 typed fallible apply API、settings 子 owner 无 String-error 回退、`TextureDescriptorError` docs/status 锚点，以及 Runtime 15 计划、runtime index、审查发现、结构规范、render-assets 文档和 status-output expectations 的同步状态。
+
+验证：scoped rustfmt/static scans、docs/status/session anchor scan 已通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。完整 `module_convention_gate`、全量 texture importer/render assets Cargo sweep 与剩余 String-error sweep 仍 pending。
+
+## Runtime 15 M4 scene world render light collection owner split
+
+状态：`runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 scene world render production owner 减压。`scene/world/render.rs` 继续拥有 `RenderFrameExtract` 构建入口、camera descriptor/view projection、mesh/sprite/post-process/particle 采集编排、visibility handoff 和共享 `entity_intersects_camera_layers(...)` helper；ambient、directional、point、rect 与 spot light snapshot collection 迁入 `scene/world/render/lights.rs`。
+
+子 owner 保留既有 active-in-hierarchy 过滤、camera `RenderLayerSet` intersection、legacy default render layer fallback、light snapshot sort order 和 rect-light degradation reason；父模块通过 `mod lights;` 挂载并继续从 `build_prepared_render_frame_extract_for_request(...)` 调用相同 collector 名称，不改变 `LightingExtract`、shadow-map first directional selection、renderer readiness stats 或 WGPU light-buffer ABI。父文件从 832 行降到 725 行，`render/lights.rs` 为 169 行，两侧都低于 800 行生产文件软预算。
+
+守卫：`runtime_15_scene_world_render_light_collectors_are_child_owner` 验证父模块保留 frame extract orchestration、light collector call sites 与共享 camera-layer helper，light collector impl 和 render light snapshot Vec 类型不回流到父文件，子 owner 承接五类 light snapshot collection 与 `default_render_layer_mask()` fallback，父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/scene/render_extract.md`、`docs/zircon_runtime/graphics/render-product-submit.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 scene world render light collection owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 render extract Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描和 docs/status 锚点扫描通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 dynamic API session profile owner split
+
+状态：`runtime_15_dynamic_api_session_profile_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 dynamic API session profile owner 减压。`dynamic_api/session.rs` 从 773 行减压为 728 行，继续拥有 Rust-ABI session entry points、session registry、`RuntimeDynamicSession` lifecycle、frame tick/capture/present 和 host-request orchestration；新增 `dynamic_api/session/profile.rs` 作为 47 行 child owner，承接 `RuntimeDynamicSessionProfile`、ABI profile byte parsing、fixed-step policy、diagnostic-log schedule selection 与 render-bridge enablement policy。
+
+该切片不改变 `ZrRuntimeSessionConfigV1` profile 字节语义、不改变 default/runtime/editor/dev/minimal/headless profile 行为、不改 `RuntimeDynamicSession::new(...)` 或 frame tick 调用入口，也不新增兼容 re-export。父模块只通过 `mod profile;` 与 `use profile::RuntimeDynamicSessionProfile;` 消费 profile policy。守卫：`runtime_15_dynamic_api_session_profile_is_child_owner` 验证父/子 owner 挂载、profile enum/constants/methods 不回流、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、dynamic API session 文档和 status-output expectations 的状态锚同步。该切片只关闭 dynamic API session profile owner 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 dynamic API Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 dynamic API session registry owner split
+
+状态：`runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 dynamic API session registry owner 减压。`dynamic_api/session.rs` 从 728 行继续减压为 682 行，继续拥有 Rust-ABI session entry points、`RuntimeDynamicSession` lifecycle、frame tick/capture/present 和 host-request orchestration；新增 `dynamic_api/session/registry.rs` 作为 69 行 child owner，承接 `SESSION_REGISTRY`、`SessionRegistry` handle map、handle allocation、poison-safe `lock_registry`/`lock_session` 与 `with_session` lookup/dispatch。
+
+该切片不改变 `ZrRuntimeSessionHandle` 分配、不改变 destroy lookup、invalid/not-found status、lock-poison recovery 或 dynamic API ABI entry semantics，也不新增兼容 re-export。父模块只通过 `mod registry;`、`use registry::{insert_session, lock_registry, with_session};` 和测试专用 `use registry::lock_session;` 消费 registry owner。守卫：`runtime_15_dynamic_api_session_registry_is_child_owner` 验证父/子 owner 挂载、registry static/struct/helper 不回流、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、dynamic API session 文档和 status-output expectations 的状态锚同步。该切片只关闭 dynamic API session registry owner 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 dynamic API Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 native host API adapter tests owner split
+
+状态：`runtime_15_native_host_api_adapter_tests_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 native host API adapter production owner 减压。`zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` 把内联测试迁入 folder-backed `zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/tests.rs`。父文件从 967 行降到 506 行，继续拥有 `NativeHostApiV3RegistrationScope`、`NativeHostBridgeCallScope`、9 个 host ABI callback entry、registration/component bridge dispatch、context table 与 status helper；新子文件为 455 行，承接原 13 个 native host API / bridge method descriptor 测试。
+
+该切片不改变 `ZrHostApiV3` 表面、不改变 runtime plugin handle、bridge method dispatch、manifest method descriptor projection、panic guard 或 dotted plugin id projection，也不新增兼容 facade。守卫：`runtime_15_native_host_api_adapter_tests_are_child_owner` 验证父模块挂载、代表性 moved test 不回流、父文件 0 个测试加新子文件 13 个测试合计保留原 13 个测试，并验证两侧都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/bridge.md` 与 status-output expectations。完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 plugin bridge Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数与测试数量扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 19096/53460/61976/63160；`rustc` PIDs 6488/31436）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
 ## Runtime 15 M4 material asset value/readiness helper owner split
 
 状态：`runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result`。
@@ -1217,6 +1808,16 @@ R1.4/M4 的当前新增落地部分是 RHI WGPU UI surface geometry test owner �
 R1.4/M4 的当前新增落地部分是 material asset helper owner 减压。`asset/assets/material/material_asset.rs` 从 937 行减压为 750 行，继续拥有 `MaterialAsset` DTO、`.zmaterial` document 转换入口、descriptor/readiness public API、management overview 与 shader-aware dependency/texture-slot entry；新增 `asset/assets/material/material_asset/value_sync.rs` 作为 136 行 child owner，承接 TOML override 读取、texture slot hydration、legacy default 同步与 TOML 数组生成 helper；新增 `asset/assets/material/material_asset/readiness.rs` 作为 70 行 child owner，承接 shader readiness diagnostic projection、WGSL capture/missing runtime source 映射与 material validation diagnostic rows。
 
 该切片不改变 `.zmaterial` 序列化形状、不改变 `MaterialAsset` public API、不改 render material descriptor 字段或 readiness report 语义，也不新增兼容 re-export。守卫：`runtime_15_material_asset_value_readiness_helpers_are_child_owners` 验证父/子 owner 挂载、value/readiness helper 不回流、三侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、asset zmeta/material 文档和 status-output expectations 的状态锚同步。该切片只关闭 material asset value/readiness helper 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset/render material Cargo sweep 仍 pending。
+
+## Runtime 15 M4 material asset management record owner split
+
+状态：`runtime_15_material_asset_management_record_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 material asset management record owner 减压。`asset/assets/material/material_asset.rs` 从 750 行继续减压为 651 行，继续拥有 `MaterialAsset` DTO、`.zmaterial` document 转换入口、descriptor/readiness public API、`overview(...)`/`management_record(...)` entry 与 shader-aware dependency/texture-slot entry；新增 `asset/assets/material/material_asset/management.rs` 作为 108 行 child owner，承接 `MaterialAssetOverview`、`MaterialAssetManagementRecord`、`MaterialAssetManagementRecordSetSummary` 与 `MaterialAssetManagementRecordSet` 聚合 DTO 和 record-set 汇总 impl。
+
+该切片不改变 `.zmaterial` 序列化形状、不改变 `MaterialAsset::overview(...)` / `management_record(...)` public API、不改 management row ordering、summary counts、render material descriptor 字段或 readiness report 语义，也不新增兼容 re-export。父模块只通过 `mod management;` 与 `pub use self::management::{...}` 保留原公开类型路径。守卫：`runtime_15_material_asset_management_records_are_child_owner` 验证父/子 owner 挂载、management DTO/impl 不回流、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、asset zmeta/material 文档和 status-output expectations 的状态锚同步。该切片只关闭 material asset management record 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset/render material Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
 ## Runtime 15 M4 core runtime render-stats graph execution-resources owner split
 
@@ -1297,6 +1898,34 @@ R4.1/M3 的当前新增落地部分是 Runtime 15 status-output row data 二级�
 R4.1/M3 的当前新增落地部分是 status-output expected-slice status/date map 减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status.rs` 从 737 行降到 572 行，只保留 Runtime 15 子路由和非 Runtime 15 状态分支；`tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date.rs` 从 616 行降到 451 行，只保留 Runtime 15 子路由和非 Runtime 15 日期分支。
 
 新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs`（179 行）与 `tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs`（177 行）两个 child owner，分别承接 Runtime 15 expected status/date literal 映射。新增 `runtime_15_status_output_expected_slice_maps_are_child_owners`，验证 status/date 父路由、Runtime 15 literal 不回流、四个 map owner 和新守护文件低于 800 行预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证：scoped rustfmt/static checks、父子行数预算扫描、moved expected-slice 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
+
+## Runtime 15 M3 status output Runtime 15 expected-slice child-owner split
+
+状态：`runtime_15_status_output_runtime_15_expected_slice_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 Runtime 15 expected-slice status/date map 的第二阶段减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs` 从 750 行降为路由父文件，只挂载 `foundation.rs`、`naming_boundary.rs`、`m4_surface_cleanup.rs` 与 `m3_structure_support.rs`；`date/runtime_15.rs` 也从 601 行降为相同结构的路由父文件。
+
+新增 status/date 各四个 topic child owner，分别承接 Runtime 15 foundation/F5/F8/F12/F13、M1/M2 命名边界、M4/渲染清理、M3 测试与状态支撑 literal。新增 `runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners`，验证 Runtime 15 父文件不再保留代表性 expected-slice literal，child owner 保留对应 status/date 值，所有 focused owner 低于 400 行预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、session note 与 status-output expectations 同步。精确锚点包括 `plan_status/status_output_tables/expected_slices/status/runtime_15.rs`、`plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs` 和 `runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved expected-slice literal 扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按支撑切片节奏 deferred，不计 Cargo 通过。
+
+## Runtime 15 M3 status output expected-slice guard maps child-owner split
+
+状态：`runtime_15_status_output_expected_slice_guard_maps_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 status-output expected-slice 守护自身的 child-owner 减压。`tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps.rs` 从 572 行降为路由父文件，只挂载 `maps/top_level_maps.rs` 与 `maps/runtime_15_topics.rs`。
+
+新增 `structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs` 承接 Runtime 15 expected-slice topic 守护，`maps/top_level_maps.rs` 承接顶层/legacy map 守护。新增 `runtime_15_status_output_expected_slice_guard_maps_are_child_owners`，验证父文件不再定义被移动的两个守护、子 owner 保留原守护、父子文件低于 400 行 focused 预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、session note 与 status-output expectations 同步。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved guard 扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按支撑切片节奏 deferred，不计 Cargo 通过。
+
+## Runtime 15 M3 status output expected-slice top-level map support child-owner split
+
+状态：`runtime_15_status_output_expected_slice_top_level_map_support_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前支撑切片整理 `structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs` 内部结构，不改变 status-output 运行时代码和旧的 `runtime_15_status_output_expected_slice_maps_are_child_owners` 测试入口。父文件现在只挂载 `top_level_maps/assertions.rs` 与 `top_level_maps/sources.rs`，并保留旧守卫入口加新的 `runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed` 自检。
+
+`assertions.rs` 承接 expected-slice status/date parent、Runtime 15 topic、pre-Runtime-15 legacy map、line-budget 和 docs/status 断言组；`sources.rs` 承接批量 source reads。父文件为 136 行，`assertions.rs` 为 349 行，`sources.rs` 为 113 行，三者均低于 400 行 focused 预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、session note 与 status-output expectations，精确锚点包括 `structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs`、`structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs`、`structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/sources.rs` 和 `runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed`。Cargo 按支撑切片节奏 deferred，不计 Cargo 通过。
 
 ## Runtime 15 M3 status output expected-slice legacy child-owner split
 
@@ -1446,6 +2075,10 @@ E6/S10/F12 的当前新增落地部分是 ResourceStreamer diagnostics accessor 
 
 验证：scoped rustfmt --check 通过；静态扫描确认 `resource_streamer_accessors.rs` 无 `#[allow(dead_code)]`；带锁 standalone structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞（Cargo 需要补齐 `zircon_plugin_sdk` 相关锁文件条目），不计通过。
 
+Runtime 15 F12 ResourceStreamer material capture child owner split 状态：`runtime_15_resource_streamer_material_capture_child_owner_static_passed_cargo_deferred_implementation_cadence`。
+
+R1.4 follow-up 把 material capture/test texture sampling 从 `graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs` 移入 `graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs`。父文件保留生产 resource accessors、material readiness bridge 与 diagnostics query accessors，并只通过 `#[cfg(test)] mod material_capture;` 挂载 child；child owner 承接 `material_capture_seed(...)`、`sample_texture_rgba(...)`、`shading_model_id_for_lighting_model(...)`、`sample_texture_asset_rgba(...)` 与 `wrap01(...)`。`runtime_15_resource_streamer_diagnostics_accessor_cleanup` 同步锁定 moved helper 不回流、父/子 800 行预算、Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 render-product 文档的状态锚同步。验证为 scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check；Cargo/WGPU/RenderDoc 按 milestone implementation cadence deferred。
+
 ## Runtime 15 F12 resource streamer resolve texture id cleanup
 
 状态：`runtime_15_resource_streamer_resolve_texture_id_cleanup_static_passed_cargo_lock_blocked`。
@@ -1560,11 +2193,21 @@ R4.1/M3 的当前新增落地部分是 `core/runtime/tests/activation/behavior/d
 
 状态：`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings.rs` folder-backed 拆分。F5/F6/F7 typed-error review guards 迁入 `tests/runtime_absorption/code_review_findings/typed_error_convergence.rs`；F8 texture import settings 与 RuntimePluginDescriptor review guards 迁入 `f8_api_convergence.rs`；F11 shading-model registry、F17 entity path lookup、F18 asset manager handle shape 与 F19 scene renderer construction naming review guards 迁入 `late_api_cleanup.rs`。父文件现在只保留子模块挂载，行数从 1315 降到 3；14 个评审守卫全部保留，最大子文件 `f8_api_convergence.rs` 为 574 行。
+R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings.rs` folder-backed 拆分。F5/F6/F7 typed-error review guards 迁入 `tests/runtime_absorption/code_review_findings/typed_error_convergence/`，并由后续 child-owner split 拆为 `animation_resource.rs`、`asset_loaders.rs`、`asset_records.rs` 与 `scene_world.rs`；F8 texture import settings 与 RuntimePluginDescriptor review guards 迁入 `f8_api_convergence.rs`；F11 shading-model registry、F17 entity path lookup、F18 asset manager handle shape 与 F19 scene renderer construction naming review guards 迁入 `late_api_cleanup.rs`。父文件现在只保留子模块挂载，行数从 1315 降到 3；25 个评审守卫全部保留，最大子文件 `f8_api_convergence.rs` 为 589 行。
 
-守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 验证父模块挂载三个子 owner，代表性 F5/F8/F11/F19 moved guard 不回流到父文件，所有 14 个 review guard 保留在子模块，父/子 owner 都低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 都包含本切片锚。该切片只关闭 `runtime_absorption/code_review_findings.rs` 的 M3 folder-backed 子面；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 F12 sweep 仍 pending。
+守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 验证父模块挂载三个子 owner，typed-error 子目录挂载四个 child owner，代表性 F5/F8/F11/F19 moved guard 不回流到父文件，所有 25 个 review guard 保留在子模块，父/子 owner 都低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 都包含本切片锚。该切片只关闭 `runtime_absorption/code_review_findings.rs` 的 M3 folder-backed 子面；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 F12 sweep 仍 pending。
 
 验证：scoped rustfmt/static checks、迁移测试数量扫描、父子行数预算扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 typed-error convergence guard child-owner split
+
+状态：`runtime_15_typed_error_convergence_guard_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings/typed_error_convergence.rs` 的 folder-backed 子拆分。新增 sound asset typed-error guard 后，该文件增长到 1400 行以上，因此退役平铺文件并改为 `typed_error_convergence/mod.rs` 入口，子 owner 按责任分为 `scene_world.rs`、`asset_records.rs`、`asset_loaders.rs` 与 `animation_resource.rs`。
+
+`scene_world.rs` 承接 world spawn/bundle、fixed mutation、dynamic component 和 property access typed-error guards；`asset_records.rs` 承接 authoring/navigation/font/sound/zshader/asset-meta record typed-error guards；`asset_loaders.rs` 承接 texture loader、mesh/OBJ loader 和 artifact/importer typed-error guards；`animation_resource.rs` 承接 animation manager 与 core resource registry typed-error guards。当前 typed-error 子目录保留 15 个 guard，整体 code-review findings 保留 25 个 review guards，所有 owner 低于 800 行预算。
+
+守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 已更新为检查 typed-error 子目录挂载、`review_f5_sound_asset_uses_typed_error` 锚点、25 个 review guards、父/子 owner 行数预算，以及 Runtime 15/status/docs 锚点。验证：scoped rustfmt/static scans、line-count scan 与 docs/status/session anchor scan 已通过；Cargo 因并行 cargo/rustc lane active deferred，不计通过。
 
 ## Runtime 15 M3 UI architecture test folder split
 
@@ -1605,6 +2248,16 @@ R4.1/M3 的当前新增落地部分是 `ui/tests/shared_core.rs` folder-backed �
 守卫：`runtime_15_ui_shared_core_tests_are_folder_backed` 验证父模块挂载五个子 owner，代表性 moved guard 不回流到父文件，各子 owner 承接对应测试锚，`ui/tests/shared_core.rs` 和所有 UI shared core test child owner 都低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 都包含本切片锚。该切片只关闭 `ui/tests/shared_core.rs` 的 M3 folder-backed 子面；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 F12 sweep 仍 pending。
 
 验证：scoped rustfmt/static checks 通过；带锁 focused structure guard/status-output/core-min cargo check 均在进入测试前被当前工作区 `Cargo.lock` / `Cargo.toml` 不一致阻塞，不计通过。
+
+## Runtime 15 M3 UI shared core guard child-owner split
+
+状态：`runtime_15_ui_shared_core_guard_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 UI shared-core test-budget 守护的 child-owner 减压。`tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core.rs` 从 641 行降为路由父文件，只挂载 `ui_shared_core/root.rs`、`ui_shared_core/layout_surface.rs`、`ui_shared_core/input_visibility.rs` 与 `ui_shared_core/scroll_mutation.rs`。
+
+新增 `runtime_15_ui_shared_core_guard_child_owners_are_folder_backed`，验证父文件不再定义四个已移动守护、子 owner 保留原守护、父子文件低于 400 行 focused 预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、UI architecture 文档、session note 与 status-output expectations 同步。精确锚点包括 `structure_convention/test_file_budget/ui_shared_core.rs` 与 `structure_convention/test_file_budget/ui_shared_core/layout_surface.rs`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved guard 扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo 进程 active 按支撑切片节奏 deferred，不计 Cargo 通过。
 
 ## Runtime 15 M3 historical oversized test roots closeout
 
@@ -1870,11 +2523,21 @@ R1.4/M4 的当前新增落地部分是 UI accessibility extract production owner
 
 状态：`runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result`。
 
-R1.4/M4 的当前新增落地部分是 UI component catalog editor showcase production owner 减压。`ui/component/catalog/editor_showcase.rs` 继续拥有 editor showcase registry、descriptor list、descriptor assembly entry point 与 representative component coverage；base descriptor construction、layout role/default template projection、palette metadata、fallback policy、option/slot/value prop schema builders 与 TOML layout helpers 迁入 `ui/component/catalog/editor_showcase/helpers.rs`。父文件通过 `mod helpers;` 与窄 helper imports 消费子 owner，不改变 editor showcase registry ids、component descriptors、palette metadata shape、fallback policy 或 component catalog public lookup behavior。父文件从 1029 行降到 663 行，子 owner 为 384 行，两侧都低于 800 行生产文件软预算。
+R1.4/M4 的当前新增落地部分是 UI component catalog editor showcase production owner 减压。`ui/component/catalog/editor_showcase.rs` 继续拥有 editor showcase registry、descriptor list、descriptor assembly entry point 与 representative component coverage；base descriptor construction、layout role/default template projection、palette metadata、fallback policy、option/slot/value prop schema builders 与 TOML layout helpers 迁入 `ui/component/catalog/editor_showcase/descriptor_builders.rs`。父文件通过 `mod descriptor_builders;` 与窄 descriptor-builder imports 消费子 owner，不改变 editor showcase registry ids、component descriptors、palette metadata shape、fallback policy 或 component catalog public lookup behavior。父文件从 1029 行降到 674 行，子 owner 为 429 行，两侧都低于 800 行生产文件软预算；原 M4 拆分 owner 的 `helpers.rs` 文件名已由后续 M2 命名硬切收束到职责名。
 
-守卫：`runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner` 验证父模块挂载 helpers child、代表性 descriptor helper、palette metadata、fallback policy 与 prop schema builder 不回流到父文件、子 owner 承接 descriptor construction internals、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/architecture.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `ui/component/catalog/editor_showcase.rs` 的 descriptor helper owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 UI component catalog Cargo sweep 仍 pending。
+守卫：`runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner` 验证父模块挂载 descriptor_builders child、代表性 descriptor builder、palette metadata、fallback policy 与 prop schema builder 不回流到父文件、子 owner 承接 descriptor construction internals、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/architecture.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `ui/component/catalog/editor_showcase.rs` 的 descriptor builder owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 UI component catalog Cargo sweep 仍 pending。
 
 验证：scoped rustfmt/static checks、父子行数预算扫描、moved owner 扫描与 docs/status 锚点扫描已通过；focused Cargo 305 秒超时无诊断结果，超时后另有 editor layout cargo/rustc 通道活跃，不计通过。
+
+## Runtime 15 M2 UI editor showcase descriptor builders module naming hard cutover
+
+状态：`runtime_15_ui_editor_showcase_descriptor_builders_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3/M2 的当前新增落地部分是 UI editor showcase descriptor construction owner 命名硬切。`ui/component/catalog/editor_showcase/helpers.rs` 已删除并硬切为 `ui/component/catalog/editor_showcase/descriptor_builders.rs`；`ui/component/catalog/editor_showcase.rs` 只挂载 `mod descriptor_builders;` 并从职责命名 owner import descriptor construction、layout role/default template projection、palette metadata、fallback policy、option/slot/value prop schema builders 与 TOML layout helpers，不保留旧 `helpers` module、alias 或兼容 re-export。
+
+守卫：`runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name` 验证旧文件不存在、新 owner/入口/调用方 import 形状、既有 M4 production-file budget 守卫已同步新路径，以及 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/architecture.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 UI editor showcase descriptor builders 的 `helpers` 文件名债；完整 `runtime_15_no_banned_name_modules`、`module_convention_gate` 与全量 UI component catalog Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧路径不存在与新模块入口扫描、docs/status/date 锚点扫描、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
 ## Runtime 15 M4 UI surface event-routing owner split
 
@@ -1926,6 +2589,36 @@ R1.4/M4 的当前新增落地部分是 UI surface table default-interactions pro
 守卫：`runtime_15_ui_surface_table_column_helpers_are_child_owner` 验证父模块挂载 columns/selection/virtualization child、代表性 column helper 常量与函数不回流到父文件、子 owner 承接 column metadata/sort/width/drag-token internals、table 四侧 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/architecture.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `ui/surface/surface/default_interactions/table/mod.rs` 的 column helper owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 UI surface Cargo sweep 仍 pending。
 
 验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 UI table sortingMode server literal allowed-context sync
+
+状态：`runtime_15_ui_table_sorting_mode_server_literal_allowed_context_static_passed_cargo_deferred`。
+
+R2.3/M2 的当前新增落地部分是 UI table sortingMode 第三方 API 字面量的 moved-owner allowlist 同步。M4 table column helper split 后，`sortingMode = "server"` 的生产读取点位于 `ui/surface/surface/default_interactions/table/columns.rs::table_uses_client_sorting(...)`；该字面量描述 DataGrid/Table 的外部排序模式，不是 runtime 网络/server owner。`non_network_server_naming.py` 与 Rust `runtime_non_network_server_naming_is_classified_by_owner` guard 已同步新 owner 路径，继续把该字面量作为 allowed context 处理。
+
+守卫：`runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context` 验证 `columns.rs` 仍只在 `table_uses_client_sorting(...)` 中消费 `sortingMode`/`Some("server")`，Python audit 与 Rust guard 都登记新路径，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/architecture.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 UI table `sortingMode = "server"` moved-owner allowlist 同步面；graphics render-framework server naming debt 已由后续 M2 hard cutover 关闭，完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+验证：scoped rustfmt/static scans、aggregate `audit_runtime_structure.py --json` non-network server assertions、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 graphics render-framework receiver naming hard cutover
+
+状态：`runtime_15_graphics_render_framework_receiver_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3/M2 的当前新增落地部分是 graphics render-framework 非网络 receiver 命名硬切。`graphics/runtime/render_framework/**` 中 viewport lifecycle、pipeline mutation、stats/debug query、capture、frame-submission context build、camera-loop submit、direct runtime-frame submit 与 preflight failure helpers 的 `server: &WgpuRenderFramework` receiver/context 变量已硬切为 `framework: &WgpuRenderFramework`；对应调用改为 `framework.lock_operation()`、`framework.lock_state()` 和窄函数传参，不保留 `server` alias、compat variable 或 allowlist 债。
+
+守卫：`runtime_15_render_framework_receiver_uses_framework_name` 递归验证 render-framework source 无 `server` token，代表性入口继续使用 `framework: &WgpuRenderFramework` 与 `framework.lock_*`，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/graphics/render-product-submit.md` 和 status-output expectations 都包含本切片锚。Rust `runtime_non_network_server_naming_is_classified_by_owner` 与 Python `non_network_server_naming.py` 均不再保留 retired `graphics-render-framework-debt` bucket；aggregate `non_network_server_references` 在该切片收敛为 0 unclassified、0 graphics render-framework debt，后续 editor workbench authority-label hard cutover 继续清掉当时剩余的 classified debt。该切片只关闭 graphics render-framework 非网络 receiver 命名债；完整 `runtime_15_no_banned_name_modules` 与 `module_convention_gate` 仍 pending。
+
+验证：scoped rustfmt/static scans、render-framework server-token scan、old graphics debt string scan、aggregate `audit_runtime_structure.py --json` non-network server assertions、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 editor workbench authority-label naming hard cutover
+
+状态：`runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred`。
+
+R2.3/M2 的当前新增落地部分是 editor workbench extension authority label 命名硬切。`zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs` 中 `workbench.extension.spawn_rules.condition_night_table_row.select` 的输出文案从 `Selected Condition_Night   server authority` 改为 `Selected Condition_Night   editor authority`，使 Workbench fixture/output label 表达 editor 权限来源，而不是非网络 server owner。
+
+守卫：`runtime_15_editor_workbench_authority_label_uses_editor_name` 验证 Workbench feedback source 包含新 `Selected Condition_Night   editor authority` 文案、不再包含 `server authority`，并验证 Python `non_network_server_naming.py` 不再保留 retired `editor-workbench-authority-label-debt` bucket。该守卫同时要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/engine-architecture/non-network-server-naming-m1.md`、`docs/zircon_editor/ui/host/commands.md` 和 status-output expectations 都包含本切片锚。aggregate `non_network_server_references` 审计现在报告 0 reference decisions、0 classified debt、0 migration debt、0 unclassified，M1 gate 为 `classified-and-clear`。
+
+验证：scoped rustfmt/static scans、Python py_compile、aggregate `audit_runtime_structure.py --json` non-network server assertions、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
 ## Runtime 15 M4 UI template document validation owner split
 
@@ -2009,6 +2702,16 @@ R4.1/M3 的当前新增落地部分是 `ui/tests/runtime_input_reply_routes.rs` 
 验证：scoped rustfmt/static checks、迁移测试数量扫描、父子行数预算扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按实施切片节奏 deferred，不计通过。
 
 ## Runtime 15 M3 UI runtime input reply route child folder split
+
+## Runtime 15 M3 UI runtime input reply route guard child-owner split
+
+状态：`runtime_15_ui_runtime_input_reply_route_guard_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 UI runtime input reply route test-budget 守护的 child-owner 减压。`tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs` 从 539 行降为路由父文件，只挂载 `ui_runtime_input_reply_routes/root.rs`、`ui_runtime_input_reply_routes/route_children.rs` 与 `ui_runtime_input_reply_routes/table_pointer.rs`。
+
+新增 `runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed`，验证父文件不再定义三个已移动守护、子 owner 保留原守护、父子文件低于 400 行 focused 预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、UI architecture 文档、session note 与 status-output expectations 同步。精确锚点包括 `structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs` 与 `structure_convention/test_file_budget/ui_runtime_input_reply_routes/route_children.rs`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved guard 扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 进程 active 按支撑切片节奏 deferred，不计 Cargo 通过。
 
 状态：`runtime_15_ui_runtime_input_reply_route_children_folder_split_static_passed_cargo_deferred`。
 
@@ -2182,6 +2885,16 @@ R4.1/M3 的当前新增落地部分是 `script/vm/tests.rs` folder-backed 拆分
 
 验证：scoped rustfmt --check 已通过；带锁 focused guard 与 core-min cargo check 均在冷构建阶段超时，未得到编译/测试结果，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。
 
+## Runtime 15 M3 script VM hot-reload coordinator test folder split
+
+状态：`runtime_15_script_vm_hot_reload_coordinator_tests_folder_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 `script/vm/runtime/hot_reload_coordinator.rs` 的 module-local test owner 拆分。父文件现在只保留 `HotReloadCoordinator`、`PluginSlot`、slot table poison recovery helper、load/hot-reload/unload/call/list 生产路径和 `#[cfg(test)] mod tests;` 挂载；原内嵌的 hot-reload policy、state transfer、lifecycle query deadlock guard 与 slot-table poison recovery tests 迁入 `script/vm/runtime/hot_reload_coordinator/tests.rs`。
+
+父文件从 770 行降到 282 行；child owner 为 407 行，5 个原 module-local 测试全部保留。新增 `structure_convention/test_file_budget/script_vm_tests.rs::runtime_15_script_vm_hot_reload_coordinator_tests_are_folder_backed`，验证父/子模块挂载、moved test 不回流、测试数量、行数预算，以及 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/script/vm/zr_vm_host_reflection.md` 和 status-output expectations 的状态锚同步。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
 ## Runtime 15 M3 gameplay host test folder split
 
 状态：`runtime_15_gameplay_host_tests_folder_split_static_passed_cargo_deferred`。
@@ -2216,7 +2929,7 @@ R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_schedule.rs` folder-back
 
 状态：`runtime_15_scene_ecs_systems_tests_folder_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_systems.rs` folder-backed 拆分。原父文件中的 command queue / entity command 用例迁入 `scene/tests/ecs_systems/commands.rs`；SystemState、QueryState mutation、optional resource、ParamSet 和 8 元 tuple/ParamSet 用例迁入 `state_params.rs`；EventReader/EventWriter 队列和 cursor 用例迁入 `events.rs`；Added/Changed run-window、cached direct、cached iter、count/is_empty helper 用例迁入 `run_window_filters.rs`；get_many / iter_many / single helper 用例迁入 `query_helpers.rs`；removed-components、LocalParam 和 scheduled native local-state 用例迁入 `removal_local.rs`。
+R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_systems.rs` folder-backed 拆分。原父文件中的 command queue / entity command 用例迁入 `scene/tests/ecs_systems/commands.rs`；SystemState、QueryState mutation、optional resource、ParamSet 和 8 元 tuple/ParamSet 用例迁入 `state_params.rs`；EventReader/EventWriter 队列和 cursor 用例迁入 `events.rs`；Added/Changed run-window、cached direct、cached iter、count/is_empty helper 用例迁入 `run_window_filters.rs`；get_many / iter_many / single query behavior 用例迁入 `many_single_queries.rs`；removed-components、LocalParam 和 scheduled native local-state 用例迁入 `removal_local.rs`。
 
 父文件从约 1000+ 行降到 53 行，只保留共享 `Health` / `Player` / `Marker` / `Score` / `HitEvent` / `LocalCounter` fixture、`expect_query_error(...)` helper 和子模块挂载；最大子文件 `run_window_filters.rs` 为 330 行，`state_params.rs` 为 286 行。24 个原父文件测试全部迁入六个子模块，所有 owner 低于 800 行。新增 `structure_convention/test_file_budget/scene_ecs_systems.rs::runtime_15_scene_ecs_systems_tests_are_folder_backed`，验证父/子模块挂载、代表性 moved guard 不回流、迁移测试数量、ECS systems test owner 行数预算，以及 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/scene/ecs.md` 和 status-output expectations 的状态锚同步。
 
@@ -2226,9 +2939,9 @@ R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_systems.rs` folder-backe
 
 状态：`runtime_15_scene_ecs_query_tests_folder_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_query.rs` folder-backed 拆分。原父文件中的 query data read、tuple/filter arity、stable location 和 single-result 用例迁入 `scene/tests/ecs_query/read_items.rs`；mutable query、get_mut/get_many_mut、access conflict 和 duplicate mutable component 用例迁入 `mutation_access.rs`；fixed scene component query 与 Ref/Mut change tick 用例迁入 `fixed_ticks.rs`；mutable/cached-direct iter-many run-window 用例迁入 `iter_many.rs`；cache rebuild、count/empty/get/many/unique helpers、cached-direct table/sparse location、archetype movement 和 optional archetype membership 用例迁入 `cache_helpers.rs`。
+R4.1/M3 的当前新增落地部分是 `scene/tests/ecs_query.rs` folder-backed 拆分。原父文件中的 query data read、tuple/filter arity、stable location 和 single-result 用例迁入 `scene/tests/ecs_query/read_items.rs`；mutable query、get_mut/get_many_mut、access conflict 和 duplicate mutable component 用例迁入 `mutation_access.rs`；fixed scene component query 与 Ref/Mut change tick 用例迁入 `fixed_ticks.rs`；mutable/cached-direct iter-many run-window 用例迁入 `iter_many.rs`；cache rebuild、count/empty/get/many/unique helpers、cached-direct table/sparse location、archetype movement 和 optional archetype membership 用例迁入 `cached_queries.rs`。
 
-父文件从 938 行降到 60 行，只保留共享 `Health` / `Enemy` / `Player` / `SparseScore` fixture、`expect_query_error(...)`、`cached_component_locations_for(...)` 和子模块挂载；最大子文件 `cache_helpers.rs` 为 555 行。19 个原父文件测试全部迁入五个子模块，所有 owner 低于 800 行。新增 `structure_convention/test_file_budget/scene_ecs_query.rs::runtime_15_scene_ecs_query_tests_are_folder_backed`，验证父/子模块挂载、代表性 moved guard 不回流、迁移测试数量、ECS query test owner 行数预算，以及 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/scene/ecs.md` 和 status-output expectations 的状态锚同步。
+父文件从 938 行降到 60 行，只保留共享 `Health` / `Enemy` / `Player` / `SparseScore` fixture、`expect_query_error(...)`、`cached_component_locations_for(...)` 和子模块挂载；最大子文件 `cached_queries.rs` 为 555 行。19 个原父文件测试全部迁入五个子模块，所有 owner 低于 800 行。新增 `structure_convention/test_file_budget/scene_ecs_query.rs::runtime_15_scene_ecs_query_tests_are_folder_backed`，验证父/子模块挂载、代表性 moved guard 不回流、迁移测试数量、ECS query test owner 行数预算，以及 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/scene/ecs.md` 和 status-output expectations 的状态锚同步。
 
 验证：scoped rustfmt/static checks、迁移测试数量扫描、父子行数预算扫描和 docs/status 锚点扫描已通过；Cargo 按实施切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。
 
@@ -2310,6 +3023,20 @@ R4.1/M3 的当前新增落地部分是 test-file-budget root-layout 守护继续
 
 新增 `runtime_15_test_file_budget_root_layout_status_scan_is_child_owner`，验证 `root_layout.rs` 挂载 `root_layout/status_scan.rs`、status/line-budget scan 不回流、所有 test-file-budget guard owner 低于 800 行预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证：scoped rustfmt/static checks、父子行数预算扫描、moved root-layout status scan 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 test-file-budget guard sweep 仍 pending。
 
+## Runtime 15 M3 test file budget root-layout folder-backed guard child split
+
+状态：`runtime_15_test_file_budget_root_layout_folder_backed_guard_child_split_static_passed_cargo_timeout_no_result`。
+
+R4.1/M3 的 2026-06-24 支撑切片已把 `runtime_15_test_file_budget_guard_is_folder_backed` 从 `structure_convention/test_file_budget/root_layout.rs` 迁入 `structure_convention/test_file_budget/root_layout/folder_backed.rs`，并新增 `root_layout/module_layout.rs::runtime_15_test_file_budget_root_layout_folder_backed_guard_is_child_owner`。该守卫锁定 root-layout 父模块挂载、旧 guard 不回流、`folder_backed.rs` / `module_layout.rs` 行数预算，以及 Runtime 15、runtime index、review findings、结构规范、本文档和 status-output expectations 的镜像锚。Cargo focused run 超时无结果，不计 Cargo 通过；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 test-file-budget guard sweep 仍 pending。
+
+## Runtime 15 M3 test file budget root-layout folder-backed support child-owner split
+
+状态：`runtime_15_test_file_budget_root_layout_folder_backed_support_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前支撑切片只整理 `structure_convention/test_file_budget/root_layout/folder_backed.rs` 内部的测试守卫支撑结构，不改变任何生产 runtime 行为，也不改旧的 `runtime_15_test_file_budget_guard_is_folder_backed` 测试入口。父文件现在只挂载 `folder_backed/assertions.rs`、`folder_backed/guard_names.rs` 与 `folder_backed/sources.rs`，并保留旧守卫入口加新的 `runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_are_folder_backed` 自检。
+
+`assertions.rs` 承接 test-budget 子 owner 的批量断言组，`guard_names.rs` 承接 moved guard 名称构造，`sources.rs` 承接批量 source reads；父文件为 154 行，最大 child `assertions.rs` 为 354 行，四个 owner 均低于 400 行 focused 预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、session note 与 status-output expectations，精确锚点包括 `structure_convention/test_file_budget/root_layout/folder_backed.rs`、`structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs`、`structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs` 和 `runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_are_folder_backed`。Cargo 按支撑切片节奏 deferred，不计 Cargo 通过。
+
 ## Runtime 15 M3 test file budget root-layout UI child split
 
 状态：`runtime_15_test_file_budget_root_layout_ui_child_split_static_passed_cargo_deferred`。
@@ -2387,3 +3114,516 @@ E5/S11/F13 的当前总验收是 provider boilerplate 总守卫。`structure_con
 守卫要求 `graphics/runtime_provider/{registration,update,feedback,prepare_input}.rs` 均挂载共享 owner；HGI、Virtual Geometry、Solari registration 文件只使用 `define_runtime_provider_registration!`，不再复制 provider id / priority / trait-object / debug 样板；HGI/VG update 文件只使用 `define_runtime_provider_update!`，不再手写 constructor / stats getter；HGI/VG feedback 文件委托 `RuntimeProviderFeedback<G, V>`，不再复制共同 GPU completion / visibility feedback 字段；HGI/VG prepare-input 文件委托 `RuntimeProviderPrepareInput<'a, E>`，不再复制共同 optional extract / generation 字段。Particle feedback 只有 `ParticleGpuFeedback` 且没有 visibility feedback payload，因此作为 feature-specific 单 payload 例外记录，不强行套入双 payload owner。
 
 状态输出期望行同步到 `expected_status_row_data.rs` 和 `expected_slices/{status,date}.rs`。验证：scoped rustfmt --check 通过；standalone full provider boilerplate guard 1/1 通过；standalone status-output all-subplans guard 1/1 通过；core-min `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime15-provider-boilerplate-full-coremin-0622` 通过（既有 141 warnings）。完整 `module_convention_gate`、全量 dead-code sweep 与测试组织拆分仍 pending。
+
+
+## Runtime 15 M3 picking test folder split
+
+状态：`runtime_15_picking_tests_folder_split_static_passed_cargo_deferred`。`tests/picking/mod.rs` 现在只保留 fixture 和子模块挂载，`rays`、`hits_and_hover`、`diagnostics`、`pipeline` 与 `pointer_events` 子 owner 承接 20 个测试；守卫 `runtime_15_picking_tests_are_folder_backed` 锁定布局、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 asset mesh test root split
+
+状态：`runtime_15_asset_mesh_tests_root_split_static_passed_cargo_deferred`。`asset/tests/assets/mesh.rs` 现在只保留共享 fixture 和七个 child owner 挂载，`document_roundtrip`、`validation`、`summaries` 与 `conversion_import` 承接 19 个原父文件测试；守卫 `runtime_15_asset_mesh_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 asset project example vampire test folder split
+
+状态：`runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred`。`asset/tests/project/example_vampire.rs` 现在只保留 `vampire_root()` fixture 和两个 child owner 挂载，`asset/tests/project/example_vampire/manifest_scene_imports.rs` 与 `asset/tests/project/example_vampire/third_person_render_extract.rs` 承接原有 manifest/scene/import 与 third-person render extract 两个测试；守卫 `runtime_15_asset_project_example_vampire_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+## Runtime 15 M3 asset artifact store test folder split
+
+状态：`runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred`。`asset/tests/assets/artifact_store.rs` 现在只保留 artifact payload/reference helper 和五个 child owner 挂载，`asset/tests/assets/artifact_store/binary_payloads.rs` 与 `asset/tests/assets/artifact_store/library_assets.rs` 等子 owner 承接 15 个 artifact roundtrip/rejection 测试；守卫 `runtime_15_asset_artifact_store_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+## Runtime 15 M3 asset UI test folder split
+
+状态：`runtime_15_asset_ui_tests_folder_split_static_passed_cargo_deferred`。`asset/tests/assets/ui.rs` 现在只保留 UI TOML/ZUI fixtures、fixture importer helper、legacy component TOML helper 和五个 child owner 挂载，`asset/tests/assets/ui/importer.rs` 与 `asset/tests/assets/ui/project_manager.rs` 等子 owner 承接 16 个 UI asset wrapper/reference/import/project scan 测试；守卫 `runtime_15_asset_ui_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 asset pipeline manager test folder split
+
+状态：`runtime_15_asset_pipeline_manager_tests_folder_split_static_passed_cargo_deferred`。`asset/tests/pipeline/manager.rs` 现在只保留共享 first-wave plugin fixture helper、imports 和七个 child owner 挂载，`asset/tests/pipeline/manager/model_import.rs` 与 `asset/tests/pipeline/manager/watcher.rs` 等子 owner 承接 10 个 ProjectAssetManager pipeline 测试；守卫 `runtime_15_asset_pipeline_manager_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 scene asset integration test folder split
+
+状态：`runtime_15_scene_asset_integration_tests_folder_split_static_passed_cargo_deferred`。`scene/tests/asset_scene.rs` 现在只保留共享 scene asset reference、project IO source/section、authoring-token guard helper 和三个 child owner 挂载，`scene/tests/asset_scene/mesh_bindings.rs`、`scene/tests/asset_scene/hierarchy_sources.rs` 与 `scene/tests/asset_scene/product_fields.rs` 承接 9 个 scene asset integration 测试；守卫 `runtime_15_scene_asset_integration_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 scene world basics test folder split
+
+状态：`runtime_15_scene_world_basics_tests_folder_split_static_passed_cargo_deferred`。`scene/tests/world_basics.rs` 现在只保留共享 imports 和三个 child owner 挂载，`scene/tests/world_basics/world_state.rs`、`scene/tests/world_basics/render_extract.rs` 与 `scene/tests/world_basics/sprites.rs` 承接 15 个 world basics 测试；守卫 `runtime_15_scene_world_basics_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 scene property paths test folder split
+
+状态：`runtime_15_scene_property_paths_tests_folder_split_static_passed_cargo_deferred`。`scene/tests/property_paths.rs` 现在只保留共享 imports 和三个 child owner 挂载，`scene/tests/property_paths/read_paths.rs`、`scene/tests/property_paths/runtime_mutation.rs` 与 `scene/tests/property_paths/write_validation.rs` 承接 18 个 property-path 行为测试与源码结构守卫；守卫 `runtime_15_scene_property_paths_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+## Runtime 15 M3 input manager test folder split
+
+状态：`runtime_15_input_manager_tests_folder_split_static_passed_cargo_deferred`。`input/tests/input_manager.rs` 现在只保留共享 imports 和三个 child owner 挂载，`input/tests/input_manager/frame_state.rs`、`input/tests/input_manager/touch_gamepad.rs` 与 `input/tests/input_manager/host_requests.rs` 承接 14 个 input manager 测试；守卫 `runtime_15_input_manager_tests_are_folder_backed` 锁定 moved test、测试数量、低于 800 行预算和跨文档状态锚。Cargo 按实施切片节奏 deferred。
+
+
+
+Runtime 15 精确锚点补记 2026-06-24：`Runtime 15 M3 picking test folder split` / `runtime_15_picking_tests_folder_split_static_passed_cargo_deferred` 精确锚点包括 `tests/picking/mod.rs`、`tests/picking/pipeline.rs`、`tests/picking/pointer_events.rs` 与 `runtime_15_picking_tests_are_folder_backed`。
+
+Runtime 15 精确锚点补记 2026-06-24：`Runtime 15 M3 asset mesh test root split` / `runtime_15_asset_mesh_tests_root_split_static_passed_cargo_deferred` 精确锚点包括 `asset/tests/assets/mesh.rs`、`asset/tests/assets/mesh/document_roundtrip.rs`、`asset/tests/assets/mesh/conversion_import.rs` 与 `runtime_15_asset_mesh_tests_are_folder_backed`。
+
+## Runtime 15 M4 asset artifact cache UI document owner split
+
+状态：`runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 asset artifact cache production owner 减压。`asset/artifact/cache_payload.rs` 继续拥有 cache wire enum、variant dispatch、cache-safe data/texture/material/shader/prefab/physics conversion 与 child owner 挂载；UI v1/v2 document TOML normalization 和 typed restore paths 迁入 `asset/artifact/cache_payload/ui.rs`，由该子 owner 承接 `ArtifactCacheUiAssetDocument`、`ArtifactCacheUiV2AssetDocument`、`UiLayoutAsset`、`UiWidgetAsset`、`UiStyleAsset`、`UiV2ViewAsset`、`UiV2ComponentAsset` 与 `UiV2StyleAsset` 的 parser-backed cache restore。
+
+父模块通过 `mod ui;` 与 `use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};` 消费子 owner，不改变 `.zasset` enum variant、typed `AssetImportError` source、UI document parser entry 或 `UiThemeAsset`/`UiIconAsset` direct-cache path。父文件从 791 行降到约 710 行，`cache_payload/ui.rs` 为约 93 行，两侧都低于 800 行生产文件软预算。
+
+守卫：`runtime_15_asset_artifact_cache_ui_documents_are_child_owner` 验证父模块挂载 UI cache child、代表性 UI document helper 不回流到父文件、子 owner 承接 v1/v2 TOML normalization 和 typed restore paths、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/artifact.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `asset/artifact/cache_payload.rs` 的 UI document owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset artifact Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 mesh asset management record owner split
+
+状态：`runtime_15_mesh_asset_management_record_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 mesh asset production owner 减压。`asset/assets/mesh/mesh_asset.rs` 继续拥有 `MeshAsset` DTO、model primitive conversion、morph target application、validation、render descriptor projection 与 management entry methods；overview/management record DTO、failure row、record-set summary 和 record-set aggregation 迁入 `asset/assets/mesh/mesh_asset/management.rs`。
+
+父模块通过 `mod management;` 与 `pub use self::management::{...}` 保留原公开类型路径，不改变 `.zmesh` 序列化形状、`MeshAsset::overview(...)` / `management_record(...)` public API、render descriptor 字段或 resource id record semantics。父文件从 734 行降到约 607 行，`management.rs` 为约 140 行，两侧都低于 800 行生产文件软预算。
+
+守卫：`runtime_15_mesh_asset_management_records_are_child_owner` 验证父模块挂载并 re-export management child、management DTO/impl 不回流到父文件、子 owner 承接 overview/record-set aggregation、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/render-assets.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `asset/assets/mesh/mesh_asset.rs` 的 management record owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset mesh Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 asset project scan/import source collection owner split
+
+状态：`runtime_15_asset_project_scan_import_sources_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 asset project scan/import production owner 减压。`asset/project/manager/scan_and_import.rs` 继续拥有 `scan_and_import(...)` 主循环、artifact restore、success/failure meta 写回、dependency resolution 与 entry identity registration；source enumeration、compound `.zmeta` source discovery、source URI mapping、source byte assembly 与 mtime aggregation 迁入 `asset/project/manager/scan_and_import/sources.rs`。
+
+父模块通过 `mod sources;` 与窄 `use self::sources::{AssetImportSource, source_bytes_for_import, source_mtime_unix_ms_for_import};` 消费子 owner，不改变 importer selection、artifact writeback、`.zmeta` schema、package locator semantics 或 failed-import recovery。父文件从 705 行降到约 599 行，`sources.rs` 为约 181 行，两侧都低于 800 行生产文件软预算。
+
+守卫：`runtime_15_asset_project_scan_import_sources_are_child_owner` 验证父模块保留 import loop/artifact restore/success/failure helpers 并挂载 source collection child、source enumeration 和 compound source helper 不回流到父文件、子 owner 承接 byte/mtime helper、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/importer.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 `asset/project/manager/scan_and_import.rs` 的 source collection owner 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset project Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M4 glTF labeled material subasset owner split
+
+状态：`runtime_15_gltf_labeled_material_subasset_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减压。`asset/importer/ingest/gltf_labeled_subassets.rs` 从 664 行减压为 390 行，继续拥有 glTF texture/mesh/scene labeled subasset entry、scene dependency collection、shared material URI/reference resolution、root dependency insertion 与 label URI/reference helper；新增 `asset/importer/ingest/gltf_labeled_subassets/material.rs` 作为 283 行 child owner，承接 `add_gltf_material_subassets(...)`、default material generation、PBR material projection、texture-slot metadata、KHR_texture_transform bridge、glTF alpha mode mapping 与 default PBR shader reference。
+
+父模块通过 `mod material;` 与 `pub(crate) use self::material::add_gltf_material_subassets;` 保留原 importer 调用入口，不改变 Bevy-style glTF label names、`Material{n}` / `DefaultMaterial` output shape、texture dependency collection、texture transform metadata、default shader locator 或 scene/mesh material reference semantics，也不新增兼容 re-export。守卫：`runtime_15_gltf_labeled_material_subassets_are_child_owner` 验证父模块保留 texture/mesh/scene orchestration 与共享 label/dependency helpers、material/PBR/texture-slot helper 不回流到父文件、子 owner 承接 material subasset projection、父子 owner 均低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/importer.md` 和 status-output expectations 都包含本切片锚。该切片只关闭 glTF labeled material subasset 的 M4 减压面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset importer Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 runtime dead-code guard forbidden attribute literal cleanup
+
+状态：`runtime_15_runtime_dead_code_guard_literal_cleanup_static_passed_cargo_deferred`。
+
+本切片只处理 Runtime 15 dead-code 守卫自身的源扫描噪声，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs` 继续拥有 runtime UI support split、runtime-owned dead-code cleanup、script host descriptor cleanup 与 reflection macro fixture cleanup 的结构断言；本轮把这些断言使用的 forbidden dead-code allow attribute 从直接测试源字面量改为 `DEAD_CODE_ALLOW_ATTRIBUTE` 常量拼装，避免简单源码扫描把守卫文件误报为 suppression 残留。
+
+新增守卫 `runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed` 读取 `structure_convention/runtime_dead_code.rs` 自身，验证 forbidden attribute literal 不回流，同时确认 `DEAD_CODE_ALLOW_ATTRIBUTE`、现有生产/测试 owner 检查和跨文档状态锚仍存在。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings 与 status-output expectations。完整 `runtime_15_no_dead_code_suppression_in_production`、`module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、literal scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M5 production dead-code suppression global gate
+
+状态：`runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred`。
+
+本切片把 F12 dead-code suppression 清理从点状 owner 锁定推进为生产源码全局闸口，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs` 新增 `runtime_15_production_sources_do_not_allow_dead_code_suppression`，递归扫描 `zircon_runtime/src` 下非 `tests/`、非 `tests.rs`、非 `*_tests.rs` 的生产 Rust 源文件，确认 `DEAD_CODE_ALLOW_ATTRIBUTE` 零命中。守卫仍通过常量拼装 forbidden attribute，避免测试源码自身再次成为 literal scan 噪声。
+
+该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `structure_convention/runtime_dead_code.rs`、`DEAD_CODE_ALLOW_ATTRIBUTE` 与 `runtime_15_production_sources_do_not_allow_dead_code_suppression`。完整 `module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
+
+验证：生产源码 dead-code suppression 扫描、scoped rustfmt/static scans、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 root entries guard child-owner split
+
+状态：`runtime_15_root_entries_guard_child_owner_split_static_passed_cargo_deferred`。
+
+本切片收敛 `zircon_runtime/src/tests/runtime_absorption/root_entries.rs` 的测试守卫所有权。父文件现在只挂载 `root_entries/core_spine.rs`、`root_entries/module_families.rs` 与 `root_entries/runtime_root.rs`，不再混合 Runtime 02 core/root/generated 守卫和 Runtime 14 module-family 守卫实现。`core_spine.rs` 承接 core root/spine 断言，`runtime_root.rs` 承接 runtime crate root 和 builtin root 断言，`module_families.rs` 承接 navigation、animation、status JSON 与 module-family mirror docs 断言。
+
+`zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs`、`core_spine_root_generated_boundary.py` 与 `module_family_boundary.py` 已同步聚合读取新 child owner，保持 `root_entries guard tests 13`、`guard_test_anchor_count = 26` 与 Runtime 14 guard anchor 计数语义不漂移。新增 `structure_convention/test_file_budget/root_entries.rs::runtime_15_root_entries_guard_child_owners_are_folder_backed` 锁定父入口只挂载、moved guard 不回流、父/子 owner 低于 800 行预算、Rust/Python 审计聚合路径和 Runtime 15/status/docs 镜像锚。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 Runtime 02/14 guard Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、Rust/Python 审计聚合路径扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 lock poison policy guard folder split
+
+状态：`runtime_15_lock_poison_policy_guard_folder_split_static_passed_cargo_deferred`。
+
+本切片只整理 E9/F2 lock-poison 结构守卫的测试 owner，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs` 从 1583 行超预算守卫文件减压为 202 行父模块，只保留 `mod core_runtime;`、`mod runtime_services;`、`mod asset_render_input;`、共享 source reader/direct-lock helper 和新布局守卫。既有 21 个 lock-poison 回归守卫被按 owner 迁入 `structure_convention/lock_poison_policy/core_runtime.rs`、`structure_convention/lock_poison_policy/runtime_services.rs`、`structure_convention/lock_poison_policy/asset_render_input.rs`，三个 child owner 分别为 649、452、460 行。
+
+新增守卫 `runtime_15_lock_poison_policy_guard_is_folder_backed` 验证父模块挂载三个 child owner，代表性 moved guard 不回流父文件，父子合计保留 21 个既有守卫加 1 个布局守卫共 22 个 `#[test]`，并锁定所有 owner 低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `structure_convention/lock_poison_policy.rs`、`structure_convention/lock_poison_policy/core_runtime.rs`、`structure_convention/lock_poison_policy/runtime_services.rs`、`structure_convention/lock_poison_policy/asset_render_input.rs` 和 `runtime_15_lock_poison_policy_guard_is_folder_backed`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 19964、34648、59276、70536；`rustc` PIDs 15088、29672）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime lock poison guard child-owner split
+
+状态：`runtime_15_core_runtime_lock_poison_guard_child_owner_split_static_passed_cargo_deferred`。
+
+本切片继续收敛 E9/F2 lock-poison 结构守卫的测试 owner，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs` 从 near-budget core runtime 守卫文件减压为 folder-backed 父模块，只挂载 `core_runtime/scene_eventbus.rs`、`core_runtime/global_gate.rs`、`core_runtime/config_devtools.rs`、`core_runtime/handle_accessors.rs` 与 `core_runtime/task_profiling.rs`。
+
+新增守卫 `runtime_15_core_runtime_lock_poison_guard_child_owner_split` 验证父模块只挂载 child owner，代表性 moved guard 不回流父文件，父子合计保留 10 个既有 core runtime lock-poison 守卫加 1 个布局守卫共 11 个 `#[test]`，并锁定每个 focused owner 低于 400 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `structure_convention/lock_poison_policy/core_runtime.rs`、`structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs` 和 `runtime_15_core_runtime_lock_poison_guard_child_owner_split`。
+
+验证：scoped rustfmt/static scans、核心子 owner 行数预算扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 F2 lock poison recovery guard
+
+状态：`runtime_15_f2_lock_poison_recovery_guard_static_passed_cargo_deferred`。
+
+本切片只把既有 F2 poison-safe lock 修复转成 Runtime 15 结构防回退守卫，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs` 读取 `scene/level_system.rs`、`scene/module/default_level_manager.rs`、`scene/module/level_manager_lifecycle.rs`、`core/runtime/events.rs` 与 publish/subscribe/prune 子 owner，确认 scene level holder 和 EventBus 的共享状态锁都经集中 helper 恢复 poison。
+
+新增守卫 `runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus` 验证 `LevelSystem` 保留 `lock_poison_recovered(...)` 与 world/runtime_state/metadata/lifecycle/subsystems accessors，`DefaultLevelManager` 保留 `lock_levels()`，EventBus 保留 `lock_subscribers()` / `lock_delivery()`，并扫描生产段拒绝 direct lock unwrap。测试段中用于制造 poison 的 `level_system.rs` fixture 仍允许存在。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、scene/event module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、生产段 direct lock unwrap scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 production direct lock unwrap global gate
+
+状态：`runtime_15_production_direct_lock_unwrap_global_gate_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 poison-safe lock 规则从点状 owner 守卫提升为全 crate 生产段回归闸口，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs` 新增 `runtime_15_production_sources_do_not_directly_unwrap_mutex_locks`，递归扫描 `zircon_runtime/src` 下非 `tests/`、非 `tests.rs`、非 `*_tests.rs` 的 Rust 源文件。
+
+守卫只读取每个源文件 `#[cfg(test)]` 之前的生产段，并拒绝 `LOCK_UNWRAP_CALL` 对应的 direct `.lock().unwrap()`；inline test 中专门用于制造 poisoned lock 的 fixture 仍允许存在。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、session note 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：全量生产段 direct lock unwrap scan、scoped rustfmt/static scans、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 config store lock poison recovery
+
+状态：`runtime_15_config_store_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到低冲突 core runtime config backing store。`zircon_runtime/src/core/runtime/config_store.rs` 新增私有 `lock_values()` helper，`store_value`、`load_value` 与 `snapshot_values` 都通过该 helper 访问 values map，不再在生产路径 direct lock unwrap。
+
+新增 module-local `config_store_accessors_recover_poisoned_values_lock` 覆盖中毒锁恢复后 store/load/snapshot 仍可用；`structure_convention/lock_poison_policy.rs::runtime_15_config_store_lock_poison_recovery_guard_covers_runtime_config_store` 读取 `core/runtime/config_store.rs` 与 `docs/zircon_runtime/core/runtime/config_store.md`，验证 helper、生产段 direct lock unwrap 扫描和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、config-store module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、生产段 direct lock unwrap scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime devtools lock poison recovery
+
+状态：`runtime_15_core_runtime_devtools_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 core runtime devtools 只读投影。`zircon_runtime/src/core/runtime/diagnostics/devtools.rs` 新增私有泛型 `lock_poison_recovered(...)` helper，`collect_module_snapshots`、`collect_service_snapshots` 与 `collect_scene_hook_snapshots` 都通过该 helper 读取 modules、services 与 scene_hooks registry，不再在生产路径 direct lock unwrap。
+
+新增 module-local `devtools_snapshot_recovers_poisoned_runtime_registry_locks` 覆盖 modules、services 与 scene_hooks locks 被 poison 后仍可收集 snapshot；`structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_snapshot` 读取 `core/runtime/diagnostics/devtools.rs` 与 `docs/zircon_runtime/core/diagnostics.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core diagnostics docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core diagnostics Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、devtools direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core handle diagnostics lock poison recovery
+
+状态：`runtime_15_core_handle_diagnostics_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 CoreHandle diagnostics store 访问面。`zircon_runtime/src/core/runtime/handle/diagnostics.rs` 新增私有 `lock_diagnostics()` helper，`diagnostic_store()`、`diagnostic_store_snapshot()` 与 `record_diagnostic(...)` 都通过该 helper 访问 `DiagnosticStore`，不再在生产路径 direct lock unwrap。
+
+新增 module-local `core_handle_diagnostic_accessors_recover_poisoned_store_lock` 覆盖 diagnostics lock 被 poison 后仍可 record/snapshot；`structure_convention/lock_poison_policy.rs::runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store` 读取 `core/runtime/handle/diagnostics.rs` 与 `docs/zircon_runtime/core/diagnostics.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core diagnostics docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core diagnostics Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、CoreHandle diagnostics direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core handle time lock poison recovery
+
+状态：`runtime_15_core_handle_time_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 CoreHandle 时间推进入口。`zircon_runtime/src/core/runtime/handle/time.rs` 新增私有 `lock_time()` 与 `lock_frame_clock()` helpers，`time_clocks()`、`advance_time_by(...)`、`tick_time(...)`、虚拟时钟暂停/恢复和固定步长配置都通过 helper 访问 runtime clocks 或 frame clock，不再在生产路径 direct lock unwrap。时间诊断写入改为复用 `CoreHandle::record_diagnostic(...)`，因此 diagnostics store poison recovery 只由 diagnostics owner 维护。
+
+新增 module-local `core_handle_time_accessors_recover_poisoned_runtime_clocks` 覆盖 time、frame_clock 与 diagnostics locks 被 poison 后仍可 pause/unpause、advance/tick 和写入时间诊断；`structure_convention/lock_poison_policy.rs::runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks` 读取 `core/runtime/handle/time.rs` 与 `docs/zircon_runtime/core/diagnostics.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core diagnostics docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core diagnostics Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、CoreHandle time direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core handle states lock poison recovery
+
+状态：`runtime_15_core_handle_states_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 CoreHandle state registry 访问面。`zircon_runtime/src/core/runtime/handle/states.rs` 新增私有 `lock_states()` helper，`init_state`、`insert_state`、state/next-state 读取、pending transition 写入、transition apply/event 查询和 hook 注册都通过该 helper 访问 `StateRegistry`，不再在生产路径 direct lock unwrap。
+
+新增 module-local `core_handle_state_accessors_recover_poisoned_state_registry_lock` 覆盖 states lock 被 poison 后仍可 init、set/apply transition、读取当前 state 与 event history；`structure_convention/lock_poison_policy.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry` 读取 `core/runtime/handle/states.rs` 与 `docs/zircon_runtime/core/state.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core state docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core state Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、CoreHandle states direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime task lock poison recovery
+
+状态：`runtime_15_core_runtime_task_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 core runtime JobSystem state。`zircon_runtime/src/core/runtime/tasks/job_handle.rs` 新增 `JobState::lock_inner()`、`wait_inner(...)` 与 `wait_inner_timeout(...)`，让 `is_complete`、wait、panic-message read、terminal marking、dependent registration 和 dependency decrement 都通过 poison recovery 访问 job state。`zircon_runtime/src/core/runtime/tasks/job_scheduler.rs` 新增 `PendingScheduledJob::lock_task()`，让 pending scheduled task launch 与 terminal cleanup 不再在生产路径 direct lock expect。
+
+新增 module-local `job_handle_accessors_recover_poisoned_state_lock`、`job_handle_wait_recovers_poisoned_state_lock` 与 `pending_scheduled_job_recovers_poisoned_task_lock` 覆盖 job state 和 pending task lock 被 poison 后仍可 dependent callback、wait、mark complete 和 launch scheduled task；`structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles` 读取 `core/runtime/tasks/job_handle.rs`、`core/runtime/tasks/job_scheduler.rs` 与 `docs/zircon_runtime/core/tasks.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core tasks docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core tasks Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、core runtime task direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime profiling lock poison recovery
+
+状态：`runtime_15_core_runtime_profiling_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 core runtime profiling recorder。`zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs` 新增私有 `lock_recorder()` helper，`start_capture`、`stop_capture`、`reset_capture`、`snapshot` 与 `with_recorder(...)` 都通过该 helper 访问全局 `ProfileRecorder`，不再在生产路径 direct lock unwrap。
+
+新增 module-local `profile_recorder_accessors_recover_poisoned_global_lock` 覆盖全局 recorder lock 被 poison 后仍可 snapshot/reset；`structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder` 读取 `core/runtime/diagnostics/profiling/mod.rs` 与 `docs/zircon_runtime/core/diagnostics.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core diagnostics docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core diagnostics/profiling Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、profiling recorder direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core handle registry lock poison recovery
+
+状态：`runtime_15_core_handle_registry_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 CoreHandle registry access surface。`zircon_runtime/src/core/runtime/handle/core_handle.rs` 新增共享 `lock_poison_recovered(...)` helper，以及 `lock_modules()`、`lock_services()`、`lock_scene_hooks()`、`lock_world_extensions()` 和 `lock_plugin_bridge_lifecycle()`。`activation.rs`、`registration/register_module.rs`、`resolution.rs` 与 `runtime_extensions.rs` 通过这些 helper 访问 modules/services/world-extension/scene-hook/plugin-lifecycle 状态，不再在生产路径 direct lock unwrap。
+
+新增 module-local `core_handle_registry_accessors_recover_poisoned_runtime_locks` 覆盖这些 runtime registry locks 被 poison 后仍可恢复；`core/runtime/tests/registration/structure.rs` 的事务锁结构哨兵同步为 helper commit boundary。`structure_convention/lock_poison_policy.rs::runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_accessors` 读取 core handle root、activation、registration、resolution、runtime extensions 与 `docs/zircon_runtime/core/runtime/lifecycle.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core runtime lifecycle docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core runtime handle Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、CoreHandle registry direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime registration structure behavior layout split
+
+状态：`runtime_15_core_runtime_registration_structure_behavior_layout_split_static_passed_cargo_deferred`。
+
+本切片只整理 core runtime registration 结构守卫的测试 owner，不改变生产 runtime 行为。`zircon_runtime/src/core/runtime/tests/registration/structure.rs` 从 805 行减压为 763 行，继续拥有 registration hot-path、service-list cache、dependency-name materialization、duplicate helper boundary 和 helper commit ordering 守卫；behavior folder wiring 断言迁入 `zircon_runtime/src/core/runtime/tests/registration/structure/behavior_layout.rs`，该 child owner 为 71 行。
+
+新增守卫 `registration_behavior_tests_stay_folder_backed` 验证 `registration/behavior.rs` 只挂载 `validation`、`cache_lists`、`commit`、`canonical_keys` 子 owner，不直接持有 `#[test]` 或 `use`，并确认 canonical names、cache lists、partial commit、four/five dependency boundary 等关键 behavior tests 仍在对应子文件。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `core/runtime/tests/registration/structure.rs`、`core/runtime/tests/registration/structure/behavior_layout.rs` 与 `registration_behavior_tests_stay_folder_backed`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、剩余 oversized-test scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 4820、8680、8844、20052、32036、33512、50960、56884；`rustc` PIDs 27412、53344、54144、62068）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core runtime registration structure owner split
+
+状态：`runtime_15_core_runtime_registration_structure_owner_split_static_passed_cargo_deferred`。
+
+本切片接续上一条 behavior-layout 减压记录，退役 `zircon_runtime/src/core/runtime/tests/registration/structure.rs` 平铺测试文件，把 registration 结构守卫改成 folder-backed `zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs`。父模块只挂载 child owner 和共享 `registration_sources()` fixture；`module_layout.rs`、`service_count_paths.rs`、`service_list_caches.rs`、`dependency_fast_paths.rs`、`duplicate_detection.rs`、`cleanup.rs` 与既有 `behavior_layout.rs` 分别承接模块布局、服务数量 fast path、service/startup/shutdown cache、dependency name materialization、duplicate helper boundary、legacy cleanup 和 behavior folder wiring 断言。
+
+新增守卫 `runtime_15_core_runtime_registration_structure_tests_are_folder_backed` 验证旧 `structure.rs` 不回流、`registration/mod.rs` 继续挂载 `mod structure;`、新父模块挂载所有 focused child owner、service-count child 继续锁定 `.rfind("let mut modules = self.lock_modules()")` 与 `.find("let modules = self.lock_modules();")` helper boundary、service-list child 继续锁定 lazy/single-startup cache direct paths，并确保每个 registration structure owner 低于 Runtime 15 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core runtime lifecycle docs、module-convention docs、session note 与 status-output expectations，精确锚点包括 `core/runtime/tests/registration/structure/mod.rs`、`core/runtime/tests/registration/structure/service_count_paths.rs`、`core/runtime/tests/registration/structure/service_list_caches.rs` 与 `runtime_15_core_runtime_registration_structure_tests_are_folder_backed`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 plugin bridge table lock poison recovery
+
+状态：`runtime_15_plugin_bridge_table_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 runtime plugin bridge table 的 provider slot。`zircon_runtime/src/plugin/bridge/table.rs` 新增私有 `lock_provider()` helper，`BridgeEntry::provider_installed()`、typed provider resolve、deactivate、replace/reload provider 与 restore provider 都通过该 helper 访问 provider slot，不再在生产路径 direct lock unwrap。
+
+新增 module-local `bridge_entry_provider_accessors_recover_poisoned_provider_lock` 覆盖 provider slot 被 poison 后仍可 status/snapshot、typed resolve、deactivate、restore 与 replace；`structure_convention/lock_poison_policy.rs::runtime_15_plugin_bridge_table_lock_poison_recovery_guard_covers_provider_slot` 读取 bridge table 与 `docs/zircon_runtime/plugin/bridge.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、plugin bridge docs 与 status-output expectations。完整 `module_convention_gate` 与全量 plugin bridge Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、plugin bridge table direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 native live-host bridge methods lock poison recovery
+
+状态：`runtime_15_native_live_host_bridge_methods_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 native live-host runtime bridge method binding registry。`zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs` 新增私有 `lock_runtime_bridge_method_bindings()` helper，`clear_runtime_bridge_method_bindings`、installed binding read、replace/install 与 discovered-binding teardown 都通过该 helper 访问 binding table，不再把 poisoned mutex 映射成 `lock poisoned` 生产错误。
+
+新增 module-local `native_live_host_bridge_method_bindings_recover_poisoned_lock` 覆盖 binding table 被 poison 后仍可 read、clear、replace；`structure_convention/native_live_host_lock_poison.rs::runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_binding_registry` 读取 native live-host bridge methods、父结构聚合文件与 `docs/zircon_runtime/plugin/bridge.md`，验证 helper、独立 guard 挂载、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、plugin bridge docs 与 status-output expectations。完整 `module_convention_gate` 与全量 plugin bridge Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、native live-host bridge methods direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 native live-host tests folder split
+
+状态：`runtime_15_native_live_host_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs` 新增 `bridge_bindings`、`hot_reload_state` 与 `runtime_behavior` 子 owner 挂载，把 runtime descriptor/snapshot、native bridge binding scope 与 hot reload snapshot/rollback 三组测试迁出父文件。父文件只保留共享 fixture、基础 unloaded/missing package 行为、command interior-NUL 与 helper，行数从 1297 降到 541。
+
+新增 `structure_convention/test_file_budget/native_live_host_tests.rs::runtime_15_native_live_host_tests_are_folder_backed` 验证父模块挂载、代表性 moved tests 不回流、父文件剩余 9 个测试加新子文件 18 个测试合计保留原 27 个测试，并验证父文件、`runtime_behavior.rs`、`bridge_bindings.rs`、`hot_reload_state.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/bridge.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin native live-host Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 3472、21776、47696、55676、63860、64772；`rustc` PIDs 30312、52648、57156）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 native plugin loader real fixture test folder split
+
+状态：`runtime_15_native_plugin_loader_real_fixture_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs` 新增 `real_fixture` 子 owner 挂载，把真实 native dynamic fixture build/load、descriptor/entry/status-code、unknown ABI rejection 与 native data asset importer handler 测试迁出父文件。父文件只保留 load-manifest discovery、mismatch/dedup、editor-only discovery、feature extension package 与 split native package loading 测试，行数从 933 降到 470；新增 `real_fixture.rs` 为 564 行。
+
+新增 `structure_convention/test_file_budget/native_plugin_loader.rs::runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed` 验证父模块挂载、4 个 real fixture moved tests 不回流、父文件剩余 7 个测试加新子文件 4 个测试合计保留原 11 个测试，并验证父文件与 `real_fixture.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/bridge.md`、`docs/zircon_runtime/asset/importer.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension/native loader Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 19972、44764、49624、54336；`rustc` PIDs 29320、54940）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 render shader template assembly guard WGSL contracts split
+
+状态：`runtime_15_render_shader_template_assembly_guard_wgsl_contracts_split_static_passed_cargo_deferred`。
+
+本切片只整理 production-file-budget 结构守卫的测试 owner，不改变 shader template、WGSL 或 pipeline cache 生产行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs` 从 845 行减压为 610 行，继续验证 shader/template module wiring、assembler/include registry/material surface/pass specialization、mesh pipeline cache、Plan 08 文档锚点和生产文件预算；WGSL ABI/template contract 断言迁入 `zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs`，该 child owner 为 258 行。
+
+新增守卫 `runtime_15_render_shader_template_wgsl_contracts_are_child_owner` 验证 scene uniform、GPU scene transform/palette、surface interpolation、static/skinned geometry fetch、Forward/GBuffer/Depth/Shadow/Velocity/TAA template entry/alpha/motion outputs 与 Standard PBR light-grid/shadow contract，同时检查父/子 owner 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `structure_convention/production_file_budget/render_shader_template_assembly.rs`、`structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs` 与 `runtime_15_render_shader_template_wgsl_contracts_are_child_owner`。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、剩余 oversized-test scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 4820、8680、8844、20052、32036、33512、50960、56884；`rustc` PIDs 27412、53344、54144、62068）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 render shader template assembly guard support child-owner split
+
+状态：`runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred`。
+
+本切片继续整理 production-file-budget 结构守卫的测试 owner，不改变 shader template、WGSL、pipeline cache 或 Plan 08 生产行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs` 在上一轮 WGSL contract split 后又增长到 839 行，并同时承接批量 source reads、Rust/template/cache 断言、shadow execution 断言、line-budget loop 与 Plan 08 文档锚点断言；本切片把父文件减压为 168 行，只保留模块挂载、原 `runtime_15_render_shader_template_assembly_is_folder_backed` 测试入口，以及新增 support-child 布局守卫。
+
+新增 `zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/sources.rs`（98 行）集中读取 shader template、mesh pipeline cache、shadow renderer 与 graph execution source；`assembly_assertions.rs`（677 行）承接 Rust template assembly/cache、mesh pipeline source/cache、shadow replay、template unit-test anchor 和 production/test owner budget 断言；`docs_anchors.rs`（133 行）承接 Plan 08、render index、shader docs、review findings、structure convention 与 render session docs anchors。既有 `depth_prepass_cache.rs`、`gbuffer_cache.rs` 与 `wgsl_contracts.rs` 保持独立 child owner。
+
+新增守卫 `runtime_15_render_shader_template_assembly_support_children_are_folder_backed` 验证 support child mount、moved support anchors 不回流、父/子 owner 均低于 800 行预算，并锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations。精确锚点包括 `structure_convention/production_file_budget/render_shader_template_assembly.rs`、`structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs`、`structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs`、`structure_convention/production_file_budget/render_shader_template_assembly/sources.rs` 与 `runtime_15_render_shader_template_assembly_support_children_are_folder_backed`。
+
+验证已通过：scoped `rustfmt --edition 2021 --check`、父子行数预算扫描（父 168 行，`assembly_assertions.rs` 677 行，`docs_anchors.rs` 133 行，`sources.rs` 98 行）、moved support anchor 扫描、docs/status/session anchor scan、status/date expected-slice map scan、conflict/trailing-whitespace scan 和 scoped `git diff --check` 均通过；`git diff --check` 仅报告 LF-to-CRLF 提示。Cargo 因验证时存在 active cargo/rustc lanes deferred，不计通过。
+
+## Runtime 15 M3 extension registry bridge test folder split
+
+状态：`runtime_15_extension_registry_bridge_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs` 新增 `basics`、`diagnostics` 与 `lifecycle` 子 owner 挂载，把 bridge basics、diagnostics matrix 与 owner lifecycle transition 三组测试迁出父文件。父文件只保留共享 interface/provider fixture、snapshot/owner-report helper 和子模块挂载，行数收缩为 114。
+
+新增 `structure_convention/test_file_budget/extension_registry_bridge.rs::runtime_15_extension_registry_bridge_tests_are_folder_backed` 验证父模块挂载、代表性 moved tests 不回流、父文件 0 个测试加新子文件 20 个测试合计保留原 20 个测试，并验证父文件、`basics.rs`、`diagnostics.rs`、`lifecycle.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/bridge.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 23868、34676、47696、48080、50600、64772；`rustc` PIDs 8940、42604、51932）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 manifest contributions test folder split
+
+状态：`runtime_15_manifest_contributions_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs` 新增 `editor_only` 与 `net` 子 owner 挂载，把 editor-only package manifest 与 net package manifest 两组测试迁出父文件。父文件只保留 runtime/catalog manifest contribution assertions、plugin manifest 读取 helper 和子模块挂载，行数降到 640。
+
+新增 `structure_convention/test_file_budget/manifest_contributions.rs::runtime_15_manifest_contributions_tests_are_folder_backed` 验证父模块挂载、代表性 moved tests 不回流、父文件 8 个测试加新子文件 5 个测试合计保留原 13 个测试，并验证父文件、`editor_only.rs`、`net.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/package_manifest.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 34676、48080；`rustc` PID 56948）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 runtime plugin package manifest test folder split
+
+状态：`runtime_15_runtime_plugin_package_manifest_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs` 新增 `feature_modules` 子 owner 挂载，把 optional feature、feature extension 与 package module validation 测试迁出父文件。父文件只保留 package identity/public metadata、bridge interface/method/dependency、packaging/capability/dependency/asset-importer/capability-status validation、shared runtime plugin fixture 和子模块挂载，行数降到 793；新增 `feature_modules.rs` 子文件为 308 行。
+
+新增 `structure_convention/test_file_budget/runtime_plugin_package_manifest.rs::runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed` 验证父模块挂载、代表性 moved tests 不回流、父文件 24 个测试加新子文件 11 个测试合计保留原 35 个测试，并验证父文件与 `feature_modules.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/package_manifest.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 2908、3092、8528、35188；`rustc` PIDs 6392、47316）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 export build plan test folder split
+
+状态：`runtime_15_export_build_plan_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs` 新增 `catalog_projection` 子 owner 挂载，把 builtin catalog completion、target-mode projection、rendering default feature providers、advanced render plugin links 与 SourceTemplate+NativeDynamic merge 测试迁出父文件。父文件只保留 export profile projection、required-provider diagnostics、SourceTemplate/LibraryEmbed shared build-validation plan、profile feature matrix 与 shared helper，行数从 933 降到 723；新增 `catalog_projection.rs` 子文件为 263 行。
+
+新增 `structure_convention/test_file_budget/export_build_plan.rs::runtime_15_export_build_plan_tests_are_folder_backed` 验证父模块挂载、代表性 moved tests 不回流、父文件 11 个测试加新子文件 5 个测试合计保留原 16 个测试，并验证父文件与 `catalog_projection.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/export_build_plan.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 28208、40420、60772、66220；`rustc` PIDs 13984、29744）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 export build plan platform test folder split
+
+状态：`runtime_15_export_build_plan_platform_tests_folder_split_static_passed_cargo_deferred`。
+
+本切片继续收束 R4.1/M3 测试组织预算。`zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs` 新增 `browser_hosts` 子 owner 挂载，把 WebGPU/WASM host WebAssembly export bootstrap 与 allowed asset-origin gate 测试迁出父文件。父文件继续拥有 target platform policy、native-dynamic rejection、headless/mobile/browser host scaffold、mobile/browser package manifest、signing/CDN release contracts、platform callback adapters、release adapter gates 与 mobile binding/resource glue，行数从 819 降到 780；新增 `browser_hosts.rs` 子文件为 69 行。
+
+新增 `structure_convention/test_file_budget/export_build_plan_platform.rs::runtime_15_export_build_plan_platform_tests_are_folder_backed` 验证父模块挂载、代表性 moved test 不回流、父文件 9 个测试加新子文件 1 个测试合计保留原 10 个测试，并验证父文件与 `browser_hosts.rs` 都低于 800 行预算。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、`docs/zircon_runtime/plugin/export_build_plan.md` 与 status-output expectations。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 plugin extension Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、迁移测试数量扫描、父子行数预算扫描、moved-test parent scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 22876、28208、40420、61976、63160、66380、70136、70160；`rustc` PIDs 32424、42100、52768、68332）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 navigation lock poison recovery
+
+状态：`runtime_15_navigation_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到内置 navigation fallback manager。`zircon_runtime/src/navigation/runtime.rs` 新增私有 `lock_state()` helper，`BuiltinNavigationManager` 的 navmesh load、settings load、path/sample/raycast query、agent tick stats、tick-agent path/sample lookup 与 `stats()` 都通过该 helper 访问 `BuiltinNavigationState`，不再因 poisoned mutex 触发 `expect("navigation state lock poisoned")`。
+
+新增 module-local `navigation_manager_accessors_recover_poisoned_state_lock` 覆盖中毒锁恢复后 load/settings/sample/stats 仍可用；`structure_convention/lock_poison_policy.rs::runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager` 读取 `navigation/runtime.rs`、`navigation/runtime/tests.rs` 与 `docs/zircon_runtime/navigation/runtime.md`，验证 helper、direct lock/direct panic 扫描和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、navigation module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、navigation direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 dynamic API session lock poison recovery
+
+状态：`runtime_15_dynamic_api_session_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 dynamic API session 私有注册表和单 session execution lock。`zircon_runtime/src/dynamic_api/session.rs` 新增 `lock_registry()` 与 `lock_session()`，`destroy_session`、`insert_session` 和 `with_session` 都通过 helper 访问 session registry 或 dispatch action，不再在生产路径 direct lock unwrap。
+
+新增 `dynamic_api_session_registry_accessors_recover_poisoned_locks` 覆盖 registry 与 session lock 被 poison 后仍可 `with_session` 和 `destroy_session`；`structure_convention/lock_poison_policy.rs::runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry` 读取 `dynamic_api/session.rs`、`dynamic_api/session/tests/lock_poison.rs` 与 `docs/zircon_runtime/dynamic_api/session.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、dynamic API session docs 与 status-output expectations。完整 `module_convention_gate` 与全量 dynamic API Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、dynamic API session direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 dynamic scene spawn task lock poison recovery
+
+状态：`runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 dynamic scene spawn task 的异步状态与结果存储。`zircon_runtime/src/scene/dynamic_scene/spawn_task/task.rs` 新增 `lock_spawn_status(...)` 与 `lock_spawn_result(...)` helper，`status`、`status_snapshot`、`take_ready` 和 `wait_ready` 都通过 helper 访问 `AsyncTaskStatus` 或 `SpawnTaskResult`，不再在生产路径 direct lock expect。`zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs` 的 scheduled job running 标记、completion 状态写入和 result 发布也统一消费这两个 helper。
+
+新增 module-local `dynamic_scene_spawn_task_accessors_recover_poisoned_locks` 覆盖 status/result locks 被 poison 后仍可 record poll、mark running 和取回准备结果；`structure_convention/lock_poison_policy.rs::runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task` 读取 spawn task task/loader owners 与 `docs/zircon_runtime/scene/dynamic_scene.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、dynamic scene docs 与 status-output expectations。完整 `module_convention_gate` 与全量 dynamic scene Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、dynamic scene spawn task direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 scene ECS parallel executor lock poison recovery
+
+状态：`runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 scene ECS schedule parallel executor 的 scheduled batch result slot。`zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs` 新增 `lock_batch_result(...)` helper，scheduled batch closure result publish 与 tail wait 后的 batch-order replay 都通过该 helper 访问 `ScheduleParallelBatchResult` slot，不再在生产路径 direct lock expect。
+
+新增 module-local `schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock` 覆盖中毒后仍可取回 Ok result，并可继续写入/取回 missing-task result；`structure_convention/lock_poison_policy.rs::runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots` 读取 ECS executor 与 `docs/zircon_runtime/scene/ecs.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、ECS module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 scene ECS Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、scene ECS parallel executor direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 core resource manager lock poison recovery
+
+状态：`runtime_15_core_resource_manager_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 core resource manager。`zircon_runtime/src/core/resource/manager/resource_manager.rs` 新增 `lock_registry_read()`、`lock_registry_write()`、`lock_payloads_read()`、`lock_payloads_write()`、`lock_runtime_read()`、`lock_runtime_write()` 与 `lock_subscribers()`，分别覆盖 resource registry、payload map、runtime slot map 和 subscriber list。`registry_ops.rs`、`payload_ops.rs`、`lease_ops.rs` 与 `events.rs` 只消费这些 helper，不再在生产路径 direct lock expect/unwrap 或以 `lock poisoned` panic 结束。
+
+新增 module-local `resource_manager_accessors_recover_poisoned_state_locks` 覆盖 subscribers、registry、payloads 与 runtime locks 被 poison 后仍可 subscribe、register_ready、get/acquire、ref_count 与 runtime_state；`structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager` 读取五个 manager owner 与 `docs/zircon_runtime/core/resource.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、core resource docs 与 status-output expectations。完整 `module_convention_gate` 与全量 core resource Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、core resource manager direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 animation manager lock poison recovery
+
+状态：`runtime_15_animation_manager_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 animation runtime manager。`zircon_runtime/src/animation/manager/mod.rs` 新增私有 `lock_playback_settings()` helper，`DefaultAnimationManager::store_playback_settings` 与 `AnimationManager::playback_settings()` 都通过该 helper 访问 `AnimationPlaybackSettings`，不再在生产路径因 poisoned playback settings mutex panic。
+
+新增 module-local `animation_manager_playback_settings_recover_poisoned_lock` 覆盖中毒锁恢复后播放设置仍可 store/read；`structure_convention/lock_poison_policy.rs::runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings` 读取 `animation/manager/mod.rs` 与 `docs/zircon_runtime/animation/runtime.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、animation module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 animation Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、animation manager direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 input runtime manager lock poison recovery
+
+状态：`runtime_15_input_runtime_manager_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 input runtime manager。`zircon_runtime/src/input/runtime/default_input_manager.rs` 新增私有 `lock_state()` helper，`begin_frame`、`submit_event`、snapshot、frame snapshot 与 drain 路径都通过 helper 访问 `InputState`，不再在生产路径 direct lock unwrap。`zircon_runtime/src/input/runtime/default_input_action_manager.rs` 新增私有 `lock_evaluator()` helper，action map set/read 与 action evaluation 路径都通过 helper 访问 `InputActionEvaluator`。
+
+新增 module-local `input_manager_accessors_recover_poisoned_state_lock` 和 `input_action_manager_accessors_recover_poisoned_evaluator_lock` 覆盖 input state 与 action evaluator locks 被 poison 后仍可 submit/snapshot/drain/evaluate；`structure_convention/lock_poison_policy.rs::runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state` 读取 `input/runtime/default_input_manager.rs`、`input/runtime/default_input_action_manager.rs` 与 `docs/zircon_runtime/input/input_state.md`，验证 helper、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、input module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 input Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、input runtime manager direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 asset project manager lock poison recovery
+
+状态：`runtime_15_asset_project_manager_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 `ProjectAssetManager` 的运行时锁入口。`zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs` 让 `project_read()`、`project_write()`、`importer_registry_read()`、`importer_registry_write()`、change subscriber、watch-error subscriber 和 watcher lock 都通过 `unwrap_or_else(|poisoned| poisoned.into_inner())` 恢复；`zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs` 改为通过 importer registry helper 安装和复制 pending importer handlers。
+
+新增 module-local `project_asset_manager_runtime_accessors_recover_poisoned_locks` 覆盖 project、pending importer registry、change subscribers、watch-error subscribers 与 watcher locks 被 poison 后仍可恢复；`structure_convention/lock_poison_policy.rs::runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager` 读取 construction/runtime 两个 owner 与 `docs/zircon_runtime/asset/importer.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、asset importer docs 与 status-output expectations。完整 `module_convention_gate` 与全量 asset pipeline Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、project asset manager direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 asset worker pool lock poison recovery
+
+状态：`runtime_15_asset_worker_pool_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 asset worker pool 和 AssetManager service contract。`zircon_runtime/src/asset/pipeline/worker_pool.rs` 新增 `lock_in_flight()`、`lock_diagnostics()`、`lock_in_flight_map(...)` 与 `lock_worker_diagnostics(...)`，request de-duplication、queue-full rollback、diagnostics snapshot、frame diagnostics 和 completion publishing 都通过这些 helper 访问 in-flight map 与 diagnostics state。`zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs` 改为通过 `ProjectAssetManager` 的 `importer_registry_read()`、`lock_change_subscribers()` 与 `lock_watch_error_subscribers()` 访问 importer/subscriber state，service open/subscribe 路径不再保留 RwLock expect 或 subscriber lock panic。
+
+新增 module-local `asset_worker_pool_accessors_recover_poisoned_locks` 覆盖 worker locks 被 poison 后仍可 request、diagnostics readback 和 completion publish；`structure_convention/lock_poison_policy.rs::runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool` 读取 worker pool、service contract、manager runtime helper 与 `docs/zircon_runtime/asset/worker_pool.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、asset worker docs 与 status-output expectations。完整 `module_convention_gate` 与全量 asset pipeline Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、asset worker pool direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 WGPU render framework lock poison recovery
+
+状态：`runtime_15_wgpu_render_framework_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 WGPU render framework 的两个共享锁入口。`zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs` 中 `WgpuRenderFramework::lock_operation()` 与 `lock_state()` 现在通过 `unwrap_or_else(|poisoned| poisoned.into_inner())` 恢复 poisoned mutex，create/destroy viewport、pipeline asset set/reload/register、frame submit、capture、viewport surface、stats/debugger query 等生产路径继续集中走这两个入口。
+
+新增 module-local `wgpu_render_framework_accessors_recover_poisoned_locks` 覆盖 operation lock 与 render framework state lock 被 poison 后仍可恢复；`structure_convention/lock_poison_policy.rs::runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_framework` 读取 WGPU framework owner 与 `docs/zircon_runtime/graphics/render-product-submit.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render product docs 与 status-output expectations。完整 `module_convention_gate` 与全量 graphics/render Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、WGPU render framework direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 RHI WGPU render device lock poison recovery
+
+状态：`runtime_15_rhi_wgpu_render_device_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 headless WGPU RHI device。`zircon_runtime/src/rhi_wgpu/device.rs` 新增私有 `lock_state()` helper，`create_*`、`destroy_*`、descriptor snapshot、bind group/pipeline validation、command submit、fence completion、`transient_allocator_stats()`、`write_buffer`、`read_buffer` 和 `read_texture` 都通过 helper 访问 `WgpuRenderDeviceState`，不再在生产路径 direct lock unwrap。
+
+新增 module-local `wgpu_render_device_state_accessors_recover_poisoned_lock` 覆盖 state lock 被 poison 后仍可读取 transient allocator stats、创建 staging buffer、写入并读回数据；`structure_convention/rhi_wgpu_lock_poison.rs::runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state` 读取 WGPU device owner、父结构聚合文件与 `docs/zircon_runtime/rhi/descriptors.md`，验证 helper、独立 guard 挂载、direct-lock scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、RHI docs 与 status-output expectations。完整 `module_convention_gate` 与全量 RHI Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、RHI WGPU device production direct-lock scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过（仅 LF-to-CRLF warnings）；Cargo 因外部 cargo/rustc 通道 active（`cargo` PIDs 15540、30624、41464、42000、61116、69224；`rustc` PIDs 3600、6012、6488、9080、10692、15256、23412、29408、38788、52576、54436、57988、58796、63940）按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 script VM registry lock poison recovery
+
+状态：`runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到脚本 VM 的核心注册表和热重载 slot table。`zircon_runtime/src/script/vm/backend/backend_registry.rs` 新增私有 `lock_families()`，`register_family`、`resolve` 和 `names` 都通过 helper 访问 backend family map。`zircon_runtime/src/script/vm/host/host_registry.rs` 新增 `lock_handles()`，host capability handle 分配、查询、枚举和校验不再 direct lock unwrap。`zircon_runtime/src/script/vm/host/host_export_registry.rs` 新增 `lock_modules()`，module registration、module snapshot、script call table build 和 callback lookup 都通过 helper 访问 host export registry。`zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs` 新增 `lock_slots()`，load/hot-reload/restore/replace/unload/slot lookup/package lookup/export call/list/debug projection 都通过 helper 访问 slot table。
+
+新增 module-local `vm_backend_registry_accessors_recover_poisoned_family_lock`、`host_registry_accessors_recover_poisoned_handle_lock`、`host_export_registry_accessors_recover_poisoned_module_lock` 与 `hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock` 覆盖四类锁被 poison 后仍可 register/resolve/call/list/unload；`structure_convention/lock_poison_policy.rs::runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries` 读取四个脚本 VM owner 与 `docs/zircon_runtime/script/vm/zr_vm_host_reflection.md`，验证 helper、direct-lock/direct-panic scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、script VM docs 与 status-output expectations。完整 `module_convention_gate` 与全量 script VM Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、script VM registry direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 VM plugin manager selected-backend lock poison recovery
+
+状态：`runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到脚本 VM plugin manager 的 selected-backend selector。`zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs` 新增私有 `selected_backend_read()` / `selected_backend_write()` helpers，`selected_backend_name()` 和 `select_default_backend()` 都通过 helper 访问 `RwLock<String>`，不再在生产路径 direct read/write unwrap。
+
+新增 module-local `vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock` 覆盖 selected-backend lock 被 poison 后仍可读取默认 selector 并切换到 `builtin:mock`；`structure_convention/script_vm_lock_poison.rs::runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector` 读取 VM plugin manager、父结构聚合文件与 `docs/zircon_runtime/script/vm/zr_vm_host_reflection.md`，验证 helper、独立 guard 挂载、direct RwLock unwrap scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、script VM docs 与 status-output expectations。完整 `module_convention_gate` 与全量 script VM Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、VM plugin manager direct RwLock unwrap scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 UI boundary runtime-host forbidden attribute literal cleanup
+
+状态：`runtime_15_ui_boundary_runtime_host_literal_cleanup_static_passed_cargo_deferred`。
+
+本切片只处理 UI boundary 守卫自身的源扫描噪声，不改变生产 UI 行为。`zircon_runtime/src/tests/ui_boundary/runtime_host.rs` 继续通过 `runtime_ui_host_surface_splits_production_frame_from_test_support` 验证 `ui/mod.rs` 暴露生产 `PublicRuntimeFrame`、以 test-only `runtime_ui` support 保持分离，并禁止 UI root 回到直接挂载 test support 的形态；本轮把 forbidden dead-code allow attribute 从直接测试源字面量改为 `DEAD_CODE_ALLOW_ATTRIBUTE` 常量拼装，避免简单源码扫描把守卫文件误报为 suppression 残留。
+
+该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、UI architecture 与 status-output expectations。完整 `runtime_15_no_dead_code_suppression_in_production`、`module_convention_gate` 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、literal scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。

@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderPhase;
+use crate::core::framework::render::{RenderPhase, ShaderQualityTier};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshBatchRef, MeshDrawArgs,
     MeshDrawCommand, MeshDrawCommandCacheStats, MeshDrawCommandList, MeshGeometryHandle,
-    MeshPassCommandBuffers,
+    MeshPassBuildContext, MeshPassCommandBuffers,
+};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::{
+    MeshPipelineVariantRegistry, MeshPipelineVariantResolver,
 };
 
 use super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
@@ -42,7 +45,9 @@ pub(crate) struct PendingMeshCommandCacheExtractionStats {
 
 pub(crate) struct PendingMeshCommandCacheExtractionContext<'a> {
     command_cache: &'a mut CachedMeshDrawCommands,
+    variant_resolver: &'a mut dyn MeshPipelineVariantResolver,
     generation: u64,
+    shader_quality: ShaderQualityTier,
 }
 
 pub(super) struct PendingMeshCommandCacheExtraction {
@@ -58,10 +63,17 @@ struct PendingMeshCommandCacheExtractedCommands {
 }
 
 impl<'a> PendingMeshCommandCacheExtractionContext<'a> {
-    pub(crate) fn new(command_cache: &'a mut CachedMeshDrawCommands, generation: u64) -> Self {
+    pub(crate) fn new(
+        command_cache: &'a mut CachedMeshDrawCommands,
+        variant_resolver: &'a mut dyn MeshPipelineVariantResolver,
+        generation: u64,
+        shader_quality: ShaderQualityTier,
+    ) -> Self {
         Self {
             command_cache,
+            variant_resolver,
             generation,
+            shader_quality,
         }
     }
 }
@@ -77,6 +89,8 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
     let mut stats = PendingMeshCommandCacheExtractionStats::default();
     let command_cache = context.command_cache;
     let generation = context.generation;
+    let mut build_context =
+        MeshPassBuildContext::new(context.variant_resolver, context.shader_quality);
 
     for (source_draw_index, pending_draw) in pending_draws.iter_mut().enumerate() {
         let Some(draw) = pending_draw.as_ref() else {
@@ -84,7 +98,7 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
         };
         let item = pending_mesh_command_cache_extract_item(draw, source_draw_index);
         let visibility = visibility_for_entity(item.entity);
-        let Some(extracted_commands) = commands_for_extract_item_with_stats(
+        let Some(extracted_commands) = commands_for_extract_item_with_stats_and_context(
             item,
             visibility,
             |phase| {
@@ -98,6 +112,7 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
             },
             &mut *command_cache,
             generation,
+            &mut build_context,
             Some(&mut stats),
         ) else {
             continue;
@@ -154,8 +169,33 @@ fn commands_for_extract_item_with_stats(
     mut rebuild_batch_for_phase: impl FnMut(RenderPhase) -> Option<MeshBatchRef>,
     command_cache: &mut CachedMeshDrawCommands,
     generation: u64,
-    mut extraction_stats: Option<&mut PendingMeshCommandCacheExtractionStats>,
+    extraction_stats: Option<&mut PendingMeshCommandCacheExtractionStats>,
 ) -> Option<PendingMeshCommandCacheExtractedCommands> {
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut build_context = MeshPassBuildContext::new(&mut variants, ShaderQualityTier::default());
+    commands_for_extract_item_with_stats_and_context(
+        item,
+        visibility,
+        &mut rebuild_batch_for_phase,
+        command_cache,
+        generation,
+        &mut build_context,
+        extraction_stats,
+    )
+}
+
+fn commands_for_extract_item_with_stats_and_context<R>(
+    item: PendingMeshCommandCacheExtractItem,
+    visibility: Option<PendingMeshCommandCacheVisibility>,
+    mut rebuild_batch_for_phase: impl FnMut(RenderPhase) -> Option<MeshBatchRef>,
+    command_cache: &mut CachedMeshDrawCommands,
+    generation: u64,
+    build_context: &mut MeshPassBuildContext<'_, R>,
+    mut extraction_stats: Option<&mut PendingMeshCommandCacheExtractionStats>,
+) -> Option<PendingMeshCommandCacheExtractedCommands>
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
     if !can_skip_pending_mesh_draw_for_cached_commands(item) {
         return None;
     }
@@ -191,6 +231,7 @@ fn commands_for_extract_item_with_stats(
                     residual_fallback::rebuild_non_material_command_or_record_residual(
                         &mut rebuild_batch_for_phase,
                         phase,
+                        build_context,
                         &mut extraction_stats,
                     )
                 else {
@@ -206,6 +247,7 @@ fn commands_for_extract_item_with_stats(
                     residual_fallback::rebuild_non_material_command_or_record_residual(
                         &mut rebuild_batch_for_phase,
                         phase,
+                        build_context,
                         &mut extraction_stats,
                     )
                 else {

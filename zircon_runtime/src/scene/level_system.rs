@@ -11,7 +11,7 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::world::World;
-use crate::scene::{EntityId, WORLD_DRIVER_NAME, WorldDriver, ecs::RuntimeSceneSystemContext};
+use crate::scene::{ecs::RuntimeSceneSystemContext, EntityId, WorldDriver, WORLD_DRIVER_NAME};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -268,7 +268,7 @@ impl std::fmt::Debug for LevelSystem {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
 
     use super::*;
 

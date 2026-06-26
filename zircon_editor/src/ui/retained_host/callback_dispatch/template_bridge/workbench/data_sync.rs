@@ -29,8 +29,10 @@ const PROPERTY_NAME: &str = "inspector_property_name";
 const PROPERTY_LABEL: &str = "inspector_property_label";
 const PROPERTY_VALUE_KIND: &str = "inspector_property_value_kind";
 const PROPERTY_EDITABLE: &str = "inspector_property_editable";
-const ROW_BACKGROUND_COLOR: &str = "background_color";
-const ROW_BORDER_COLOR: &str = "border_color";
+// These aliases outrank static background_color/border_color style overrides
+// when a snapshot marks a property row as selected.
+const ROW_BACKGROUND_COLOR: &str = "background";
+const ROW_BORDER_COLOR: &str = "border";
 const ROW_VALUE_COLOR: &str = "value_color";
 const CAST_SHADOWS_FIELD_ID: &str = "cast_shadows";
 const CAST_SHADOWS_SELECT_BACKGROUND: &str = "#282e32";

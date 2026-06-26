@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    ShaderPassType, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    GeometrySourceId, ShaderPassType, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -22,10 +23,12 @@ impl MeshPipelineVariantKey {
     fn new(
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
     ) -> Self {
-        let mut shader_variant_key = pipeline_key.shader_variant_key(
+        let mut shader_variant_key = pipeline_key.shader_variant_key_for_geometry(
             shader_pass_type_for_mesh_pipeline_kind(kind),
+            geometry_source,
             DEFAULT_MESH_SHADER_VARIANT_PLATFORM_TOKEN,
         );
         shader_variant_key.quality = shader_quality;
@@ -57,10 +60,11 @@ pub(crate) struct MeshPipelineVariantRegistry {
 }
 
 pub(crate) trait MeshPipelineVariantResolver {
-    fn resolve_variant(
+    fn resolve_variant_for_geometry(
         &mut self,
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId;
 }
@@ -72,7 +76,22 @@ impl MeshPipelineVariantRegistry {
         pipeline_key: &PipelineKey,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        let key = MeshPipelineVariantKey::new(kind, pipeline_key, shader_quality);
+        self.resolve_variant_for_geometry(
+            kind,
+            pipeline_key,
+            GEOMETRY_SOURCE_ID_STATIC_MESH,
+            shader_quality,
+        )
+    }
+
+    pub(crate) fn resolve_variant_for_geometry(
+        &mut self,
+        kind: MeshPassPipelineKind,
+        pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
+        shader_quality: ShaderQualityTier,
+    ) -> MeshPipelineVariantId {
+        let key = MeshPipelineVariantKey::new(kind, pipeline_key, geometry_source, shader_quality);
         if let Some(id) = self.variant_ids.get(&key) {
             self.miss_report = self.miss_report.with_memory_hit();
             return *id;
@@ -129,7 +148,8 @@ impl MeshPipelineVariantRegistry {
 
 fn shader_pass_type_for_mesh_pipeline_kind(kind: MeshPassPipelineKind) -> ShaderPassType {
     match kind {
-        MeshPassPipelineKind::DepthPrepass => ShaderPassType::DepthPrepass,
+        MeshPassPipelineKind::GBuffer => ShaderPassType::GBuffer,
+        MeshPassPipelineKind::DepthPrepass => ShaderPassType::GBuffer,
         MeshPassPipelineKind::Base => ShaderPassType::Forward,
         MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
             ShaderPassType::Shadow
@@ -142,20 +162,28 @@ fn shader_pass_type_for_mesh_pipeline_kind(kind: MeshPassPipelineKind) -> Shader
 }
 
 impl MeshPipelineVariantResolver for MeshPipelineVariantRegistry {
-    fn resolve_variant(
+    fn resolve_variant_for_geometry(
         &mut self,
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        MeshPipelineVariantRegistry::resolve_variant(self, kind, pipeline_key, shader_quality)
+        MeshPipelineVariantRegistry::resolve_variant_for_geometry(
+            self,
+            kind,
+            pipeline_key,
+            geometry_source,
+            shader_quality,
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, SHADING_MODEL_ID_STANDARD_PBR,
+        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -218,15 +246,20 @@ mod tests {
         let mut key = default_pipeline_key();
         key.alpha_mask = true;
 
-        let variant = registry.resolve_variant(
+        let variant = registry.resolve_variant_for_geometry(
             MeshPassPipelineKind::ShadowDepthAlphaMask,
             &key,
+            GEOMETRY_SOURCE_ID_SKINNED_MESH,
             ShaderQualityTier::Medium,
         );
         let variant_key = registry.key_for_variant(variant).unwrap();
         let shader_variant = variant_key.shader_variant_key();
 
         assert_eq!(shader_variant.pass_type, ShaderPassType::Shadow);
+        assert_eq!(
+            shader_variant.geometry_source,
+            GEOMETRY_SOURCE_ID_SKINNED_MESH
+        );
         assert_eq!(shader_variant.shading_model, SHADING_MODEL_ID_STANDARD_PBR);
         assert!(shader_variant
             .features
@@ -253,6 +286,80 @@ mod tests {
                 .key_for_variant(high)
                 .map(|key| key.shader_variant_key().quality),
             Some(ShaderQualityTier::High)
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_variant_registry_separates_geometry_sources() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let static_variant = registry.resolve_variant_for_geometry(
+            MeshPassPipelineKind::Base,
+            &key,
+            GEOMETRY_SOURCE_ID_STATIC_MESH,
+            ShaderQualityTier::Medium,
+        );
+        let skinned_variant = registry.resolve_variant_for_geometry(
+            MeshPassPipelineKind::Base,
+            &key,
+            GEOMETRY_SOURCE_ID_SKINNED_MESH,
+            ShaderQualityTier::Medium,
+        );
+
+        assert_ne!(static_variant, skinned_variant);
+        assert_eq!(registry.len(), 2);
+        assert_eq!(
+            registry
+                .key_for_variant(skinned_variant)
+                .map(|key| key.shader_variant_key().geometry_source),
+            Some(GEOMETRY_SOURCE_ID_SKINNED_MESH)
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_variant_registry_maps_depth_prepass_to_normal_gbuffer_template() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let variant = registry.resolve_variant(
+            MeshPassPipelineKind::DepthPrepass,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        let variant_key = registry.key_for_variant(variant).unwrap();
+
+        assert_eq!(
+            variant_key.shader_variant_key().pass_type,
+            ShaderPassType::GBuffer
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_variant_registry_maps_deferred_gbuffer_to_gbuffer_pass_type() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let variant = registry.resolve_variant_for_geometry(
+            MeshPassPipelineKind::GBuffer,
+            &key,
+            GEOMETRY_SOURCE_ID_SKINNED_MESH,
+            ShaderQualityTier::High,
+        );
+        let variant_key = registry.key_for_variant(variant).unwrap();
+
+        assert_eq!(variant_key.kind(), MeshPassPipelineKind::GBuffer);
+        assert_eq!(
+            variant_key.shader_variant_key().pass_type,
+            ShaderPassType::GBuffer
+        );
+        assert_eq!(
+            variant_key.shader_variant_key().geometry_source,
+            GEOMETRY_SOURCE_ID_SKINNED_MESH
+        );
+        assert_eq!(
+            variant_key.shader_variant_key().quality,
+            ShaderQualityTier::High
         );
     }
 

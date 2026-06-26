@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc, Mutex, MutexGuard,
 };
 
 use crate::core::{CoreHandle, JobHandle, JobScheduler};
@@ -121,9 +121,7 @@ impl ScheduleParallelExecutor {
                             aborted_for_task.store(true, Ordering::Release);
                         }
 
-                        *batch_result_for_task
-                            .lock()
-                            .expect("scheduled batch result lock poisoned") = Some(result);
+                        *lock_batch_result(&batch_result_for_task) = Some(result);
                     });
             previous_batch = batch_handle;
             scheduled_batches.push(batch_result);
@@ -131,13 +129,9 @@ impl ScheduleParallelExecutor {
 
         previous_batch.wait();
         for batch_result in scheduled_batches {
-            batch_result
-                .lock()
-                .expect("scheduled batch result lock poisoned")
-                .take()
-                .expect(
-                    "scheduled batch should publish a result before the tail handle completes",
-                )?;
+            lock_batch_result(&batch_result).take().expect(
+                "scheduled batch should publish a result before the tail handle completes",
+            )?;
         }
         Ok(report)
     }
@@ -445,5 +439,49 @@ fn run_task_result<E>(
             system_id: system_id.to_string(),
             error,
         }),
+    }
+}
+
+fn lock_batch_result<E>(
+    batch_result: &Mutex<Option<ScheduleParallelBatchResult<E>>>,
+) -> MutexGuard<'_, Option<ScheduleParallelBatchResult<E>>> {
+    batch_result
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use super::*;
+
+    #[test]
+    fn schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock() {
+        let slot: Mutex<Option<ScheduleParallelBatchResult<&'static str>>> =
+            Mutex::new(Some(Ok(())));
+
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = slot.lock().unwrap();
+            panic!("poison schedule parallel executor batch result slot");
+        }));
+
+        let recovered = lock_batch_result::<&'static str>(&slot)
+            .take()
+            .expect("batch result should remain available after poison recovery");
+        assert_eq!(recovered, Ok(()));
+
+        *lock_batch_result(&slot) = Some(Err(ScheduleParallelExecutorError::MissingTask {
+            system_id: "missing.task".to_string(),
+        }));
+        let recovered = lock_batch_result(&slot)
+            .take()
+            .expect("missing-task result should remain available");
+        assert_eq!(
+            recovered,
+            Err(ScheduleParallelExecutorError::MissingTask {
+                system_id: "missing.task".to_string()
+            })
+        );
     }
 }

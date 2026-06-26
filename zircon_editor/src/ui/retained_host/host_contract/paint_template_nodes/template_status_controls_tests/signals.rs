@@ -1,10 +1,10 @@
 use super::super::super::super::data::FrameRect;
+use super::super::super::super::paint_theme::METRICS;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::{
-    status_signal_icon_fill, status_signal_icon_paint_rect, status_signal_icon_rect,
-    status_signal_mark_color, status_signal_mark_width, status_signal_text_color,
-    status_signal_text_gap, warning_mark_segments, StatusSignalKind, PALETTE,
-    STATUS_NO_ERRORS_FILL,
+    push_status_control_commands, status_signal_icon_fill, status_signal_icon_paint_rect,
+    status_signal_icon_rect, status_signal_text_color, status_signal_text_gap, StatusSignalKind,
+    PALETTE, STATUS_NO_ERRORS_FILL,
 };
 use super::support::{changed_pixel_count, pixel_at, status_node};
 use crate::ui::layouts::common::model_rc;
@@ -17,21 +17,21 @@ fn ready_status_item_paints_dot_and_text_without_chip_surface() {
         model_rc(vec![status_node(
             "WorkbenchStatusReady",
             "Ready",
-            96.0,
+            72.0,
             46.0,
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 140, 29, 23), PALETTE.success);
+    assert_eq!(pixel_at(&bytes, 140, 28, 23), PALETTE.success);
     assert_eq!(pixel_at(&bytes, 140, 90, 4), [0, 0, 0, 255]);
     assert!(changed_pixel_count(&bytes, 140, 42, 14, 40, 18) > 0);
 }
 
 #[test]
 fn ready_status_item_uses_declared_dot_text_and_gap_style() {
-    let mut node = status_node("WorkbenchStatusReady", "Ready", 96.0, 46.0);
-    node.layout_offset_x = 4.0;
-    node.layout_offset_y = -1.0;
+    let mut node = status_node("WorkbenchStatusReady", "Ready", 72.0, 46.0);
+    node.layout_offset_x = 0.0;
+    node.layout_offset_y = 0.0;
     node.layout_content_offset_x = 8.0;
     node.value_number = 9.0;
     node.value_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(143, 154, 160);
@@ -42,15 +42,15 @@ fn ready_status_item_uses_declared_dot_text_and_gap_style() {
         &FrameRect {
             x: 0.0,
             y: 0.0,
-            width: 96.0,
+            width: 72.0,
             height: 46.0,
         },
         StatusSignalKind::Ready,
     );
 
-    assert!((icon.x - 28.0).abs() < 0.001);
-    assert!((icon.y - 17.5).abs() < 0.001);
-    assert!((icon.width - 9.0).abs() < 0.001);
+    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.y - 19.0).abs() < 0.001);
+    assert!((icon.width - METRICS.gap_m).abs() < 0.001);
     assert!((status_signal_text_gap(&node) - 8.0).abs() < 0.001);
     assert_eq!(
         status_signal_text_color(&node, StatusSignalKind::Ready),
@@ -70,27 +70,32 @@ fn errors_status_item_uses_audited_success_icon_fill() {
         model_rc(vec![status_node(
             "WorkbenchStatusErrors",
             "No Errors",
-            116.0,
+            92.0,
             46.0,
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 140, 31, 23), STATUS_NO_ERRORS_FILL);
+    assert_eq!(pixel_at(&bytes, 140, 28, 23), STATUS_NO_ERRORS_FILL);
     assert!(changed_pixel_count(&bytes, 140, 46, 14, 58, 18) > 0);
 }
 
 #[test]
-fn errors_status_item_uses_declared_success_mark_color() {
+fn errors_status_item_ignores_legacy_mark_color() {
     let mut node = status_node("WorkbenchStatusErrors", "No Errors", 116.0, 46.0);
     node.icon_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(17, 32, 24);
 
-    assert_eq!(status_signal_mark_color(&node), [17, 32, 24, 255]);
+    assert_eq!(
+        status_signal_icon_fill(&node, StatusSignalKind::Success),
+        STATUS_NO_ERRORS_FILL
+    );
 }
 
 #[test]
-fn errors_status_item_uses_declared_visual_icon_size_without_moving_text_slot() {
+fn status_signal_item_ignores_legacy_icon_size_overrides() {
     let mut node = status_node("WorkbenchStatusErrors", "No Errors", 116.0, 46.0);
+    node.value_number = 21.0;
     node.layout_icon_size = 12.04;
+    node.layout_content_offset_y = -3.0;
 
     let layout = status_signal_icon_rect(
         &node,
@@ -105,18 +110,20 @@ fn errors_status_item_uses_declared_visual_icon_size_without_moving_text_slot() 
     let paint = status_signal_icon_paint_rect(&node, &layout, StatusSignalKind::Success);
 
     assert!((layout.x - 24.0).abs() < 0.001);
-    assert!((layout.width - 14.0).abs() < 0.001);
-    assert!((paint.x - 24.98).abs() < 0.001);
-    assert!((paint.width - 12.04).abs() < 0.001);
+    assert!((layout.y - 19.0).abs() < 0.001);
+    assert!((layout.width - METRICS.gap_m).abs() < 0.001);
+    assert!((paint.x - 24.0).abs() < 0.001);
+    assert!((paint.y - 19.0).abs() < 0.001);
+    assert!((paint.width - METRICS.gap_m).abs() < 0.001);
 }
 
 #[test]
-fn warning_status_item_uses_declared_icon_text_and_gap_style() {
-    let mut node = status_node("WorkbenchStatusWarnings", "2 Warnings", 120.0, 46.0);
-    node.layout_offset_x = 5.5;
-    node.layout_offset_y = -2.0;
-    node.layout_content_offset_x = 6.45;
-    node.layout_content_offset_y = -2.0;
+fn warning_status_item_uses_declared_marker_text_and_gap_style() {
+    let mut node = status_node("WorkbenchStatusWarnings", "2 Warnings", 96.0, 46.0);
+    node.layout_offset_x = 0.0;
+    node.layout_offset_y = 0.0;
+    node.layout_content_offset_x = 8.0;
+    node.layout_content_offset_y = 0.0;
     node.value_number = 21.0;
     node.value_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(135, 146, 153);
     node.label_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(242, 195, 86);
@@ -128,16 +135,16 @@ fn warning_status_item_uses_declared_icon_text_and_gap_style() {
         &FrameRect {
             x: 0.0,
             y: 0.0,
-            width: 120.0,
+            width: 96.0,
             height: 46.0,
         },
         StatusSignalKind::Warning,
     );
 
-    assert!((icon.x - 29.5).abs() < 0.001);
-    assert!((icon.y - 8.5).abs() < 0.001);
-    assert!((icon.width - 21.0).abs() < 0.001);
-    assert!((status_signal_text_gap(&node) - 6.45).abs() < 0.001);
+    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.y - 19.0).abs() < 0.001);
+    assert!((icon.width - METRICS.gap_m).abs() < 0.001);
+    assert!((status_signal_text_gap(&node) - 8.0).abs() < 0.001);
     assert_eq!(
         status_signal_text_color(&node, StatusSignalKind::Warning),
         [135, 146, 153, 255]
@@ -146,20 +153,15 @@ fn warning_status_item_uses_declared_icon_text_and_gap_style() {
         status_signal_icon_fill(&node, StatusSignalKind::Warning),
         [242, 195, 86, 255]
     );
-    assert_eq!(status_signal_mark_color(&node), [17, 24, 26, 255]);
-    assert!((status_signal_mark_width(&node) - 1.45).abs() < 0.001);
-    let mark_segments = warning_mark_segments(&icon, status_signal_mark_width(&node));
-    assert!((mark_segments[0].x - 38.9125).abs() < 0.001);
-    assert!((mark_segments[0].width - 2.175).abs() < 0.001);
-    assert!((mark_segments[1].height - 2.175).abs() < 0.001);
 }
 
 #[test]
-fn messages_status_item_uses_declared_icon_text_and_offset_style() {
-    let mut node = status_node("WorkbenchStatusMessages", "0 Messages", 130.0, 46.0);
-    node.layout_offset_x = -6.0;
-    node.layout_offset_y = -2.0;
-    node.layout_content_offset_y = 2.0;
+fn messages_status_item_uses_declared_marker_text_and_offset_style() {
+    let mut node = status_node("WorkbenchStatusMessages", "0 Messages", 100.0, 46.0);
+    node.layout_offset_x = 0.0;
+    node.layout_offset_y = 0.0;
+    node.layout_content_offset_x = 8.0;
+    node.layout_content_offset_y = 0.0;
     node.value_number = 18.0;
     node.value_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(151, 163, 169);
     node.label_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(76, 154, 232);
@@ -169,15 +171,15 @@ fn messages_status_item_uses_declared_icon_text_and_offset_style() {
         &FrameRect {
             x: 0.0,
             y: 0.0,
-            width: 130.0,
+            width: 100.0,
             height: 46.0,
         },
         StatusSignalKind::Info,
     );
 
-    assert!((icon.x - 18.0).abs() < 0.001);
-    assert!((icon.y - 14.0).abs() < 0.001);
-    assert!((icon.width - 18.0).abs() < 0.001);
+    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.y - 19.0).abs() < 0.001);
+    assert!((icon.width - METRICS.gap_m).abs() < 0.001);
     assert_eq!(
         status_signal_text_color(&node, StatusSignalKind::Info),
         [151, 163, 169, 255]
@@ -186,4 +188,49 @@ fn messages_status_item_uses_declared_icon_text_and_offset_style() {
         status_signal_icon_fill(&node, StatusSignalKind::Info),
         [76, 154, 232, 255]
     );
+}
+
+#[test]
+fn non_ready_status_items_emit_single_inline_marker_and_text() {
+    for (control_id, text) in [
+        ("WorkbenchStatusErrors", "No Errors"),
+        ("WorkbenchStatusWarnings", "2 Warnings"),
+        ("WorkbenchStatusMessages", "0 Messages"),
+    ] {
+        let mut node = status_node(control_id, text, 132.0, 46.0);
+        node.value_number = 21.0;
+        node.layout_icon_size = 18.0;
+        node.icon_stroke_width = 1.45;
+        let rect = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 132.0,
+            height: 46.0,
+        };
+        let mut commands = Vec::new();
+        push_status_control_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        let marker_commands = commands
+            .iter()
+            .filter(|command| command.text.is_none())
+            .collect::<Vec<_>>();
+        let text_commands = commands
+            .iter()
+            .filter(|command| command.text.as_deref() == Some(text))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            marker_commands.len(),
+            1,
+            "{control_id} should paint one marker"
+        );
+        assert_eq!(
+            text_commands.len(),
+            1,
+            "{control_id} should paint one text run"
+        );
+        assert!((marker_commands[0].frame.width - METRICS.gap_m).abs() < 0.001);
+        assert!((marker_commands[0].frame.height - METRICS.gap_m).abs() < 0.001);
+        assert!((marker_commands[0].corner_radius - METRICS.gap_m * 0.5).abs() < 0.001);
+    }
 }

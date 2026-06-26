@@ -34,7 +34,7 @@ impl CoreHandle {
         }
 
         {
-            let modules = self.inner.modules.lock().unwrap();
+            let modules = self.lock_modules();
             if modules.contains_key(&module_name) {
                 return Err(CoreError::DuplicateModule(module_name));
             }
@@ -120,11 +120,11 @@ impl CoreHandle {
         let module_service_lists =
             module_service_lists(&pending_services, driver_count, manager_count, plugin_count);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         if let Some(duplicate_name) =
             duplicate_existing_pending_service_name(&services, &pending_services)
         {
@@ -151,7 +151,7 @@ impl CoreHandle {
         module_name: String,
         descriptor: ModuleDescriptor,
     ) -> Result<(), CoreError> {
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
@@ -177,11 +177,11 @@ impl CoreHandle {
             prepare_single_descriptor_service_entry(&module_name, &descriptor)?;
         let module_service_lists = single_service_module_lists(&service_name, &service_entry);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         if services.contains_key(&service_name) {
             return Err(CoreError::DuplicateService(service_name.to_string()));
         }
@@ -225,11 +225,11 @@ impl CoreHandle {
         let module_service_lists =
             module_service_lists(&pending_services, driver_count, manager_count, plugin_count);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         let [(first_service_name, first_service_entry), (second_service_name, second_service_entry)] =
             pending_services;
         if services.contains_key(&first_service_name) {
@@ -283,11 +283,11 @@ impl CoreHandle {
         let module_service_lists =
             module_service_lists(&pending_services, driver_count, manager_count, plugin_count);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         let [(first_service_name, first_service_entry), (second_service_name, second_service_entry), (third_service_name, third_service_entry)] =
             pending_services;
         if services.contains_key(&first_service_name) {
@@ -352,11 +352,11 @@ impl CoreHandle {
         let module_service_lists =
             module_service_lists(&pending_services, driver_count, manager_count, plugin_count);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         let [(first_service_name, first_service_entry), (second_service_name, second_service_entry), (third_service_name, third_service_entry), (fourth_service_name, fourth_service_entry)] =
             pending_services;
         if services.contains_key(&first_service_name) {
@@ -433,11 +433,11 @@ impl CoreHandle {
         let module_service_lists =
             module_service_lists(&pending_services, driver_count, manager_count, plugin_count);
 
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&module_name) {
             return Err(CoreError::DuplicateModule(module_name));
         }
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         let [(first_service_name, first_service_entry), (second_service_name, second_service_entry), (third_service_name, third_service_entry), (fourth_service_name, fourth_service_entry), (fifth_service_name, fifth_service_entry)] =
             pending_services;
         if services.contains_key(&first_service_name) {

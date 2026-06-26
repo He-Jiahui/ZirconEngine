@@ -16,11 +16,20 @@ capabilities = [
 maturity = "stable"
 asset_roots = []
 content_roots = []
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 
 [[capability_statuses]]
 capability = "runtime.asset.importer.texture.image"
 status = "partial"
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_texture_importer_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_texture_importer_runtime_entry_v3"
 
 [[asset_importers]]
 id = "texture_importer.image"
@@ -79,6 +88,18 @@ required_capabilities = ["runtime.asset.importer.native"]
 name = "texture_importer.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_texture_importer_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.texture_importer",
+    "runtime.asset.importer.texture.image",
+    "runtime.asset.importer.texture.container",
+    "runtime.asset.importer.texture.psd",
+]
+
+[[modules]]
+name = "texture_importer.dist"
+kind = "native"
+crate_name = "zircon_plugin_texture_importer_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.texture_importer",

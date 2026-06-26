@@ -21,21 +21,21 @@ pub(super) fn control_surface(
     match kind {
         WorkbenchSelectionControlKind::Checkbox => {
             if checked {
-                declared_style_background(node).unwrap_or(WORKBENCH_CHECKBOX_CHECKED_FILL)
+                WORKBENCH_CHECKBOX_CHECKED_FILL
             } else {
                 declared_style_background(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_FILL)
             }
         }
         WorkbenchSelectionControlKind::Radio => {
             if checked {
-                declared_style_background(node).unwrap_or(WORKBENCH_RADIO_CHECKED_FILL)
+                WORKBENCH_RADIO_CHECKED_FILL
             } else {
                 declared_style_background(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_FILL)
             }
         }
         WorkbenchSelectionControlKind::Toggle => {
             if checked {
-                declared_style_background(node).unwrap_or(PALETTE.accent)
+                PALETTE.surface_selected
             } else if state == UiPainterResolvedState::Pressed {
                 PALETTE.surface_pressed
             } else if is_hot(state) {

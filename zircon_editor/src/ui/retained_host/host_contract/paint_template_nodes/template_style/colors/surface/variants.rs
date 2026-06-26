@@ -16,9 +16,19 @@ pub(super) fn variant_surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         return PALETTE.accent;
     }
     match node.surface_variant.as_str() {
-        "inset" | "scroll-body" | "asset-tree-row" | "reference-row" => PALETTE.surface_inset,
+        "inset"
+        | "scroll-body"
+        | "asset-tree-row"
+        | "reference-row"
+        | "asset-table"
+        | "asset-placeholder"
+        | "asset-placeholder-visual" => PALETTE.surface_inset,
         "popup" | "elevated" => PALETTE.popup,
-        "panel" | "asset-preview" | "asset-preview-visual" => PALETTE.surface,
+        "panel"
+        | "component-panel"
+        | "asset-preview"
+        | "asset-preview-visual"
+        | "asset-content" => PALETTE.surface,
         "shell" => PALETTE.shell_background,
         _ => match node.role.as_str() {
             "Button" if node.surface_variant.is_empty() && is_explicit_text_button(node) => {

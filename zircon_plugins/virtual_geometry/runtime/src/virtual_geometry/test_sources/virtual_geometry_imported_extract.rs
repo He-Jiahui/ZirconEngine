@@ -6,7 +6,8 @@ use zircon_runtime::asset::{
     AssetImporter, AssetUri, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
 use zircon_runtime::core::framework::render::{
-    RenderMeshSnapshot, RenderVirtualGeometryDebugState,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderVirtualGeometryDebugState,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec2, Vec3};
@@ -35,20 +36,26 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
     };
     let model_label = model_uri.to_string();
     let model_id = ResourceId::from_stable_label(&model_label);
+    let node_id = 77;
+    let transform = Transform::default();
 
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
         &[RenderMeshSnapshot {
-            node_id: 77,
-            transform: Transform::default(),
+            node_id,
+            stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
+            transform,
             model: ResourceHandle::<ModelMarker>::new(model_id),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "res://materials/imported.zmaterial",
             )),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
+            static_state: RenderMeshStaticState::from_transform_static(false),
+            render_layer_mask: RenderLayerSet::from_legacy_mask(1),
         }],
         RenderVirtualGeometryDebugState {
             print_leaf_clusters: true,

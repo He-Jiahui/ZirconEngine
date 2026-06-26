@@ -1,6 +1,7 @@
 use super::scene_renderer_advanced_plugin_resources::SceneRendererAdvancedPluginResources;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::{
     build_mesh_draws, BuiltMeshDraws, CachedMeshDrawCommands,
     PendingMeshCommandCacheExtractionContext,
@@ -48,7 +49,9 @@ impl SceneRendererAdvancedPluginResources {
         virtual_geometry_enabled: bool,
         shadow_light_slots: Option<&ShadowLightSlotAssignments>,
         command_cache: &mut CachedMeshDrawCommands,
+        mesh_pipelines: &mut MeshPipelineCache,
         generation: u64,
+        shader_quality: crate::core::framework::render::ShaderQualityTier,
     ) -> BuiltMeshDraws {
         let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
         build_mesh_draws(
@@ -63,7 +66,9 @@ impl SceneRendererAdvancedPluginResources {
             shadow_light_slots,
             Some(PendingMeshCommandCacheExtractionContext::new(
                 command_cache,
+                mesh_pipelines,
                 generation,
+                shader_quality,
             )),
         )
     }

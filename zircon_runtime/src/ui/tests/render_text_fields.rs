@@ -145,6 +145,18 @@ line_height = 13.2
 
     surface.rebuild();
 
+    let quad = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Quad
+        })
+        .expect("empty text field should render a recessed input surface");
+    assert_eq!(quad.style.background_color.as_deref(), Some("#0f1316"));
+    assert_eq!(quad.style.border_color.as_deref(), Some("#262d33"));
+
     let text = surface
         .render_extract
         .list
@@ -156,7 +168,7 @@ line_height = 13.2
                 && command.text.as_deref() == Some("Search assets")
         })
         .expect("empty text field should render placeholder text");
-    assert_eq!(text.style.foreground_color.as_deref(), Some("#68747b"));
+    assert_eq!(text.style.foreground_color.as_deref(), Some("#a4aeb4"));
     assert_eq!(text.style.painter_state, UiPainterResolvedState::Normal);
     assert!(
         text.text_layout
@@ -214,6 +226,8 @@ layout_padding_bottom = 4.0
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::TextField
             && command.style.painter_state == UiPainterResolvedState::Focused
+            && command.style.background_color.as_deref() == Some("#0f1316")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
     }));
 
     let text = commands
@@ -293,8 +307,8 @@ foreground_color = "#c5d0d5"
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::TextField
             && command.style.painter_state == UiPainterResolvedState::Loading
-            && command.style.background_color.as_deref() == Some("#252c31")
-            && command.style.border_color.as_deref() == Some("#343f47")
+            && command.style.background_color.as_deref() == Some("#1b1f23")
+            && command.style.border_color.as_deref() == Some("#2c3237")
     }));
 
     let text = commands
@@ -306,7 +320,7 @@ foreground_color = "#c5d0d5"
         })
         .expect("loading input should still render its value through component text");
     assert_eq!(text.style.painter_state, UiPainterResolvedState::Loading);
-    assert_eq!(text.style.foreground_color.as_deref(), Some("#59656c"));
+    assert_eq!(text.style.foreground_color.as_deref(), Some("#656f76"));
     assert!(
         text.text_layout
             .as_ref()

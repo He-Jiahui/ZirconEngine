@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn builtin_backend_family_accepts_qualified_and_legacy_backend_names() {
-    let registry = super::super::super::VmBackendRegistry::new();
+    let registry = super::super::VmBackendRegistry::new();
     registry.register_family(Arc::new(BuiltinVmBackendFamily));
 
     assert!(registry.resolve("builtin:mock").is_ok());
@@ -35,10 +35,7 @@ fn hot_reload_coordinator_tracks_slot_lifecycle_records() {
         .unwrap();
     let initial = coordinator.slot(slot).unwrap();
     assert_eq!(initial.backend_name, "mock");
-    assert_eq!(
-        initial.state,
-        super::super::super::VmPluginSlotState::Active
-    );
+    assert_eq!(initial.state, super::super::VmPluginSlotState::Active);
     assert_eq!(initial.generation, 1);
     assert_eq!(initial.source, source);
     assert_eq!(initial.manifest.version, "0.1.0");

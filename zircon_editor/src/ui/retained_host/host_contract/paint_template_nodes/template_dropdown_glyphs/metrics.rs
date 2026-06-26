@@ -1,4 +1,16 @@
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const DROPDOWN_CHEVRON_SIZE: f32 = 14.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const DROPDOWN_CHEVRON_RIGHT: f32 = 7.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const DROPDOWN_CHEVRON_RESERVE: f32 =
-    DROPDOWN_CHEVRON_SIZE + DROPDOWN_CHEVRON_RIGHT + 4.0;
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_chevron_size(
+) -> f32 {
+    METRICS.font_large
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_chevron_right(
+) -> f32 {
+    METRICS.button_icon_gap
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_chevron_reserve(
+) -> f32 {
+    dropdown_chevron_size() + dropdown_chevron_right() + METRICS.gap_s
+}

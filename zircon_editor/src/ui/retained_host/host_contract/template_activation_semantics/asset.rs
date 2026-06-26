@@ -1,6 +1,9 @@
 use super::super::globals::PaneSurfaceHostContext;
 use super::super::surface_hit_test::TemplateNodePointerHit;
 use super::helpers::action_or_control_id;
+use crate::ui::retained_host::asset_control_ids::{
+    asset_dispatch_source, asset_surface_binding_control_id,
+};
 use crate::ui::retained_host::primitives::SharedString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,26 +41,19 @@ pub(in crate::ui::retained_host::host_contract) fn asset_primary_activation(
     hit: &TemplateNodePointerHit,
 ) -> Option<AssetPrimaryActivation> {
     let source = asset_dispatch_source(hit.dispatch_kind.as_str())?;
-    let control_id = action_or_control_id(hit);
-    let kind = if is_asset_change_control(control_id.as_str()) {
+    let action_or_control_id = action_or_control_id(hit);
+    let control_id = asset_surface_binding_control_id(action_or_control_id.as_str())
+        .unwrap_or(action_or_control_id.as_str());
+    let kind = if is_asset_change_control(control_id) {
         AssetPrimaryActivationKind::Change
     } else {
         AssetPrimaryActivationKind::Click
     };
     Some(AssetPrimaryActivation {
         source: source.into(),
-        control_id,
+        control_id: control_id.into(),
         kind,
     })
-}
-
-pub(in crate::ui::retained_host::host_contract) fn asset_dispatch_source(
-    dispatch_kind: &str,
-) -> Option<&str> {
-    if dispatch_kind == "asset" {
-        return Some("activity");
-    }
-    dispatch_kind.strip_prefix("asset:")
 }
 
 fn is_asset_change_control(control_id: &str) -> bool {

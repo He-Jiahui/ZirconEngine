@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(super) fn write_node_animation_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_node_animation_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("node_animation.bin");
     let gltf_path = root.join("node_animation.gltf");
 

@@ -1,11 +1,11 @@
 //! Runtime-owned reusable camera controller contracts.
 
-mod common;
+mod controller_output;
 mod free;
 mod orbit;
 mod pan;
 
-pub use common::{CameraControllerOutput, CursorGrabIntent, CursorGrabMode};
+pub use controller_output::{CameraControllerOutput, CursorGrabIntent, CursorGrabMode};
 pub use free::{FreeCameraController, FreeCameraInput, FreeCameraSettings, FreeCameraState};
 pub use orbit::{
     OrbitCameraAction, OrbitCameraController, OrbitCameraInput, OrbitCameraSettings,

@@ -17,6 +17,7 @@ fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
         vec![
             zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate,
             zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
+            zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
         ]
     );
     assert!(report
@@ -44,5 +45,19 @@ fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
         module.name == "sound.timeline_animation_track.editor"
             && module.crate_name == "zircon_plugin_sound_timeline_animation_editor"
             && module.capabilities.contains(&EDITOR_CAPABILITY.to_string())
+    }));
+    assert!(report.manifest.modules.iter().any(|module| {
+        module.name == "sound.timeline_animation_track.dist"
+            && module.kind == zircon_runtime::plugin::PluginModuleKind::Native
+            && module.crate_name == DIST_CRATE_NAME
+            && module
+                .target_modes
+                .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime)
+            && module
+                .target_modes
+                .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost)
+            && module
+                .capabilities
+                .contains(&RUNTIME_CAPABILITY.to_string())
     }));
 }

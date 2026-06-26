@@ -3,7 +3,8 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     let parent = read_runtime_src("ui/component/catalog/editor_showcase.rs");
-    let helpers = read_runtime_src("ui/component/catalog/editor_showcase/helpers.rs");
+    let descriptor_builders =
+        read_runtime_src("ui/component/catalog/editor_showcase/descriptor_builders.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -19,8 +20,8 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
         "editor showcase parent keeps catalog registry and descriptor list ownership",
         &parent,
         &[
-            "mod helpers;",
-            "use helpers::{",
+            "mod descriptor_builders;",
+            "use descriptor_builders::{",
             "static EDITOR_SHOWCASE_REGISTRY",
             "fn build_editor_showcase_registry",
             "fn build_editor_showcase_descriptor",
@@ -44,12 +45,12 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     ] {
         assert!(
             !parent.contains(moved_owner),
-            "ui/component/catalog/editor_showcase.rs should delegate helper owner `{moved_owner}` to editor_showcase/helpers.rs"
+            "ui/component/catalog/editor_showcase.rs should delegate descriptor builder owner `{moved_owner}` to editor_showcase/descriptor_builders.rs"
         );
     }
     assert_contains_all(
-        "editor showcase helpers child owns descriptor helper construction",
-        &helpers,
+        "editor showcase descriptor-builders child owns descriptor construction",
+        &descriptor_builders,
         &[
             "fn base_descriptor(",
             "pub(super) fn with_palette_metadata",
@@ -69,8 +70,8 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     for (path, source) in [
         ("ui/component/catalog/editor_showcase.rs", parent.as_str()),
         (
-            "ui/component/catalog/editor_showcase/helpers.rs",
-            helpers.as_str(),
+            "ui/component/catalog/editor_showcase/descriptor_builders.rs",
+            descriptor_builders.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -95,7 +96,7 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
                 "Runtime 15 M4 UI component catalog editor-showcase helper owner split",
                 "runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result",
                 "ui/component/catalog/editor_showcase.rs",
-                "ui/component/catalog/editor_showcase/helpers.rs",
+                "ui/component/catalog/editor_showcase/descriptor_builders.rs",
                 "runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner",
             ],
         );
@@ -107,7 +108,7 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
             "Runtime 15 M4 UI component catalog editor-showcase helper owner split",
             "runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result",
             "ui/component/catalog/editor_showcase.rs",
-            "ui/component/catalog/editor_showcase/helpers.rs",
+            "ui/component/catalog/editor_showcase/descriptor_builders.rs",
             "runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner",
         ],
     );

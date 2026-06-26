@@ -2,14 +2,17 @@
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
+  - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/dump.rs
@@ -18,15 +21,15 @@ plan_sources:
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_creates_dense_transients_and_skips_sparse_reservations
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_aliases_compatible_transient_texture_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_receives_incompatible_texture_resources_in_separate_graph_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_overrides_preimported_terminal_aa_input_with_owned_transient
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_aliases_transient_buffer_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_exposes_owned_texture_mip_views
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs::tests::materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip
-  - zircon_runtime/src/render_graph/tests/resources.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_creates_dense_transients_and_skips_sparse_reservations
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_compatible_transient_texture_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_receives_incompatible_texture_resources_in_separate_graph_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_overrides_preimported_terminal_aa_input_with_owned_transient
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_transient_buffer_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_exposes_owned_texture_mip_views
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip
+  - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
 doc_type: module-detail
 ---
 
@@ -59,4 +62,4 @@ Buffer allocations are grouped by graph descriptor bucket plus bucket-local tran
 
 ## Validation State
 
-Materialization source-contract tests now assert both same-bucket aliasing and cross-bucket separation: compatible non-overlapping textures and buffers share one bucketed backing label, while incompatible texture descriptors materialize to distinct bucketed labels even when their bucket-local slot index is the same. Focused lib-test execution remains deferred under the implementation-first milestone cadence; scoped `zircon_runtime --features core-min` cargo checks provide the current compile gate for this slice.
+Materialization source-contract tests now assert both same-bucket aliasing and cross-bucket separation: compatible non-overlapping textures and buffers share one bucketed backing label, while incompatible texture descriptors materialize to distinct bucketed labels even when their bucket-local slot index is the same. The 2026-06-24 RenderGraph materialization test owner split keeps `graphics/scene/scene_renderer/graph_execution/materialization.rs` as the production WGPU descriptor/materialization owner and moves those tests into `graphics/scene/scene_renderer/graph_execution/materialization/tests.rs`; guard `runtime_15_render_graph_materialization_tests_are_child_owner_split` locks that boundary under `render_plan01_materialization_tests_owner_split_static_passed_cargo_deferred_active_compile_lane`. The RenderGraph resources transient aliasing tests owner split moves allocation-plan focused graph tests to `zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs` and locks the path with `runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner` under `render_graph_resources_transient_aliasing_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`. Focused lib-test execution remains deferred while active compile lanes are present; the current slice only claims scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check evidence.

@@ -18,15 +18,15 @@ const DEFAULT_RADIUS: f32 = 4.0;
 const DEFAULT_FONT_SIZE: f32 = 11.0;
 const DEFAULT_LINE_HEIGHT: f32 = DEFAULT_FONT_SIZE * 1.2;
 
-const PRIMARY_SURFACE: &str = "#32b8c5";
-const PRIMARY_SURFACE_HOVER: &str = "#43ccd8";
-const PRIMARY_SURFACE_PRESSED: &str = "#1e8c99";
-const PRIMARY_BORDER: &str = "#249aa6";
-const PRIMARY_TEXT: &str = "#08181b";
+const PRIMARY_SURFACE: &str = "#1f3035";
+const PRIMARY_SURFACE_HOVER: &str = "#263d43";
+const PRIMARY_SURFACE_PRESSED: &str = "#173942";
+const PRIMARY_BORDER: &str = "#2aa6b8";
+const PRIMARY_TEXT: &str = "#e6f1f4";
 const SECONDARY_SURFACE: &str = "#191f23";
 const SECONDARY_SURFACE_HOVER: &str = "#20282d";
 const SECONDARY_SURFACE_PRESSED: &str = "#12343d";
-const SECONDARY_BORDER: &str = "#3a464e";
+const SECONDARY_BORDER: &str = "#323a41";
 const SECONDARY_TEXT: &str = "#c9d5da";
 const TERTIARY_SURFACE: &str = "#15191d";
 const TERTIARY_TEXT: &str = "#98a6ae";
@@ -36,11 +36,11 @@ const DANGER_TEXT: &str = "#ef7066";
 const DISABLED_SURFACE: &str = "#252c31";
 const DISABLED_BORDER: &str = "#343f47";
 const DISABLED_TEXT: &str = "#59656c";
-const FOCUS_BORDER: &str = "#35c7d0";
+const FOCUS_BORDER: &str = "#2aa6b8";
 const ICON_NORMAL: &str = "#a4aeb4";
-const ICON_SELECTED_SURFACE: &str = "#14373c";
+const ICON_SELECTED_SURFACE: &str = "#173942";
 const ICON_PANEL_SURFACE: &str = "#1f2529";
-const ICON_PANEL_BORDER: &str = "#30393f";
+const ICON_PANEL_BORDER: &str = "#323a41";
 
 pub(super) fn button_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(is_button_component)

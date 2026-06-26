@@ -1,7 +1,10 @@
 use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
-use crate::scene::{ecs::StorageError, EntityId};
+use crate::scene::{
+    ecs::{EntityRegistryError, StorageError},
+    EntityId,
+};
 
 pub type SceneResult<T> = std::result::Result<T, SceneError>;
 
@@ -12,6 +15,34 @@ pub enum SceneError {
         operation: &'static str,
         entity: EntityId,
     },
+    #[error("entity {entity} is missing required {component} for {operation}")]
+    MissingRequiredComponent {
+        operation: &'static str,
+        entity: EntityId,
+        component: &'static str,
+    },
+    #[error("entity {entity} already exists")]
+    DuplicateEntity { entity: EntityId },
+    #[error("node name cannot be empty")]
+    EmptyNodeName,
+    #[error("joint on entity {entity} cannot connect to itself")]
+    JointConnectsToSelf { entity: EntityId },
+    #[error("entity {entity} cannot become its own parent")]
+    EntityCannotParentItself { entity: EntityId },
+    #[error("entity {child} cannot use missing parent {parent}")]
+    MissingParent { child: EntityId, parent: EntityId },
+    #[error("reparenting entity {child} under parent {parent} would create a hierarchy cycle")]
+    HierarchyCycle { child: EntityId, parent: EntityId },
+    #[error("entity {entity} cannot become Dynamic while it owns Static children")]
+    DynamicMobilityWithStaticChildren { entity: EntityId },
+    #[error("entity {entity} cannot become Static under Dynamic parent {parent}")]
+    StaticMobilityUnderDynamicParent { entity: EntityId, parent: EntityId },
+    #[error("static entity {entity} cannot update transform at runtime")]
+    StaticTransformMutation { entity: EntityId },
+    #[error("static entity {entity} cannot be reparented during runtime mutation")]
+    StaticReparentMutation { entity: EntityId },
+    #[error(transparent)]
+    EntityRegistry(#[from] EntityRegistryError),
     #[error(transparent)]
     Storage(#[from] StorageError),
     #[error(transparent)]
@@ -42,6 +73,58 @@ pub enum SceneError {
     NonEditableDynamicComponentProperty {
         component_id: String,
         property: String,
+    },
+    #[error("property `{property_path}` is not available on entity {entity}")]
+    PropertyUnavailable {
+        entity: EntityId,
+        property_path: String,
+    },
+    #[error("property `{property_path}` expects {expected} segments, found {actual}")]
+    PropertySegmentCount {
+        property_path: String,
+        expected: usize,
+        actual: usize,
+    },
+    #[error("unknown property `{property_path}`")]
+    UnknownProperty { property_path: String },
+    #[error("entity {entity} does not expose property `{property_path}`")]
+    MissingPropertyComponent {
+        entity: EntityId,
+        property_path: String,
+    },
+    #[error("property `{property_path}` expected {expected}")]
+    PropertyTypeMismatch {
+        property_path: String,
+        expected: String,
+    },
+    #[error("unknown {axis_kind} in property `{property_path}`")]
+    UnknownPropertyAxis {
+        property_path: String,
+        axis_kind: &'static str,
+    },
+    #[error("property `{property_path}` rejects zero-length quaternion")]
+    ZeroLengthQuaternion { property_path: String },
+    #[error("property `{property_path}` expected finite {expected}")]
+    NonFinitePropertyValue {
+        property_path: String,
+        expected: &'static str,
+    },
+    #[error("property `{property_path}` has invalid resource id: {source_message}")]
+    InvalidPropertyResourceId {
+        property_path: String,
+        source_message: String,
+    },
+    #[error("unsupported {kind} `{value}`")]
+    UnsupportedPropertyValue { kind: &'static str, value: String },
+    #[error("property {property_path} is read-only {reason}")]
+    ReadOnlyProperty {
+        property_path: String,
+        reason: &'static str,
+    },
+    #[error("property `{property_path}` has an invalid {index_kind}")]
+    InvalidPropertyIndex {
+        property_path: String,
+        index_kind: &'static str,
     },
     #[error("{0}")]
     Message(String),

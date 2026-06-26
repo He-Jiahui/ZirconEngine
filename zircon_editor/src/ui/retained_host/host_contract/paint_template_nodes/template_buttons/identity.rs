@@ -2,13 +2,15 @@ use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
-use super::super::style_selector::WorkbenchButtonKind;
+use super::super::style_selector::{is_tab_like_workbench_button, WorkbenchButtonKind};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_button(
     node: &TemplatePaneNodeData,
 ) -> bool {
     let control_id = node.control_id.as_str();
-    uses_workbench_visual_language(node)
+    (uses_workbench_visual_language(node)
+        || uses_editor_button_variant(node)
+        || is_tab_like_workbench_button(node))
         && !control_id.starts_with("WorkbenchDrawerTab")
         && !control_id.starts_with("WorkbenchTool")
         && !control_id.starts_with("WorkbenchToolbar")
@@ -17,6 +19,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
         && !control_id.starts_with("WorkbenchMini")
         && !control_id.contains("IconButton")
         && is_component_family(node, TemplateComponentFamily::Button)
+}
+
+fn uses_editor_button_variant(node: &TemplatePaneNodeData) -> bool {
+    matches!(
+        node.button_variant.as_str(),
+        "primary" | "secondary" | "tertiary" | "filled" | "outlined" | "text" | "ghost" | "danger"
+    )
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_kind(

@@ -5,7 +5,8 @@ mod tests {
     use std::collections::BTreeMap;
     use std::path::{Path, PathBuf};
 
-    use zircon_runtime::plugin::PluginModuleKind;
+    use zircon_runtime::builtin::RuntimeTargetMode;
+    use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
     use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
     use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
@@ -83,7 +84,44 @@ mod tests {
                 && module.crate_name == "zircon_plugin_editor_build_export_desktop_editor"));
         assert!(manifest
             .default_packaging
-            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate));
+            .contains(&ExportPackagingStrategy::SourceTemplate));
+    }
+
+    #[test]
+    fn desktop_export_package_manifest_declares_editor_dist_contract() {
+        let manifest = package_manifest();
+
+        assert!(manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic));
+        assert!(manifest.modules.iter().any(|module| {
+            module.name == "editor_build_export_desktop.dist"
+                && module.kind == PluginModuleKind::Native
+                && module.crate_name == EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME
+                && module.target_modes == vec![RuntimeTargetMode::EditorHost]
+                && module
+                    .capabilities
+                    .contains(&NATIVE_DYNAMIC_REPORT_CAPABILITY.to_string())
+        }));
+
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("desktop export should declare native dynamic distribution");
+        assert_eq!(distribution.forms, vec!["dist".to_string()]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(
+            distribution.dist_crate,
+            EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME
+        );
+        assert_eq!(
+            distribution.editor_entry,
+            EDITOR_BUILD_EXPORT_DESKTOP_DIST_EDITOR_ENTRY
+        );
+        assert!(distribution.runtime_entry.is_empty());
     }
 
     #[test]

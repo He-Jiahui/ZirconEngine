@@ -91,7 +91,9 @@ impl SceneRendererCore {
             runtime_features.virtual_geometry_enabled,
             Some(shadow_frame_plan.light_slots()),
             &mut self.cached_mesh_draw_commands,
+            &mut self.mesh_pipelines,
             frame_generation,
+            frame.shader_quality(),
         );
         let _execution_args_buffer = assign_execution_owned_indirect_args(
             device,

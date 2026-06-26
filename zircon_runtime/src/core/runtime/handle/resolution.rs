@@ -73,7 +73,7 @@ impl CoreHandle {
         service_name: &str,
         expected_kind: Option<ServiceKind>,
     ) -> Result<NamedServiceResolution, CoreError> {
-        let services = self.inner.services.lock().unwrap();
+        let services = self.lock_services();
         let Some((name, entry)) = services.get_key_value(service_name) else {
             return Err(CoreError::MissingService(service_name.to_string()));
         };
@@ -124,7 +124,7 @@ impl CoreHandle {
             }
         }
         {
-            let services = self.inner.services.lock().unwrap();
+            let services = self.lock_services();
             let Some(entry) = services.get(service_key) else {
                 return Err(CoreError::MissingService(service_key.to_string()));
             };
@@ -150,7 +150,7 @@ impl CoreHandle {
             let owner_module = service_key.module_name();
             let canonical_service_name = service_key.as_str();
             let (dependency_names, factory) = {
-                let mut services = self.inner.services.lock().unwrap();
+                let mut services = self.lock_services();
                 let Some(entry) = services.get_mut(service_key) else {
                     return Err(CoreError::MissingService(service_key.to_string()));
                 };
@@ -162,7 +162,7 @@ impl CoreHandle {
             };
 
             let should_activate = {
-                let modules = self.inner.modules.lock().unwrap();
+                let modules = self.lock_modules();
                 match modules.get(owner_module) {
                     Some(module) => module.lifecycle == LifecycleState::Registered,
                     None => false,
@@ -203,7 +203,7 @@ impl CoreHandle {
             };
 
             {
-                let mut services = self.inner.services.lock().unwrap();
+                let mut services = self.lock_services();
                 let Some(entry) = services.get_mut(service_key) else {
                     return Err(CoreError::MissingService(service_key.to_string()));
                 };
@@ -273,7 +273,7 @@ impl CoreHandle {
     }
 
     fn reset_initializing_service(&self, service_key: &RegistryName) {
-        let mut services = self.inner.services.lock().unwrap();
+        let mut services = self.lock_services();
         if let Some(entry) = services.get_mut(service_key) {
             if entry.lifecycle == LifecycleState::Initializing && entry.instance.is_none() {
                 entry.lifecycle = LifecycleState::Registered;
@@ -282,7 +282,7 @@ impl CoreHandle {
     }
 
     fn resolved_service_instance(&self, service_key: &RegistryName) -> Option<ServiceObject> {
-        let services = self.inner.services.lock().unwrap();
+        let services = self.lock_services();
         let Some(entry) = services.get(service_key) else {
             return None;
         };

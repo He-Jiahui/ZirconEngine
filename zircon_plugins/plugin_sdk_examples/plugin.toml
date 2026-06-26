@@ -15,7 +15,7 @@ capabilities = [
 ]
 asset_roots = ["assets"]
 content_roots = ["examples"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 
 [[asset_importers]]
 id = "sdk.example.asset.model_importer"
@@ -30,6 +30,26 @@ required_capabilities = ["editor.extension.plugin_sdk_examples.asset_fixture"]
 name = "plugin_sdk_examples.editor"
 kind = "editor"
 crate_name = "zircon_plugin_sdk_examples_editor"
+target_modes = ["editor_host"]
+capabilities = [
+    "editor.extension.plugin_sdk_examples",
+    "editor.extension.plugin_sdk_examples.window",
+    "editor.extension.plugin_sdk_examples.asset_fixture",
+]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_sdk_examples_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+editor_entry = "zircon_plugin_sdk_examples_editor_entry_v3"
+
+[[modules]]
+name = "plugin_sdk_examples.dist"
+kind = "native"
+crate_name = "zircon_plugin_sdk_examples_dist"
 target_modes = ["editor_host"]
 capabilities = [
     "editor.extension.plugin_sdk_examples",

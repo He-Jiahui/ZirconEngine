@@ -2483,7 +2483,7 @@ fn editor_extension_registry_rejects_view_ids_that_cannot_form_open_operation_pa
 
         assert_eq!(
             error.to_string(),
-            format!("editor operation path `View.{view_id}.Open` is invalid")
+            format!("editor operation path `view.{view_id}.open` is invalid")
         );
         assert!(extension.views().is_empty());
     }
@@ -2708,7 +2708,7 @@ fn editor_extension_registry_rejects_legacy_ui_template_documents() {
 
     assert_eq!(
         error.to_string(),
-        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .zui component asset"
+        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a supported editor UI asset"
     );
 }
 
@@ -2727,7 +2727,7 @@ fn editor_extension_registry_rejects_legacy_component_drawer_documents() {
 
     assert_eq!(
         error.to_string(),
-        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .zui component asset"
+        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a supported editor UI asset"
     );
 }
 
@@ -2758,13 +2758,14 @@ fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event
     let action_response = action
         .runtime
         .handle_control_request(UiControlRequest::CallAction {
-            node_path: UiNodePath::new("editor/workbench/menu/selection/CreateNode.Cube"),
+            node_path: UiNodePath::new("editor/workbench/menu/selection/scene.node.create_cube"),
             action_id: "workbench.menu.item.click".to_string(),
             arguments: Vec::new(),
         });
     let UiControlResponse::Invocation(action_result) = action_response else {
         panic!("expected invocation response");
     };
+    assert_eq!(action_result.error, None);
 
     assert_eq!(
         retained_record.event,

@@ -19,8 +19,25 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
     );
     assert_eq!(
         tokens.palette.accent,
-        UiRgbaColor::from_u8(60, 199, 214, 255)
+        UiRgbaColor::from_u8(42, 166, 184, 255)
     );
+    assert_eq!(
+        tokens.palette.surface_recessed,
+        UiRgbaColor::from_u8(15, 19, 22, 255)
+    );
+    assert_eq!(
+        tokens.palette.surface_hover,
+        UiRgbaColor::from_u8(42, 48, 54, 255)
+    );
+    assert_eq!(
+        tokens.palette.surface_selected,
+        UiRgbaColor::from_u8(23, 57, 66, 255)
+    );
+    assert_eq!(
+        tokens.palette.separator_strong,
+        UiRgbaColor::from_u8(65, 75, 84, 255)
+    );
+    assert_eq!(tokens.palette.popup, UiRgbaColor::from_u8(20, 22, 24, 255));
     assert_eq!(tokens.controls.border_width, 1.0);
     assert_eq!(tokens.controls.compact_height, 32.0);
     assert_eq!(tokens.controls.dense_height, 28.0);
@@ -44,6 +61,22 @@ fn editor_design_tokens_resolve_named_density_constraint_tokens() {
         tokens.density_value_for_token_name("--bottom-output-height"),
         Some(tokens.density.bottom_output_height)
     );
+    assert_eq!(
+        tokens.density_value_for_token_name("--breakpoint-narrow-width"),
+        Some(tokens.density.breakpoint_narrow_width)
+    );
+    assert_eq!(
+        tokens.density_value_for_token_name("--compact-side-width"),
+        Some(tokens.density.compact_side_width)
+    );
+    assert_eq!(
+        tokens.density_value_for_token_name("--compact-bottom-max-height"),
+        Some(tokens.density.compact_bottom_max_height)
+    );
+    assert_eq!(
+        tokens.density_value_for_token_name("--minimum-window-width"),
+        Some(tokens.density.minimum_window_width)
+    );
     assert_eq!(tokens.density_value_for_token_name("--unknown"), None);
 }
 
@@ -55,13 +88,13 @@ fn editor_design_tokens_resolve_state_roles_without_changing_selector_priority()
         tokens
             .state_roles
             .role_for_state(UiPainterResolvedState::Selected),
-        EditorStateColorRole::Accent
+        EditorStateColorRole::SurfaceSelected
     );
     assert_eq!(
         tokens
             .state_roles
             .role_for_state(UiPainterResolvedState::Focused),
-        EditorStateColorRole::Accent
+        EditorStateColorRole::SurfaceSelected
     );
     assert_eq!(
         tokens.color_for_state(UiPainterResolvedState::Disabled),
@@ -101,8 +134,11 @@ fn editor_design_tokens_feed_painter_styles_through_selector_state() {
         UiPainterFamily::Button,
     );
     assert_eq!(focused_button.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused_button.background_color, tokens.palette.accent);
-    assert_eq!(focused_button.foreground_color, tokens.palette.surface[0]);
+    assert_eq!(
+        focused_button.background_color,
+        tokens.palette.surface_selected
+    );
+    assert_eq!(focused_button.foreground_color, tokens.palette.text_primary);
     assert_eq!(focused_button.border_color, tokens.palette.accent);
     assert_eq!(focused_button.border_width, tokens.controls.border_width);
     assert_eq!(focused_button.corner_radius, tokens.controls.control_radius);

@@ -4,8 +4,8 @@ use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_AC
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::super::{
-    common::dispatch_editor_binding, BuiltinHostWindowTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    common::{dispatch_editor_binding, merge_effects},
+    BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 
 pub(crate) fn dispatch_builtin_host_control(
@@ -106,7 +106,7 @@ pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
 }
 
 pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
-    _runtime: &EditorEventRuntime,
+    runtime: &EditorEventRuntime,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     action_id: &str,
@@ -118,6 +118,14 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
     };
     let mut effects = UiHostEventEffects::default();
     if selected {
+        match bridge.dispatch_workbench_module_overflow_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            },
+            Ok(None) => {}
+            Err(error) => return Some(Err(error.to_string())),
+        }
         effects.request_paint_only();
     }
     Some(Ok(effects))

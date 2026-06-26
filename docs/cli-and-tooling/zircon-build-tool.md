@@ -2,6 +2,7 @@
 related_code:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
+  - tools/zircon_build_shader_prewarm.py
   - Cargo.toml
   - zircon_hub/Cargo.toml
   - zircon_app/Cargo.toml
@@ -27,15 +28,22 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
 implementation_files:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
+  - tools/zircon_build_shader_prewarm.py
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
@@ -69,6 +77,8 @@ tests:
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets runtime --out <dir> --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
   - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-shading-model-id custom:subsurface=16 --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-resource-registry <resources.json> --dry-run
   - target: ./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
   - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir <target-dir>
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
@@ -147,13 +157,36 @@ processes against the staged runtime library.
 are staged. The tool runs the `zircon_shader_prewarm` binary with the staged
 `ZirconEngine` directory as its project root, writes cache entries into
 `ZirconEngine/cache/shader_variants`, and writes
-`ZirconEngine/cache/shader_variants_report.json`. The current prewarm producer
-covers the built-in base forward fallback mesh shader and explicit manifest JSON
-passed to the prewarm binary; asset-wide material variant enumeration is still a
-render Plan 08 follow-up. Runtime lookup checks the writable
+`ZirconEngine/cache/shader_variants_report.json`. The prewarm producer accepts
+explicit manifest JSON and can scan staged asset roots for `.zshader`, `.wgsl`,
+and `.zmaterial` sources. Shader-prewarm parsing and command assembly live in
+`tools/zircon_build_shader_prewarm.py`, while `tools/zircon_build.py` keeps the
+top-level staging orchestration. `--shader-quality-tier` expands requested
+quality tiers, and `--shader-geometry-source` expands built-in static, skinned,
+morphed, and skinned-morphed shader variant keys. `--shader-shading-model-id
+custom:name=16` forwards explicit project/plugin shading-model ids to the
+staged prewarm tool so `.zmaterial` files with `lighting_model =
+"custom:name"` can write plugin-range `ShaderVariantKey.shading_model` values
+instead of falling back to StandardPBR. `--shader-resource-registry <path>`
+forwards a serialized `ResourceRecord` array, or a JSON object with a
+`resources`/`records` array, to `zircon_shader_prewarm --resource-registry`.
+Asset-root resource registry revision overlay is owned by
+`bin/zircon_shader_prewarm/manifest/resource_registry.rs`: matching shader
+records override `.zmeta.source_hash`-derived revisions with the live
+`ResourceRecord.revision`, while unmatched raw sources keep content-hash
+revisions. The focused wiring guard is
+`runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired`, the
+manifest regression is
+`shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay`,
+and current status is
+`render_plan08_asset_root_resource_registry_revision_overlay_static_passed_cargo_timeout_no_result`.
+Built-in fallback and
+`builtin://shader/pbr.wgsl` material references use the standard-material
+template builder for each requested geometry source; custom scanned shader
+payloads remain raw WGSL requests. Runtime lookup checks the writable
 `.zircon-cache/shader_variants` cache first and then the staged
 `cache/shader_variants` payload, so packaged prewarm entries can satisfy the
-first base mesh shader-module lookup.
+first matching shader-module lookup.
 
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the

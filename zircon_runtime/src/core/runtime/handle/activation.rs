@@ -15,7 +15,7 @@ impl CoreHandle {
     pub fn activate_module(&self, module_name: &str) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "activate_module");
         let startup_services = {
-            let mut modules = self.inner.modules.lock().unwrap();
+            let mut modules = self.lock_modules();
             let Some(entry) = modules.get_mut(module_name) else {
                 return Err(CoreError::MissingModule(module_name.to_string()));
             };
@@ -50,7 +50,7 @@ impl CoreHandle {
     pub fn deactivate_module(&self, module_name: &str) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "deactivate_module");
         let (previous_lifecycle, unload_order) = {
-            let mut modules = self.inner.modules.lock().unwrap();
+            let mut modules = self.lock_modules();
             let Some(entry) = modules.get_mut(module_name) else {
                 return Err(CoreError::MissingModule(module_name.to_string()));
             };
@@ -67,7 +67,7 @@ impl CoreHandle {
         let result = (|| {
             let unload_order = unload_order.as_ref();
             let blocked_unload = {
-                let services = self.inner.services.lock().unwrap();
+                let services = self.lock_services();
                 first_blocked_unload(&services, unload_order)
             };
             if let Some((service_name, dependents)) = blocked_unload {
@@ -77,7 +77,7 @@ impl CoreHandle {
             self.deactivate_plugin_bridge_provider_for_runtime_module(module_name)?;
 
             if !unload_order.is_empty() {
-                let mut services = self.inner.services.lock().unwrap();
+                let mut services = self.lock_services();
                 unload_services(&mut services, unload_order);
             }
 
@@ -92,7 +92,7 @@ impl CoreHandle {
     }
 
     fn reset_initializing_module(&self, module_name: &str) {
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if let Some(entry) = modules.get_mut(module_name) {
             if entry.lifecycle == LifecycleState::Initializing {
                 entry.lifecycle = LifecycleState::Registered;
@@ -101,7 +101,7 @@ impl CoreHandle {
     }
 
     fn reset_stopping_module(&self, module_name: &str, previous_lifecycle: LifecycleState) {
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if let Some(entry) = modules.get_mut(module_name) {
             if entry.lifecycle == LifecycleState::Stopping {
                 entry.lifecycle = previous_lifecycle;
@@ -110,7 +110,7 @@ impl CoreHandle {
     }
 
     fn finish_module_activation(&self, module_name: &str) -> Result<(), CoreError> {
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         let Some(entry) = modules.get_mut(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_string()));
         };
@@ -119,7 +119,7 @@ impl CoreHandle {
     }
 
     fn finish_module_deactivation(&self, module_name: &str) -> Result<(), CoreError> {
-        let mut modules = self.inner.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         let Some(entry) = modules.get_mut(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_string()));
         };

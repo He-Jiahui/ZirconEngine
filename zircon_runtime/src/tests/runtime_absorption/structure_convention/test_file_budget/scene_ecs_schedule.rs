@@ -4,6 +4,10 @@ use super::*;
 fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     let parent = read_runtime_src("scene/tests/ecs_schedule.rs");
     let conflict_graph = read_runtime_src("scene/tests/ecs_schedule/conflict_graph.rs");
+    let conflict_access =
+        read_runtime_src("scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs");
+    let conflict_parallel =
+        read_runtime_src("scene/tests/ecs_schedule/conflict_graph/parallel_batches.rs");
     let fixed_update = read_runtime_src("scene/tests/ecs_schedule/fixed_update.rs");
     let parallel_executor = read_runtime_src("scene/tests/ecs_schedule/parallel_executor.rs");
     let render_extract = read_runtime_src("scene/tests/ecs_schedule/render_extract.rs");
@@ -117,6 +121,8 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     );
     let schedule_family_test_count = [
         conflict_graph.as_str(),
+        conflict_access.as_str(),
+        conflict_parallel.as_str(),
         fixed_update.as_str(),
         parallel_executor.as_str(),
         render_extract.as_str(),
@@ -137,6 +143,14 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         (
             "scene/tests/ecs_schedule/conflict_graph.rs",
             conflict_graph.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs",
+            conflict_access.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/conflict_graph/parallel_batches.rs",
+            conflict_parallel.as_str(),
         ),
         (
             "scene/tests/ecs_schedule/fixed_update.rs",
@@ -189,6 +203,122 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
                 "scene/tests/ecs_schedule/resources_events.rs",
                 "scene/tests/ecs_schedule/render_extract.rs",
                 "runtime_15_scene_ecs_schedule_tests_are_folder_backed",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_scene_ecs_schedule_conflict_graph_children_are_folder_backed() {
+    let parent = read_runtime_src("scene/tests/ecs_schedule/conflict_graph.rs");
+    let access_conflicts =
+        read_runtime_src("scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs");
+    let parallel_batches =
+        read_runtime_src("scene/tests/ecs_schedule/conflict_graph/parallel_batches.rs");
+
+    assert_contains_all(
+        "scene ECS schedule conflict graph parent mounts child owners",
+        &parent,
+        &["mod access_conflicts;", "mod parallel_batches;"],
+    );
+    assert_eq!(
+        parent.matches("#[test]").count(),
+        0,
+        "scene/tests/ecs_schedule/conflict_graph.rs should only mount child test owners and shared fixtures"
+    );
+    for moved_test in [
+        "schedule_conflict_graph_reports_component_write_conflicts_in_same_stage",
+        "schedule_conflict_graph_reports_event_and_message_writer_conflicts",
+        "schedule_conflict_graph_builds_conservative_parallel_batches",
+        "schedule_conflict_graph_keeps_parallel_batches_inside_stage_boundaries",
+    ] {
+        assert!(
+            !parent.contains(moved_test),
+            "moved conflict graph test `{moved_test}` should not return to the parent"
+        );
+    }
+
+    assert_contains_all(
+        "conflict graph access child owns component/resource/event/world access conflicts",
+        &access_conflicts,
+        &[
+            "fn schedule_conflict_graph_reports_component_write_conflicts_in_same_stage",
+            "fn schedule_conflict_graph_reports_resource_write_conflicts",
+            "fn schedule_conflict_graph_reports_event_and_message_writer_conflicts",
+            "fn schedule_conflict_graph_reports_conservative_world_access_conflicts",
+        ],
+    );
+    assert_contains_all(
+        "conflict graph parallel child owns batching and source guards",
+        &parallel_batches,
+        &[
+            "fn schedule_conflict_graph_builds_conservative_parallel_batches",
+            "fn schedule_conflict_graph_keeps_parallel_batches_inside_stage_boundaries",
+            "include_str!(\"../../../ecs/schedule_conflict_graph.rs\")",
+            "include_str!(\"../../../ecs/system/system_param_access.rs\")",
+            "include_str!(\"../../../ecs/query/query_access.rs\")",
+        ],
+    );
+
+    let child_test_total = [access_conflicts.as_str(), parallel_batches.as_str()]
+        .into_iter()
+        .map(|source| source.matches("#[test]").count())
+        .sum::<usize>();
+    assert_eq!(
+        child_test_total, 9,
+        "conflict graph children should preserve all 9 parent tests"
+    );
+
+    for (path, source) in [
+        (
+            "scene/tests/ecs_schedule/conflict_graph.rs",
+            parent.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs",
+            access_conflicts.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/conflict_graph/parallel_batches.rs",
+            parallel_batches.as_str(),
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
+    );
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("ECS doc", ecs_doc.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 scene ECS schedule conflict graph child folder split",
+                "runtime_15_scene_ecs_schedule_conflict_graph_child_folder_split_static_passed_cargo_deferred",
+                "scene/tests/ecs_schedule/conflict_graph.rs",
+                "scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs",
+                "scene/tests/ecs_schedule/conflict_graph/parallel_batches.rs",
+                "runtime_15_scene_ecs_schedule_conflict_graph_children_are_folder_backed",
             ],
         );
     }

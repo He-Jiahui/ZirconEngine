@@ -1,9 +1,10 @@
 use super::{average_channel_in_region, centered_quad_transform, resource_handle, RenderFixture};
 use crate::asset::assets::AlphaMode;
 use crate::core::framework::render::{
-    CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderPhase, RenderQualityProfile, RenderSpriteAnchor,
-    RenderSpriteImageMode, RenderSpriteSnapshot, SpriteExtract, SpritePhaseExtractInput,
+    CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhase, RenderQualityProfile,
+    RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot, SpriteExtract,
+    SpritePhaseExtractInput,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec4};
 use crate::core::resource::TextureMarker;

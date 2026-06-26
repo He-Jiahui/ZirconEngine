@@ -1,5 +1,4 @@
 use super::model::WorkbenchSegmentedControlKind;
-use super::palette::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
 use super::selection::select_workbench_segmented_control_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;

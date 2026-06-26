@@ -1,6 +1,6 @@
-use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
-    WORKBENCH_SLIDER_THUMB as SLIDER_THUMB, WORKBENCH_SLIDER_TRACK as SLIDER_TRACK,
+    WORKBENCH_SLIDER_FILL as SLIDER_FILL, WORKBENCH_SLIDER_THUMB as SLIDER_THUMB,
+    WORKBENCH_SLIDER_TRACK as SLIDER_TRACK,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::support::{changed_pixel_count, pixel_at, positioned_slider_node};
@@ -21,9 +21,9 @@ fn workbench_slider_paints_track_fill_thumb_and_value() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 220, 24, 23), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 220, 24, 23), SLIDER_FILL);
     assert_eq!(pixel_at(&bytes, 220, 126, 23), SLIDER_TRACK);
-    assert_eq!(pixel_at(&bytes, 220, 104, 23), SLIDER_THUMB);
+    assert_eq!(pixel_at(&bytes, 220, 101, 23), SLIDER_THUMB);
     assert_ne!(pixel_at(&bytes, 220, 152, 23), [0, 0, 0, 255]);
     assert!(changed_pixel_count(&bytes, 220, 157, 16, 28, 16) > 0);
 }

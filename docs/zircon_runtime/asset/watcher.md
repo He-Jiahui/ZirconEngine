@@ -2,7 +2,9 @@
 related_code:
   - zircon_runtime/src/asset/watch/asset_watch_error.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
+  - zircon_runtime/src/asset/watch/asset_change_construction.rs
   - zircon_runtime/src/asset/watch/spawn.rs
+  - zircon_runtime/src/asset/watch/shutdown_on_drop.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
   - zircon_runtime/src/asset/watch/fold_events.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
@@ -18,7 +20,9 @@ related_code:
 implementation_files:
   - zircon_runtime/src/asset/watch/asset_watch_error.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
+  - zircon_runtime/src/asset/watch/asset_change_construction.rs
   - zircon_runtime/src/asset/watch/spawn.rs
+  - zircon_runtime/src/asset/watch/shutdown_on_drop.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
@@ -36,6 +40,7 @@ tests:
   - zircon_runtime/src/asset/tests/watcher.rs::watcher_failure_on_removed_directory_surfaces_observable_error
   - zircon_runtime/src/asset/tests/facade/hot_reload.rs::hot_reload_transitions_through_reloading_state_and_emits_modified_event
   - zircon_runtime/src/asset/tests/facade/hot_reload.rs::reload_failure_emits_reload_failed_event_and_lands_failed_state
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_asset_change_construction_uses_owner_name
 doc_type: module-detail
 ---
 
@@ -49,11 +54,17 @@ doc_type: module-detail
 
 The loop folds all notify events received within one debounce window before calling the asset-change callback. Multiple writes to the same source path in that window collapse into a single `AssetChangeKind::Modified` row for that asset URI. This follows the same owner split as Bevy's file watcher: the watcher is responsible for coalescing file-system noise, while import and resource-state updates stay in the asset manager and resource manager.
 
+`AssetChange::new(...)` construction is owned by `asset/watch/asset_change_construction.rs`. The old `asset_change_new.rs` path has been removed so constructor ownership is named by responsibility, not by a migration-scented `_new` suffix.
+
 ## Errors
 
 Watcher errors are represented by `AssetWatchError { assets_root, paths, message }`. Notify `Err(...)` messages are no longer silently discarded by the watch loop. `ProjectAssetManager` also publishes `AssetWatchError` when a watch-triggered project scan or resource sync fails.
 
 `AssetManager::subscribe_asset_watch_errors()` exposes this stream separately from `subscribe_asset_changes()`. Asset changes remain real asset URI changes only; watcher failures are not squeezed into fake `res://` rows.
+
+## Shutdown
+
+`AssetWatcher` shutdown is owned by `asset/watch/shutdown_on_drop.rs`. The drop path sends the stop signal and joins the watcher thread so the watch loop exits without exposing an additional public shutdown API.
 
 ## Hot Reload Chain
 
@@ -72,3 +83,7 @@ The watcher tests cover deterministic debounce folding and explicit notify-error
 Cargo verification for Runtime 04 M3 is pending a clean compile window; the first `cargo test -p zircon_runtime --lib watcher --locked ...` attempt on 2026-06-12 timed out during compilation/linking before Rust test results were returned.
 
 The Runtime 04 `asset_pipeline_source_inventory.py` and `asset_pipeline_anchor_inventory.py` now split watcher source/count ownership from watcher anchor ownership, while `asset_pipeline_boundary.py` stays the 328-line audit reader/risk layer and `asset_pipeline_markdown.py` owns Markdown rendering at 117 lines. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this watcher doc aligned with Runtime 04, the runtime index, facade/worker/artifact/core-resource docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+
+Fresh 2026-06-25 Runtime 15 M2 asset watcher shutdown-on-drop module naming hard cutover evidence (`Runtime 15 M2 asset watcher shutdown-on-drop module naming hard cutover` / `runtime_15_asset_watcher_shutdown_on_drop_naming_hard_cutover_static_passed_cargo_deferred`): `asset/watch/drop_impl.rs` has been removed and the drop-time stop signal plus watcher-thread join owner now lives at `asset/watch/shutdown_on_drop.rs`. `asset/watch/mod.rs` mounts only `mod shutdown_on_drop;`. `naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_asset_watcher_shutdown_on_drop_uses_owner_name` pins the missing old file, the new owner/module entry shape, and the Runtime 15/status/docs anchors. Static validation covered rustfmt, old-path/source scans, docs/status anchor scan, whitespace scan, and scoped diff hygiene. Cargo is deferred while active shared cargo/rustc lanes are running and is not claimed as passing.
+
+Fresh 2026-06-25 Runtime 15 M2 asset change construction module naming hard cutover evidence (`Runtime 15 M2 asset change construction module naming hard cutover` / `runtime_15_asset_change_construction_naming_hard_cutover_static_passed_cargo_deferred`): `asset/watch/asset_change_new.rs` has been removed and `AssetChange::new(...)` now lives at `asset/watch/asset_change_construction.rs`. `asset/watch/mod.rs` mounts only `mod asset_change_construction;`, and `fold_events.rs` continues to call `AssetChange::new(...)` without behavior changes. `naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_asset_change_construction_uses_owner_name` pins the missing old file, the new owner/module entry/caller shape, and the Runtime 15/status/docs anchors. Static validation covered rustfmt, old-path/source scans, docs/status anchor scan, whitespace scan, and scoped diff hygiene. Cargo is deferred while active shared cargo/rustc lanes are running and is not claimed as passing.

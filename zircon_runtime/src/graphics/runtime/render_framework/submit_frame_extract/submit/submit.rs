@@ -30,26 +30,32 @@ use super::update_particle_previous_state::update_particle_previous_state_after_
 use super::update_temporal_camera_history::update_temporal_camera_history_after_success;
 
 pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
 ) -> Result<(), RenderFrameworkError> {
-    submit_frame_extract_with_ui(server, viewport, extract, None)
+    submit_frame_extract_with_ui(framework, viewport, extract, None)
 }
 
 pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_ui(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_frame_extract");
-    let _operation_guard = server.lock_operation();
-    submit_camera_loop(server, viewport, extract, ui, submit_selected_camera_frame)
+    let _operation_guard = framework.lock_operation();
+    submit_camera_loop(
+        framework,
+        viewport,
+        extract,
+        ui,
+        submit_selected_camera_frame,
+    )
 }
 
 fn submit_selected_camera_frame(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     ui: Option<UiRenderExtract>,
@@ -61,19 +67,19 @@ fn submit_selected_camera_frame(
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context_from_runtime_frame_extract(
-            server,
+            framework,
             viewport,
             extract,
             ui.as_ref(),
         ) {
             Ok(context) => context,
             Err(error) => {
-                fail_pending_capture_after_preflight_error(server, viewport, &error);
+                fail_pending_capture_after_preflight_error(framework, viewport, &error);
                 return Err(error);
             }
         }
     };
-    let mut state = server.lock_state();
+    let mut state = framework.lock_state();
     let active_capture =
         owns_shared_viewport_products && begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
@@ -82,7 +88,7 @@ fn submit_selected_camera_frame(
             Ok(prepared) => prepared,
             Err(error) => {
                 finish_or_fail_capture_after_submission_error(
-                    server,
+                    framework,
                     state,
                     viewport,
                     active_capture,
@@ -111,7 +117,7 @@ fn submit_selected_camera_frame(
             Err(error) => {
                 let error = render_framework_backend_error(error);
                 finish_or_fail_capture_after_submission_error(
-                    server,
+                    framework,
                     state,
                     viewport,
                     active_capture,
@@ -123,7 +129,7 @@ fn submit_selected_camera_frame(
     };
     let frame_generation = frame.generation;
     state = finish_active_capture_and_relock(
-        server,
+        framework,
         state,
         active_capture,
         Some(frame_generation),
@@ -201,7 +207,7 @@ fn submit_selected_camera_frame(
 }
 
 fn finish_or_fail_capture_after_submission_error(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     mut state: MutexGuard<'_, RenderFrameworkState>,
     viewport: RenderViewportHandle,
     active_capture: bool,
@@ -209,7 +215,7 @@ fn finish_or_fail_capture_after_submission_error(
 ) {
     if active_capture {
         drop(finish_active_capture_and_relock(
-            server,
+            framework,
             state,
             active_capture,
             None,
@@ -221,10 +227,10 @@ fn finish_or_fail_capture_after_submission_error(
 }
 
 fn fail_pending_capture_after_preflight_error(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
-    let mut state = server.lock_state();
+    let mut state = framework.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
 }

@@ -1,5 +1,5 @@
 use super::super::super::super::data::FrameRect;
-use super::super::metrics::{SEGMENT_TEXT_INSET_X, SEGMENT_TEXT_INSET_Y};
+use super::super::metrics::{segment_text_inset_x, segment_text_inset_y};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment_divider_rect(
     segment: &FrameRect,
@@ -15,11 +15,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment_label_rect(
     segment: &FrameRect,
 ) -> FrameRect {
+    let inset_x = segment_text_inset_x();
+    let inset_y = segment_text_inset_y();
     FrameRect {
-        x: segment.x + SEGMENT_TEXT_INSET_X,
-        y: segment.y + SEGMENT_TEXT_INSET_Y,
-        width: (segment.width - SEGMENT_TEXT_INSET_X * 2.0).max(1.0),
-        height: (segment.height - SEGMENT_TEXT_INSET_Y * 2.0).max(1.0),
+        x: segment.x + inset_x,
+        y: segment.y + inset_y,
+        width: (segment.width - inset_x * 2.0).max(1.0),
+        height: (segment.height - inset_y * 2.0).max(1.0),
     }
 }
 

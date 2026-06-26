@@ -1,7 +1,8 @@
 use super::super::super::template_style_color::resolved_style_color;
 use super::colors::declared_color;
 use super::palette::{
-    WORKBENCH_SLIDER_TICK, WORKBENCH_SLIDER_TRACK, WORKBENCH_SLIDER_TRACK_DISABLED,
+    WORKBENCH_SLIDER_FILL, WORKBENCH_SLIDER_TICK, WORKBENCH_SLIDER_TRACK,
+    WORKBENCH_SLIDER_TRACK_DISABLED,
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
@@ -31,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_
     } else if let Some(color) = declared_color(node.value_color) {
         color
     } else {
-        PALETTE.accent
+        WORKBENCH_SLIDER_FILL
     }
 }
 

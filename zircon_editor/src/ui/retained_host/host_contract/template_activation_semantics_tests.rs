@@ -74,10 +74,7 @@ fn asset_dispatch_source_and_change_controls_are_classified() {
     let activation = asset_primary_activation(&hit).expect("asset dispatch should route");
 
     assert_eq!(activation.source.as_str(), "browser");
-    assert_eq!(
-        activation.control_id.as_str(),
-        "workbench.asset.search.edit"
-    );
+    assert_eq!(activation.control_id.as_str(), "SearchEdited");
     assert_eq!(activation.kind, AssetPrimaryActivationKind::Change);
 }
 

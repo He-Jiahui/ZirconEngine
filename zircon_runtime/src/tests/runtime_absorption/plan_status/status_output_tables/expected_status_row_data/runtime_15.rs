@@ -26,6 +26,24 @@ pub(super) const RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES:
         ],
     ),
     (
+        "Runtime 15 M5 production dead-code suppression global gate",
+        &[
+            "runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred",
+            "structure_convention/runtime_dead_code.rs",
+            "DEAD_CODE_ALLOW_ATTRIBUTE",
+            "runtime_15_production_sources_do_not_allow_dead_code_suppression",
+        ],
+    ),
+    (
+        "Runtime 15 UI boundary runtime-host forbidden attribute literal cleanup",
+        &[
+            "runtime_15_ui_boundary_runtime_host_literal_cleanup_static_passed_cargo_deferred",
+            "tests/ui_boundary/runtime_host.rs",
+            "DEAD_CODE_ALLOW_ATTRIBUTE",
+            "runtime_ui_host_surface_splits_production_frame_from_test_support",
+        ],
+    ),
+    (
         "Runtime 15 graphics facade visibility note",
         &[
             "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift",
@@ -41,6 +59,114 @@ pub(super) const RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES:
             "FrameDiagnosticsStatus",
             "scene.ecs",
             "runtime_15_diagnostics_use_frame_trait_without_world_wrapper",
+        ],
+    ),
+    (
+        "Runtime 15 F5 scene property access typed errors",
+        &[
+            "runtime_15_scene_property_access_typed_errors_static_passed_cargo_deferred",
+            "scene/world/property_access/read.rs",
+            "scene/world/property_access/write.rs",
+            "review_f5_scene_property_access_uses_scene_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 animation manager typed errors",
+        &[
+            "runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred",
+            "core/framework/animation/error.rs",
+            "animation/manager/sampling.rs",
+            "review_f5_animation_manager_uses_animation_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 typed API residual typed errors",
+        &[
+            "runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred",
+            "scene/world/typed_api.rs",
+            "scene/world/identity.rs",
+            "review_f5_world_spawn_bundle_surface_uses_scene_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 fixed world mutation typed errors",
+        &[
+            "runtime_15_fixed_world_mutation_typed_errors_static_passed_cargo_deferred",
+            "scene/world/component_access.rs",
+            "scene/world/hierarchy.rs",
+            "review_f5_fixed_world_mutation_uses_scene_error_variants",
+        ],
+    ),
+    (
+        "Runtime 15 F5 asset authoring typed errors",
+        &[
+            "runtime_15_asset_authoring_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/authoring.rs",
+            "AssetAuthoringError",
+            "review_f5_asset_authoring_uses_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 navigation asset typed errors",
+        &[
+            "runtime_15_navigation_asset_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/navigation.rs",
+            "NavigationAssetError",
+            "review_f5_navigation_asset_uses_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 font asset typed errors",
+        &[
+            "runtime_15_font_asset_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/font.rs",
+            "FontAssetError::Parse",
+            "review_f5_font_asset_uses_typed_error_source",
+        ],
+    ),
+    (
+        "Runtime 15 F5 sound asset typed errors",
+        &[
+            "runtime_15_sound_asset_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/sound.rs",
+            "SoundAssetError::UnsupportedSpeakerMaskBits",
+            "review_f5_sound_asset_uses_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 zshader definition typed errors",
+        &[
+            "runtime_15_zshader_definition_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/shader/zshader.rs",
+            "ZShaderDefinitionError::UnsupportedKind",
+            "review_f5_zshader_definition_values_use_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 asset meta typed errors",
+        &[
+            "runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred",
+            "asset/project/meta.rs",
+            "AssetMetaError::UnsupportedFormatVersion",
+            "review_f5_asset_meta_uses_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 texture loader typed errors",
+        &[
+            "runtime_15_texture_loader_typed_errors_static_passed_cargo_deferred",
+            "asset/load/texture.rs",
+            "TextureLoadError::OpenImage",
+            "review_f5_texture_loader_uses_typed_error",
+        ],
+    ),
+    (
+        "Runtime 15 F5 mesh loader typed errors",
+        &[
+            "runtime_15_mesh_loader_typed_errors_static_passed_cargo_deferred",
+            "asset/load/mesh.rs",
+            "MeshLoadError::UnsupportedFormat",
+            "review_f5_mesh_loader_and_obj_decoder_use_typed_errors",
         ],
     ),
     (
@@ -113,6 +239,183 @@ pub(super) const RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES:
             "script/vm/tests/reflection_docs.rs",
             "docs/zircon_runtime/script/vm/zr_vm_host_reflection.md",
             "runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code",
+        ],
+    ),
+    (
+        "Runtime 15 M1 animation manager folder-backed cutover",
+        &[
+            "runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred",
+            "animation/manager/mod.rs",
+            "animation/manager/graph.rs",
+            "docs/zircon_runtime/animation/runtime.md",
+            "runtime_15_animation_manager_is_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M2 core runtime state module naming hard cutover",
+        &[
+            "runtime_15_core_runtime_state_module_naming_hard_cutover_static_passed_cargo_deferred",
+            "core/runtime/state/core_runtime_state.rs",
+            "core/runtime/state/mod.rs",
+            "runtime_15_core_runtime_state_module_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 scene ECS observer callback registry module naming hard cutover",
+        &[
+            "runtime_15_scene_ecs_observer_callback_registry_naming_hard_cutover_static_passed_cargo_deferred",
+            "scene/ecs/observer/callback_registry.rs",
+            "scene/ecs/observer/mod.rs",
+            "runtime_15_scene_ecs_observer_callback_registry_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 scene ECS query-state many-item array module naming hard cutover",
+        &[
+            "runtime_15_scene_ecs_query_state_many_item_array_naming_hard_cutover_static_passed_cargo_deferred",
+            "scene/ecs/query/query_state/many_item_array.rs",
+            "scene/ecs/query/query_state/mod.rs",
+            "runtime_15_scene_ecs_query_state_many_item_array_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 scene ECS component-storage component results module naming hard cutover",
+        &[
+            "runtime_15_scene_ecs_component_storage_component_results_naming_hard_cutover_static_passed_cargo_deferred",
+            "scene/ecs/storage/component_storage/component_results.rs",
+            "scene/ecs/storage/component_storage/mod.rs",
+            "runtime_15_scene_ecs_component_storage_component_results_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 asset watcher shutdown-on-drop module naming hard cutover",
+        &[
+            "runtime_15_asset_watcher_shutdown_on_drop_naming_hard_cutover_static_passed_cargo_deferred",
+            "asset/watch/shutdown_on_drop.rs",
+            "asset/watch/mod.rs",
+            "runtime_15_asset_watcher_shutdown_on_drop_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 asset change construction module naming hard cutover",
+        &[
+            "runtime_15_asset_change_construction_naming_hard_cutover_static_passed_cargo_deferred",
+            "asset/watch/asset_change_construction.rs",
+            "asset/watch/mod.rs",
+            "runtime_15_asset_change_construction_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 resource streamer construction module naming hard cutover",
+        &[
+            "runtime_15_resource_streamer_construction_naming_hard_cutover_static_passed_cargo_deferred",
+            "graphics/scene/resources/resource_streamer/resource_streamer_construction.rs",
+            "graphics/scene/resources/resource_streamer/mod.rs",
+            "runtime_15_resource_streamer_construction_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 offscreen target construct directory naming hard cutover",
+        &[
+            "runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result",
+            "graphics/backend/render_backend/offscreen_target_construct/construct.rs",
+            "graphics/backend/render_backend/mod.rs",
+            "runtime_15_offscreen_target_construct_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 asset texture upload readiness container fixtures module naming hard cutover",
+        &[
+            "runtime_15_asset_texture_upload_readiness_container_fixtures_naming_hard_cutover_static_passed_cargo_deferred",
+            "asset/tests/assets/texture_upload_readiness/container_fixtures.rs",
+            "asset/tests/assets/texture_upload_readiness.rs",
+            "runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 scene ECS query cached queries module naming hard cutover",
+        &[
+            "runtime_15_scene_ecs_query_cached_queries_naming_hard_cutover_static_passed_cargo_deferred",
+            "scene/tests/ecs_query/cached_queries.rs",
+            "scene/tests/ecs_query.rs",
+            "runtime_15_scene_ecs_query_cached_queries_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 dynamic API vampire runtime support module naming hard cutover",
+        &[
+            "runtime_15_dynamic_api_vampire_runtime_support_naming_hard_cutover_static_passed_cargo_deferred",
+            "dynamic_api/session/tests/vampire_runtime_support.rs",
+            "dynamic_api/session/tests/mod.rs",
+            "runtime_15_dynamic_api_vampire_runtime_support_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 camera controller output module naming hard cutover",
+        &[
+            "runtime_15_camera_controller_output_naming_hard_cutover_static_passed_cargo_deferred",
+            "core/framework/camera_controller/controller_output.rs",
+            "core/framework/camera_controller/mod.rs",
+            "runtime_15_camera_controller_output_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 scene ECS systems many/single queries module naming hard cutover",
+        &[
+            "runtime_15_scene_ecs_systems_many_single_queries_naming_hard_cutover_static_passed_cargo_timeout_no_result",
+            "scene/tests/ecs_systems/many_single_queries.rs",
+            "scene/tests/ecs_systems.rs",
+            "runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 plugin static manifest contract owner naming hard cutover",
+        &[
+            "runtime_15_plugin_static_manifest_contract_owner_naming_hard_cutover_static_passed_cargo_deferred",
+            "plugin_extensions/static_manifest_contracts/feature_bundles/feature_bundle_rows.rs",
+            "plugin_extensions/static_manifest_contracts/package_coordinates/package_coordinate_resolution.rs",
+            "plugin_extensions/static_manifest_contracts/package_identity/package_id_tokens.rs",
+            "plugin_extensions/static_manifest_contracts/package_kind/package_kind_fields.rs",
+            "runtime_15_plugin_static_manifest_contract_owners_use_domain_names",
+        ],
+    ),
+    (
+        "Runtime 15 M2 UI editor showcase descriptor builders module naming hard cutover",
+        &[
+            "runtime_15_ui_editor_showcase_descriptor_builders_naming_hard_cutover_static_passed_cargo_deferred",
+            "ui/component/catalog/editor_showcase/descriptor_builders.rs",
+            "ui/component/catalog/editor_showcase.rs",
+            "runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 UI table sortingMode server literal allowed-context sync",
+        &[
+            "runtime_15_ui_table_sorting_mode_server_literal_allowed_context_static_passed_cargo_deferred",
+            "ui/surface/surface/default_interactions/table/columns.rs",
+            "non_network_server_naming.py",
+            "runtime_non_network_server_naming_is_classified_by_owner",
+            "runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context",
+        ],
+    ),
+    (
+        "Runtime 15 M2 graphics render-framework receiver naming hard cutover",
+        &[
+            "runtime_15_graphics_render_framework_receiver_naming_hard_cutover_static_passed_cargo_deferred",
+            "graphics/runtime/render_framework",
+            "framework: &WgpuRenderFramework",
+            "runtime_non_network_server_naming_is_classified_by_owner",
+            "runtime_15_render_framework_receiver_uses_framework_name",
+        ],
+    ),
+    (
+        "Runtime 15 M2 editor workbench authority-label naming hard cutover",
+        &[
+            "runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred",
+            "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs",
+            "Selected Condition_Night   editor authority",
+            "non_network_server_naming.py",
+            "runtime_15_editor_workbench_authority_label_uses_editor_name",
         ],
     ),
 ];

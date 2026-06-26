@@ -1,4 +1,5 @@
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 use super::super::super::style_selector::{
     WORKBENCH_CHROME_DRAWER_BG as DRAWER_BG, WORKBENCH_CHROME_PANEL_BG as PANEL_BG,
@@ -76,4 +77,24 @@ fn drawer_column_paints_gap_separator_without_surface_fill() {
 
     assert_eq!(pixel_at(&bytes, 160, 66, 24), SOFT_SEPARATOR);
     assert_eq!(pixel_at(&bytes, 160, 96, 24), [0, 0, 0, 255]);
+}
+
+#[test]
+fn module_content_panel_paints_rounded_bordered_surface() {
+    let bytes = paint_template_nodes_for_test(
+        150,
+        90,
+        model_rc(vec![panel_node(
+            "WorkbenchAssetsLeftPanel",
+            12.0,
+            10.0,
+            96.0,
+            54.0,
+        )]),
+    );
+
+    assert_eq!(pixel_at(&bytes, 150, 30, 30), PANEL_BG);
+    assert_eq!(pixel_at(&bytes, 150, 24, 10), PALETTE.border);
+    assert_eq!(pixel_at(&bytes, 150, 12, 24), PALETTE.border);
+    assert_eq!(pixel_at(&bytes, 150, 12, 10), [0, 0, 0, 255]);
 }

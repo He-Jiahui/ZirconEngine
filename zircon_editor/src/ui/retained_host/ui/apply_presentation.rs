@@ -206,6 +206,7 @@ pub(crate) fn apply_presentation(
         host_shell,
         host_layout,
         menu_state: current_host_presentation.menu_state,
+        host_page_overflow_menu_state: current_host_presentation.host_page_overflow_menu_state,
         close_prompt: current_host_presentation.close_prompt,
         pane_interaction_state: current_host_presentation.pane_interaction_state,
         text_input_focus: current_host_presentation.text_input_focus,

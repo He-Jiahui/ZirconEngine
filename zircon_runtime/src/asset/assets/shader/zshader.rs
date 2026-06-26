@@ -1,11 +1,26 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::render::{
     RenderShaderDefinitionValue, RenderShaderPipelineLayoutDescriptor,
 };
+
+pub type ZShaderDefinitionResult<T> = std::result::Result<T, ZShaderDefinitionError>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum ZShaderDefinitionError {
+    #[error("shader definition `{name}` uses kind `bool` but value is not a boolean")]
+    BoolValue { name: String },
+    #[error("shader definition `{name}` uses kind `int` but value is not an i32 integer")]
+    IntValue { name: String },
+    #[error("shader definition `{name}` uses kind `uint` but value is not a u32 integer")]
+    UintValue { name: String },
+    #[error("shader definition `{name}` uses unsupported kind `{kind}`")]
+    UnsupportedKind { name: String, kind: String },
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ZShaderDocument {
@@ -44,7 +59,9 @@ impl ZShaderDocument {
         toml::to_string_pretty(self)
     }
 
-    pub fn shader_definition_values(&self) -> Result<Vec<RenderShaderDefinitionValue>, String> {
+    pub fn shader_definition_values(
+        &self,
+    ) -> ZShaderDefinitionResult<Vec<RenderShaderDefinitionValue>> {
         let mut definitions = self
             .shader_defs
             .iter()
@@ -81,44 +98,35 @@ pub struct ZShaderDefinitionValueDocument {
 }
 
 impl ZShaderDefinitionValueDocument {
-    pub fn to_render_definition(&self) -> Result<RenderShaderDefinitionValue, String> {
+    pub fn to_render_definition(&self) -> ZShaderDefinitionResult<RenderShaderDefinitionValue> {
         match self.kind.trim().to_ascii_lowercase().as_str() {
             "bool" | "boolean" => self
                 .value
                 .as_bool()
                 .map(|value| RenderShaderDefinitionValue::bool(self.name.clone(), value))
-                .ok_or_else(|| {
-                    format!(
-                        "shader definition `{}` uses kind `bool` but value is not a boolean",
-                        self.name
-                    )
+                .ok_or_else(|| ZShaderDefinitionError::BoolValue {
+                    name: self.name.clone(),
                 }),
             "int" | "i32" | "integer" => self
                 .value
                 .as_integer()
                 .and_then(|value| i32::try_from(value).ok())
                 .map(|value| RenderShaderDefinitionValue::int(self.name.clone(), value))
-                .ok_or_else(|| {
-                    format!(
-                        "shader definition `{}` uses kind `int` but value is not an i32 integer",
-                        self.name
-                    )
+                .ok_or_else(|| ZShaderDefinitionError::IntValue {
+                    name: self.name.clone(),
                 }),
             "uint" | "u32" => self
                 .value
                 .as_integer()
                 .and_then(|value| u32::try_from(value).ok())
                 .map(|value| RenderShaderDefinitionValue::uint(self.name.clone(), value))
-                .ok_or_else(|| {
-                    format!(
-                        "shader definition `{}` uses kind `uint` but value is not a u32 integer",
-                        self.name
-                    )
+                .ok_or_else(|| ZShaderDefinitionError::UintValue {
+                    name: self.name.clone(),
                 }),
-            other => Err(format!(
-                "shader definition `{}` uses unsupported kind `{other}`",
-                self.name
-            )),
+            other => Err(ZShaderDefinitionError::UnsupportedKind {
+                name: self.name.clone(),
+                kind: other.to_string(),
+            }),
         }
     }
 }

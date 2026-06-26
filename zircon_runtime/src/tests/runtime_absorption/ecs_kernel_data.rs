@@ -10,12 +10,12 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/bundle.rs",
     "src/scene/ecs/storage_type.rs",
     "src/scene/ecs/storage/component_storage/mod.rs",
+    "src/scene/ecs/storage/component_storage/component_results.rs",
     "src/scene/ecs/storage/component_storage/entry.rs",
     "src/scene/ecs/storage/component_storage/location.rs",
     "src/scene/ecs/storage/component_storage/sparse.rs",
     "src/scene/ecs/storage/component_storage/store.rs",
     "src/scene/ecs/storage/component_storage/table.rs",
-    "src/scene/ecs/storage/component_storage/utils.rs",
     "src/scene/ecs/component/mod.rs",
     "src/scene/ecs/component/id.rs",
     "src/scene/ecs/component/marker.rs",
@@ -29,11 +29,11 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/entity/slot.rs",
     "src/scene/ecs/entity/stable_location.rs",
     "src/scene/ecs/observer/mod.rs",
+    "src/scene/ecs/observer/callback_registry.rs",
     "src/scene/ecs/observer/callbacks.rs",
     "src/scene/ecs/observer/entry.rs",
     "src/scene/ecs/observer/id.rs",
     "src/scene/ecs/observer/store.rs",
-    "src/scene/ecs/observer/utils.rs",
     "src/scene/ecs/commands/command.rs",
     "src/scene/ecs/commands/command_queue.rs",
     "src/scene/ecs/commands/commands/mod.rs",
@@ -151,12 +151,12 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
         &[
             include_str!("../../scene/ecs/storage_type.rs"),
             include_str!("../../scene/ecs/storage/component_storage/mod.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/component_results.rs"),
             include_str!("../../scene/ecs/storage/component_storage/entry.rs"),
             include_str!("../../scene/ecs/storage/component_storage/location.rs"),
             include_str!("../../scene/ecs/storage/component_storage/sparse.rs"),
             include_str!("../../scene/ecs/storage/component_storage/store.rs"),
             include_str!("../../scene/ecs/storage/component_storage/table.rs"),
-            include_str!("../../scene/ecs/storage/component_storage/utils.rs"),
         ],
         &[
             "pub enum StorageType",
@@ -230,11 +230,11 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
         "Runtime 08 observer",
         &[
             include_str!("../../scene/ecs/observer/mod.rs"),
+            include_str!("../../scene/ecs/observer/callback_registry.rs"),
             include_str!("../../scene/ecs/observer/callbacks.rs"),
             include_str!("../../scene/ecs/observer/entry.rs"),
             include_str!("../../scene/ecs/observer/id.rs"),
             include_str!("../../scene/ecs/observer/store.rs"),
-            include_str!("../../scene/ecs/observer/utils.rs"),
             include_str!("../../scene/world/observers.rs"),
         ],
         &[
@@ -469,11 +469,11 @@ fn assert_component_storage_private_reexport_cleanup() {
         "pub(super) use entry::",
         "pub(super) use sparse::",
         "pub(super) use table::",
-        "pub(super) use utils::",
+        "pub(super) use component_results::",
         "pub(in crate::scene::ecs::storage) use entry::",
         "pub(in crate::scene::ecs::storage) use sparse::",
         "pub(in crate::scene::ecs::storage) use table::",
-        "pub(in crate::scene::ecs::storage) use utils::",
+        "pub(in crate::scene::ecs::storage) use component_results::",
     ] {
         assert!(
             !mod_source.contains(forbidden_reexport),
@@ -483,7 +483,8 @@ fn assert_component_storage_private_reexport_cleanup() {
 
     let sparse_source = include_str!("../../scene/ecs/storage/component_storage/sparse.rs");
     let table_source = include_str!("../../scene/ecs/storage/component_storage/table.rs");
-    let utils_source = include_str!("../../scene/ecs/storage/component_storage/utils.rs");
+    let component_results_source =
+        include_str!("../../scene/ecs/storage/component_storage/component_results.rs");
     let store_source = include_str!("../../scene/ecs/storage/component_storage/store.rs");
 
     assert!(
@@ -495,15 +496,15 @@ fn assert_component_storage_private_reexport_cleanup() {
         "table.rs should import erased entry/remove-result owners directly"
     );
     assert!(
-        utils_source.contains("use super::entry::StoredComponent;"),
-        "utils.rs should import StoredComponent from the entry owner directly"
+        component_results_source.contains("use super::entry::StoredComponent;"),
+        "component_results.rs should import StoredComponent from the entry owner directly"
     );
 
     for required_import in [
         "use super::location::ComponentStorageLocation;",
         "use super::sparse::SparseComponentStorage;",
         "use super::table::TableComponentStorage;",
-        "use super::utils::{downcast_component, sort_component_ids_if_needed};",
+        "use super::component_results::{downcast_component, sort_component_ids_if_needed};",
     ] {
         assert!(
             store_source.contains(required_import),
@@ -522,7 +523,11 @@ fn assert_component_storage_private_reexport_cleanup() {
             table_source,
             "use super::{RawRemoveResult, StoredComponent};",
         ),
-        ("utils.rs", utils_source, "use super::StoredComponent;"),
+        (
+            "component_results.rs",
+            component_results_source,
+            "use super::StoredComponent;",
+        ),
         (
             "store.rs",
             store_source,

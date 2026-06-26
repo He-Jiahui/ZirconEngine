@@ -1,6 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_chrome_style;
+use super::frame::{shell_panel_border_color, shell_panel_border_width, shell_panel_corner_radius};
 use super::identity::ShellPanelKind;
 use super::separators::push_shell_panel_separators;
 
@@ -20,9 +21,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
             Some(clip.clone()),
             order,
             Some(fill),
-            None,
-            0.0,
-            0.0,
+            shell_panel_border_color(kind, &style),
+            shell_panel_border_width(kind),
+            shell_panel_corner_radius(kind),
             opacity,
         ));
     }

@@ -8,6 +8,30 @@ fn source_file(path: &[&str]) -> String {
     std::fs::read_to_string(&file).unwrap_or_else(|_| panic!("expected readable source {file:?}"))
 }
 
+fn source_tree(path: &[&str]) -> String {
+    let mut root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    for segment in path {
+        root.push(segment);
+    }
+    assert!(root.exists(), "expected readable source tree {root:?}");
+    let mut files = collect_rust_files(&root);
+    files.sort();
+    assert!(
+        !files.is_empty(),
+        "expected Rust source files under {root:?}"
+    );
+
+    let mut source = String::new();
+    for file in files {
+        source.push_str(
+            &std::fs::read_to_string(&file)
+                .unwrap_or_else(|_| panic!("expected readable source {file:?}")),
+        );
+        source.push('\n');
+    }
+    source
+}
+
 fn assert_asset_exists(asset_path: &str) {
     let file =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(asset_path.trim_start_matches('/'));
@@ -196,7 +220,7 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
         assert_contains("pane_projection.rs", &pane_projection, required);
     }
 
-    let reflection = source_file(&["src", "ui", "reflection.rs"]);
+    let reflection = source_tree(&["src", "ui", "reflection"]);
     for required in [
         "pub struct EditorWorkbenchReflectionModel",
         "menu_items: Vec<EditorMenuItemReflectionModel>",
@@ -216,7 +240,7 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
         "EditorActivityHost::FloatingWindow(_) => \"floating_window\"",
         "EditorActivityHost::ExclusivePage(_) => \"exclusive_page\"",
     ] {
-        assert_contains("reflection.rs", &reflection, required);
+        assert_contains("reflection/", &reflection, required);
     }
 }
 

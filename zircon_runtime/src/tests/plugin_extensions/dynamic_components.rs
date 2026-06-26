@@ -203,7 +203,10 @@ fn registered_dynamic_component_properties_gate_editor_writes() {
         .unwrap_err();
     assert_eq!(
         readonly,
-        "dynamic component property `weather.Component.CloudLayer.label` is not editable"
+        SceneError::NonEditableDynamicComponentProperty {
+            component_id: "weather.Component.CloudLayer".to_string(),
+            property: "label".to_string(),
+        }
     );
 
     let undeclared = world
@@ -215,7 +218,10 @@ fn registered_dynamic_component_properties_gate_editor_writes() {
         .unwrap_err();
     assert_eq!(
         undeclared,
-        "dynamic component type `weather.Component.CloudLayer` does not declare property `density`"
+        SceneError::UndeclaredDynamicComponentProperty {
+            component_id: "weather.Component.CloudLayer".to_string(),
+            property: "density".to_string(),
+        }
     );
 }
 

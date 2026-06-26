@@ -26,7 +26,9 @@ pub(crate) fn dispatch_shared_host_page_pointer_click(
     tab_width: f32,
     point: UiPoint,
 ) -> Result<SharedHostPagePointerClickDispatch, String> {
-    let pointer = pointer_bridge.handle_click(item_index, tab_x, tab_width, point)?;
+    let pointer = pointer_bridge
+        .handle_click(item_index, tab_x, tab_width, point)
+        .map_err(|error| error.to_string())?;
     let effects = match pointer.route.as_ref() {
         Some(HostPagePointerRoute::Tab { page_id, .. }) => {
             match dispatch_builtin_host_page_activation(runtime, template_bridge, page_id) {
@@ -38,6 +40,24 @@ pub(crate) fn dispatch_shared_host_page_pointer_click(
                     },
                 )?),
             }
+        }
+        _ => None,
+    };
+    Ok(SharedHostPagePointerClickDispatch { pointer, effects })
+}
+
+pub(crate) fn dispatch_shared_host_page_overflow_pointer_click(
+    pointer_bridge: &mut HostPagePointerBridge,
+    point: UiPoint,
+) -> Result<SharedHostPagePointerClickDispatch, String> {
+    let pointer = pointer_bridge
+        .handle_overflow_click(point)
+        .map_err(|error| error.to_string())?;
+    let effects = match pointer.route.as_ref() {
+        Some(HostPagePointerRoute::Overflow { .. }) => {
+            let mut effects = UiHostEventEffects::default();
+            effects.request_paint_only();
+            Some(effects)
         }
         _ => None,
     };

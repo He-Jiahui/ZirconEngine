@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         lib_source.contains("pub mod template;"),
@@ -47,8 +47,8 @@ fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
 
 #[test]
 fn template_compiler_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
 
     for required in [
         "UiCompiledDocument",
@@ -75,10 +75,10 @@ fn template_compiler_api_moves_under_template_namespace() {
 
 #[test]
 fn template_runtime_builder_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiTemplateError"] {
         assert!(
@@ -119,10 +119,10 @@ fn template_runtime_builder_api_moves_under_template_namespace() {
 
 #[test]
 fn template_runtime_model_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         interface_template_mod_source.contains("UiTemplateNode"),
@@ -150,10 +150,10 @@ fn template_runtime_model_api_moves_under_template_namespace() {
 
 #[test]
 fn template_component_schema_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiComponentDefinition",
@@ -186,10 +186,10 @@ fn template_component_schema_api_moves_under_template_namespace() {
 
 #[test]
 fn template_selector_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiSelector", "UiSelectorToken"] {
         assert!(
@@ -212,10 +212,10 @@ fn template_selector_api_moves_under_template_namespace() {
 
 #[test]
 fn template_binding_model_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiActionRef",
@@ -248,10 +248,10 @@ fn template_binding_model_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_metadata_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiAssetHeader", "UiAssetImports"] {
         assert!(
@@ -286,10 +286,10 @@ fn template_asset_metadata_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_mount_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         interface_template_mod_source.contains("UiChildMount"),
@@ -309,8 +309,8 @@ fn template_asset_mount_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_loader_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
 
     assert!(
         template_mod_source.contains("UiAssetLoader"),
@@ -325,10 +325,10 @@ fn template_asset_loader_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_style_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in [
         "UiAssetError",
@@ -361,10 +361,10 @@ fn template_asset_style_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_node_definition_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     for required in ["UiNodeDefinition", "UiNodeDefinitionKind"] {
         assert!(
@@ -387,10 +387,10 @@ fn template_asset_node_definition_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_kind_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         interface_template_mod_source.contains("UiAssetKind"),
@@ -410,10 +410,10 @@ fn template_asset_kind_api_moves_under_template_namespace() {
 
 #[test]
 fn template_asset_document_api_moves_under_template_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let template_mod_source = include_str!("../template/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/template/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
     assert!(
         interface_template_mod_source.contains("UiAssetDocument"),

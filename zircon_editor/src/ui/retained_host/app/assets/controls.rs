@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::retained_host::asset_control_ids::asset_surface_binding_control_id;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_asset_control_changed(
@@ -46,18 +47,5 @@ impl RetainedEditorHost {
                 self.set_status_line(format!("Unknown asset click control {control_id}"));
             }
         }
-    }
-}
-
-fn asset_surface_binding_control_id(action_id: &str) -> Option<&'static str> {
-    match action_id {
-        "SearchEdited" | "workbench.asset.search.edit" => Some("SearchEdited"),
-        "SetKindFilter" | "workbench.asset.kind_filter.set" => Some("SetKindFilter"),
-        "SetViewMode" | "workbench.asset.view_mode.set" => Some("SetViewMode"),
-        "SetUtilityTab" | "workbench.asset.utility_tab.set" => Some("SetUtilityTab"),
-        "OpenAssetBrowser" | "workbench.asset_browser.open" => Some("OpenAssetBrowser"),
-        "LocateSelectedAsset" | "workbench.asset.locate_selected" => Some("LocateSelectedAsset"),
-        "ImportModel" | "workbench.asset.model.import" => Some("ImportModel"),
-        _ => None,
     }
 }

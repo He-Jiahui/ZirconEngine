@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_segmented_control_geometry::{
-    segment_rect, segmented_body_rect, SEGMENT_RADIUS,
+    segment_radius, segment_rect, segmented_body_rect,
 };
 use super::super::labels::{push_segment_label, push_segmented_group_label};
 use super::super::options::{option_is_selected, selected_segment_value};
@@ -28,7 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         style.background,
         style.border,
         style.border_width,
-        SEGMENT_RADIUS,
+        segment_radius(),
         opacity,
     ));
 

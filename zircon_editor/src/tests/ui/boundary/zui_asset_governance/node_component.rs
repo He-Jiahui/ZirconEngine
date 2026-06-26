@@ -9,7 +9,7 @@ use super::support::{
 };
 
 fn registered_component_descriptor_ids() -> BTreeSet<String> {
-    [
+    let mut ids = [
         UiComponentDescriptorRegistry::editor_showcase(),
         UiComponentDescriptorRegistry::material_editor_foundation(),
     ]
@@ -20,7 +20,9 @@ fn registered_component_descriptor_ids() -> BTreeSet<String> {
             .map(|descriptor| descriptor.id.clone())
             .collect::<Vec<_>>()
     })
-    .collect()
+    .collect::<BTreeSet<_>>();
+    ids.insert("DocumentTabs".to_string());
+    ids
 }
 
 fn imported_widget_component_names(imports: &[String]) -> BTreeSet<String> {

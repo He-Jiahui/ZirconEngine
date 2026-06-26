@@ -67,7 +67,7 @@ related_code:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/animation/scene_hook/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
@@ -134,7 +134,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/animation/scene_hook/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
@@ -145,6 +145,8 @@ plan_sources:
   - user: 2026-06-17 bind HZB executor-owned external buffers for render plan 01
   - user: 2026-05-16 continue Bevy-style runtime Time diagnostics integration
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
   - docs/zircon_runtime/graphics/render-product-submit.md
@@ -156,6 +158,14 @@ plan_sources:
   - dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/devtools.rs::devtools_snapshot_recovers_poisoned_runtime_registry_locks
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_snapshot
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs::tests::profile_recorder_accessors_recover_poisoned_global_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder
+  - zircon_runtime/src/core/runtime/handle/diagnostics.rs::tests::core_handle_diagnostic_accessors_recover_poisoned_store_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store
+  - zircon_runtime/src/core/runtime/handle/time.rs::tests::core_handle_time_accessors_recover_poisoned_runtime_clocks
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks
   - zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs
   - zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs::runtime_diagnostics_reports_motion_vector_camera_and_mesh_draw_eligibility
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
@@ -198,7 +208,14 @@ tests:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_evicts_least_recently_used_entry
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_reports_lookup_status
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs::runtime_15_render_framework_bridge_tests_are_child_owners
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
   - cargo test -p zircon_runtime --lib runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins --locked
   - cargo test -p zircon_runtime --lib execution_record_tracks_compute_dispatch_metadata --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib headless_wgpu_server_falls_back_async_compute_passes_to_graphics --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
@@ -208,7 +225,7 @@ tests:
   - cargo check -p zircon_runtime --profile profiling --features profiling --locked
   - cargo test -p zircon_runtime --lib core::runtime::tests:: --locked --jobs 1 --target-dir D:\cargo-targets\zircon-core-runtime-registry-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-menu-normalization-0605 --message-format short --color never (2026-06-05 devtools service snapshot registry-key name adaptation: passed with existing warnings)
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_scene_camera_ordering_metadata
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_scene_camera_ordering_metadata
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_surface_offscreen_submit_and_capture_survive_unbind_noop
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_headless_size_controls_offscreen_capture_size
 doc_type: module-detail
@@ -236,6 +253,38 @@ Zircon mirrors the ownership split: `CoreRuntime` records diagnostic measurement
 - `diagnostic_log::format_diagnostic_store_snapshot(...)` and `write_diagnostic_store_snapshot(...)` turn store snapshots into process-log lines for dev-profile diagnostics.
 
 The diagnostics store is not a global singleton. This keeps tests, runtime preview sessions, editor-host runtimes, and future export hosts isolated from each other.
+
+## Runtime 15 M3 core runtime devtools lock poison recovery
+
+状态：`runtime_15_core_runtime_devtools_lock_poison_recovery_static_passed_cargo_deferred`。
+
+`core/runtime/diagnostics/devtools.rs` remains a read-only DTO projection over runtime-owned registries. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to that projection: `collect_module_snapshots`, `collect_service_snapshots`, and `collect_scene_hook_snapshots` now use private `lock_poison_recovered(...)` before reading modules, services, and scene hooks. The devtools DTO shape, diagnostics store, service registry ABI, plugin catalog projection, and runtime lifecycle semantics are unchanged.
+
+`devtools_snapshot_recovers_poisoned_runtime_registry_locks` deliberately poisons the modules, services, and scene hook registry locks, then verifies `collect_runtime_devtools_snapshot(...)` still returns a snapshot instead of panicking. `structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_snapshot` keeps `core/runtime/diagnostics/devtools.rs`, this document, Runtime 15 status rows, and the plan mirrors synchronized.
+
+## Runtime 15 M3 core runtime profiling lock poison recovery
+
+状态：`runtime_15_core_runtime_profiling_lock_poison_recovery_static_passed_cargo_deferred`。
+
+`core/runtime/diagnostics/profiling/mod.rs` owns the global CPU timeline recorder facade used by runtime and editor hosts. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to that facade: `start_capture`, `stop_capture`, `reset_capture`, `snapshot`, and `with_recorder(...)` now use private `lock_recorder()` before touching the `ProfileRecorder`. The profile snapshot DTO, export report format, feature-gate behavior, and Tracy/Chrome sinks are unchanged.
+
+`profile_recorder_accessors_recover_poisoned_global_lock` deliberately poisons the global recorder mutex, then verifies snapshot/reset paths still recover. `structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder` keeps `core/runtime/diagnostics/profiling/mod.rs`, this document, Runtime 15 status rows, and the plan mirrors synchronized.
+
+## Runtime 15 M3 core handle diagnostics lock poison recovery
+
+状态：`runtime_15_core_handle_diagnostics_lock_poison_recovery_static_passed_cargo_deferred`。
+
+`core/runtime/handle/diagnostics.rs` owns the `CoreHandle` accessors that clone the diagnostics store, snapshot it, and record runtime measurements. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to this access surface: `diagnostic_store`, `diagnostic_store_snapshot`, and `record_diagnostic(...)` now use private `lock_diagnostics()` before touching `DiagnosticStore`. The public `CoreHandle` API, `DiagnosticStore` data model, diagnostic path format, and runtime lifecycle semantics are unchanged.
+
+`core_handle_diagnostic_accessors_recover_poisoned_store_lock` deliberately poisons the diagnostics store lock, then verifies `record_diagnostic(...)`, `diagnostic_store()`, and `diagnostic_store_snapshot()` still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store` keeps `core/runtime/handle/diagnostics.rs`, this document, Runtime 15 status rows, and the plan mirrors synchronized.
+
+## Runtime 15 M3 core handle time lock poison recovery
+
+状态：`runtime_15_core_handle_time_lock_poison_recovery_static_passed_cargo_deferred`。
+
+`core/runtime/handle/time.rs` owns CoreHandle's runtime clock access, frame tick, and Bevy-style time diagnostic rows. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to that access surface: `time_clocks()`, `advance_time_by(...)`, `tick_time(...)`, and virtual/fixed time configuration now use private `lock_time()` and `lock_frame_clock()` helpers. `record_time_diagnostics(...)` writes through `CoreHandle::record_diagnostic(...)`, so the diagnostics store lock remains centralized in `core/runtime/handle/diagnostics.rs`.
+
+`core_handle_time_accessors_recover_poisoned_runtime_clocks` deliberately poisons the runtime clocks, frame clock, and diagnostics store locks, then verifies time configuration, manual advance, frame tick, and time diagnostic recording still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks` keeps `core/runtime/handle/time.rs`, this document, Runtime 15 status rows, and the plan mirrors synchronized.
 
 ## Animation Scene Diagnostics
 
@@ -309,6 +358,8 @@ Each nonzero time advance records:
 `zircon_runtime/src/tests/time.rs` verifies that advancing runtime time records the expected frame time, FPS, frame count, and fixed-step measurements, and that `collect_runtime_diagnostics` includes those runtime-owned values.
 
 `zircon_runtime/src/diagnostic_log/diagnostics.rs` verifies stable formatting for current, smoothed, min, and max diagnostic values. `zircon_runtime/src/tests/prelude.rs` continues to verify the public diagnostic store, snapshot, and diagnostic-log formatting helpers through the stable runtime prelude.
+
+2026-06-24 Render framework bridge tests owner split keeps diagnostics-facing bridge coverage folder-backed. `graphics/tests/render_framework_bridge.rs` now owns shared fixtures only, while `stats.rs`, `history.rs`, `pipeline_profiles.rs`, `neural_compute.rs`, and `advanced_providers.rs` own renderer stats, frame-history, capability/profile, neural compute, and advanced-provider coverage. `runtime_15_render_framework_bridge_tests_are_child_owners` locks the layout and status anchor `render_framework_bridge_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; current evidence is scoped rustfmt/static/line-count/docs-anchor/stale-path/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred by milestone implementation cadence.
 
 2026-06-12 runtime 02 M2.2 owner migration evidence:
 

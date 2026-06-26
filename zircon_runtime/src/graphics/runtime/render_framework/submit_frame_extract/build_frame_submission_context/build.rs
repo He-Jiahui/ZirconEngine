@@ -27,25 +27,25 @@ use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::target_resolution::resolve_camera_target_descriptor;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    build_frame_submission_context_from_source(server, viewport, extract, ui_extract)
+    build_frame_submission_context_from_source(framework, viewport, extract, ui_extract)
 }
 
 fn build_frame_submission_context_from_source(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract_source: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
     let mut viewport_state =
-        resolve_viewport_record_state(server, viewport, extract_source.as_ref())?;
+        resolve_viewport_record_state(framework, viewport, extract_source.as_ref())?;
     let primary_target_size = viewport_state.size();
     let asset_manager = {
-        let state = server.lock_state();
+        let state = framework.lock_state();
         state.renderer.asset_manager_for_runtime_extract()
     };
     let resolved_camera_target = resolve_camera_target_descriptor(
@@ -77,7 +77,7 @@ fn build_frame_submission_context_from_source(
         resolved_camera_target.texture_format(),
     );
     let compiled_pipeline = compile_submission_pipeline(
-        server,
+        framework,
         &viewport_state,
         sized_extract,
         compile_camera_target,
@@ -129,7 +129,7 @@ fn build_frame_submission_context_from_source(
     let authored_virtual_geometry_present = authored_virtual_geometry_extract.is_some();
     let automatic_virtual_geometry_output =
         if virtual_geometry_enabled && !authored_virtual_geometry_present {
-            build_automatic_virtual_geometry_extract(server, sized_extract)
+            build_automatic_virtual_geometry_extract(framework, sized_extract)
         } else {
             None
         };
@@ -174,14 +174,14 @@ fn build_frame_submission_context_from_source(
             effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
-            Some(&server.compute_task_pool),
+            Some(&framework.compute_task_pool),
         );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
         effective_extract,
         compiled_feature_names(&compiled_pipeline),
     );
     let history_invalidation_reason = frame_history_invalidation_reason(
-        server,
+        framework,
         viewport,
         submission_size,
         render_size,
@@ -231,7 +231,7 @@ fn build_frame_submission_context_from_source(
             upscale_required,
         );
     let compiled_pipeline = compile_submission_pipeline_with_options(
-        server,
+        framework,
         &viewport_state,
         effective_extract,
         compile_camera_target,
@@ -354,7 +354,7 @@ fn apply_effective_post_process_settings(
 }
 
 fn frame_history_invalidation_reason(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     target_size: crate::core::math::UVec2,
     render_size: crate::core::math::UVec2,
@@ -363,7 +363,7 @@ fn frame_history_invalidation_reason(
     camera_history_key: &super::super::super::viewport_record::ViewportCameraHistoryKey,
     history_validation_key: &FrameHistoryValidationKey,
 ) -> Option<FrameHistoryInvalidationReason> {
-    let state = server.lock_state();
+    let state = framework.lock_state();
     let Some(history) = state
         .viewports
         .get(&viewport)
@@ -392,11 +392,11 @@ fn apply_virtual_geometry_debug_override(
 }
 
 fn build_automatic_virtual_geometry_extract(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     extract: &RenderFrameExtract,
 ) -> Option<VirtualGeometryRuntimeExtractOutput> {
     let (registration, asset_manager) = {
-        let state = server.lock_state();
+        let state = framework.lock_state();
         (
             state.virtual_geometry_runtime_provider.clone()?,
             state.renderer.asset_manager_for_runtime_extract(),

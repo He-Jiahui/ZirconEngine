@@ -3,9 +3,9 @@ use crate::core::framework::render::{RenderFrameworkError, RenderVirtualGeometry
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_debug_snapshot(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
 ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
-    Ok(server
+    Ok(framework
         .state
         .lock()
         .unwrap()

@@ -4,6 +4,7 @@ use super::identity::{is_table_selected, is_table_tail};
 use super::style::{
     table_row_background, table_row_border, table_row_border_width, table_row_style,
 };
+use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 const TABLE_ROW_RADIUS: f32 = 3.0;
 
@@ -25,6 +26,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         TABLE_ROW_RADIUS,
         opacity,
     ));
+    if is_selected_row(node) {
+        commands.push(HostPaintCommand::quad(
+            selection_indicator_rect(rect),
+            Some(clip.clone()),
+            order + 2,
+            Some(PALETTE.accent),
+            None,
+            0.0,
+            0.0,
+            opacity,
+        ));
+    }
 
     commands.push(HostPaintCommand::quad(
         FrameRect {
@@ -56,5 +69,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_p
         }
     } else {
         rect.clone()
+    }
+}
+
+fn is_selected_row(node: &TemplatePaneNodeData) -> bool {
+    node.selected || node.checked || is_table_selected(node)
+}
+
+fn selection_indicator_rect(rect: &FrameRect) -> FrameRect {
+    FrameRect {
+        x: rect.x,
+        y: rect.y,
+        width: METRICS.selection_indicator_width.min(rect.width).max(1.0),
+        height: rect.height,
     }
 }

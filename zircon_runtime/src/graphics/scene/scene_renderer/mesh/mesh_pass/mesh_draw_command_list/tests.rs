@@ -280,15 +280,30 @@ fn mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind() {
     let velocity = buffers.velocity().commands()[0].pipeline_variant_id;
     let reactive = buffers.taa_reactive_mask().commands()[0].pipeline_variant_id;
 
-    assert_eq!(depth, MeshPipelineVariantId::new(0));
-    assert_eq!(shadow, MeshPipelineVariantId::new(0));
+    assert_ne!(depth, MeshPipelineVariantId::new(0));
+    assert_ne!(shadow, MeshPipelineVariantId::new(0));
     assert_ne!(opaque, MeshPipelineVariantId::new(0));
     assert_ne!(velocity, MeshPipelineVariantId::new(0));
     assert_ne!(reactive, MeshPipelineVariantId::new(0));
+    assert_ne!(depth, shadow);
+    assert_ne!(depth, opaque);
+    assert_ne!(depth, velocity);
+    assert_ne!(depth, reactive);
+    assert_ne!(opaque, shadow);
     assert_ne!(opaque, velocity);
     assert_ne!(opaque, reactive);
+    assert_ne!(shadow, velocity);
+    assert_ne!(shadow, reactive);
     assert_ne!(velocity, reactive);
-    assert_eq!(variants.len(), 3);
+    assert_eq!(variants.len(), 5);
+    assert_eq!(
+        variants.key_for_variant(depth).map(|key| key.kind()),
+        Some(MeshPassPipelineKind::DepthPrepass)
+    );
+    assert_eq!(
+        variants.key_for_variant(shadow).map(|key| key.kind()),
+        Some(MeshPassPipelineKind::ShadowDepth)
+    );
 }
 
 #[test]

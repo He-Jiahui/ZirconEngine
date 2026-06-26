@@ -94,7 +94,8 @@ fn component_storage_public_hot_paths_use_direct_storage_branches() {
 #[test]
 fn sparse_component_storage_entry_access_uses_direct_branches() {
     let sparse_source = include_str!("../ecs/storage/component_storage/sparse.rs");
-    let utils_source = include_str!("../ecs/storage/component_storage/utils.rs");
+    let component_results_source =
+        include_str!("../ecs/storage/component_storage/component_results.rs");
     let sparse_storage = sparse_source;
 
     assert!(
@@ -108,8 +109,8 @@ fn sparse_component_storage_entry_access_uses_direct_branches() {
         "sparse component storage must avoid Option adapter closures on entry access"
     );
     assert!(
-        utils_source.contains("fn downcast_component<T>")
-            && utils_source.contains("match value.downcast::<T>()"),
+        component_results_source.contains("fn downcast_component<T>")
+            && component_results_source.contains("match value.downcast::<T>()"),
         "component downcast must use a direct result branch"
     );
 }

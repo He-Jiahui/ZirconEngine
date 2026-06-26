@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+use std::sync::MutexGuard;
+
 use crate::plugin::native::{
     native_bridge_method_descriptors_from_manifest, NativeBridgeMethodBinding,
     NativeHostBridgeCallScope,
@@ -54,10 +57,8 @@ impl NativePluginLiveHost {
         &self,
         plugin_id: impl AsRef<str>,
     ) -> Result<bool, String> {
-        self.runtime_bridge_method_bindings
-            .lock()
-            .map_err(|_| "native live host bridge method bindings lock poisoned".to_string())
-            .map(|mut bindings| bindings.remove(plugin_id.as_ref()).is_some())
+        let mut bindings = self.lock_runtime_bridge_method_bindings();
+        Ok(bindings.remove(plugin_id.as_ref()).is_some())
     }
 
     pub fn runtime_bridge_call_scope_from_loaded_manifest(
@@ -136,9 +137,7 @@ impl NativePluginLiveHost {
         &self,
         plugin_id: &str,
     ) -> Result<Vec<NativeBridgeMethodBinding>, String> {
-        self.runtime_bridge_method_bindings
-            .lock()
-            .map_err(|_| "native live host bridge method bindings lock poisoned".to_string())?
+        self.lock_runtime_bridge_method_bindings()
             .get(plugin_id)
             .cloned()
             .ok_or_else(|| {
@@ -151,10 +150,7 @@ impl NativePluginLiveHost {
         plugin_id: &str,
         bindings: Option<Vec<NativeBridgeMethodBinding>>,
     ) -> Result<(), String> {
-        let mut installed_bindings = self
-            .runtime_bridge_method_bindings
-            .lock()
-            .map_err(|_| "native live host bridge method bindings lock poisoned".to_string())?;
+        let mut installed_bindings = self.lock_runtime_bridge_method_bindings();
         match bindings {
             Some(bindings) if !bindings.is_empty() => {
                 installed_bindings.insert(plugin_id.to_string(), bindings);
@@ -164,6 +160,14 @@ impl NativePluginLiveHost {
             }
         }
         Ok(())
+    }
+
+    fn lock_runtime_bridge_method_bindings(
+        &self,
+    ) -> MutexGuard<'_, BTreeMap<String, Vec<NativeBridgeMethodBinding>>> {
+        self.runtime_bridge_method_bindings
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(super) fn runtime_bridge_method_slot(
@@ -252,4 +256,59 @@ fn runtime_package_manifest(
                 .as_ref()
                 .and_then(|descriptor| descriptor.package_manifest.as_ref())
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::plugin::native::{NativeBridgeCall, NativeBridgeMethodFn};
+    use zircon_runtime_interface::{ZrByteSlice, ZrStatus, ZrStatusCode};
+
+    #[test]
+    fn native_live_host_bridge_method_bindings_recover_poisoned_lock() {
+        let host = NativePluginLiveHost::default();
+        let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut bindings = host.runtime_bridge_method_bindings.lock().unwrap();
+            bindings.insert("physics".to_string(), vec![bridge_binding("sample_count")]);
+            panic!("poison native live-host bridge method bindings");
+        }));
+        assert!(poison.is_err());
+
+        let installed = host
+            .installed_runtime_bridge_method_bindings("physics")
+            .expect("poisoned binding lock should recover for reads");
+        assert_eq!(installed.len(), 1);
+
+        assert!(host
+            .clear_runtime_bridge_method_bindings("physics")
+            .expect("poisoned binding lock should recover for clear"));
+        assert!(matches!(
+            host.installed_runtime_bridge_method_bindings("physics"),
+            Err(message) if message == "runtime plugin physics has no installed native bridge method bindings"
+        ));
+
+        host.replace_runtime_bridge_method_bindings(
+            "physics",
+            Some(vec![bridge_binding("resample_count")]),
+        )
+        .expect("poisoned binding lock should recover for replace");
+        assert_eq!(
+            host.installed_runtime_bridge_method_bindings("physics")
+                .expect("replaced binding should be readable after poison")
+                .len(),
+            1
+        );
+    }
+
+    fn bridge_binding(method_name: &str) -> NativeBridgeMethodBinding {
+        NativeBridgeMethodBinding::new(
+            "test.native.live_host.bridge.v1",
+            method_name,
+            NativeBridgeMethodFn::from_rust(poisoned_bridge_method),
+        )
+    }
+
+    fn poisoned_bridge_method(_call: NativeBridgeCall) -> ZrStatus {
+        ZrStatus::new(ZrStatusCode::Ok, ZrByteSlice::empty())
+    }
 }

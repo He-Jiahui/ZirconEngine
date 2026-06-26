@@ -344,5 +344,5 @@ fn rebuild_ui_asset_session_from_source(
 ) -> Result<UiAssetEditorSession, EditorError> {
     let preview_size = preview_size_for_preset(route.preview_preset);
     build_ui_asset_editor_session_from_source(route, source, preview_size)
-        .map_err(EditorError::UiAsset)
+        .map_err(|error| EditorError::UiAsset(error.to_string()))
 }

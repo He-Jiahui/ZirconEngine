@@ -1,4 +1,4 @@
-use super::{SceneResult, World};
+use super::{SceneError, SceneResult, World};
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -71,7 +71,7 @@ impl World {
         rigid_body: Option<RigidBodyComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update rigid body for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update rigid body for", entity));
         }
         let changed = match rigid_body {
             Some(rigid_body) => {
@@ -93,7 +93,7 @@ impl World {
         collider: Option<ColliderComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update collider for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update collider for", entity));
         }
         let changed = match collider {
             Some(collider) => {
@@ -115,14 +115,14 @@ impl World {
         joint: Option<JointComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update joint for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update joint for", entity));
         }
         let joint_connects_to_self = match &joint {
             Some(joint) => joint.connected_entity == Some(entity),
             None => false,
         };
         if joint_connects_to_self {
-            return Err(format!("joint on node {entity} cannot connect to itself").into());
+            return Err(SceneError::JointConnectsToSelf { entity });
         }
         let changed = match joint {
             Some(joint) => {
@@ -144,7 +144,7 @@ impl World {
         point_light: Option<PointLight>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update point light for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update point light for", entity));
         }
         let changed = match point_light {
             Some(point_light) => {
@@ -166,7 +166,10 @@ impl World {
         ambient_light: Option<AmbientLight>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update ambient light for missing node {entity}").into());
+            return Err(SceneError::missing_entity(
+                "update ambient light for",
+                entity,
+            ));
         }
         let changed = match ambient_light {
             Some(ambient_light) => {
@@ -188,7 +191,7 @@ impl World {
         rect_light: Option<RectLight>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update rect light for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update rect light for", entity));
         }
         let changed = match rect_light {
             Some(rect_light) => {
@@ -210,7 +213,7 @@ impl World {
         spot_light: Option<SpotLight>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update spot light for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update spot light for", entity));
         }
         let changed = match spot_light {
             Some(spot_light) => {
@@ -232,9 +235,10 @@ impl World {
         animation_skeleton: Option<AnimationSkeletonComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(
-                format!("cannot update animation skeleton for missing node {entity}").into(),
-            );
+            return Err(SceneError::missing_entity(
+                "update animation skeleton for",
+                entity,
+            ));
         }
         let changed = match animation_skeleton {
             Some(animation_skeleton) => {
@@ -256,7 +260,10 @@ impl World {
         animation_player: Option<AnimationPlayerComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update animation player for missing node {entity}").into());
+            return Err(SceneError::missing_entity(
+                "update animation player for",
+                entity,
+            ));
         }
         let changed = match animation_player {
             Some(animation_player) => {
@@ -278,10 +285,10 @@ impl World {
         animation_sequence_player: Option<AnimationSequencePlayerComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update animation sequence player for missing node {entity}"
-            )
-            .into());
+            return Err(SceneError::missing_entity(
+                "update animation sequence player for",
+                entity,
+            ));
         }
         let changed = match animation_sequence_player {
             Some(animation_sequence_player) => {
@@ -306,9 +313,10 @@ impl World {
         animation_graph_player: Option<AnimationGraphPlayerComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(
-                format!("cannot update animation graph player for missing node {entity}").into(),
-            );
+            return Err(SceneError::missing_entity(
+                "update animation graph player for",
+                entity,
+            ));
         }
         let changed = match animation_graph_player {
             Some(animation_graph_player) => {
@@ -332,10 +340,10 @@ impl World {
         animation_state_machine_player: Option<AnimationStateMachinePlayerComponent>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!(
-                "cannot update animation state machine player for missing node {entity}"
-            )
-            .into());
+            return Err(SceneError::missing_entity(
+                "update animation state machine player for",
+                entity,
+            ));
         }
         let changed = match animation_state_machine_player {
             Some(animation_state_machine_player) => {

@@ -1,3 +1,4 @@
+mod allocation;
 mod commands;
 mod geometry;
 mod metrics;

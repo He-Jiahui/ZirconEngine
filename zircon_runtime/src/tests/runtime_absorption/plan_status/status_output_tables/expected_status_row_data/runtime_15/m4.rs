@@ -38,6 +38,33 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M4 RHI device handle owner split",
+        &[
+            "runtime_15_rhi_device_handles_owner_split_static_passed_cargo_deferred",
+            "rhi/device.rs",
+            "rhi/device/handles.rs",
+            "runtime_15_rhi_device_handles_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 dynamic API session profile owner split",
+        &[
+            "runtime_15_dynamic_api_session_profile_owner_split_static_passed_cargo_deferred",
+            "dynamic_api/session.rs",
+            "dynamic_api/session/profile.rs",
+            "runtime_15_dynamic_api_session_profile_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 dynamic API session registry owner split",
+        &[
+            "runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred",
+            "dynamic_api/session.rs",
+            "dynamic_api/session/registry.rs",
+            "runtime_15_dynamic_api_session_registry_is_child_owner",
+        ],
+    ),
+    (
         "Runtime 15 M4 material asset value/readiness helper owner split",
         &[
             "runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result",
@@ -47,12 +74,96 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M4 material asset management record owner split",
+        &[
+            "runtime_15_material_asset_management_record_owner_split_static_passed_cargo_deferred",
+            "asset/assets/material/material_asset.rs",
+            "asset/assets/material/material_asset/management.rs",
+            "runtime_15_material_asset_management_records_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 asset artifact cache UI document owner split",
+        &[
+            "runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred",
+            "asset/artifact/cache_payload.rs",
+            "asset/artifact/cache_payload/ui.rs",
+            "runtime_15_asset_artifact_cache_ui_documents_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 mesh asset management record owner split",
+        &[
+            "runtime_15_mesh_asset_management_record_owner_split_static_passed_cargo_deferred",
+            "asset/assets/mesh/mesh_asset.rs",
+            "asset/assets/mesh/mesh_asset/management.rs",
+            "runtime_15_mesh_asset_management_records_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 asset project scan/import source collection owner split",
+        &[
+            "runtime_15_asset_project_scan_import_sources_owner_split_static_passed_cargo_deferred",
+            "asset/project/manager/scan_and_import.rs",
+            "asset/project/manager/scan_and_import/sources.rs",
+            "runtime_15_asset_project_scan_import_sources_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 glTF labeled material subasset owner split",
+        &[
+            "runtime_15_gltf_labeled_material_subasset_owner_split_static_passed_cargo_deferred",
+            "asset/importer/ingest/gltf_labeled_subassets.rs",
+            "asset/importer/ingest/gltf_labeled_subassets/material.rs",
+            "runtime_15_gltf_labeled_material_subassets_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 texture descriptor settings parser owner split",
+        &[
+            "runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred",
+            "asset/assets/texture/descriptor.rs",
+            "asset/assets/texture/descriptor/settings.rs",
+            "runtime_15_texture_descriptor_settings_parser_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 F8 texture descriptor typed errors",
+        &[
+            "runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred",
+            "asset/assets/texture/descriptor.rs",
+            "asset/assets/texture/descriptor/settings.rs",
+            "asset/assets/texture/texture_asset.rs",
+            "TextureDescriptorError",
+            "review_f8_texture_import_settings_use_fallible_apply_not_with",
+        ],
+    ),
+    (
+        "Runtime 15 M4 scene world render light collection owner split",
+        &[
+            "runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred",
+            "scene/world/render.rs",
+            "scene/world/render/lights.rs",
+            "runtime_15_scene_world_render_light_collectors_are_child_owner",
+        ],
+    ),
+    (
         "Runtime 15 M4 core runtime render-stats graph execution-resources owner split",
         &[
             "runtime_15_render_stats_graph_execution_resources_owner_split_static_passed_cargo_timeout_no_result",
             "core/runtime/diagnostics/render_stats_store/graph.rs",
             "core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs",
             "runtime_15_render_stats_graph_execution_resources_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 render-stats product diagnostics test owner split",
+        &[
+            "runtime_15_render_stats_product_diagnostics_tests_owner_split_static_passed_cargo_deferred_active_editor_lane",
+            "core/runtime/diagnostics/render_stats_store/product.rs",
+            "core/runtime/diagnostics/render_stats_store/product/tests.rs",
+            "core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs",
+            "runtime_15_render_stats_product_diagnostics_tests_are_child_owners",
         ],
     ),
     (
@@ -110,6 +221,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M4 UI dispatch input manager test owner split",
+        &[
+            "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
+            "ui/dispatch/input_manager/manager.rs",
+            "ui/dispatch/input_manager/manager/tests.rs",
+            "runtime_15_ui_dispatch_input_manager_tests_are_child_owner",
+        ],
+    ),
+    (
         "Runtime 15 M4 UI template MUI X DataGrid class owner split",
         &[
             "runtime_15_ui_template_mui_x_data_grid_class_owner_split_static_passed_cargo_deferred",
@@ -146,6 +266,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M4 UI v2 style token-resolution owner split",
+        &[
+            "runtime_15_ui_v2_style_token_resolution_owner_split_static_passed_cargo_deferred",
+            "ui/v2/style.rs",
+            "ui/v2/style/tokens.rs",
+            "runtime_15_ui_v2_style_token_resolution_is_child_owner",
+        ],
+    ),
+    (
         "Runtime 15 M4 UI accessibility extract state owner split",
         &[
             "runtime_15_ui_accessibility_extract_state_owner_split_static_passed_cargo_deferred",
@@ -159,7 +288,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result",
             "ui/component/catalog/editor_showcase.rs",
-            "ui/component/catalog/editor_showcase/helpers.rs",
+            "ui/component/catalog/editor_showcase/descriptor_builders.rs",
             "runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner",
         ],
     ),
@@ -227,6 +356,25 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "ui/surface/surface/default_interactions/table/mod.rs",
             "ui/surface/surface/default_interactions/table/columns.rs",
             "runtime_15_ui_surface_table_column_helpers_are_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M4 scene component lighting/post-process owner split",
+        &[
+            "runtime_15_scene_component_light_postprocess_owner_split_static_passed_cargo_deferred",
+            "scene/components/scene.rs",
+            "scene/components/scene/lighting.rs",
+            "scene/components/scene/post_process.rs",
+            "runtime_15_scene_components_light_postprocess_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M4 native host API adapter tests owner split",
+        &[
+            "runtime_15_native_host_api_adapter_tests_owner_split_static_passed_cargo_deferred",
+            "plugin/native_plugin_loader/host_api_adapter.rs",
+            "plugin/native_plugin_loader/host_api_adapter/tests.rs",
+            "runtime_15_native_host_api_adapter_tests_are_child_owner",
         ],
     ),
 ];

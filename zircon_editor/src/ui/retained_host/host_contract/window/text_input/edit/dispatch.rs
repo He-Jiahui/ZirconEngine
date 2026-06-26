@@ -1,4 +1,5 @@
 use super::super::super::UiHostWindow;
+use crate::ui::retained_host::asset_control_ids::asset_dispatch_source;
 use crate::ui::retained_host::host_contract::data::HostTextInputFocusData;
 use crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
@@ -36,11 +37,4 @@ pub(super) fn dispatch_text_focus_value(
         _ => return NativePointerDispatchResult::idle(),
     }
     text_input_focus_redraw(&focus)
-}
-
-fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
-    if dispatch_kind == "asset" {
-        return Some("activity");
-    }
-    dispatch_kind.strip_prefix("asset:")
 }

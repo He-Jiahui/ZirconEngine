@@ -6,8 +6,8 @@ fn mui_x_tree_view_utility_classes_match_retained_targets() {
     let layout = UiAssetLoader::load_toml_str(MUI_X_LAYOUT_TOML).unwrap();
     let mut compiler = UiDocumentCompiler::default();
     compiler
-        .register_asset(style)
-        .expect("style asset registration succeeds");
+        .register_style_import("asset://ui/tests/mui_web_mui_x_style.ui", style)
+        .unwrap();
     let compiled = compiler.compile(&layout).unwrap();
     let root = &compiled.template_instance().root;
 

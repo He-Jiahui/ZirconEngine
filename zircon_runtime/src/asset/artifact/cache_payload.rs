@@ -10,8 +10,7 @@ use crate::asset::{
     PhysicsMaterialAsset, PrefabAsset, ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset,
     ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
     ShaderSourceLanguage, ShaderTextureSlotAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
-    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
-    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
 };
 use crate::core::framework::physics::PhysicsMaterialMetadata;
 use crate::core::framework::render::{
@@ -23,6 +22,7 @@ mod json_value;
 mod mesh;
 mod scene;
 mod toml_value;
+mod ui;
 
 use json_value::ArtifactCacheJsonValue;
 use mesh::ArtifactCacheMeshAsset;
@@ -31,6 +31,7 @@ use toml_value::{
     cache_table_like_to_toml, cache_table_to_toml, toml_table_like_to_cache, toml_table_to_cache,
     ArtifactCacheTomlTable, ArtifactCacheTomlValue,
 };
+use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};
 
 /// Bincode cache wire type. It keeps authoring-friendly serde shapes such as
 /// TOML values and flattened fields out of runtime library artifacts.
@@ -159,96 +160,6 @@ impl ArtifactCacheAsset {
                 ImportedAsset::UiV2Component(asset.into_component_asset()?)
             }
             Self::UiV2Style(asset) => ImportedAsset::UiV2Style(asset.into_style_asset()?),
-        })
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) struct ArtifactCacheUiAssetDocument {
-    document_toml: String,
-}
-
-impl ArtifactCacheUiAssetDocument {
-    fn from_document(
-        document: &zircon_runtime_interface::ui::template::UiAssetDocument,
-    ) -> Result<Self, AssetImportError> {
-        toml::to_string(document)
-            .map(|document_toml| Self { document_toml })
-            .map_err(|source| AssetImportError::TomlSerialize {
-                context: "serialize ui asset document cache",
-                source,
-            })
-    }
-
-    fn into_layout_asset(self) -> Result<UiLayoutAsset, AssetImportError> {
-        UiLayoutAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
-                context: "deserialize ui layout document cache",
-                source,
-            }
-        })
-    }
-
-    fn into_widget_asset(self) -> Result<UiWidgetAsset, AssetImportError> {
-        UiWidgetAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
-                context: "deserialize ui widget document cache",
-                source,
-            }
-        })
-    }
-
-    fn into_style_asset(self) -> Result<UiStyleAsset, AssetImportError> {
-        UiStyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiDocument {
-                context: "deserialize ui style document cache",
-                source,
-            }
-        })
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) struct ArtifactCacheUiV2AssetDocument {
-    document_toml: String,
-}
-
-impl ArtifactCacheUiV2AssetDocument {
-    fn from_document(
-        document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
-    ) -> Result<Self, AssetImportError> {
-        toml::to_string(document)
-            .map(|document_toml| Self { document_toml })
-            .map_err(|source| AssetImportError::TomlSerialize {
-                context: "serialize ui v2 asset document cache",
-                source,
-            })
-    }
-
-    fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetImportError> {
-        UiV2ViewAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
-                context: "deserialize ui v2 view document cache",
-                source,
-            }
-        })
-    }
-
-    fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetImportError> {
-        UiV2ComponentAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
-                context: "deserialize ui v2 component document cache",
-                source,
-            }
-        })
-    }
-
-    fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetImportError> {
-        UiV2StyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
-            AssetImportError::UiV2Document {
-                context: "deserialize ui v2 style document cache",
-                source,
-            }
         })
     }
 }

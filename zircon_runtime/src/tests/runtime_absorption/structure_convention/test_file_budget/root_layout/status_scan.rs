@@ -14,14 +14,28 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
-    );
+    let status_rows = [
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
+    ]
+    .into_iter()
+    .map(read_runtime_src)
+    .collect::<Vec<_>>()
+    .join("\n");
 
     assert_contains_all(
         "root-layout guard parent mounts status scan child",
         &root_layout,
         &[
+            "#[path = \"root_layout/folder_backed.rs\"]",
+            "mod folder_backed;",
+            "#[path = \"root_layout/module_layout.rs\"]",
+            "mod module_layout;",
             "#[path = \"root_layout/status_scan.rs\"]",
             "mod status_scan;",
         ],
@@ -41,6 +55,12 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "root-layout status scan child owns status anchors",
         &status_scan,
         &[
+            "Runtime 15 M3 test file budget root-layout folder-backed guard child split",
+            "runtime_15_test_file_budget_root_layout_folder_backed_guard_child_split_static_passed_cargo_timeout_no_result",
+            "runtime_15_test_file_budget_root_layout_folder_backed_guard_is_child_owner",
+            "Runtime 15 M3 test file budget root-layout folder-backed support child-owner split",
+            "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owner_split_static_passed_cargo_deferred",
+            "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_are_folder_backed",
             "Runtime 15 M3 test file budget guard folder split",
             "runtime_15_test_file_budget_guard_folder_split_static_passed_cargo_lock_blocked",
             "Runtime 15 M3 test file budget root-layout child split",
@@ -53,6 +73,11 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
 
     for path in [
         "tests/runtime_absorption/structure_convention/test_file_budget/mod.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/core_framework.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/module_layout.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/picking.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/ui_v2_asset.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_tests.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/pack.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/facade.rs",
@@ -61,8 +86,13 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_gltf_importer.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_gltf_primitive_fixtures.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_importer.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/asset_artifact_store.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/asset_mesh.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/asset_pipeline_manager.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/asset_project_example_vampire.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_project_flow_sample.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/asset_scene.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/asset_ui.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/dynamic_scene_absorption.rs",
@@ -75,6 +105,11 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_reflect_foundation.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/render_products.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/sources.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/module_layout.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/status_scan.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/ui_children.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/rhi_command_list.rs",
@@ -82,6 +117,7 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_architecture.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_asset.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/ui_asset_mui_web_form_style.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_asset_mui_web_mui_x_style.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_asset_mui_web_style.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_boundary.rs",
@@ -111,6 +147,13 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/module_layout.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/sources.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_maps.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_group_maps.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
@@ -176,6 +219,23 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
                 "runtime_15_test_file_budget_root_layout_status_scan_child_split_static_passed_cargo_deferred",
                 "structure_convention/test_file_budget/root_layout/status_scan.rs",
                 "runtime_15_test_file_budget_root_layout_status_scan_is_child_owner",
+                "Runtime 15 M3 test file budget root-layout folder-backed guard child split",
+                "runtime_15_test_file_budget_root_layout_folder_backed_guard_child_split_static_passed_cargo_timeout_no_result",
+                "structure_convention/test_file_budget/root_layout/folder_backed.rs",
+                "structure_convention/test_file_budget/root_layout/module_layout.rs",
+                "runtime_15_test_file_budget_root_layout_folder_backed_guard_is_child_owner",
+                "Runtime 15 M3 test file budget root-layout folder-backed support child-owner split",
+                "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owner_split_static_passed_cargo_deferred",
+                "structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs",
+                "structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs",
+                "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_are_folder_backed",
+                "Runtime 15 M3 test file budget parent guard child-owner split",
+                "runtime_15_test_file_budget_parent_guard_child_owner_split_static_passed_cargo_deferred",
+                "structure_convention/test_file_budget/core_framework.rs",
+                "structure_convention/test_file_budget/ui_v2_asset.rs",
+                "structure_convention/test_file_budget/ui_shared_core.rs",
+                "structure_convention/test_file_budget/module_layout.rs",
+                "runtime_15_test_file_budget_parent_guard_child_owner_split",
             ],
         );
     }

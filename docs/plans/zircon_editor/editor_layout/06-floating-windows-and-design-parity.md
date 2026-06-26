@@ -5,11 +5,13 @@ related_code:
   - zircon_editor/tests/integration_contracts.rs
   - zircon_editor/tests/integration_contracts/floating_window_design_parity.rs
   - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
   - zircon_editor/src/ui/layouts/windows
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback
-  - zircon_editor/assets/ui/editor/components/workbench/floating/command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui
 design_references:
   - docs/ui-and-layout/editor-workbench-designs/command-palette-window-spec.png
   - docs/ui-and-layout/editor-workbench-designs/preferences-window-workbench.png
@@ -17,7 +19,7 @@ design_references:
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
   - docs/plans/zircon_editor/editor_layout/05-page-layout-templates.md
-status: implemented-focused-passed-visual-host-pending
+status: implemented-visual-passed
 ---
 # 06 浮动窗口与设计对齐验收
 
@@ -73,8 +75,8 @@ pub struct FloatingWindow {
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增 | `zircon_editor/assets/ui/editor/components/workbench/floating/command_palette.zui` | 命令面板 |
-| 新增 | `zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui` | 偏好窗 |
+| 新增 | `zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui` | 命令面板 |
+| 新增 | `zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui` | 偏好窗 |
 | 修改 | `docs/ui-and-layout/design-language-contract.md` | 追加设计对齐验收清单 |
 
 ## 6. 里程碑切片化
@@ -112,5 +114,8 @@ pub struct FloatingWindow {
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 06.S1 浮动窗口浮层规则 + 命令面板/偏好 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/floating_window.rs`、`zircon_editor/assets/ui/editor/components/workbench/floating/command_palette.zui` 与 `zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui`;命令面板、偏好和独立编辑器窗口声明复用 01 token 与 02 区域语义,设计对齐清单同步进 `docs/ui-and-layout/design-language-contract.md`。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 06.S2:运行设计对齐验收,补齐截图/像素/交互证据并收口 01-06。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-23 | 06.S1 浮动窗口浮层规则 + 命令面板/偏好 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/floating_window.rs`、`zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui` 与 `zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui`;命令面板、偏好和独立编辑器窗口声明复用 01 token 与 02 区域语义,设计对齐清单同步进 `docs/ui-and-layout/design-language-contract.md`。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 06.S2:运行设计对齐验收,补齐截图/像素/交互证据并收口 01-06。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
 | 2026-06-23 | 06.S2 设计对齐验收 + 收口 | implemented-focused-passed-visual-host-pending | `FloatingWindowDesignContract` 明确命令面板、偏好和独立编辑器的 layer、modal、placement、content layout 与 interaction mode;`floating_window_design_parity.rs` 直接解析真实 `command_palette.zui` / `preferences.zui` 资产,验证 tokenized flat chrome、无裸 hex/gradient/shadow/glow/blur、1px 低圆角边框、命令面板顶层键盘布局与偏好窗左导航/右内容结构。验证:`cargo check -p zircon_runtime --lib --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-runtime-state-reducer-0623 --message-format short --color never` 通过;`cargo test -p zircon_editor --test integration_contracts --features integration-contracts floating_window_design_parity --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-runtime-state-reducer-0623 --message-format short --color never -- --test-threads=1 --nocapture` 4/4 通过;scoped rustfmt/diff/尾随空白/生产债务扫描通过。 | 真实 retained-host 截图/像素比对仍待有稳定窗口 harness 后补;01.S2 历史 shell/module 资产裸色 hard cutover 与 03.S2 更宽 Cargo 复验债继续保留。 |
+| 2026-06-24 | 06.S2 retained-host visual evidence closeout | implemented-visual-passed | retained-host screenshot harness 已改为加载真实启动内建 Workbench 模板、host layout frames 与组件化 Workbench bridge;组件化模板只绘制 top/status chrome clip,body/dock/floating/menu/root overlay 由 host scene layers 绘制,避免整面覆盖工作台内容。验证:`cargo test -p zircon_editor --lib capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-completion-audit-0624 --message-format short --color never -- --ignored --test-threads=1 --nocapture` 1/1 通过并刷新 `docs/tests/editor/` 下 8 张 PNG,其中包括 `docs/tests/editor/editor-window-m3-workbench-900x620.png` 与 `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`;人工检查确认 Workbench dock/viewport/inspector/console 可见且无 bool 文本碎片,Asset Browser Search 不重叠且只出现一次。 | 06 retained-host visual pending 项关闭;截图证据已按要求移出 Cargo target 并落到 `docs/tests/editor`;更宽页面承载/partial snapshot/token hard cutover 继续由后续 07/08/09/01 子计划推进。 |
+| 2026-06-24 | 06.S2 Unreal Slate visual style parity pass | implemented-unreal-visual-passed | 根据 `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Styling/StarshipCoreStyle.cpp`、`CoreStyle.h` 与 `StyleColors.cpp` 对 retained-host palette 做 focused hard cutover:全局 `HostMaterialPalette`、Workbench chrome palette、button/icon-button style selector 统一到 Slate dark colors;按钮默认圆角改为 4px,文本 font size/line height 改为 10/12,pressed 内容下移 1px 以匹配 Slate `PressedButtonMargins`;primary/secondary hover/pressed/border 采用 Unreal Primary/Secondary/Input/Recessed 色阶。验证:`cargo test -p zircon_editor --lib paint_template_nodes::template_buttons::tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-unreal-style-0624 --message-format short --color never` 17/17 通过;`cargo test -p zircon_editor --lib template_icon_buttons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-unreal-style-0624 --message-format short --color never` 11/11 通过;`cargo test -p zircon_editor --lib capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-unreal-style-0624 --message-format short --color never -- --ignored --test-threads=1 --nocapture` 1/1 通过,并于 2026-06-24 19:56-19:57 +08 刷新 `docs/tests/editor/` 下 8 张 PNG;人工检查 Workbench、Asset Browser、menu popup 与 640px 小窗口截图非空且无明显遮挡。 | Unreal-like retained-host 视觉切片关闭;后续若继续追齐 Unreal,应在 01/10 中处理旧 shell/module 资产 token hard cutover、更多控件族 Slate 语义和真实 GPU/窗口像素验收。 |
+| 2026-06-24 | 06.S2/S15 组件优先视觉复验 | implemented-component-atlas-passed-composition-pending | 按用户反馈从局部控件重新收束:retained-host 文本优先使用 `zircon_runtime/assets/fonts/FiraSans-Regular.ttf`,全局 palette、chrome/button/icon-button/text-field/dropdown/table-row style selector、template text/field/dropdown/list/tree/segment/selection/table metrics 统一为近黑面板、1px 边框、4px 低圆角、10-11px 工具字号和 Zircon teal 焦点/选中态;新增 ignored 截图测试 `capture_workbench_component_slate_atlas_visual_artifact`,生成 `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png`。验证:`cargo test -p zircon_editor --lib capture_workbench_component_slate_atlas_visual_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0624 --color never -- --ignored --test-threads=1` 1/1 通过;同一测试二进制复跑 `capture_m3_gui_acceptance_visual_artifacts` 1/1 通过并刷新 `docs/tests/editor/` 下 8 张整窗 PNG。 | 组件级按钮/输入/选择/列表/树/表格/弹层/状态栏 atlas 通过;整窗组合仍未关闭:Workbench 页签、Asset Browser 列宽/省略、复杂列表密度和抽屉/窗口自适应仍按 S15.3-S15.5 继续修。 |

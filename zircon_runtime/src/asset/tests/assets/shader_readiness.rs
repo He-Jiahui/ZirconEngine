@@ -2,7 +2,7 @@ use crate::asset::{
     AssetReference, AssetUri, ShaderAsset, ShaderAssetManagementRecord,
     ShaderAssetManagementRecordSet, ShaderAssetReadinessSummary, ShaderDependencyAsset,
     ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderRuntimeSourceKind,
-    ShaderSourceLanguage,
+    ShaderSourceLanguage, ZShaderDefinitionError, ZShaderDefinitionValueDocument,
 };
 use crate::core::framework::render::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
@@ -54,6 +54,40 @@ fn shader_readiness_reports_runtime_source_kinds() {
         .as_deref()
         .unwrap()
         .contains("does not provide emitted WGSL"));
+}
+
+#[test]
+fn zshader_definition_values_report_typed_authoring_errors() {
+    let bool_error = ZShaderDefinitionValueDocument {
+        name: "USE_FOG".to_string(),
+        kind: "bool".to_string(),
+        value: toml::Value::Integer(1),
+    }
+    .to_render_definition()
+    .expect_err("non-boolean bool shader definition should fail");
+
+    assert_eq!(
+        bool_error,
+        ZShaderDefinitionError::BoolValue {
+            name: "USE_FOG".to_string(),
+        }
+    );
+
+    let kind_error = ZShaderDefinitionValueDocument {
+        name: "WIND_SCALE".to_string(),
+        kind: "float".to_string(),
+        value: toml::Value::Float(1.0),
+    }
+    .to_render_definition()
+    .expect_err("unsupported shader definition kind should fail");
+
+    assert_eq!(
+        kind_error,
+        ZShaderDefinitionError::UnsupportedKind {
+            name: "WIND_SCALE".to_string(),
+            kind: "float".to_string(),
+        }
+    );
 }
 
 #[test]

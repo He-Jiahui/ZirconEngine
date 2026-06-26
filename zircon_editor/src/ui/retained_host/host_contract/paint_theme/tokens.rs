@@ -1,31 +1,5 @@
 use super::model::HostMaterialPalette;
+use super::palette_projection::DEFAULT_HOST_PALETTE;
 
 pub(in crate::ui::retained_host::host_contract) const PALETTE: HostMaterialPalette =
-    HostMaterialPalette {
-        shell_background: [16, 20, 24, 255],
-        surface: [32, 40, 48, 255],
-        surface_inset: [18, 24, 30, 255],
-        surface_hover: [47, 70, 80, 255],
-        surface_pressed: [16, 60, 74, 255],
-        surface_selected: [15, 101, 116, 255],
-        surface_disabled: [25, 29, 34, 255],
-        accent: [53, 199, 208, 255],
-        accent_soft: [15, 101, 116, 255],
-        border: [75, 98, 109, 255],
-        text: [230, 241, 244, 255],
-        text_muted: [143, 163, 172, 255],
-        text_disabled: [88, 101, 108, 255],
-        warning: [242, 184, 75, 255],
-        warning_container: [70, 49, 18, 255],
-        error: [239, 112, 102, 255],
-        error_container: [76, 36, 39, 255],
-        success: [92, 190, 122, 255],
-        success_container: [29, 71, 47, 255],
-        info: [99, 179, 255, 255],
-        info_container: [24, 57, 91, 255],
-        popup: [14, 18, 23, 255],
-        track: [42, 52, 60, 255],
-        focus_ring: [128, 234, 255, 255],
-        border_disabled: [51, 72, 82, 255],
-        shadow: [0, 0, 0, 102],
-    };
+    DEFAULT_HOST_PALETTE;

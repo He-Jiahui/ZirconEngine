@@ -19,6 +19,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
@@ -143,6 +144,7 @@ tests:
   - cargo test -p zircon_editor viewport_toolbar -- --nocapture (2026-05-11: passed, 23 passed)
   - cargo test -p zircon_editor workbench_projection -- --nocapture (2026-05-11: passed, 12 passed)
   - cargo test -p zircon_editor bootstrap_assets -- --nocapture (2026-05-11: passed, 24 passed)
+  - cargo test -p zircon_editor --lib asset_browser_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26 Asset Browser utility spacing: passed, 1 passed)
   - cargo test -p zircon_editor boundary -- --nocapture (2026-05-11: passed, 72 passed)
   - cargo test -p zircon_editor retained_menu_pointer -- --nocapture (2026-05-11: passed, 21 passed, 4 ignored)
   - cargo test -p zircon_editor retained_activity_rail_pointer -- --nocapture (2026-05-11: passed, 6 passed)
@@ -287,6 +289,8 @@ The view projection layer now routes these top-level pane assets to v2:
 - `assets_activity.v2.ui.toml`
 - `animation_editor.v2.ui.toml`
 - `welcome.v2.ui.toml`
+
+The Asset Browser v2 pane remains fully authored in `asset_browser.v2.ui.toml`. Its bottom utility region now keeps Preview/References/Metadata/Plugins as a compact retained template composition: the tab row, selection locator, preview visual, references split, metadata stack, and utility content/panel heights are all frame-locked by `asset_browser_projection_maps_bootstrap_asset_into_mount_nodes` before the retained host paints them. This keeps local container spacing in the authored asset instead of adding host-side layout exceptions for a single pane.
 
 The shared workbench chrome projection now routes these root chrome assets to v2:
 

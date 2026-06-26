@@ -1,5 +1,7 @@
 use crate::asset::AnimationSequenceAsset;
-use crate::core::framework::animation::{AnimationSequenceApplyReport, AnimationTrackPath};
+use crate::core::framework::animation::{
+    AnimationResult, AnimationSequenceApplyReport, AnimationTrackPath,
+};
 use crate::core::math::Real;
 use crate::scene::world::World;
 
@@ -13,7 +15,7 @@ pub fn apply_sequence_to_world(
     sequence: &AnimationSequenceAsset,
     time_seconds: Real,
     looping: bool,
-) -> Result<AnimationSequenceApplyReport, String> {
+) -> AnimationResult<AnimationSequenceApplyReport> {
     let mut report = AnimationSequenceApplyReport::default();
     let sample_time =
         resolve_sequence_sample_time(sequence.duration_seconds, time_seconds, looping);

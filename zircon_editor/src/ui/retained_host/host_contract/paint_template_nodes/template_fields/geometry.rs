@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::search::search_field_paint_rect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_paint_rect(
     node: &TemplatePaneNodeData,
@@ -7,7 +8,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_p
     let mut rect = pixel_aligned_rect(rect);
     rect.x += node.layout_offset_x;
     rect.y += node.layout_offset_y;
-    rect
+    search_field_paint_rect(node, rect)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(

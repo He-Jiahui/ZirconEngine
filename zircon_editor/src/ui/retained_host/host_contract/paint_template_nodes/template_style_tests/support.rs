@@ -11,6 +11,15 @@ pub(super) fn button_node() -> TemplatePaneNodeData {
     }
 }
 
+pub(super) fn panel_node(surface_variant: &str) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        role: "Panel".into(),
+        control_id: "TemplateStylePanel".into(),
+        surface_variant: surface_variant.into(),
+        ..TemplatePaneNodeData::default()
+    }
+}
+
 pub(super) fn resolved_background(color: [u8; 4]) -> ResolvedButtonStyle {
     ResolvedButtonStyle {
         element: UiResolvedElementStyle {

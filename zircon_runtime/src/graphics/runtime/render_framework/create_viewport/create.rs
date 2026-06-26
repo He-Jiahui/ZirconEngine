@@ -6,11 +6,11 @@ use super::super::viewport_record::ViewportRecord;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn create_viewport(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     descriptor: RenderViewportDescriptor,
 ) -> Result<RenderViewportHandle, RenderFrameworkError> {
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let handle = RenderViewportHandle::new(state.next_viewport_id);
     state.next_viewport_id += 1;
     state

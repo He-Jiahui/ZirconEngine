@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/render_graph/builder.rs
+  - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/render_graph/error.rs
   - zircon_runtime/src/render_graph/graph.rs
@@ -11,6 +12,10 @@ related_code:
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
@@ -53,6 +58,7 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
@@ -61,6 +67,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
 implementation_files:
   - zircon_runtime/src/render_graph/builder.rs
+  - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/render_graph/error.rs
   - zircon_runtime/src/render_graph/graph.rs
@@ -71,6 +78,10 @@ implementation_files:
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
@@ -113,6 +124,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
@@ -120,6 +132,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/render_graph/tests/resources.rs
+  - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
 plan_sources:
@@ -150,12 +163,18 @@ tests:
   - zircon_runtime/src/render_graph/tests/ordering.rs::compile_exposes_inferred_resource_dependencies_on_compiled_passes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs::metadata_context_resolves_pass_resource_handles
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::resource_registry_validates_declaration_kind_before_name_lookup
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compile_options_fallback_async_compute_passes_to_graphics_queue
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_storage_write_mode_on_read_access
+  - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs::compile_options_fallback_async_compute_passes_to_graphics_queue
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs::pipeline_compile_rejects_storage_write_mode_on_read_access
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_preserves_compute_workload_metadata
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_preserves_sparse_texture_reservations_without_dense_transient_slot
-  - zircon_runtime/src/render_graph/tests/resources.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
+  - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes
+  - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_graph_builder_compile.rs::runtime_15_render_graph_builder_compile_is_child_owner
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs::render_framework_stats_report_transient_allocation_bytes
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs::compile_preserves_compute_workload_from_feature_descriptor
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs::compile_rejects_compute_workload_on_non_compute_queue
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_asset_compile_tests.rs::runtime_15_render_pipeline_compile_tests_are_child_owners
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_preserves_compute_workload_from_feature_descriptor
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_rejects_compute_workload_on_non_compute_queue
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_audits_planned_compute_workloads_against_dispatches
@@ -168,15 +187,16 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_reuses_entries_across_frames
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_evicts_stale_entries_after_keep_frames
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_evicts_oldest_entries_to_budget
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_hits_on_identical_key
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_misses_on_feature_set_change
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_misses_on_viewport_resize
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_invalidates_on_pipeline_revision_bump
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_evicts_least_recently_used_entry
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_reports_lookup_status
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_hits_on_identical_key
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_misses_on_feature_set_change
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_misses_on_viewport_resize
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_invalidates_on_pipeline_revision_bump
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_evicts_least_recently_used_entry
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::compiled_render_pipeline_cache_reports_lookup_status
+  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs::render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/compiled_graph_cache_tests.rs::runtime_15_compiled_graph_cache_tests_are_child_owner
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_reports_unbound_compiled_lifetimes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_reports_unbound_external_lifetimes_without_failing
@@ -197,6 +217,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_imports_only_live_compiled_frame_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_rebinds_live_final_aliases_to_imported_texture_target
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_leaves_advanced_transients_for_materialization
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/render_graph_resources.rs::runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner
   - cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-alias-profile-0617
   - cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-materialization-0617
   - cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-external-materialization-0617
@@ -324,6 +345,8 @@ The same follow-up removes dead-code suppression from `RenderPassExecutionContex
 
 `RenderStats` exposes compiled-cache hit, miss, eviction, and live-entry counts as `last_graph_compiled_cache_*`, and runtime diagnostics mirror them under `render.graph.compiled_cache.*`. These rows are hot-path compile evidence, not GPU execution evidence.
 
+The 2026-06-24 CompiledGraphCache tests owner split keeps `graphics/pipeline/compiled_graph_cache.rs` as the 309-line production cache parent for key/fingerprint/status/cache API and LRU eviction, with only a `#[cfg(test)] mod tests;` mount. The 460-line `graphics/pipeline/compiled_graph_cache/tests.rs` child owns cache hit/miss/status, compile fingerprint, camera target/format class, revision invalidation, LRU eviction, and descriptor test-extension helpers. The structure guard `runtime_15_compiled_graph_cache_tests_are_child_owner` and status anchor `render_plan01_compiled_graph_cache_tests_owner_split_static_passed_cargo_deferred_implementation_cadence` lock those source-contract tests out of the production parent while Cargo/WGPU/RenderDoc remain deferred to the milestone testing stage.
+
 ## History Preparation
 
 History resources must use distinct names for previous, current, and output slots before they are represented in the graph. The unique-name rule prevents a feature from accidentally declaring one physical graph resource as both imported history input and writable history output. The later scene renderer registry should map those slots onto concrete backing textures after resize, camera-cut, and motion-validity checks.
@@ -335,6 +358,10 @@ The 2026-06-03 M8 storage-write slice used the same target dir. `graph_records_s
 The 2026-06-03 M8 workload-audit slice reused `E:\cargo-targets\zircon-render-main-chain`. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. `cargo test -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --color never compute_workload` passed 5 filtered tests, covering graph metadata preservation, pipeline compile validation, and execution-record workload audit status. `headless_wgpu_server_falls_back_async_compute_passes_to_graphics` and `runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins` also passed, proving the matched workload count reaches `RenderStats` and runtime diagnostics. The follow-up dispatch-extent audit extends the execution-record tests so viewport, cluster-grid, and fixed dispatch plans preserve planned/actual dispatch-group evidence and report `DispatchExtentMismatch` when a renderer records the wrong group count.
 
 The 2026-06-04 byte-aware transient allocation slice extended `CompiledRenderGraphTransientAllocationPlan` with per-resource byte size, per-slot reserved byte size, dense texture/buffer byte totals, and sparse virtual texture bytes. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. Focused `cargo test -p zircon_runtime --lib render_graph::tests::resources::graph_transient_allocation_plan_reports_slot_reserved_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` initially timed out while the Windows lib-test binary was compiling and linking; after the compile lane drained and produced `zircon_runtime-b34ee8d8fc52f1fd.exe`, the warmed rerun passed 1 test, 0 failed, 2680 filtered, with existing warnings only.
+
+The 2026-06-24 RenderGraph resources transient aliasing tests owner split keeps `render_graph/tests/resources.rs` as the 633-line parent for foundational resource lifetime, attachment/storage operation, sparse reservation, compute workload, validation, dump, and culling contracts. The 192-line `render_graph/tests/resources/transient_aliasing.rs` child now owns the transient allocation plan aliasing contracts: non-overlapping lifetime slot reuse, descriptor-bucket separation, bucket-local reserved bytes, dense byte totals, and sparse virtual byte accounting. The structure guard `runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner` and status anchor `render_graph_resources_transient_aliasing_tests_owner_split_static_passed_cargo_deferred_implementation_cadence` lock the child boundary; scoped Cargo/WGPU/RenderDoc validation remains deferred to the milestone testing stage.
+
+The 2026-06-24 RenderGraphBuilder compile owner split keeps `render_graph/builder.rs` as the 412-line authoring parent for pass/resource declaration, resource access mutation, usage marking, and the `mod compile;` mount. The 486-line `render_graph/builder/compile.rs` child now owns `RenderGraphBuilder::compile(...)`, unique-resource validation, manual reachability, write/read dependency validation, dependency inference, topological ordering, root-driven culling, and resource lifetime assembly. The structure guard `runtime_15_render_graph_builder_compile_is_child_owner` and status anchor `render_graph_builder_compile_owner_split_static_passed_cargo_deferred_implementation_cadence` lock the compile helpers out of the authoring parent while Cargo/WGPU/RenderDoc remain deferred to the milestone testing stage.
 
 The follow-up diagnostics bridge preserves those planned byte totals through `RenderStats` and `DiagnosticStore` without exposing backend allocations. Focused validation target: `cargo test -p zircon_runtime --lib render_framework_stats_report_transient_allocation_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture`.
 
@@ -349,6 +376,8 @@ The 2026-06-17 required External binding contract slice adds `RenderGraphExterna
 The 2026-06-17 typed optional External ownership slice adds report-only texture and buffer bindings for optional external descriptors. Pipeline lowering preserves `report_only_texture()` and `report_only_buffer()` in compiled lifetimes, rejects same-name optional texture/buffer conflicts, and materialization validation reports missing typed optional resources without failing the dense materialization gate. `rustfmt --edition 2021` plus `--check` passed over the touched Rust files, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-typed-optional-external-0617 --message-format short --color never` passed with the existing warning set. The plugin consumer check for particles, Hybrid GI, and Virtual Geometry was attempted under `zircon_plugins/Cargo.toml`, but `--locked` stopped before compilation because `zircon_plugins/Cargo.lock` would need an update.
 
 The 2026-06-18 split postprocess exposure dependency trim removed unused `EXPOSURE_CURRENT` read declarations from `post.depth-of-field`, `post.motion-blur`, and `post.blur`. Those WGSL entry points do not sample resolved exposure, and the false reads forced the graph to schedule the split passes after `post.exposure.resolve`. The focused `compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure` test passed in `D:\cargo-targets\zircon-runtime-rg-required-external-0618`, while scene-composite, color-LUT bake, and uber still declare real exposure reads.
+
+The 2026-06-24 RenderPipelineAsset compile tests owner split keeps `graphics/pipeline/render_pipeline_asset/compile_tests.rs` as a small helper/root test module and moves compile-contract coverage into child owners. `compile_tests/core_contracts.rs` owns renderer stage, compute workload, selected-camera particle culling, and HZB/SSR transient contracts; `compile_tests/postprocess_routes.rs` owns LUT, bloom, blur, exposure, light-list, output-transfer, and HZB route contracts; `compile_tests/external_compute_guards.rs` owns required external and compute queue validation contracts. The structure guard `runtime_15_render_pipeline_compile_tests_are_child_owners` and status anchor `render_pipeline_asset_compile_tests_owner_split_static_passed_cargo_deferred_active_compile_lane` lock this split. Scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check passed; Cargo/WGPU/RenderDoc remains deferred while active compile lanes are present.
 
 The 2026-06-17 `RgResourceResolver` slice starts the broader resolver hard cutover by renaming the resolver API, making pass-declared access the gate before physical lookup, and moving product post-process required resource validation/input selection onto resolver-backed name access. Follow-up slices carry that resolver into `RenderPassGpuExecutionContext`, move shared GPU physical lookup helpers into `gpu/resource_lookup.rs`, split deferred scene bridge methods into `gpu/deferred.rs`, split sprite/preview-sky/UI/overlay bridge methods into `gpu/surface.rs`, and migrate depth-prepass, deferred G-buffer, deferred lighting, mesh-stage, TAA reactive-mask mesh, surface bridge, particle bridge, SSR-specific bridge, and root postprocess bridge lookups through that gate. The particle bridge slice also removes the particles plugin executor's redundant direct WGPU texture-view precheck; the SSR bridge slice adds optional resolver-backed texture/mip helpers for shared fallback slots, declares `light-list` on the SSR descriptor passes, and keeps mip target alias creation behind a declared graph write check. The root postprocess bridge slice adds `gpu/post_process/{effects,computed_resources,temporal,terminal}.rs`, moves stack/color-LUT/effect-chain/compute-resource/temporal/terminal lookup through the resolver helpers, and keeps root `gpu/post_process.rs` at 490 lines. The HZB/shadow/velocity follow-up moves HZB previous-history, shadow-atlas, and object-velocity texture lookups through resolver helpers, adds a declared-optional history helper for first-frame HZB fallback, and narrows raw texture/buffer lookup methods on `RenderGraphExecutionResources` to graph-execution scope. `rustfmt --edition 2021` and follow-up `--check` passes covered the touched Rust files across the resolver slices. The latest isolated `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resolver-cutover-0617-hzb-shadow-velocity --message-format short --color never` rerun passed with the existing 142-warning set after an earlier shared-target fingerprint write failure and a cold isolated-target timeout. The package-scoped particles plugin check still stops before compilation because `zircon_plugins/Cargo.lock` would need an update under `--locked`. Remaining broad direct lookup calls are helper fallback/internal calls by design; remaining RG-M1 implementation work is non-HZB/non-shadow-atlas executor-owned External actual binding, resource lifetime validation closure, focused resolver tests, plugin lockfile resolution, and RenderDoc resource/marker comparison.
 

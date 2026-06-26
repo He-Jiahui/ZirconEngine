@@ -9,6 +9,7 @@ related_code:
   - zircon_hub/src/projects/metadata.rs
   - zircon_runtime/src/ui/component/state_reducer/table.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
   - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
@@ -26,6 +27,8 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
 implementation_files:
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
@@ -33,6 +36,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - docs/engine-architecture/non-network-server-naming-m1.md
   - docs/engine-architecture/runtime-architecture-review-m0.md
   - docs/engine-architecture/runtime-interface-convergence.md
@@ -40,6 +44,7 @@ implementation_files:
   - docs/engine-architecture/index.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
   - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
@@ -69,29 +74,28 @@ The reference-engine evidence is in `docs/engine-architecture/runtime-reference-
 
 The structural audit now reports `non_network_server_references.m1_gate_status`. Current status is:
 
-`migration-debt-present`
+`classified-and-clear`
 
 Current evidence:
 
-- `count = 77` suspect non-network references;
-- `sample_location_count = 20`;
-- `reference_decision_count = 77`;
-- `reference_decision_group_count = 2`;
-- `classification_count = 2`;
+- `count = 0` suspect non-network references;
+- `sample_location_count = 0`;
+- `reference_decision_count = 0`;
+- `reference_decision_group_count = 0`;
+- `classification_count = 0`;
 - `observer_false_positive_count = 95`, because `observer` contains the letters `server` but is not server vocabulary;
 - `allowed_context_count = 94` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
-- `non_network_server_migration_debt_count = 2`;
+- `non_network_server_migration_debt_count = 0`;
 - `unclassified_location_count = 0`;
 - `unclassified_locations = []`.
 
 Current classification:
 
-- `graphics-render-framework-debt = 76`
-- `editor-workbench-authority-label-debt = 1`
+- none.
 
-The classification means every current suspect reference has an explicit migration owner. It does not mean the naming is converged.
+The current gate has no suspect non-network `server` references. Future hits must either be allowed network/API contexts or become review blockers until renamed.
 
-`non_network_server_naming.py` owns token scanning, allowed-context filtering, classification, and risk aggregation at 323 lines. `non_network_server_naming_markdown.py` owns `render_non_network_server_naming_markdown(...)` at 41 lines so the audit owner no longer mixes gate logic with report formatting.
+`non_network_server_naming.py` owns token scanning, allowed-context filtering, classification, and risk aggregation at 304 lines. `non_network_server_naming_markdown.py` owns `render_non_network_server_naming_markdown(...)` at 41 lines so the audit owner no longer mixes gate logic with report formatting.
 
 ## M1 Decision Rules
 
@@ -103,9 +107,11 @@ Runtime UI table/DataGrid code may preserve the third-party `sortingMode = "serv
 
 The Hub project metadata test literals `\\?\UNC\server\share\Game` and `\\server\share\Game` are allowed fixture paths. Their `server` segment names the conventional UNC host component, not a Zircon runtime owner.
 
-`graphics-render-framework-debt` belongs to the M6 graphics/RHI public-surface slice. The target names should describe the actual owner, for example render framework, render context, state owner, or submit context.
+The graphics render-framework debt is resolved. `graphics/runtime/render_framework/**` now names its local `WgpuRenderFramework` receiver/context as `framework`, and the Runtime 15 M2 guard rejects non-network `server` token regression in that owner.
 
-`editor-workbench-authority-label-debt` belongs to the editor workbench extension owner. The current hit is fixture/output text that says `server authority`; the target wording should describe editor/runtime authority without using non-network server terminology.
+The editor workbench authority-label debt is resolved. The Workbench extension feedback fixture now says `Selected Condition_Night   editor authority`, and the Runtime 15 M2 guard rejects the retired `server authority` wording.
+
+Runtime 15 M2 editor workbench authority-label naming hard cutover is recorded as `runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred`. The source owner is `zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs`, and `runtime_15_editor_workbench_authority_label_uses_editor_name` keeps the source text, this document, Runtime 15 status mirrors, and the audit script aligned.
 
 The previous stale editor scene comment debt is resolved. `EditorState` now describes the runtime scene inspection boundary directly.
 
@@ -129,9 +135,4 @@ Before renaming production symbols, run the structural audit and inspect:
 - `non_network_server_references.allowed_context_count`
 - `non_network_server_references.observer_false_positive_count`
 
-The first production cuts should be bounded by active owner areas:
-
-- M6 graphics/RHI: rename render-framework `server` parameters while keeping WGPU/RHI behavior stable.
-- Editor workbench extensions: rename authority fixture/output labels when the extension-module workbench owner is next touched.
-
-Do not create compatibility aliases for old `*_server` names. Each rename should be a hard cut inside its owner slice, with call sites updated directly.
+There is no active migration-debt owner in the current audit output. Do not create compatibility aliases for old `*_server` names. Each future rename should be a hard cut inside its owner slice, with call sites updated directly.

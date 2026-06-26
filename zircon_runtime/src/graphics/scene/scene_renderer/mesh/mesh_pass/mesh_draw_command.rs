@@ -20,6 +20,7 @@ impl MeshPipelineVariantId {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum MeshPassPipelineKind {
     DepthPrepass,
+    GBuffer,
     Base,
     ShadowDepth,
     ShadowDepthAlphaMask,

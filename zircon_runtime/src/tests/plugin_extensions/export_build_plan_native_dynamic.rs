@@ -9,7 +9,7 @@ use crate::plugin::native::NativePluginLoadManifest;
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
     plugin::ExportTargetPlatform, plugin::ExportValidateReport, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection,
+    plugin::ProjectPluginSelection, plugin::RuntimeProfileId,
 };
 use zip::ZipArchive;
 
@@ -535,6 +535,7 @@ fn native_dynamic_plan() -> ExportBuildPlan {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
+    .with_runtime_profile_id(RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
     ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap()
 }

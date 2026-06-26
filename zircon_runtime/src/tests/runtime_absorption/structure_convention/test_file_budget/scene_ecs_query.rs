@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
     let parent = read_runtime_src("scene/tests/ecs_query.rs");
-    let cache_helpers = read_runtime_src("scene/tests/ecs_query/cache_helpers.rs");
+    let cached_queries = read_runtime_src("scene/tests/ecs_query/cached_queries.rs");
     let fixed_ticks = read_runtime_src("scene/tests/ecs_query/fixed_ticks.rs");
     let iter_many = read_runtime_src("scene/tests/ecs_query/iter_many.rs");
     let mutation_access = read_runtime_src("scene/tests/ecs_query/mutation_access.rs");
@@ -23,7 +23,7 @@ fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
         "scene ECS query parent test module mounts",
         &parent,
         &[
-            "mod cache_helpers;",
+            "mod cached_queries;",
             "mod fixed_ticks;",
             "mod iter_many;",
             "mod mutation_access;",
@@ -90,8 +90,8 @@ fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
         ],
     );
     assert_contains_all(
-        "cache helper child owns cached query helper contracts",
-        &cache_helpers,
+        "cached query child owns cached query contracts",
+        &cached_queries,
         &[
             "use super::*;",
             "fn query_state_cached_iteration_rebuilds_only_for_structural_changes",
@@ -107,7 +107,7 @@ fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
         mutation_access.as_str(),
         fixed_ticks.as_str(),
         iter_many.as_str(),
-        cache_helpers.as_str(),
+        cached_queries.as_str(),
     ]
     .iter()
     .map(|source| source.matches("#[test]").count())
@@ -120,8 +120,8 @@ fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
     for (path, source) in [
         ("scene/tests/ecs_query.rs", parent.as_str()),
         (
-            "scene/tests/ecs_query/cache_helpers.rs",
-            cache_helpers.as_str(),
+            "scene/tests/ecs_query/cached_queries.rs",
+            cached_queries.as_str(),
         ),
         ("scene/tests/ecs_query/fixed_ticks.rs", fixed_ticks.as_str()),
         ("scene/tests/ecs_query/iter_many.rs", iter_many.as_str()),
@@ -154,7 +154,7 @@ fn runtime_15_scene_ecs_query_tests_are_folder_backed() {
                 "Runtime 15 M3 scene ECS query test folder split",
                 "runtime_15_scene_ecs_query_tests_folder_split_static_passed_cargo_deferred",
                 "scene/tests/ecs_query.rs",
-                "scene/tests/ecs_query/cache_helpers.rs",
+                "scene/tests/ecs_query/cached_queries.rs",
                 "scene/tests/ecs_query/mutation_access.rs",
                 "runtime_15_scene_ecs_query_tests_are_folder_backed",
             ],

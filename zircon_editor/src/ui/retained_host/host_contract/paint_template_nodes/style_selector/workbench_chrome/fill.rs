@@ -39,6 +39,7 @@ fn normal_chrome_fill(kind: WorkbenchChromeKind) -> [u8; 4] {
         WorkbenchChromeKind::MainBand => WORKBENCH_CHROME_MAIN_BG,
         WorkbenchChromeKind::ActivityRail => WORKBENCH_CHROME_RAIL_BG,
         WorkbenchChromeKind::ScenePanel
+        | WorkbenchChromeKind::ContentPanel
         | WorkbenchChromeKind::InspectorPanel
         | WorkbenchChromeKind::InspectorSection => WORKBENCH_CHROME_PANEL_BG,
         WorkbenchChromeKind::ViewportPanel => WORKBENCH_CHROME_VIEWPORT_FRAME_BG,

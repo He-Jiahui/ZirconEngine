@@ -13,7 +13,7 @@ use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(super) fn submit_camera_loop(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
     ui: Option<UiRenderExtract>,
@@ -31,7 +31,7 @@ pub(super) fn submit_camera_loop(
         ui,
         submissions,
         |extract, ui, output_policy| {
-            submit_selected_camera(server, viewport, extract, ui, output_policy)
+            submit_selected_camera(framework, viewport, extract, ui, output_policy)
         },
     )
 }
@@ -68,7 +68,7 @@ fn camera_loop_submissions(
 }
 
 pub(super) fn submit_camera_loop_frame(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     frame: ViewportRenderFrame,
     fail_preflight_error: impl Fn(&WgpuRenderFramework, RenderViewportHandle, &RenderFrameworkError),
@@ -82,13 +82,13 @@ pub(super) fn submit_camera_loop_frame(
     let submissions = match camera_loop_submissions(&frame.extract) {
         Ok(submissions) => submissions,
         Err(error) => {
-            fail_preflight_error(server, viewport, &error);
+            fail_preflight_error(framework, viewport, &error);
             return Err(error);
         }
     };
 
     stream_camera_loop_frame_submissions(frame, submissions, |frame, output_policy| {
-        submit_selected_frame(server, viewport, frame, output_policy)
+        submit_selected_frame(framework, viewport, frame, output_policy)
     })
 }
 

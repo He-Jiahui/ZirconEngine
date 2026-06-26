@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
@@ -25,7 +25,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/project_render.rs
 implementation_files:
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_new/construct.rs
+  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs

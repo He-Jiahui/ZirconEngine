@@ -18,7 +18,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_defaults_new_runtime_foundation_fields_when_omitted
-  - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_ambient_and_rect_light_product_fields
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs::scene_assets_roundtrip_ambient_and_rect_light_product_fields
 doc_type: module-detail
 ---
 
@@ -37,6 +38,8 @@ Scene assets now persist the Bevy-aligned light set used by the M5 render produc
 - Directional, point, and spot light assets keep their existing serialized fields.
 
 `World::from_scene_asset(...)` recognizes ambient and rect light records as `NodeKind::AmbientLight` and `NodeKind::RectLight`, then converts array fields into `Vec3`/`Vec2` runtime components. `World::to_scene_asset(...)` converts authored runtime `AmbientLight` and `RectLight` components back into scene asset fields. This closes the persistence gap left after the first M5 authoring/extract slice.
+
+The 2026-06-24 Runtime 15 M3 scene asset integration test folder split keeps this product-field roundtrip coverage under the Runtime 15 test-file budget. `scene/tests/asset_scene.rs` now owns only shared helpers and child mounts, while `scene/tests/asset_scene/product_fields.rs` owns the ambient/rect light product field regression; guard `runtime_15_scene_asset_integration_tests_are_folder_backed` locks that boundary with status `runtime_15_scene_asset_integration_tests_folder_split_static_passed_cargo_deferred`.
 
 ## Boundaries
 

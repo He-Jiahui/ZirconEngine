@@ -5,13 +5,17 @@ use crate::core::math::{Vec2, Vec3};
 
 use crate::asset::types::{CpuMeshPayload, MeshSource, MeshVertex};
 
+use super::error::{ObjDecodeError, ObjDecodeResult};
 use super::obj_vertex_key::ObjVertexKey;
 use super::parse_obj_face_vertex::parse_obj_face_vertex;
 use super::parse_obj_scalar::parse_obj_scalar;
 use super::parsed_obj_vertex::ParsedObjVertex;
 
-pub(crate) fn decode_obj_file(path: &str) -> Result<CpuMeshPayload, String> {
-    let source = fs::read_to_string(path).map_err(|error| format!("read mesh {path}: {error}"))?;
+pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
+    let source = fs::read_to_string(path).map_err(|source| ObjDecodeError::Read {
+        path: path.to_string(),
+        source,
+    })?;
     let mut positions = Vec::<Vec3>::new();
     let mut uvs = Vec::<Vec2>::new();
     let mut normals = Vec::<Vec3>::new();
@@ -51,18 +55,20 @@ pub(crate) fn decode_obj_file(path: &str) -> Result<CpuMeshPayload, String> {
             "f" => {
                 let tokens: Vec<_> = parts.collect();
                 if tokens.len() < 3 {
-                    return Err(format!(
-                        "face with fewer than 3 vertices at {path}:{}",
-                        line_index + 1
-                    ));
+                    return Err(ObjDecodeError::FaceVertexCount {
+                        path: path.to_string(),
+                        line: line_index + 1,
+                    });
                 }
 
                 let mut face_indices = Vec::with_capacity(tokens.len());
                 for token in tokens {
                     let key =
                         parse_obj_face_vertex(token, positions.len(), uvs.len(), normals.len())
-                            .map_err(|error| {
-                                format!("parse face vertex at {path}:{}: {error}", line_index + 1)
+                            .map_err(|source| ObjDecodeError::FaceVertex {
+                                path: path.to_string(),
+                                line: line_index + 1,
+                                source: Box::new(source),
                             })?;
                     let vertex_index = if let Some(index) = dedup.get(&key) {
                         *index
@@ -97,10 +103,14 @@ pub(crate) fn decode_obj_file(path: &str) -> Result<CpuMeshPayload, String> {
     }
 
     if positions.is_empty() {
-        return Err(format!("mesh {path} did not contain any vertex positions"));
+        return Err(ObjDecodeError::EmptyPositions {
+            path: path.to_string(),
+        });
     }
     if indices.is_empty() {
-        return Err(format!("mesh {path} did not contain any faces"));
+        return Err(ObjDecodeError::EmptyFaces {
+            path: path.to_string(),
+        });
     }
 
     for triangle in indices.chunks_exact(3) {

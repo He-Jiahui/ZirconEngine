@@ -1,7 +1,15 @@
-use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+use std::sync::Arc;
+
+use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::{
+    RenderFrameExtract, RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
+};
+use crate::core::math::UVec2;
+use crate::graphics::backend::RenderBackend;
+use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassStage,
+    RenderPassStage, ViewportRenderFrame,
 };
 use crate::render_graph::QueueLane;
 use crate::scene::world::World;
@@ -13,13 +21,82 @@ use zircon_runtime_interface::ui::surface::{
 
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassExecutorId, RenderPassGpuExecutionContext,
 };
+
+use super::super::RenderPassExecutorRegistry;
 
 pub(super) fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
         World::new().to_render_snapshot(),
     )
+}
+
+pub(super) fn execute_gpu_executor_without_specialized_context(
+    pass_name: &str,
+    executor_id: &str,
+) -> String {
+    execute_gpu_executor_without_specialized_context_for_extract(
+        pass_name,
+        executor_id,
+        test_extract(),
+    )
+    .unwrap_err()
+}
+
+pub(super) fn execute_gpu_executor_without_specialized_context_for_extract(
+    pass_name: &str,
+    executor_id: &str,
+    extract: RenderFrameExtract,
+) -> Result<(), String> {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(16, 16));
+    let mut encoder = backend
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("post-process-context-missing-test"),
+        });
+    let scene_bind_group_layout =
+        backend
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("post-process-context-missing-empty-layout"),
+                entries: &[],
+            });
+    let scene_bind_group = backend
+        .device
+        .create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("post-process-context-missing-empty-bind-group"),
+            layout: &scene_bind_group_layout,
+            entries: &[],
+        });
+    let mut resources = RenderGraphExecutionResources::new();
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+        Arc::new(ProjectAssetManager::default()),
+        &backend.device,
+        &backend.queue,
+        wgpu::TextureFormat::Rgba8Unorm,
+    );
+    let mut plugin_outputs = RenderPluginRendererOutputs::default();
+    let gpu = RenderPassGpuExecutionContext::new_for_test(
+        &backend.device,
+        &backend.queue,
+        &mut encoder,
+        &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
+        &scene_bind_group,
+        &mut resources,
+        &mut plugin_outputs,
+        &mut screen_space_ui_renderer,
+    );
+    let mut context =
+        RenderPassExecutionContext::new(pass_name, RenderPassExecutorId::new(executor_id))
+            .with_gpu(gpu);
+
+    RenderPassExecutorRegistry::with_builtin_noop_executors().execute(&mut context)
 }
 
 pub(super) fn import_test_texture(

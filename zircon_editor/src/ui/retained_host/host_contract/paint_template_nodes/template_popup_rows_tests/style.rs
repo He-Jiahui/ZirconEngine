@@ -32,18 +32,18 @@ fn popup_row_style_selector_resolves_state_priority_for_options_and_menu_items()
         focused.state,
         zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
     );
-    assert_eq!(focused.background, Some(PALETTE.surface_selected));
+    assert_eq!(focused.background, Some(PALETTE.surface_pressed));
     assert_eq!(focused.selection_mark, Some(PALETTE.focus_ring));
-    assert_eq!(focused.text, PALETTE.focus_ring);
+    assert_eq!(focused.text, PALETTE.text);
 
     let checked = popup_menu_row_style(&checked_pressed);
     assert_eq!(
         checked.state,
         zircon_runtime_interface::ui::style::UiPainterResolvedState::Pressed
     );
-    assert_eq!(checked.background, Some(PALETTE.surface_selected));
+    assert_eq!(checked.background, Some(PALETTE.surface_pressed));
     assert_eq!(checked.selection_mark, Some(PALETTE.focus_ring));
-    assert_eq!(checked.adornment, PALETTE.focus_ring);
+    assert_eq!(checked.adornment, PALETTE.text);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
 
     let selected = popup_option_row_style(&option("selected", true, false, false, false));
     assert_eq!(selected.state, UiPainterResolvedState::Selected);
-    assert_eq!(selected.background, Some(PALETTE.surface_selected));
+    assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_eq!(selected.selection_mark, Some(PALETTE.focus_ring));
 
     let focused = popup_option_row_style(&TemplatePaneOptionData {
@@ -61,8 +61,8 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
         ..option("focused", false, false, false, false)
     });
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused.background, Some(PALETTE.surface_selected));
-    assert_eq!(focused.text, PALETTE.focus_ring);
+    assert_eq!(focused.background, Some(PALETTE.surface_hover));
+    assert_eq!(focused.text, PALETTE.text);
 
     let disabled = popup_option_row_style(&TemplatePaneOptionData {
         selected: true,

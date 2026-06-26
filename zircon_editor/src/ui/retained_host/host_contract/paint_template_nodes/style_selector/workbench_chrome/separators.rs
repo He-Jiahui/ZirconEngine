@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Checked => PALETTE.focus_ring,
+        | UiPainterResolvedState::Checked => PALETTE.border,
         UiPainterResolvedState::Hovered => PALETTE.border,
         UiPainterResolvedState::Normal => normal,
     }

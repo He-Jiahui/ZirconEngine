@@ -1,5 +1,6 @@
 use super::super::super::super::SoundSourceId;
 use super::fixture::RuntimeSourceControlFixture;
+use zircon_runtime::core::framework::sound::SoundSourceManager;
 
 #[test]
 fn source_runtime_controls_reject_invalid_inputs() {

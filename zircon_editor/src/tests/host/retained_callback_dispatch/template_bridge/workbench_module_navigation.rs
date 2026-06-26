@@ -7,7 +7,7 @@ use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_ac
 use crate::ui::retained_host::HostInvalidationMask;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
-const DECLARED_WORKBENCH_MODULE_EVENT_COUNT: usize = 188;
+const DECLARED_WORKBENCH_MODULE_EVENT_COUNT: usize = 189;
 
 const WORKBENCH_MODULE_EVENT_SOURCES: &[(&str, &str)] = &[
     (

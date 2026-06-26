@@ -1,9 +1,8 @@
 use super::super::model::{WorkbenchButtonKind, WorkbenchButtonStyle};
 use super::super::palette::{
     DANGER_BORDER, DANGER_SURFACE, DANGER_TEXT, OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT,
-    PRIMARY_SURFACE, PRIMARY_TEXT, TERTIARY_TEXT,
+    PRIMARY_SURFACE, PRIMARY_TEXT, TERTIARY_BORDER, TERTIARY_SURFACE, TERTIARY_TEXT,
 };
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 
 pub(super) fn normal_button_style(
@@ -13,7 +12,7 @@ pub(super) fn normal_button_style(
     match kind {
         WorkbenchButtonKind::Primary => WorkbenchButtonStyle {
             surface: PRIMARY_SURFACE,
-            border: [36, 154, 166, 255],
+            border: OUTLINED_BORDER,
             border_width: 1.0,
             text: PRIMARY_TEXT,
             glyph: PRIMARY_TEXT,
@@ -28,8 +27,8 @@ pub(super) fn normal_button_style(
             interaction,
         },
         WorkbenchButtonKind::Tertiary => WorkbenchButtonStyle {
-            surface: PALETTE.surface_inset,
-            border: PALETTE.border,
+            surface: TERTIARY_SURFACE,
+            border: TERTIARY_BORDER,
             border_width: 1.0,
             text: TERTIARY_TEXT,
             glyph: TERTIARY_TEXT,

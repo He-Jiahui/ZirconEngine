@@ -9,9 +9,11 @@ pub use capability::{
 };
 pub use mesh_importer::import_mesh_model;
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, ModelAssetImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    ModelAssetImporterRuntimePlugin, MODEL_ASSET_IMPORTER_DIST_CRATE_NAME,
+    MODEL_ASSET_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub(crate) use mesh_importer::{model_outcome, primitive_from_indexed_mesh};

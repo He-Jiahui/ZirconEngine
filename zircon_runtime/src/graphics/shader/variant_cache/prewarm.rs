@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::core::framework::render::{ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport};
+use crate::graphics::shader::template::validate_shader_variant_prewarm_wgsl;
 
 use super::disk::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
 
@@ -23,6 +24,14 @@ pub(crate) fn prewarm_shader_variants_to_disk(
 
     let cache = ShaderVariantCacheDisk::new(cache_root.as_ref());
     for (variant_index, request) in manifest.variants.iter().enumerate() {
+        if let Err(error) = validate_shader_variant_prewarm_wgsl(&request.wgsl_source) {
+            report.record_failure(
+                variant_index,
+                format!("shader variant WGSL validation failed: {error:?}"),
+            );
+            continue;
+        }
+
         let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
             &request.key,
             request.include_content_hashes.iter().map(String::as_str),
@@ -83,6 +92,43 @@ mod tests {
         assert!(matches!(
             ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
             super::super::disk::ShaderVariantCacheDiskLookup::Hit(_)
+        ));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn render_shader_variant_prewarm_rejects_invalid_wgsl_before_disk_write() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_shader_variant_prewarm_invalid_test_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let request = ShaderVariantPrewarmRequest {
+            key: variant_key(),
+            wgsl_source: "fn main(".to_string(),
+            include_content_hashes: vec!["include-invalid".to_string()],
+            template_revision: "template-r1".to_string(),
+            naga_version: "naga-test".to_string(),
+            wgpu_version: "wgpu-test".to_string(),
+        };
+        let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
+            &request.key,
+            request.include_content_hashes.iter().map(String::as_str),
+        );
+        let manifest = ShaderVariantPrewarmManifest::new(vec![request]);
+
+        let report = prewarm_shader_variants_to_disk(&manifest, &root);
+
+        assert_eq!(report.requested_count, 1);
+        assert_eq!(report.written_count, 0);
+        assert_eq!(report.failed_count, 1);
+        assert_eq!(report.failures[0].variant_index, 0);
+        assert!(report.failures[0]
+            .error
+            .contains("shader variant WGSL validation failed"));
+        assert!(matches!(
+            ShaderVariantCacheDisk::new(&root).lookup(&disk_key),
+            super::super::disk::ShaderVariantCacheDiskLookup::Miss
         ));
         let _ = fs::remove_dir_all(root);
     }

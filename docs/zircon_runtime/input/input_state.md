@@ -20,6 +20,7 @@ related_code:
   - zircon_runtime/src/core/framework/input/touch.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/default_input_action_manager.rs
   - zircon_runtime/src/input/runtime/action_evaluator.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
@@ -80,6 +81,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/input/touch.rs
   - zircon_runtime/src/input/runtime/action_evaluator.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/default_input_action_manager.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
@@ -121,6 +123,9 @@ plan_sources:
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
   - chat: ZirconEngine Bevy 式 Platform / Window / Input / Gilrs 完成度计划
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - dev/bevy/crates/bevy_input/src/button_input.rs
   - dev/godot/core/input/input_map.cpp
   - dev/bevy/crates/bevy_input/src/keyboard.rs
@@ -141,6 +146,9 @@ tests:
   - zircon_runtime/src/input/tests/gamepad_bridge.rs
   - zircon_runtime/src/input/tests/recording_replay.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
+  - zircon_runtime/src/input/runtime/default_input_manager.rs::input_manager_accessors_recover_poisoned_state_lock
+  - zircon_runtime/src/input/runtime/default_input_action_manager.rs::input_action_manager_accessors_recover_poisoned_evaluator_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path
@@ -279,7 +287,17 @@ M6 adds a hardware-free log harness in `zircon_runtime/src/input/tests/input_man
 
 The harness then builds its log from `InputFrameSnapshot`, not from the submitted fixture list. Window messages come from `window_status_events`; keyboard, mouse button, and gamepad button entries come from `ButtonInputState::just_pressed_inputs()`; mouse cursor, motion, and wheel entries come from the frame accumulators; touch entries come from `active_touches`; and gamepad connection/axis entries come from `connected_gamepads` and `gamepad_axes`. The same test drains `InputEventRecord` sequence numbers and checks they are contiguous from `1..=12`, so the example verifies both state reduction and append-only event recording on the normal runtime input manager path.
 
+Runtime 15 M3 keeps the input manager test root folder-backed under `Runtime 15 M3 input manager test folder split` / `runtime_15_input_manager_tests_folder_split_static_passed_cargo_deferred`: `input/tests/input_manager.rs` now only owns shared imports and mounts `input/tests/input_manager/frame_state.rs`, `input/tests/input_manager/touch_gamepad.rs`, and `input/tests/input_manager/host_requests.rs`. `frame_state.rs` owns basic state, frame-clear, focus, and IME behavior; `touch_gamepad.rs` owns touch/gamepad state, the event-log harness, and gamepad filtering tests; `host_requests.rs` owns frame-local gamepad rumble and cursor host requests. `runtime_15_input_manager_tests_are_folder_backed` keeps those owners and docs/status anchors synchronized while broader input Cargo gates remain pending.
+
 This is intentionally a test harness rather than a native desktop example binary. It gives CI the M6 example coverage without depending on a physical window, keyboard, mouse, touch device, or controller. Real winit/gilrs smoke testing remains optional because hardware availability cannot be a workspace gate.
+
+## Runtime 15 M3 input runtime manager lock poison recovery
+
+状态：`runtime_15_input_runtime_manager_lock_poison_recovery_static_passed_cargo_deferred`。
+
+Runtime 15 M3 extends the E9/F2 poison-safe lock rule to the input runtime managers without changing the public `InputManager` or `InputActionManager` contracts. `zircon_runtime/src/input/runtime/default_input_manager.rs` now owns private `lock_state()` for `InputState`, and `begin_frame`, `submit_event`, snapshot, frame snapshot, and drain paths call that helper instead of direct lock unwrap. `zircon_runtime/src/input/runtime/default_input_action_manager.rs` now owns private `lock_evaluator()` for `InputActionEvaluator`, and action-map plus evaluation paths call that helper.
+
+The module-local tests `input_manager_accessors_recover_poisoned_state_lock` and `input_action_manager_accessors_recover_poisoned_evaluator_lock` deliberately poison the input state and action evaluator locks, then verify submit/snapshot/drain/evaluate paths still recover. `structure_convention/lock_poison_policy.rs::runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state` keeps `input/runtime/default_input_manager.rs`, `input/runtime/default_input_action_manager.rs`, this module doc, Runtime 15 status rows, and plan mirrors synchronized. Full input Cargo gates remain pending behind active external Cargo/Rust lanes.
 
 ## Runtime Preview Host Translation
 

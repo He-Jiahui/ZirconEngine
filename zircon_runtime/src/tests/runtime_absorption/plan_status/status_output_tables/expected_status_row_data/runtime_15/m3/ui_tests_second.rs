@@ -56,6 +56,25 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 UI asset surface index test folder split",
+        &[
+            "runtime_15_ui_asset_surface_index_tests_folder_split_static_passed_cargo_deferred",
+            "ui/tests/asset_surface_index.rs",
+            "ui/tests/asset_surface_index/surface_edges.rs",
+            "ui/tests/asset_surface_index/dirty_targets.rs",
+            "runtime_15_ui_asset_surface_index_tests_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI asset MUI web form style test folder split",
+        &[
+            "runtime_15_ui_asset_mui_web_form_style_tests_folder_split_static_passed_cargo_deferred",
+            "ui/tests/asset_mui_web_form_style.rs",
+            "ui/tests/asset_mui_web_form_style/form_controls.rs",
+            "runtime_15_ui_asset_mui_web_form_style_tests_are_folder_backed",
+        ],
+    ),
+    (
         "Runtime 15 M3 UI asset MUI X web style test folder split",
         &[
             "runtime_15_ui_asset_mui_web_mui_x_style_tests_folder_split_static_passed_cargo_deferred",

@@ -29,10 +29,10 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
         "test-file budget parent mounts historical oversized roots guard",
         &test_file_budget_parent,
         &[
+            "mod core_framework;",
             "mod historical_oversized_roots;",
-            "fn runtime_15_core_framework_tests_are_folder_backed",
-            "fn runtime_15_ui_v2_asset_tests_are_folder_backed",
-            "fn runtime_15_ui_shared_core_tests_are_folder_backed",
+            "mod ui_shared_core;",
+            "mod ui_v2_asset;",
         ],
     );
     assert_contains_all(

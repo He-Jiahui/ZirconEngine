@@ -1,6 +1,7 @@
 #[test]
 fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let descriptor = include_str!("../../../asset/assets/texture/descriptor.rs");
+    let descriptor_settings = include_str!("../../../asset/assets/texture/descriptor/settings.rs");
     let texture_asset = include_str!("../../../asset/assets/texture/texture_asset.rs");
     let runtime_importer = include_str!("../../../asset/importer/ingest/import_texture.rs");
     let plugin_importer =
@@ -33,13 +34,25 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
         );
     }
     assert!(
-        descriptor
-            .contains("pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String>")
-            && texture_asset.contains(
-                "pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String>"
-            ),
-        "Texture import settings should remain fallible but no longer use a builder-style with_* verb"
+        descriptor.contains("pub type TextureDescriptorResult<T> = std::result::Result<T,")
+            && descriptor.contains("pub enum TextureDescriptorError")
+            && descriptor.contains(") -> TextureDescriptorResult<Self>")
+            && texture_asset.contains(") -> TextureDescriptorResult<Self>"),
+        "Texture import settings should remain fallible, typed, and no longer use a builder-style with_* verb"
     );
+    for forbidden in [
+        "pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String>",
+        ") -> Result<Self, String>",
+        ") -> Result<(), String>",
+        "Err(format!(",
+    ] {
+        assert!(
+            !descriptor.contains(forbidden)
+                && !descriptor_settings.contains(forbidden)
+                && !texture_asset.contains(forbidden),
+            "F8 texture descriptor apply API should not keep `{forbidden}`"
+        );
+    }
     assert!(
         texture_asset.contains(".apply_import_settings(settings)?")
             && runtime_importer.contains(".apply_import_settings(&context.import_settings)")
@@ -52,6 +65,8 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
         "texture_import_settings_apply_api_coremin_check_passed",
         "review_f8_texture_import_settings_use_fallible_apply_not_with",
         "apply_import_settings",
+        "TextureDescriptorError",
+        "runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred",
         "RuntimePluginDescriptor public-field convergence remains pending",
     ] {
         assert!(

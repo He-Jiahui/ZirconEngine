@@ -26,6 +26,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     let stepper = is_stepper_field(node);
 
     push_field_surface(commands, &rect, clip, order, opacity, &style);
+    super::search::push_search_field_glyph(
+        commands,
+        node,
+        &rect,
+        clip,
+        order + 1,
+        opacity,
+        style.text,
+    );
     if stepper {
         super::super::template_field_stepper::push_field_stepper(
             commands,

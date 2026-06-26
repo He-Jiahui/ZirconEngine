@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
 ) -> ListRowAdornmentKind {
     if is_unavailable_list_row_state(select_workbench_list_row_style(node).state) {
         ListRowAdornmentKind::DisabledDiamond
-    } else if node.checked || node.selected {
+    } else if node.checked {
         ListRowAdornmentKind::Check
     } else {
         ListRowAdornmentKind::Chevron

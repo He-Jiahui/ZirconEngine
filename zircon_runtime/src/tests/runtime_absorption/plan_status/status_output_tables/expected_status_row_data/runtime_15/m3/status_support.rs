@@ -20,6 +20,38 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 test file budget root-layout folder-backed guard child split",
+        &[
+            "runtime_15_test_file_budget_root_layout_folder_backed_guard_child_split_static_passed_cargo_timeout_no_result",
+            "structure_convention/test_file_budget/root_layout.rs",
+            "structure_convention/test_file_budget/root_layout/folder_backed.rs",
+            "structure_convention/test_file_budget/root_layout/module_layout.rs",
+            "runtime_15_test_file_budget_root_layout_folder_backed_guard_is_child_owner",
+        ],
+    ),
+    (
+        "Runtime 15 M3 test file budget root-layout folder-backed support child-owner split",
+        &[
+            "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/root_layout/folder_backed.rs",
+            "structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs",
+            "structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs",
+            "runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 test file budget parent guard child-owner split",
+        &[
+            "runtime_15_test_file_budget_parent_guard_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/mod.rs",
+            "structure_convention/test_file_budget/core_framework.rs",
+            "structure_convention/test_file_budget/ui_v2_asset.rs",
+            "structure_convention/test_file_budget/ui_shared_core.rs",
+            "structure_convention/test_file_budget/module_layout.rs",
+            "runtime_15_test_file_budget_parent_guard_child_owner_split",
+        ],
+    ),
+    (
         "Runtime 15 M3 historical oversized test roots closeout",
         &[
             "runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred",
@@ -47,6 +79,17 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 render shader template assembly guard support child-owner split",
+        &[
+            "runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/production_file_budget/render_shader_template_assembly.rs",
+            "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs",
+            "structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs",
+            "structure_convention/production_file_budget/render_shader_template_assembly/sources.rs",
+            "runtime_15_render_shader_template_assembly_support_children_are_folder_backed",
+        ],
+    ),
+    (
         "Runtime 15 M3 status output Runtime 15 M4 row data split",
         &[
             "runtime_15_status_output_runtime_15_m4_row_data_split_static_passed_cargo_deferred",
@@ -62,6 +105,34 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "plan_status/status_output_tables/expected_slices/status.rs",
             "plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
             "runtime_15_status_output_expected_slice_maps_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output Runtime 15 expected-slice child-owner split",
+        &[
+            "runtime_15_status_output_runtime_15_expected_slice_child_owner_split_static_passed_cargo_deferred",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+            "runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output expected-slice guard maps child-owner split",
+        &[
+            "runtime_15_status_output_expected_slice_guard_maps_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs",
+            "runtime_15_status_output_expected_slice_guard_maps_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output expected-slice top-level map support child-owner split",
+        &[
+            "runtime_15_status_output_expected_slice_top_level_map_support_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/sources.rs",
+            "runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed",
         ],
     ),
     (

@@ -11,6 +11,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum IconB
     Snap,
     Play,
     ChevronDown,
+    Close,
     Grid,
     Sun,
     More,

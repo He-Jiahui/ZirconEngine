@@ -21,7 +21,7 @@ pub(super) fn feedback(action_id: &str) -> Option<ExtensionModuleFeedback> {
             ExtensionModuleFeedback {
                 output_control_id: "WorkbenchExtensionSpawnRulesOutputRow",
                 status_text: "Spawn condition selected",
-                output_text: "Selected Condition_Night   server authority",
+                output_text: "Selected Condition_Night   editor authority",
             }
         }
         "workbench.extension.spawn_rules.conflict_table_row.select" => ExtensionModuleFeedback {

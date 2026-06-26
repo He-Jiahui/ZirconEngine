@@ -1,9 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::{METRICS, PALETTE};
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::style::{
-    resource_field_background, resource_field_border, INSPECTOR_FIELD_RADIUS,
-};
+use super::super::style::{resource_field_background, resource_field_border};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field(
     commands: &mut Vec<HostPaintCommand>,
@@ -23,8 +21,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         } else {
             resource_field_border(node)
         }),
-        1.0,
-        INSPECTOR_FIELD_RADIUS,
+        METRICS.border_width,
+        METRICS.radius_control,
         opacity,
     ));
 }

@@ -9,9 +9,11 @@ pub use capability::{
     IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, UiDocumentImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    UiDocumentImporterRuntimePlugin, UI_DOCUMENT_IMPORTER_DIST_CRATE_NAME,
+    UI_DOCUMENT_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_ui_zui_component_document(
@@ -34,6 +36,7 @@ pub fn import_ui_zui_component_document(
 mod tests {
     use super::*;
     use zircon_runtime::asset::AssetKind;
+    use zircon_runtime::plugin::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_only_zui_component_importer() {
@@ -56,6 +59,47 @@ mod tests {
             && !importer.allows_output_kind(AssetKind::UiLayout)
             && !importer.allows_output_kind(AssetKind::UiStyle)
             && !importer.source_extensions.contains(&"uidoc".to_string())));
+    }
+
+    #[test]
+    fn package_manifest_declares_ui_document_importer_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("UI document importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(
+            distribution.dist_crate,
+            UI_DOCUMENT_IMPORTER_DIST_CRATE_NAME
+        );
+        assert_eq!(
+            distribution.runtime_entry,
+            UI_DOCUMENT_IMPORTER_DIST_RUNTIME_ENTRY
+        );
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "ui_document_importer.dist")
+            .expect("UI document importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(dist_module.crate_name, UI_DOCUMENT_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module
+            .capabilities
+            .contains(&IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

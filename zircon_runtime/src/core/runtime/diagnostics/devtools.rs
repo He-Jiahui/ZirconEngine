@@ -1,3 +1,5 @@
+use std::sync::{Mutex, MutexGuard};
+
 use crate::core::{CoreHandle, LifecycleState, ServiceKind, StartupMode};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -98,7 +100,7 @@ pub fn collect_runtime_devtools_snapshot(core: &CoreHandle) -> RuntimeDevtoolsSn
 }
 
 fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnapshot> {
-    let modules = core.inner.modules.lock().unwrap();
+    let modules = lock_poison_recovered(&core.inner.modules);
     let mut snapshots = modules
         .values()
         .map(|entry| {
@@ -119,7 +121,7 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
 }
 
 fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSnapshot> {
-    let services = core.inner.services.lock().unwrap();
+    let services = lock_poison_recovered(&core.inner.services);
     let mut snapshots = services
         .iter()
         .map(|(name, entry)| RuntimeDevtoolsServiceSnapshot {
@@ -141,7 +143,7 @@ fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSna
 }
 
 fn collect_scene_hook_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsSceneHookSnapshot> {
-    let hooks = core.inner.scene_hooks.lock().unwrap();
+    let hooks = lock_poison_recovered(&core.inner.scene_hooks);
     let mut snapshots = hooks
         .ordered()
         .iter()
@@ -194,8 +196,13 @@ fn tagged_subsystems(store: &super::DiagnosticStoreSnapshot) -> Vec<String> {
     tags
 }
 
+fn lock_poison_recovered<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[cfg(test)]
 mod tests {
+    use std::panic::{self, AssertUnwindSafe};
     use std::sync::Arc;
 
     use crate::core::runtime::ServiceObject;
@@ -243,5 +250,29 @@ mod tests {
             .any(|plugin| plugin.package_id == "physics"));
         assert_eq!(snapshot.native_backend_status.backend, "native_dynamic");
         assert_eq!(snapshot.vm_backend_status.backend, "vm");
+    }
+
+    #[test]
+    fn devtools_snapshot_recovers_poisoned_runtime_registry_locks() {
+        let runtime = CoreRuntime::new();
+        let handle = runtime.handle();
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.modules.lock().unwrap();
+            panic!("poison devtools modules registry");
+        }));
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.services.lock().unwrap();
+            panic!("poison devtools services registry");
+        }));
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.scene_hooks.lock().unwrap();
+            panic!("poison devtools scene hooks registry");
+        }));
+
+        let snapshot = collect_runtime_devtools_snapshot(&handle);
+        assert!(snapshot.modules.is_empty());
+        assert!(snapshot.services.is_empty());
+        assert!(snapshot.scene_hooks.is_empty());
     }
 }

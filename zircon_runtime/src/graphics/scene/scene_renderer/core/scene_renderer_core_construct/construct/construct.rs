@@ -13,7 +13,6 @@ use super::super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache
 use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRenderer};
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
-use super::super::super::super::prepass::NormalPrepassPipeline;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
 use super::super::super::super::shadow::atlas::{
     ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
@@ -60,19 +59,8 @@ impl SceneRendererCore {
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
         );
-        let normal_prepass = NormalPrepassPipeline::new(
-            device,
-            &scene_bind_group_bundle.layout,
-            &material_texture_bind_group_layout,
-            gpu_scene.scene_bind_group_layout(),
-        );
         let scene_clear = SceneRegionClearResources::new(device, target_format, DEPTH_FORMAT);
-        let shadow_map_renderer = ShadowMapRenderer::new(
-            device,
-            &scene_bind_group_bundle.layout,
-            &material_texture_bind_group_layout,
-            gpu_scene.scene_bind_group_layout(),
-        );
+        let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         let shadow_atlas_resources =
             ShadowAtlasResources::new(device, ShadowAtlasResourceConfig::default());
         let shadow_atlas_resource_config = shadow_atlas_resources.config();
@@ -135,7 +123,6 @@ impl SceneRendererCore {
             cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
             gpu_scene,
             hzb_occlusion_culler,
-            normal_prepass,
             scene_clear,
             shadow_map_renderer,
             shadow_atlas_allocator,

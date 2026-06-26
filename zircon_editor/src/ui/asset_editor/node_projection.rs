@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
+use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
@@ -200,6 +201,7 @@ fn project_ui_asset_editor_nodes(
             let value_text = resolve_node_value_text(metadata, &text, component_role);
             let value_number = resolve_node_value_number(metadata);
             let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
+            let options = string_array_attribute(metadata, "options");
             let visual_assets = resolve_visual_assets(metadata);
             let button_style = resolve_button_style_from_values(&metadata.style_overrides);
             let popup_open = resolve_node_popup_open(metadata);
@@ -227,6 +229,7 @@ fn project_ui_asset_editor_nodes(
                 value_text: SharedString::from(value_text),
                 value_number,
                 value_percent,
+                options: model_rc(options.into_iter().map(SharedString::from).collect()),
                 dispatch_kind: string_attribute(metadata, "dispatch_kind")
                     .unwrap_or_default()
                     .into(),
@@ -397,6 +400,21 @@ fn string_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<Stri
         .get(key)
         .and_then(Value::as_str)
         .map(str::to_string)
+}
+
+fn string_array_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Vec<String> {
+    metadata
+        .attributes
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

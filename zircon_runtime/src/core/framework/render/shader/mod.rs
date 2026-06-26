@@ -12,9 +12,13 @@ pub use definition_value::RenderShaderDefinitionValue;
 pub use dependency::RenderShaderDependency;
 pub use entry_point::RenderShaderEntryPointDescriptor;
 pub use geometry_source::{
-    GeometrySourceId, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    GEOMETRY_SOURCE_PLUGIN_ID_START,
+    builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
 };
 pub use pipeline_layout::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,

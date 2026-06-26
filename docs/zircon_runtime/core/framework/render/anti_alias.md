@@ -26,6 +26,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/mod.rs
@@ -38,6 +39,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_anti_alias_focused_tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
@@ -59,6 +64,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/mod.rs
@@ -78,6 +84,11 @@ plan_sources:
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs::render_product_taa_particle_transparent_pass_contributes_before_resolve
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs::render_product_particle_previous_state_suppresses_velocity_gap_stats
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs::render_product_taa_authored_reactive_mask_records_material_writer_path
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs::render_product_taa_transparent_reactive_mask_records_alpha_writer_path
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_anti_alias_focused_tests.rs::runtime_15_render_product_anti_alias_focused_tests_are_child_owners
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_resolution_reports_camera_msaa_sample_count_normalization
@@ -129,6 +140,10 @@ The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/l
 `TaaQualityPreset::{Low, Medium, High}` is intentionally framework-owned rather than shader-owned. `RenderQualityProfile::with_taa_quality(...)` lets product profiles select the preset, and `build_frame_submission_context(...)` applies that profile value before resolving the effective AA mode. The renderer-side `TaaResolveParams` maps the preset to uniform values, so changing the preset does not rebuild the TAA pipeline.
 
 `AntiAliasFallbackReport` records `requested_mode`, `effective_mode`, the preserved TAA quality preset, and an optional `AntiAliasFallbackReason`. `Auto` resolving to FXAA is reported as `AutoResolvedToFxaa`, while unsupported SMAA/CAS/DLSS, unsupported MSAA sample counts, unsupported TAA, missing TAA history, and unsupported FXAA each have distinct reasons. PP-M4 extends the report with the requested/effective render-graph sample counts plus normalization flags. This makes TAA suppressing camera MSAA and unsupported terminal AA families falling back to FXAA/Off visible without changing camera or asset schemas.
+
+Plan 09 frame submission context tests owner split keeps the TAA jitter submit-context regression in the frame submission context child test owner. `graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs` still owns `temporal_jitter_for_submission(...)`, while `graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs` owns `render_taa_jitter_zero_when_taa_inactive` beside the advanced feature gating coverage. `runtime_15_render_frame_submission_context_tests_are_child_owner` locks that split and records `render_plan09_frame_submission_context_tests_owner_split_static_passed_cargo_deferred_active_compile_lane` across Plan 09, render index, structure convention, review findings, advanced docs, and anti-alias docs.
+
+Render product anti-alias particle/reactive tests owner split keeps the product anti-alias parent focused on general AA/FXAA/TAA capture flow. `graphics/tests/render_product_anti_alias.rs` is now a 566-line parent with `mod particle;` and `mod reactive_mask;`; `graphics/tests/render_product_anti_alias/particle.rs` owns the particle transparent pass contribution and previous-state velocity-gap suppression tests; `graphics/tests/render_product_anti_alias/reactive_mask.rs` owns authored and transparent reactive-mask material-writer tests. `runtime_15_render_product_anti_alias_focused_tests_are_child_owners` locks those owners, and the slice is recorded as `render_plan07_product_anti_alias_particle_reactive_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`.
 
 ## Capability Resolution
 

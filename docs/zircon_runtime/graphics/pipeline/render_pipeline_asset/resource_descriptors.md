@@ -3,6 +3,16 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_compile_monolith_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
@@ -23,7 +33,7 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs::dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resource-descriptors-0617 --message-format short --color never
 doc_type: module-detail
 ---
@@ -78,6 +88,8 @@ The module does not own external resource typing or required/report-only binding
 - The dynamic-resolution terminal-AA regression asserts that `FINAL_COMPOSITED` remains at viewport/presentation size while scene/postprocess internals use the scaled render size.
 
 The 2026-06-17 resource-descriptor extraction is behavior-preserving. Focused lib-tests remain deferred to the milestone testing stage; the scoped `zircon_runtime --features core-min` check listed in the header is the intended lightweight validation gate for this implementation slice.
+
+The 2026-06-24 Pipeline compile monolith tests owner split keeps descriptor sizing and validation coverage in child owners instead of a single root test file. `pipeline_compile/dynamic_resolution.rs` owns viewport-vs-render-size descriptor regressions, `pipeline_compile/feature_descriptors.rs` owns extract-derived HDR/MSAA resource descriptor coverage, and `pipeline_compile/validation_descriptors.rs` owns descriptor resource/extract validation failures. Guard `runtime_15_pipeline_compile_monolith_tests_are_child_owners` locks the child layout and status anchor `render_pipeline_compile_monolith_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; Cargo/WGPU/RenderDoc remain deferred by the milestone implementation cadence for this structural slice.
 
 ## Open Issues Or Follow-Up
 

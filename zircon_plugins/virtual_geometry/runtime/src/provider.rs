@@ -176,6 +176,10 @@ mod tests {
         VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
         VirtualGeometryRootClusterRangeAsset,
     };
+    use zircon_runtime::core::framework::render::{
+        render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
+        RenderMeshStaticState,
+    };
     use zircon_runtime::core::math::{Transform, Vec3, Vec4};
     use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
     use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
@@ -186,16 +190,22 @@ mod tests {
         let model_id = ResourceId::from_stable_label("res://models/provider-vg.model.toml");
         let material_id = ResourceId::from_stable_label("builtin://material/default");
         let model = cooked_model_asset();
+        let node_id = 44;
+        let transform = Transform::from_translation(Vec3::new(1.0, 2.0, 3.0));
         let mesh = RenderMeshSnapshot {
-            node_id: 44,
-            transform: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
+            node_id,
+            stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
+            transform,
             model: ResourceHandle::<ModelMarker>::new(model_id),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
-            render_layer_mask: default_render_layer_mask(),
+            static_state: RenderMeshStaticState::from_transform_static(false),
+            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
         };
         let mut load_model = |requested_id| (requested_id == model_id).then(|| model.clone());
 

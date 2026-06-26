@@ -3,7 +3,7 @@ use crate::scene::ecs::{
 };
 use crate::scene::EntityId;
 
-use super::World;
+use super::{SceneResult, World};
 
 impl World {
     pub fn internal_entity(&self, entity: EntityId) -> Option<InternalEntity> {
@@ -21,16 +21,12 @@ impl World {
     pub(super) fn register_stable_entity(
         &mut self,
         entity: EntityId,
-    ) -> Result<InternalEntity, String> {
+    ) -> SceneResult<InternalEntity> {
         // Callers append the entity immediately after registration, so the current list length is its row.
         let row = self.entities.len();
-        let internal = match self
+        let internal = self
             .entity_registry
-            .spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, row))
-        {
-            Ok(internal) => internal,
-            Err(error) => return Err(error.to_string()),
-        };
+            .spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, row))?;
 
         Ok(internal)
     }

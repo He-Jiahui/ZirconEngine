@@ -31,11 +31,11 @@ impl EditorUiHost {
         let source = fs::read_to_string(&source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let route = ui_asset_editor_route_from_source(asset_id, &source, mode.unwrap_or_default())
-            .map_err(EditorError::UiAsset)?;
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let preview_size = preview_size_for_preset(route.preview_preset);
         let session =
             build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)
-                .map_err(EditorError::UiAsset)?;
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let instance_id =
             self.open_view(ViewDescriptorId::new(UI_ASSET_EDITOR_DESCRIPTOR_ID), None)?;
         self.lock_ui_asset_sessions().insert(

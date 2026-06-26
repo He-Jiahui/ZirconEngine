@@ -1,0 +1,16 @@
+[package]
+name = "zircon_plugin_native_window_hosting_dist"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native window hosting editor-only standalone distribution package for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["dist"]
+dist = []
+
+[dependencies]
+zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

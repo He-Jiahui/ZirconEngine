@@ -7,11 +7,11 @@ impl Component for DeferredMarker {}
 
 fn resource_store_source() -> &'static str {
     concat!(
-        include_str!("../ecs/resource_store/mod.rs"),
+        include_str!("../../ecs/resource_store/mod.rs"),
         "\n",
-        include_str!("../ecs/resource_store/stored_resource.rs"),
+        include_str!("../../ecs/resource_store/stored_resource.rs"),
         "\n",
-        include_str!("../ecs/resource_store/store.rs"),
+        include_str!("../../ecs/resource_store/store.rs"),
     )
 }
 

@@ -64,8 +64,17 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
         .iter()
         .find(|node| node.control_id == "OpenAssetsView")
         .expect("open assets button");
+    assert_eq!(
+        nodes
+            .iter()
+            .filter(|node| node.control_id == "OpenAssetsView")
+            .count(),
+        1
+    );
     assert_eq!(open_assets.role.to_string(), "Button");
     assert_eq!(open_assets.text.to_string(), "Open Assets");
+    assert_eq!(open_assets.button_variant.to_string(), "primary");
+    assert_eq!(open_assets.value_text.to_string(), "");
     assert_eq!(open_assets.dispatch_kind.to_string(), "surface");
     assert_eq!(
         open_assets.action_id.to_string(),
@@ -76,7 +85,16 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
         .iter()
         .find(|node| node.control_id == "OpenAssetBrowser")
         .expect("asset browser button");
+    assert_eq!(
+        nodes
+            .iter()
+            .filter(|node| node.control_id == "OpenAssetBrowser")
+            .count(),
+        1
+    );
     assert_eq!(open_browser.role.to_string(), "Button");
     assert_eq!(open_browser.text.to_string(), "Asset Browser");
+    assert_eq!(open_browser.button_variant.to_string(), "secondary");
+    assert_eq!(open_browser.value_text.to_string(), "");
     assert_eq!(open_browser.dispatch_kind.to_string(), "asset");
 }

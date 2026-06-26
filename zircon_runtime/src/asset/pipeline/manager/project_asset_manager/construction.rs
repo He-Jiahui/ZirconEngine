@@ -96,9 +96,7 @@ impl ProjectAssetManager {
             }
         }
 
-        self.asset_importers
-            .write()
-            .expect("asset importer registry lock poisoned")
+        self.importer_registry_write()
             .register_arc(importer.clone())
             .map_err(|error| asset_error_message(error.to_string()))?;
 
@@ -169,12 +167,7 @@ impl ProjectAssetManager {
 
     fn active_importer_registry(&self) -> AssetImporterRegistry {
         let mut registry = AssetImporter::default().registry().clone();
-        for importer in self
-            .asset_importers
-            .read()
-            .expect("asset importer registry lock poisoned")
-            .importers()
-        {
+        for importer in self.importer_registry_read().importers() {
             let _ = registry.register_arc(importer);
         }
         registry

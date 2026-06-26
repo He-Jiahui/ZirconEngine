@@ -1,7 +1,7 @@
 use super::super::super::super::super::*;
 use super::descriptors::test_output_descriptor;
 
-pub(super) fn configure_started_test_output(
+pub(crate) fn configure_started_test_output(
     sound: &DefaultSoundManager,
 ) -> SoundOutputDeviceDescriptor {
     let descriptor = test_output_descriptor();

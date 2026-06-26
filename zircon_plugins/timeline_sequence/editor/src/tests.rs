@@ -7,7 +7,9 @@ use zircon_runtime::asset::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
+use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
 
 #[test]
 fn timeline_authoring_registration_exposes_menu_items_and_payload_schemas() {
@@ -51,6 +53,48 @@ fn timeline_sequence_package_manifest_declares_editor_only_metadata() {
     );
     assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
     assert_eq!(editor_module.capabilities, manifest.capabilities);
+}
+
+#[test]
+fn timeline_sequence_package_manifest_declares_editor_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("timeline_sequence declares standalone distribution");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.dist_crate, TIMELINE_SEQUENCE_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert!(distribution.runtime_entry.is_empty());
+    assert_eq!(
+        distribution.editor_entry,
+        TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY
+    );
+
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "timeline_sequence.dist")
+        .expect("timeline_sequence dist module is declared");
+    assert_eq!(dist_module.kind, PluginModuleKind::Native);
+    assert_eq!(dist_module.crate_name, TIMELINE_SEQUENCE_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.target_modes,
+        vec![RuntimeTargetMode::EditorHost]
+    );
+    assert_eq!(dist_module.capabilities, vec![CAPABILITY.to_string()]);
 }
 
 #[test]

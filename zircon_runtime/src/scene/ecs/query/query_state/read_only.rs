@@ -8,7 +8,7 @@ use crate::scene::EntityId;
 use crate::scene::World;
 
 use super::super::single_from_iter;
-use super::helpers::collect_many_query_items;
+use super::many_item_array::collect_many_query_items;
 use super::QueryState;
 
 impl<D, F> QueryState<D, F>

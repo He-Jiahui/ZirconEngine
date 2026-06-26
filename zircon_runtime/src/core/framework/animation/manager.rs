@@ -8,7 +8,7 @@ use crate::scene::World;
 
 use super::{
     AnimationGpuSkinningReadiness, AnimationGraphEvaluation, AnimationParameterMap,
-    AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput,
+    AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput, AnimationResult,
     AnimationRuntimeStatus, AnimationSequenceApplyReport, AnimationStateMachineEvaluation,
     AnimationTickReport, AnimationTickRequest, AnimationTimelineDescriptor, AnimationTrackPath,
 };
@@ -45,7 +45,7 @@ pub trait AnimationManager: Send + Sync {
         clip: &AnimationClipAsset,
         time_seconds: Real,
         looping: bool,
-    ) -> Result<AnimationPoseOutput, String>;
+    ) -> AnimationResult<AnimationPoseOutput>;
     fn tick_world_contract(&self, request: AnimationTickRequest) -> AnimationTickReport {
         AnimationTickReport::new(request.world)
     }
@@ -73,7 +73,7 @@ pub trait AnimationManager: Send + Sync {
         sequence: &AnimationSequenceAsset,
         _time_seconds: Real,
         _looping: bool,
-    ) -> Result<AnimationSequenceApplyReport, String> {
+    ) -> AnimationResult<AnimationSequenceApplyReport> {
         Ok(AnimationSequenceApplyReport {
             applied_tracks: Vec::new(),
             missing_tracks: self.sequence_track_paths(sequence),

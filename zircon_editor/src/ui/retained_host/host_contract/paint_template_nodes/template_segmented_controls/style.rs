@@ -6,8 +6,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use segmen
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use segmented::{
-    segmented_background, segmented_border_color, selected_segment_border_width,
-    selected_segment_underline_color, selected_segment_underline_height, SEGMENT_IDLE_BACKGROUND,
+    segmented_background, selected_segment_border_width, selected_segment_underline_color,
+    selected_segment_underline_height, SEGMENT_IDLE_BACKGROUND,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use tabs::tab_background;

@@ -26,7 +26,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
@@ -49,7 +49,7 @@ implementation_files:
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
   - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 plan_sources:
@@ -299,7 +299,7 @@ Validation for this follow-up reruns the template wiring gate, whole-pack invent
 
 ## Live Visual Validation Follow-Up
 
-The live visual validation pass closes the static-wiring blind spot without changing the icon pack. `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs` now contains `editor_pages_template_icons_have_readable_16px_raster_footprints`, a retained-host painter regression that rasterizes the unique wired `editor_pages` template icon paths at 16 x 16 px through the same template icon path used by production chrome. It rejects missing icons, blank rasters, collapsed footprints smaller than 6 x 6 px, and full-slot silhouettes that would read as solid blocks instead of icons.
+The live visual validation pass closes the static-wiring blind spot without changing the icon pack. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs` contains `editor_pages_template_icons_have_readable_16px_raster_footprints`, a retained-host painter regression that rasterizes the unique wired `editor_pages` template icon paths at 16 x 16 px through the same template icon path used by production chrome. It rejects missing icons, blank rasters, collapsed footprints smaller than 6 x 6 px, and full-slot silhouettes that would read as solid blocks instead of icons.
 
 The existing ignored screenshot gate `capture_m3_gui_acceptance_visual_artifacts` generated retained-host artifacts under `target/visual-layout`, including `editor-window-m3-svg-icon-scale-small-640x420.png` and `editor-window-m3-svg-icon-scale-large-1260x780.png`. A live Editor smoke capture then launched the built `zircon_editor.exe` and wrote `target/visual-layout/editor-live-window-900x620.png`; the OS window capture reported title `Zircon Editor`, actual PNG size `1296 x 759`, and `86492` bytes.
 

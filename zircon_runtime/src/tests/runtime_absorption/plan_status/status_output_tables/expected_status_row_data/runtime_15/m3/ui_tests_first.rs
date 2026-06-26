@@ -30,6 +30,45 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 UI shared core guard child-owner split",
+        &[
+            "runtime_15_ui_shared_core_guard_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/ui_shared_core.rs",
+            "structure_convention/test_file_budget/ui_shared_core/layout_surface.rs",
+            "runtime_15_ui_shared_core_guard_child_owners_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI shared core input visibility child folder split",
+        &[
+            "runtime_15_ui_shared_core_input_visibility_child_folder_split_static_passed_cargo_deferred",
+            "ui/tests/shared_core/input_visibility.rs",
+            "ui/tests/shared_core/input_visibility/hit_visibility.rs",
+            "ui/tests/shared_core/input_visibility/pointer_routes.rs",
+            "runtime_15_ui_shared_core_input_visibility_children_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI shared core scroll mutation child folder split",
+        &[
+            "runtime_15_ui_shared_core_scroll_mutation_child_folder_split_static_passed_cargo_deferred",
+            "ui/tests/shared_core/scroll_mutation.rs",
+            "ui/tests/shared_core/scroll_mutation/property_mutation.rs",
+            "ui/tests/shared_core/scroll_mutation/virtual_scroll.rs",
+            "runtime_15_ui_shared_core_scroll_mutation_children_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI shared core layout surface child folder split",
+        &[
+            "runtime_15_ui_shared_core_layout_surface_child_folder_split_static_passed_cargo_deferred",
+            "ui/tests/shared_core/layout_surface.rs",
+            "ui/tests/shared_core/layout_surface/layout_measurement.rs",
+            "ui/tests/shared_core/layout_surface/render_extract.rs",
+            "runtime_15_ui_shared_core_layout_surface_children_are_folder_backed",
+        ],
+    ),
+    (
         "Runtime 15 M3 UI accessibility test folder split",
         &[
             "runtime_15_ui_accessibility_tests_folder_split_static_passed_cargo_deferred",
@@ -125,6 +164,25 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs",
             "ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs",
             "runtime_15_ui_runtime_input_reply_route_children_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI runtime input reply table pointer route folder split",
+        &[
+            "runtime_15_ui_runtime_input_reply_table_pointer_routes_folder_split_static_passed_cargo_deferred",
+            "ui/tests/runtime_input_reply_routes/table_pointer_routes.rs",
+            "ui/tests/runtime_input_reply_routes/table_pointer_routes/resize.rs",
+            "ui/tests/runtime_input_reply_routes/table_pointer_routes/virtualization.rs",
+            "runtime_15_ui_runtime_input_reply_table_pointer_routes_are_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 UI runtime input reply route guard child-owner split",
+        &[
+            "runtime_15_ui_runtime_input_reply_route_guard_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs",
+            "structure_convention/test_file_budget/ui_runtime_input_reply_routes/route_children.rs",
+            "runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed",
         ],
     ),
 ];

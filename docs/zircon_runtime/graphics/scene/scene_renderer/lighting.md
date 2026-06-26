@@ -33,6 +33,8 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_shadows_many_point_lights_tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/light/gpu_light.rs
   - zircon_runtime/src/core/framework/render/light/shadow_settings.rs
@@ -91,9 +93,10 @@ tests:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs::tests::update_light_grid_stats_records_latest_grid_report
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs::tests::update_light_grid_stats_resets_when_no_report
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_light_grid_stats
-  - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights
-  - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights_forward_deferred_capture_parity
-  - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_hundred_point_lights_report_local_density_stats
+  - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs::render_product_many_point_lights
+  - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs::render_product_many_point_lights_forward_deferred_capture_parity
+  - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs::render_product_hundred_point_lights_report_local_density_stats
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_shadows_many_point_lights_tests.rs::runtime_15_render_product_shadows_many_point_lights_tests_are_child_owner
 ---
 
 # Scene Renderer Lighting
@@ -195,6 +198,17 @@ peak and average cluster load first, then submits both layouts through the real
 WGPU Forward+ product path and compares the reported `RenderStats` peak and
 average cluster load. This guards against treating total light count alone as
 the shading-cost signal.
+
+The 2026-06-24 Render product shadows many-point lights test owner split keeps
+these light-grid product contracts in
+`graphics/tests/render_product_shadows/many_point_lights.rs` while the
+`render_product_shadows.rs` parent stays focused on shadow-atlas graph, CSM,
+multi-spot, and shared shadow helpers. Guard
+`runtime_15_render_product_shadows_many_point_lights_tests_are_child_owner`
+locks that boundary under status
+`render_plan05_product_shadows_many_point_lights_test_owner_split_static_passed_cargo_deferred_implementation_cadence`;
+current evidence is scoped rustfmt/static/line-count/docs/diff while
+Cargo/WGPU/RenderDoc remain deferred by milestone implementation cadence.
 
 Latest validation:
 - `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` passed with the repository warning set.

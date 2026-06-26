@@ -73,14 +73,62 @@ jobs:
             package: zircon_plugin_ai_dist
           - plugin_id: animation
             package: zircon_plugin_animation_dist
+          - plugin_id: animation_graph
+            package: zircon_plugin_animation_graph_dist
+          - plugin_id: rendering
+            package: zircon_plugin_rendering_dist
           - plugin_id: hybrid_gi
             package: zircon_plugin_hybrid_gi_dist
+          - plugin_id: virtual_geometry
+            package: zircon_plugin_virtual_geometry_dist
           - plugin_id: solari
             package: zircon_plugin_solari_dist
           - plugin_id: physics
             package: zircon_plugin_physics_dist
+          - plugin_id: sound
+            package: zircon_plugin_sound_dist
+          - plugin_id: runtime_diagnostics
+            package: zircon_plugin_runtime_diagnostics_dist
+          - plugin_id: ui_asset_authoring
+            package: zircon_plugin_ui_asset_authoring_dist
+          - plugin_id: material_editor
+            package: zircon_plugin_material_editor_dist
+          - plugin_id: timeline_sequence
+            package: zircon_plugin_timeline_sequence_dist
+          - plugin_id: native_window_hosting
+            package: zircon_plugin_native_window_hosting_dist
+          - plugin_id: editor_build_export_desktop
+            package: zircon_plugin_editor_build_export_desktop_dist
+          - plugin_id: plugin_sdk_examples
+            package: zircon_plugin_sdk_examples_dist
           - plugin_id: texture
             package: zircon_plugin_texture_dist
+          - plugin_id: net
+            package: zircon_plugin_net_dist
+          - plugin_id: asset_importer.data
+            package: zircon_plugin_asset_importer_data_dist
+          - plugin_id: asset_importer.audio
+            package: zircon_plugin_asset_importer_audio_dist
+          - plugin_id: asset_importer.model
+            package: zircon_plugin_asset_importer_model_dist
+          - plugin_id: asset_importer.shader
+            package: zircon_plugin_asset_importer_shader_dist
+          - plugin_id: asset_importer.texture
+            package: zircon_plugin_asset_importer_texture_dist
+          - plugin_id: gltf_importer
+            package: zircon_plugin_gltf_importer_dist
+          - plugin_id: audio_importer
+            package: zircon_plugin_audio_importer_dist
+          - plugin_id: opus_importer
+            package: zircon_plugin_opus_importer_dist
+          - plugin_id: shader_wgsl_importer
+            package: zircon_plugin_shader_wgsl_importer_dist
+          - plugin_id: ui_document_importer
+            package: zircon_plugin_ui_document_importer_dist
+          - plugin_id: obj_importer
+            package: zircon_plugin_obj_importer_dist
+          - plugin_id: texture_importer
+            package: zircon_plugin_texture_importer_dist
           - plugin_id: particles
             package: zircon_plugin_particles_dist
           - plugin_id: navigation
@@ -89,6 +137,10 @@ jobs:
             package: zircon_plugin_zr_vm_language_dist
           - plugin_id: terrain
             package: zircon_plugin_terrain_dist
+          - plugin_id: tilemap_2d
+            package: zircon_plugin_tilemap_2d_dist
+          - plugin_id: prefab_tools
+            package: zircon_plugin_prefab_tools_dist
     steps:
       - uses: actions/checkout@v5
 

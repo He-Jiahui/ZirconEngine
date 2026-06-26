@@ -1,6 +1,10 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::segments::{local_rect, push_segments};
+
+const TREE_DISCLOSURE_DOWN_ICON: &str = "zircon_editor_shell/toolbar/dropdown.svg";
+const TREE_DISCLOSURE_RIGHT_ICON: &str = "zircon_editor_shell/toolbar/chevron-right.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_disclosure_glyph(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,8 +16,30 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     opacity: f32,
 ) {
     if node.expanded {
+        if push_icon_asset_pixels(
+            commands,
+            TREE_DISCLOSURE_DOWN_ICON,
+            rect,
+            clip,
+            order,
+            Some(color),
+            opacity,
+        ) {
+            return;
+        }
         push_down_chevron(commands, rect, clip, order, color, opacity);
     } else {
+        if push_icon_asset_pixels(
+            commands,
+            TREE_DISCLOSURE_RIGHT_ICON,
+            rect,
+            clip,
+            order,
+            Some(color),
+            opacity,
+        ) {
+            return;
+        }
         push_right_chevron(commands, rect, clip, order, color, opacity);
     }
 }

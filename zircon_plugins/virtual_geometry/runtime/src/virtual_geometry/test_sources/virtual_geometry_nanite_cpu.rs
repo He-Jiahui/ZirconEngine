@@ -4,12 +4,12 @@ use zircon_runtime::asset::{
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
     VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
-use zircon_runtime::core::framework::render::RenderCapabilitySummary;
-use zircon_runtime::core::framework::render::RenderMeshSnapshot;
-use zircon_runtime::core::framework::render::RenderVirtualGeometryCpuReferencePageDependencyEntry;
-use zircon_runtime::core::framework::render::RenderVirtualGeometryDebugState;
-use zircon_runtime::core::framework::render::RenderVirtualGeometryExtract;
-use zircon_runtime::core::framework::render::RenderVirtualGeometryPageDependency;
+use zircon_runtime::core::framework::render::{
+    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderCapabilitySummary,
+    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderVirtualGeometryCpuReferencePageDependencyEntry, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency,
+};
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use zircon_runtime::scene::components::Mobility;
@@ -347,32 +347,8 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
     let plain_model_id = ResourceId::from_stable_label("res://models/plain.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes(
         &[
-            RenderMeshSnapshot {
-                node_id: 5,
-                transform: Transform::default(),
-                model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-                mesh: None,
-                material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                    "res://materials/cooked.zmaterial",
-                )),
-                morph_weights: Vec::new(),
-                tint: Default::default(),
-                mobility: Mobility::Dynamic,
-                render_layer_mask: 1,
-            },
-            RenderMeshSnapshot {
-                node_id: 6,
-                transform: Transform::default(),
-                model: ResourceHandle::<ModelMarker>::new(plain_model_id),
-                mesh: None,
-                material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                    "res://materials/plain.zmaterial",
-                )),
-                morph_weights: Vec::new(),
-                tint: Default::default(),
-                mobility: Mobility::Dynamic,
-                render_layer_mask: 1,
-            },
+            mesh_snapshot(5, cooked_model_id, "res://materials/cooked.zmaterial"),
+            mesh_snapshot(6, plain_model_id, "res://materials/plain.zmaterial"),
         ],
         |model_id| match model_id {
             id if id == cooked_model_id => Some(ModelAsset {
@@ -462,19 +438,11 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
         ..Default::default()
     };
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         debug,
         |model_id| match model_id {
             id if id == cooked_model_id => Some(ModelAsset {
@@ -501,19 +469,11 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
 fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bvh_depth() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         |model_id| match model_id {
             id if id == cooked_model_id => Some(ModelAsset {
                 uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
@@ -544,19 +504,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
 fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_by_mip() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         |model_id| match model_id {
             id if id == cooked_model_id => Some(ModelAsset {
                 uri: AssetUri::parse("res://models/cooked.model.toml").unwrap(),
@@ -587,19 +539,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
 fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_worklist() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(10),
             print_leaf_clusters: true,
@@ -641,19 +585,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
 fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_as_worklist() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -699,19 +635,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
 fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_as_worklist() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -757,19 +685,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
 fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -809,19 +729,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
 fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -861,19 +773,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
 fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -913,19 +817,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
 fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(10),
             print_leaf_clusters: true,
@@ -961,19 +857,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
 fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -1013,19 +901,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
 fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(9),
             print_leaf_clusters: true,
@@ -1065,19 +945,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
 fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(10),
             print_leaf_clusters: true,
@@ -1113,19 +985,11 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
 fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster_map() {
     let cooked_model_id = ResourceId::from_stable_label("res://models/cooked.model.toml");
     let output = build_virtual_geometry_automatic_extract_from_meshes_with_debug(
-        &[RenderMeshSnapshot {
-            node_id: 5,
-            transform: Transform::default(),
-            model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
-            mesh: None,
-            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.zmaterial",
-            )),
-            morph_weights: Vec::new(),
-            tint: Default::default(),
-            mobility: Mobility::Dynamic,
-            render_layer_mask: 1,
-        }],
+        &[mesh_snapshot(
+            5,
+            cooked_model_id,
+            "res://materials/cooked.zmaterial",
+        )],
         RenderVirtualGeometryDebugState {
             forced_mip: Some(10),
             print_leaf_clusters: true,
@@ -1155,6 +1019,27 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
         vec![(1, vec![100, 300])],
         "expected the CPU-reference inspection surface to expose the selected-cluster worklist grouped by BVH depth so host tools can compare current selection against full traversal depth dumps without regrouping selected clusters"
     );
+}
+
+fn mesh_snapshot(node_id: u64, model_id: ResourceId, material_uri: &str) -> RenderMeshSnapshot {
+    let transform = Transform::default();
+    RenderMeshSnapshot {
+        node_id,
+        stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+        transform_revision: render_mesh_transform_revision(&transform),
+        transform,
+        model: ResourceHandle::<ModelMarker>::new(model_id),
+        mesh: None,
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            material_uri,
+        )),
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Default::default(),
+        mobility: Mobility::Dynamic,
+        static_state: RenderMeshStaticState::from_transform_static(false),
+        render_layer_mask: RenderLayerSet::from_legacy_mask(1),
+    }
 }
 
 fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {

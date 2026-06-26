@@ -57,6 +57,8 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
             template_nodes: Default::default(),
             tab_row_frame: host_frame_rect(0.0, 40.0, 1200.0, 32.0),
             project_path_frame: host_frame_rect(900.0, 48.0, 280.0, 14.0),
+            overflow_frame: Default::default(),
+            overflow_hidden_tab_indices: Vec::new(),
             tab_frames: host_chrome_tab_frames(&["document-tab"]),
             tabs: host_tabs(&["document-tab"]),
             project_path: "res://project".into(),

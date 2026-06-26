@@ -18,3 +18,45 @@ fn sound_plugin_registration_contributes_runtime_module() {
         ]
     );
 }
+
+#[test]
+fn sound_package_manifest_declares_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("sound plugin declares standalone distribution metadata");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, SOUND_DIST_CRATE_NAME);
+    assert_eq!(distribution.runtime_entry, SOUND_DIST_RUNTIME_ENTRY);
+
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "sound.dist")
+        .expect("sound package manifest exposes native dist module");
+    assert_eq!(
+        dist_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert_eq!(dist_module.crate_name, SOUND_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.target_modes,
+        vec![
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        ]
+    );
+    assert_eq!(dist_module.capabilities, RUNTIME_CAPABILITIES);
+}

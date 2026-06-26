@@ -57,11 +57,14 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/mod.rs
   - zircon_runtime/src/graphics/pipeline/mod.rs
   - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_renderer_data_asset_compile_tests.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
@@ -108,6 +111,13 @@ plan_sources:
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
 tests:
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs::asset_aware_compile_reports_missing_shader_and_material_without_blocking_graph
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs::asset_aware_compile_reports_shader_contract_expectation_gaps
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs::asset_aware_compile_reports_shader_payload_readiness_gaps
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs::asset_aware_compile_reports_material_contract_diagnostics
+  - zircon_runtime/src/graphics/tests/renderer_data_asset/asset_aware_compile.rs::asset_aware_compile_reports_material_local_validation_diagnostics
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_renderer_data_asset_compile_tests.rs::runtime_15_renderer_data_asset_compile_tests_are_child_owner
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs::renderer_data_document_uses_builtin_feature_authoring_name_contract
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs::renderer_data_document_uses_render_pass_stage_authoring_name_contract
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs::renderer_data_document_rejects_legacy_aggregate_stage_names
@@ -177,17 +187,19 @@ tests:
   - zircon_runtime/src/graphics/tests/renderer_data_version.rs::renderer_data_document_uses_current_version_when_field_is_omitted
   - zircon_runtime/src/graphics/tests/advanced_followup_slots.rs
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile/particle.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_plugin_feature_compile_particle_tests.rs::runtime_15_plugin_feature_compile_particle_tests_are_child_owner
   - zircon_runtime/src/graphics/tests/mod.rs
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_empty_descriptor_extract_section_names
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_duplicate_history_bindings_in_one_descriptor
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_assigns_attachment_ops_from_resource_write_order
+  - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs::pipeline_compile_rejects_empty_descriptor_extract_section_names
+  - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs::pipeline_compile_rejects_duplicate_history_bindings_in_one_descriptor
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::pipeline_compile_assigns_attachment_ops_from_resource_write_order
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::depth_prepass_executor_requires_prepass_context_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::preview_sky_executor_requires_preview_renderer_context_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::overlay_executor_requires_overlay_context_instead_of_nooping
   - cargo test -p zircon_runtime --lib render_pass_executor_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/tests/project_render.rs::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs::tests::renderer_material_layout_diagnostics_accept_current_renderer_abi
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs::tests::renderer_material_layout_diagnostics_validate_skinning_and_texture_bindings
@@ -199,7 +211,6 @@ tests:
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
-  - zircon_runtime/src/graphics/tests/renderer_data_asset.rs::asset_aware_compile_reports_shader_payload_readiness_gaps
 doc_type: module-detail
 ---
 
@@ -244,6 +255,8 @@ The compile context is abstracted as `RenderPipelineAssetContext`, which can loa
 M2 diagnostics cover missing feature shader/material assets, missing material-owned shaders, feature shader versus material shader mismatch, required shader entry points, expected shader properties, expected shader texture slots, existing material-local validation errors, stored material validation diagnostics, material shader-contract diagnostics, and shader payload readiness diagnostics. When a feature has a material reference but no explicit feature shader reference, asset-aware compile loads the `MaterialAsset.shader` reference and uses that shader for material contract validation and shader readiness reporting; if that material-owned shader is missing, the compile report emits `MaterialShaderMissing` with the material reference and the shader reference it owns. Explicit feature shader references still emit `ShaderMissing` when their shader asset cannot be resolved. Material-shader mismatch, material validation, and stored material diagnostic rows carry the owning material reference. Material validation rows also carry the shader reference when they were produced by shader-contract validation, while material-local validation rows remain shaderless. Shader diagnostics remain shader-owned and are wrapped as `ShaderValidation`. `RendererFeatureContractDiagnostic` centralizes the material/shader ownership, `RenderMaterialDiagnosticSource`, and severity accessors used by compile-report and editor groupings, including de-duplicating shader references when a material validation error and its shader-contract source point at the same `.zshader`, grouping dependency-resolution/schema/texture/WGSL-capture rows by source, grouping structural repair rows as `Error`, and grouping stored material/shader validation strings as `Warning`.
 
 The shader side now consumes `ShaderAsset::readiness_report()` instead of forwarding only `shader.validation_diagnostics`. RendererData therefore reports asset-owned shader readiness gaps before GPU preparation: missing runtime WGSL for non-WGSL sources without emitted WGSL, invalid entry-point stage tokens, empty or duplicate shader definition names, and copied shader validation diagnostics. This is still a compile-report diagnostic surface only. It does not compose WGSL imports, create shader modules, specialize typed shader definitions, allocate bind group layouts, or prewarm renderer pipelines.
+
+RendererData asset-aware compile tests owner split keeps the SRP compile diagnostic coverage folder-backed after the 2026-06-24 structure pass. `graphics/tests/renderer_data_asset.rs` remains the 715-line document/projection/shared-fixture parent, while `graphics/tests/renderer_data_asset/asset_aware_compile.rs` owns missing shader/material, shader contract expectation, shader payload readiness, material contract, and material-local validation diagnostics at 277 lines. Guard `runtime_15_renderer_data_asset_compile_tests_are_child_owner` locks moved-test/helper ownership, parent/child line budgets, and docs/status anchors under `render_plan08_renderer_data_asset_compile_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; current evidence is scoped rustfmt/static/line-count/docs-anchor/stale-path/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred by milestone implementation cadence.
 
 M2 asset-aware compile validation passed on 2026-05-20 with `CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1`: `cargo test -p zircon_runtime --locked renderer_data_asset --jobs 1 --message-format short --color never` ran 10 focused tests, 10 passed after review added material-local validation diagnostics to the SRP report; `cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never` ran 39 focused tests, 39 passed; `cargo test -p zircon_runtime --locked material --jobs 1 --message-format short --color never` ran 75 runtime lib tests plus 1 matching integration test, all passed; and `cargo check -p zircon_runtime --lib --locked --jobs 1 --color never` completed successfully. All commands emitted only the pre-existing `entity_ids_matching_query_archetypes` dead-code warning outside this SRP lane.
 

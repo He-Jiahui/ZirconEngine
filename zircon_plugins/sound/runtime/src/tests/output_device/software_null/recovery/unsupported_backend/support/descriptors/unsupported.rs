@@ -1,6 +1,6 @@
 use super::super::super::super::super::super::super::*;
 
-pub(super) fn unsupported_native_descriptor() -> SoundOutputDeviceDescriptor {
+pub(crate) fn unsupported_native_descriptor() -> SoundOutputDeviceDescriptor {
     SoundOutputDeviceDescriptor {
         id: SoundOutputDeviceId::new("sound.output.unsupported"),
         backend: "native-missing".to_string(),

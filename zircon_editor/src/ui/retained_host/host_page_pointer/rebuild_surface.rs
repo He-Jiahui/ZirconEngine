@@ -1,21 +1,18 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
-    layout::UiFrame,
     tree::{UiInputPolicy, UiTreeNode},
 };
 
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 use super::base_state::base_state;
-use super::constants::{
-    ROOT_NODE_ID, STRIP_NODE_ID, STRIP_X, STRIP_Y, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
-};
+use super::constants::{OVERFLOW_NODE_ID, ROOT_NODE_ID, STRIP_NODE_ID};
 use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_route::HostPagePointerRoute;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::root_frame::root_frame;
-use super::tab_node_id::{tab_node_id, tab_route_id};
+use super::tab_node_id::{overflow_route_id, tab_node_id, tab_route_id};
 
 impl HostPagePointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
@@ -40,20 +37,9 @@ impl HostPagePointerBridge {
             )
             .expect("host page root must exist");
 
-        let mut next_x = self.layout.strip_frame.x + STRIP_X;
-        for (item_index, item) in self.layout.items.iter().enumerate() {
+        for tab in &self.layout.tabs {
+            let item_index = tab.page_index;
             let node_id = tab_node_id(item_index);
-            let frame = self
-                .measured_frames
-                .get(item_index)
-                .and_then(|frame| *frame)
-                .unwrap_or(UiFrame::new(
-                    next_x,
-                    self.layout.strip_frame.y + STRIP_Y,
-                    TAB_MIN_WIDTH,
-                    TAB_HEIGHT,
-                ));
-            next_x = frame.x + frame.width + TAB_GAP;
             surface
                 .tree
                 .insert_child(
@@ -62,7 +48,7 @@ impl HostPagePointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.host_page/tab_{item_index}")),
                     )
-                    .with_frame(frame)
+                    .with_frame(tab.frame)
                     .with_z_index(20 + item_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -74,7 +60,32 @@ impl HostPagePointerBridge {
                 tab_route_id(item_index),
                 EditorRouteIntent::HostPage(HostPagePointerRoute::Tab {
                     item_index,
-                    page_id: item.page_id.clone(),
+                    page_id: tab.page_id.clone(),
+                }),
+            );
+        }
+
+        if let Some(overflow) = &self.layout.overflow {
+            surface
+                .tree
+                .insert_child(
+                    STRIP_NODE_ID,
+                    UiTreeNode::new(
+                        OVERFLOW_NODE_ID,
+                        UiNodePath::new("editor.host_page/overflow"),
+                    )
+                    .with_frame(overflow.frame)
+                    .with_z_index(90)
+                    .with_input_policy(UiInputPolicy::Receive)
+                    .with_state_flags(base_state(true)),
+                )
+                .expect("host page strip must exist");
+            register_handled_pointer_node(&mut dispatcher, OVERFLOW_NODE_ID);
+            route_intents.bind_node(
+                OVERFLOW_NODE_ID,
+                overflow_route_id(),
+                EditorRouteIntent::HostPage(HostPagePointerRoute::Overflow {
+                    hidden_page_indices: overflow.hidden_page_indices.clone(),
                 }),
             );
         }

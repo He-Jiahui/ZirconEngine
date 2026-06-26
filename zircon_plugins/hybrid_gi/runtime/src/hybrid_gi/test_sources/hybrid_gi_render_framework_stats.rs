@@ -2,11 +2,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use zircon_runtime::core::framework::render::{
-    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, DisplayMode,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -135,16 +136,21 @@ fn mesh(
     translation: Vec3,
     uniform_scale: f32,
 ) -> RenderMeshSnapshot {
+    let transform = Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale));
     RenderMeshSnapshot {
         node_id,
-        transform: Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale)),
+        stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+        transform_revision: render_mesh_transform_revision(&transform),
+        transform,
         model,
         mesh: None,
         material,
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
-        render_layer_mask: u32::MAX,
+        static_state: RenderMeshStaticState::from_transform_static(true),
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }
 
@@ -154,7 +160,7 @@ fn hybrid_gi_only_quality_profile() -> RenderQualityProfile {
         .with_hybrid_global_illumination(true)
         .with_clustered_lighting(false)
         .with_screen_space_ambient_occlusion(false)
-        .with_history_resolve(false)
+        .with_temporal_history(false)
         .with_bloom(false)
         .with_color_grading(false)
         .with_reflection_probes(false)

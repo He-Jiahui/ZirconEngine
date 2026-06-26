@@ -25,13 +25,14 @@ pub use animation::{
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 pub use authoring::{
-    MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
-    MaterialGraphParameterAsset, PrefabAsset, PrefabInstanceAsset, PrefabPropertyOverrideAsset,
-    TerrainAsset, TerrainLayerAsset, TerrainLayerStackAsset, TileMapAsset, TileMapLayerAsset,
-    TileMapProjectionAsset, TileSetAsset, TileSetTileAsset,
+    AssetAuthoringError, AssetAuthoringResult, MaterialGraphAsset, MaterialGraphLinkAsset,
+    MaterialGraphNodeAsset, MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, PrefabAsset,
+    PrefabInstanceAsset, PrefabPropertyOverrideAsset, TerrainAsset, TerrainLayerAsset,
+    TerrainLayerStackAsset, TileMapAsset, TileMapLayerAsset, TileMapProjectionAsset, TileSetAsset,
+    TileSetTileAsset,
 };
 pub use data::{DataAsset, DataAssetFormat};
-pub use font::{FontAsset, FontAssetError};
+pub use font::{FontAsset, FontAssetError, FontAssetResult};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
@@ -58,7 +59,8 @@ pub use model::{
 };
 pub use navigation::{
     NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset,
-    NavMeshPolygonAsset, NavMeshTileAsset, NavigationSettingsAsset,
+    NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError, NavigationAssetResult,
+    NavigationSettingsAsset,
 };
 pub use physics_material::PhysicsMaterialAsset;
 pub use scene::{
@@ -86,19 +88,20 @@ pub use shader::{
     ShaderDependencyAsset, ShaderEntryPointAsset, ShaderEntryPointReadiness, ShaderImportReadiness,
     ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderPipelineLayoutReadiness,
     ShaderReadinessReport, ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness,
-    ShaderSourceFileAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
-    ZShaderDefinitionValueDocument, ZShaderDocument, ZShaderEntryPointDocument,
-    ZShaderImportDocument, ZShaderTextureSlotDocument,
+    ShaderSourceFileAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, ZShaderDefinitionError,
+    ZShaderDefinitionResult, ZShaderDefinitionValueDocument, ZShaderDocument,
+    ZShaderEntryPointDocument, ZShaderImportDocument, ZShaderTextureSlotDocument,
 };
-pub use sound::SoundAsset;
+pub use sound::{SoundAsset, SoundAssetError, SoundAssetResult};
 pub use sprite_atlas::{
     validate_sprite_atlas_asset, SpriteAtlasAsset, SpriteAtlasEntry, SpriteAtlasPadding,
     SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
 };
 pub use texture::{
     texture_asset_from_cube_lut, CubeLutParseError, TextureArrayLayout, TextureAsset,
-    TextureAssetDescriptor, TexturePayload, TextureUploadCompressionFamily, TextureUploadPlan,
-    TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult, TexturePayload,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiIconAsset,

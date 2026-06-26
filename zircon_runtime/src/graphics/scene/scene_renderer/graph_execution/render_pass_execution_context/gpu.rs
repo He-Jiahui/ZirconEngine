@@ -9,16 +9,13 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
 };
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    MeshDrawCommand, MeshDrawCommandReplayer, MeshDrawCommandStream,
-    MeshDrawReplayStatsAccumulator, MeshIndirectDrawExecution, MeshSceneDataBindHandle,
-};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
     BaseScenePass, PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
-use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
@@ -39,124 +36,15 @@ use super::RgResourceResolver;
 
 mod deferred;
 mod hzb_occlusion;
+mod mesh_command_lists;
 mod particle;
 mod post_process;
 mod resource_lookup;
 mod surface;
 
+pub(in crate::graphics::scene::scene_renderer) use mesh_command_lists::RenderPassMeshCommandLists;
 pub use particle::ParticleGpuTransparentDrawContext;
 pub(in crate::graphics::scene::scene_renderer) use post_process::RenderPassPostProcessStackContext;
-
-#[derive(Clone, Copy)]
-pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists<'a> {
-    pub replay_stats: &'a MeshDrawReplayStatsAccumulator,
-    pub gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
-    pub depth_prepass_commands: &'a [MeshDrawCommand],
-    pub shadow_commands: &'a [MeshDrawCommand],
-    pub opaque_commands: &'a [MeshDrawCommand],
-    pub alpha_mask_commands: &'a [MeshDrawCommand],
-    pub transparent_commands: &'a [MeshDrawCommand],
-    pub velocity_commands: &'a [MeshDrawCommand],
-    pub taa_reactive_mask_commands: &'a [MeshDrawCommand],
-    pub depth_prepass_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub shadow_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub opaque_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub alpha_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub transparent_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub velocity_indirect: Option<&'a MeshIndirectDrawExecution>,
-    pub taa_reactive_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
-}
-
-impl<'a> RenderPassMeshCommandLists<'a> {
-    pub(in crate::graphics::scene::scene_renderer) fn stream_for_stage(
-        &self,
-        stage: RenderPassStage,
-    ) -> MeshDrawCommandStream<'a> {
-        match stage {
-            RenderPassStage::DepthPrepass => self.depth_prepass_stream(),
-            RenderPassStage::Opaque3d => self.opaque_stream(),
-            RenderPassStage::AlphaMask3d => self.alpha_mask_stream(),
-            RenderPassStage::Transparent3d => self.transparent_stream(),
-            RenderPassStage::Shadow => self.shadow_stream(),
-            _ => MeshDrawCommandStream::empty(),
-        }
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn depth_prepass_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.depth_prepass_commands, self.depth_prepass_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn shadow_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.shadow_commands, self.shadow_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn opaque_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.opaque_commands, self.opaque_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn alpha_mask_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.alpha_mask_commands, self.alpha_mask_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn transparent_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.transparent_commands, self.transparent_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn velocity_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(self.velocity_commands, self.velocity_indirect)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn taa_reactive_mask_stream(
-        &self,
-    ) -> MeshDrawCommandStream<'a> {
-        MeshDrawCommandStream::new(
-            self.taa_reactive_mask_commands,
-            self.taa_reactive_mask_indirect,
-        )
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn occlusion_cull_candidate_arg_count(
-        &self,
-    ) -> u32 {
-        self.hzb_occlusion_indirect_executions()
-            .into_iter()
-            .flatten()
-            .map(|execution| execution.args_count())
-            .sum()
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn occlusion_cull_candidate_instance_count(
-        &self,
-    ) -> u32 {
-        self.hzb_occlusion_indirect_executions()
-            .into_iter()
-            .flatten()
-            .map(|execution| execution.total_instances())
-            .sum()
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn hzb_occlusion_indirect_executions(
-        &self,
-    ) -> [Option<&'a MeshIndirectDrawExecution>; 3] {
-        [
-            self.opaque_indirect,
-            self.alpha_mask_indirect,
-            self.velocity_indirect,
-        ]
-    }
-}
 
 pub struct RenderPassGpuExecutionContext<'a> {
     pub device: &'a wgpu::Device,
@@ -175,7 +63,6 @@ pub struct RenderPassGpuExecutionContext<'a> {
     post_process_stack: Option<RenderPassPostProcessStackContext<'a>>,
     overlay_renderer: Option<&'a mut ViewportOverlayRenderer>,
     prepared_overlays: Option<&'a PreparedOverlayBuffers>,
-    prepass: Option<&'a NormalPrepassPipeline>,
     shadow_map_renderer: Option<&'a ShadowMapRenderer>,
     pub(in crate::graphics::scene::scene_renderer) shadow_atlas_resources:
         Option<&'a ShadowAtlasResources>,
@@ -202,7 +89,6 @@ impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
             .field("viewport_size", &self.frame.viewport_size)
             .field("has_post_process_stack", &self.post_process_stack.is_some())
             .field("has_overlay_renderer", &self.overlay_renderer.is_some())
-            .field("has_prepass", &self.prepass.is_some())
             .field(
                 "has_shadow_map_renderer",
                 &self.shadow_map_renderer.is_some(),
@@ -245,7 +131,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             post_process_stack: None,
             overlay_renderer: None,
             prepared_overlays: None,
-            prepass: None,
             shadow_map_renderer: None,
             shadow_atlas_resources: None,
             shadow_frame_plan: None,
@@ -372,16 +257,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.resource_resolver
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn with_prepass_renderer(
-        mut self,
-        prepass: &'a NormalPrepassPipeline,
-        mesh_draw_lists: RenderPassMeshCommandLists<'a>,
-    ) -> Self {
-        self.prepass = Some(prepass);
-        self.mesh_draw_lists = Some(mesh_draw_lists);
-        self
-    }
-
     pub(in crate::graphics::scene::scene_renderer) fn with_shadow_map_renderer(
         mut self,
         shadow_map_renderer: &'a ShadowMapRenderer,
@@ -504,11 +379,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let prepass = self.prepass.ok_or_else(|| {
-            format!(
-                "depth prepass graph executor for pass `{pass_name}` requires normal prepass context"
-            )
-        })?;
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!(
                 "depth prepass graph executor for pass `{pass_name}` requires mesh draw context"
@@ -517,17 +387,77 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if mesh_draw_lists.depth_prepass_commands.is_empty() {
             return Ok(());
         }
-        let replay_stats = prepass.record_commands_with_attachment_ops(
-            self.encoder,
-            normal_view,
-            depth_view,
-            self.scene_bind_group,
-            mesh_draw_lists.gpu_scene_bind_group,
+        let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
+            format!(
+                "depth prepass graph executor for pass `{pass_name}` requires mesh pipeline context"
+            )
+        })?;
+        let forward_shadow_receiver_bind_group = mesh_pipelines
+            .create_forward_shadow_receiver_bind_group(
+                self.device,
+                self.shadow_atlas_resources,
+                None,
+                None,
+                None,
+            );
+        let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("DepthPrepass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: normal_view,
+                resolve_target: None,
+                depth_slice: None,
+                ops: color_attachment_operations(normal_attachment_ops, wgpu::Color::BLACK),
+            })],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: depth_view,
+                depth_ops: Some(depth_attachment_operations(depth_attachment_ops, 1.0)),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+            multiview_mask: None,
+        });
+        if !self
+            .frame
+            .render_region()
+            .apply_physical_to_render_pass(&mut pass)
+        {
+            return Ok(());
+        }
+        pass.set_bind_group(0, self.scene_bind_group, &[]);
+        let mut replayer = MeshDrawCommandReplayer::default();
+        replayer.replay_command_stream(
+            &mut pass,
             mesh_draw_lists.depth_prepass_stream(),
-            self.frame.render_region(),
-            normal_attachment_ops,
-            depth_attachment_ops,
+            |replayer, pass, command| {
+                debug_assert_eq!(command.pipeline_kind, MeshPassPipelineKind::DepthPrepass);
+                if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
+                {
+                    let pipeline = mesh_pipelines
+                        .ensure_depth_prepass_pipeline_for_variant(
+                            self.device,
+                            command.pipeline_variant_id,
+                        )
+                        .expect(
+                            "depth prepass command must resolve a cache-backed pipeline variant",
+                        );
+                    pass.set_pipeline(pipeline);
+                }
+                replayer.bind_forward_shadow_receiver_if_needed(
+                    pass,
+                    &forward_shadow_receiver_bind_group,
+                );
+                replayer.bind_gpu_scene_if_needed(
+                    pass,
+                    command,
+                    mesh_draw_lists.gpu_scene_bind_group,
+                );
+                replayer.bind_standard_material_if_needed(pass, command);
+                replayer.bind_geometry_if_needed(pass, command);
+                true
+            },
         );
+        let replay_stats = replayer.stats();
         mesh_draw_lists.replay_stats.record(replay_stats);
         Ok(())
     }
@@ -553,11 +483,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 )
             })?;
             if let Some(shadow_frame_plan) = self.shadow_frame_plan {
+                let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
+                    format!(
+                        "shadow atlas graph executor for pass `{pass_name}` requires mesh pipeline context"
+                    )
+                })?;
                 let replay_stats = shadow_map_renderer.record_atlas_commands_with_attachment_ops(
+                    self.device,
                     self.queue,
                     self.encoder,
                     pass_name,
                     shadow_atlas_view,
+                    mesh_pipelines,
                     shadow_frame_plan.atlas_passes(),
                     self.frame,
                     mesh_draw_lists.gpu_scene_bind_group,
@@ -816,4 +753,16 @@ fn record_depth_clear_pass(
         occlusion_query_set: None,
         multiview_mask: None,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn depth_prepass_binds_forward_shadow_receiver_layout_slot() {
+        let source = include_str!("gpu.rs");
+
+        assert!(source.contains("record_depth_prepass_to_resources"));
+        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
+        assert!(source.contains("bind_forward_shadow_receiver_if_needed"));
+    }
 }

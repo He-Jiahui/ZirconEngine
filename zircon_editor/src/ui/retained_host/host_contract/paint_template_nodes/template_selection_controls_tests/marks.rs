@@ -68,8 +68,8 @@ fn checkbox_radio_marks_consume_declared_style_and_label_colors() {
     assert_eq!(selection_mark_label_color(&unchecked), [131, 141, 148, 255]);
     assert_eq!(radio_background(&unchecked_radio), [19, 25, 29, 255]);
     assert_eq!(radio_border_color(&unchecked_radio), [55, 65, 72, 255]);
-    assert_eq!(radio_background(&checked), [33, 160, 169, 255]);
-    assert_eq!(radio_border_color(&checked), [34, 161, 170, 255]);
+    assert_eq!(radio_background(&checked), RADIO_CHECKED_FILL);
+    assert_eq!(radio_border_color(&checked), RADIO_CHECKED_BORDER);
 }
 
 #[test]

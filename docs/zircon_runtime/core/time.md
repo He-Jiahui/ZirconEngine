@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/exports.rs
@@ -24,7 +24,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
-  - zircon_runtime/src/core/runtime/state/runtime_inner.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/exports.rs

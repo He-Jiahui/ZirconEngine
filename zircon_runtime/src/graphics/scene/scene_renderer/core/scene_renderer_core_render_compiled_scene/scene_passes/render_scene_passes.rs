@@ -42,6 +42,7 @@ impl SceneRendererCore {
         if runtime_features.deferred_lighting_enabled {
             execute_deferred_graph_stage(
                 &self.deferred,
+                Some(&mut self.mesh_pipelines),
                 mesh_draw_lists,
                 device,
                 queue,
@@ -56,6 +57,7 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Deferred,
+                Some(streamer),
                 self.hzb_occlusion_culler.as_ref(),
                 None,
                 None,
@@ -221,6 +223,7 @@ impl SceneRendererCore {
             );
             let deferred_lighting_result = execute_deferred_graph_stage(
                 &self.deferred,
+                None,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -235,6 +238,7 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Lighting,
+                None,
                 self.hzb_occlusion_culler.as_ref(),
                 Some(post_process_stack),
                 Some(&self.shadow_map_renderer),
@@ -351,7 +355,6 @@ fn execute_mesh_graph_stage(
         None,
         None,
         None,
-        None,
         particle_renderer,
         sprite_renderer,
         Some(streamer),
@@ -370,6 +373,7 @@ fn execute_mesh_graph_stage(
 #[allow(clippy::too_many_arguments)]
 fn execute_deferred_graph_stage(
     deferred: &DeferredSceneResources,
+    mesh_pipelines: Option<&mut MeshPipelineCache>,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -384,6 +388,7 @@ fn execute_deferred_graph_stage(
     graph_execution: &mut RenderGraphStageExecution<'_>,
     screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
+    streamer: Option<&ResourceStreamer>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
     shadow_map_renderer: Option<&crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer>,
@@ -409,12 +414,11 @@ fn execute_deferred_graph_stage(
         post_process_stack,
         None,
         None,
-        None,
         Some(deferred),
         None,
         None,
-        None,
-        None,
+        streamer,
+        mesh_pipelines,
         Some(mesh_draw_lists),
         hzb_occlusion_culler,
         shadow_map_renderer,
@@ -460,7 +464,6 @@ fn execute_sprite_graph_stage(
         depth_format,
         scene_bind_group,
         screen_space_ui_renderer,
-        None,
         None,
         None,
         None,

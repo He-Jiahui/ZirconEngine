@@ -7,7 +7,9 @@ related_code:
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
   - zircon_runtime/src/navigation/runtime/math.rs
   - zircon_runtime/src/navigation/runtime/state.rs
+  - zircon_runtime/src/navigation/runtime/tests.rs
   - zircon_runtime/src/navigation/runtime/world_scan.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -31,6 +33,9 @@ implementation_files:
 plan_sources:
   - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
   - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/engine-code-review-findings-2026-06.md
+  - docs/plans/engine-code-structure-convention.md
   - dev/godot/modules/navigation_2d
   - dev/godot/modules/navigation_3d
 tests:
@@ -39,6 +44,8 @@ tests:
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_navigation_boundary_file_set_requires_doc_update
   - zircon_runtime/src/navigation/runtime/tests.rs::tick_world_agent_moves_only_selected_agent_and_avoids_local_colliders
+  - zircon_runtime/src/navigation/runtime/tests.rs::navigation_manager_accessors_recover_poisoned_state_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager
   - "pending: cargo test -p zircon_runtime --lib navigation --locked"
 doc_type: module-detail
 ---
@@ -78,6 +85,14 @@ The folder-backed runtime owner split keeps those responsibilities in focused fi
 - `runtime/tests.rs` owns focused fallback runtime behavior tests.
 
 Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agent component to the mover and invokes the navigation runtime. This keeps enemy chase behavior tied to the baked scene instead of raw per-frame translation.
+
+## Poison Handling
+
+`BuiltinNavigationManager` stores runtime navigation state behind one mutex. Runtime 15 M3 navigation lock poison recovery moved every production state access through the private `lock_state()` helper, which recovers poisoned locks with `unwrap_or_else(|poisoned| poisoned.into_inner())` instead of panicking on `expect("navigation state lock poisoned")`.
+
+The recovery policy covers navmesh loading, navigation settings loading, path/sample/raycast queries, agent tick stats, `tick_agent(...)` path/sample lookups, and `stats()`. It does not change `NavigationManager`, baked navmesh serialization, selected-mesh semantics, or the boundary between this built-in fallback and the external Recast-backed plugin stack.
+
+`navigation_manager_accessors_recover_poisoned_state_lock` deliberately poisons the state lock in test-only code and then proves load/settings/sample/stats still work. `runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager` keeps the helper, test, docs, and status anchors synchronized so the production manager cannot silently return to direct lock unwrap or lock-poison panic behavior.
 
 ## Scope
 

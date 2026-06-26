@@ -25,7 +25,8 @@ use zircon_runtime::core::framework::sound::{
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 
 use super::{
-    runtime_plugin, DefaultSoundManager, SoundConfig, SOUND_DYNAMIC_EVENT_NAMESPACE,
+    package_manifest, runtime_plugin, DefaultSoundManager, SoundConfig, RUNTIME_CAPABILITIES,
+    SOUND_DIST_CRATE_NAME, SOUND_DIST_RUNTIME_ENTRY, SOUND_DYNAMIC_EVENT_NAMESPACE,
     SOUND_MODULE_NAME,
 };
 

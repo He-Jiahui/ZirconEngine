@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::rhi::{
     BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutHandle, BufferDesc,
@@ -197,6 +197,12 @@ impl WgpuRenderDevice {
         state.next_handle += 1;
         handle
     }
+
+    fn lock_state(&self) -> MutexGuard<'_, WgpuRenderDeviceState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 }
 
 impl RenderDevice for WgpuRenderDevice {
@@ -206,7 +212,7 @@ impl RenderDevice for WgpuRenderDevice {
 
     fn create_buffer(&self, desc: &BufferDesc) -> Result<BufferHandle, RhiError> {
         validate_buffer_desc(desc)?;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let handle = BufferHandle::new(Self::allocate_handle(&mut state));
         state.buffers.insert(
             handle,
@@ -219,7 +225,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn buffer_desc(&self, handle: BufferHandle) -> Result<BufferDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .buffers
             .get(&handle)
@@ -228,7 +234,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_buffer(&self, handle: BufferHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .buffers
             .remove(&handle)
@@ -238,7 +244,7 @@ impl RenderDevice for WgpuRenderDevice {
 
     fn create_texture(&self, desc: &TextureDesc) -> Result<TextureHandle, RhiError> {
         validate_texture_desc(desc, self.caps.supports_sparse_texture)?;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let handle = TextureHandle::new(Self::allocate_handle(&mut state));
         state.textures.insert(
             handle,
@@ -251,7 +257,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn texture_desc(&self, handle: TextureHandle) -> Result<TextureDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .textures
             .get(&handle)
@@ -260,7 +266,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_texture(&self, handle: TextureHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .textures
             .remove(&handle)
@@ -270,14 +276,14 @@ impl RenderDevice for WgpuRenderDevice {
 
     fn create_sampler(&self, desc: &SamplerDesc) -> Result<SamplerHandle, RhiError> {
         validate_sampler_desc(desc)?;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let handle = SamplerHandle::new(Self::allocate_handle(&mut state));
         state.samplers.insert(handle, desc.clone());
         Ok(handle)
     }
 
     fn sampler_desc(&self, handle: SamplerHandle) -> Result<SamplerDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .samplers
             .get(&handle)
@@ -286,7 +292,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_sampler(&self, handle: SamplerHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .samplers
             .remove(&handle)
@@ -299,7 +305,7 @@ impl RenderDevice for WgpuRenderDevice {
         desc: &BindGroupLayoutDesc,
     ) -> Result<BindGroupLayoutHandle, RhiError> {
         validate_bind_group_layout_desc(desc)?;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let handle = BindGroupLayoutHandle::new(Self::allocate_handle(&mut state));
         state.bind_group_layouts.insert(handle, desc.clone());
         Ok(handle)
@@ -309,7 +315,7 @@ impl RenderDevice for WgpuRenderDevice {
         &self,
         handle: BindGroupLayoutHandle,
     ) -> Result<BindGroupLayoutDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .bind_group_layouts
             .get(&handle)
@@ -318,7 +324,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_bind_group_layout(&self, handle: BindGroupLayoutHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .bind_group_layouts
             .remove(&handle)
@@ -327,7 +333,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn create_bind_group(&self, desc: &BindGroupDesc) -> Result<BindGroupHandle, RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         validate_bind_group_desc(&*state, desc)?;
         let handle = BindGroupHandle::new(Self::allocate_handle(&mut state));
         state
@@ -337,7 +343,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn bind_group_desc(&self, handle: BindGroupHandle) -> Result<BindGroupDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .bind_groups
             .get(&handle)
@@ -346,7 +352,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_bind_group(&self, handle: BindGroupHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .bind_groups
             .remove(&handle)
@@ -359,14 +365,14 @@ impl RenderDevice for WgpuRenderDevice {
         desc: &ShaderModuleDesc,
     ) -> Result<ShaderModuleHandle, RhiError> {
         validate_shader_module_desc(desc)?;
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let handle = ShaderModuleHandle::new(Self::allocate_handle(&mut state));
         state.shaders.insert(handle, desc.clone());
         Ok(handle)
     }
 
     fn shader_module_desc(&self, handle: ShaderModuleHandle) -> Result<ShaderModuleDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .shaders
             .get(&handle)
@@ -375,7 +381,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_shader_module(&self, handle: ShaderModuleHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .shaders
             .remove(&handle)
@@ -387,7 +393,7 @@ impl RenderDevice for WgpuRenderDevice {
         &self,
         desc: &PipelineLayoutDesc,
     ) -> Result<PipelineLayoutHandle, RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         validate_pipeline_layout_desc(&*state, desc)?;
         let handle = PipelineLayoutHandle::new(Self::allocate_handle(&mut state));
         state.pipeline_layouts.insert(handle, desc.clone());
@@ -398,7 +404,7 @@ impl RenderDevice for WgpuRenderDevice {
         &self,
         handle: PipelineLayoutHandle,
     ) -> Result<PipelineLayoutDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .pipeline_layouts
             .get(&handle)
@@ -407,7 +413,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_pipeline_layout(&self, handle: PipelineLayoutHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .pipeline_layouts
             .remove(&handle)
@@ -416,7 +422,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn create_pipeline(&self, desc: &PipelineDesc) -> Result<PipelineHandle, RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         validate_pipeline_desc(&*state, desc)?;
         let handle = PipelineHandle::new(Self::allocate_handle(&mut state));
         state.pipelines.insert(handle, desc.clone());
@@ -424,7 +430,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn pipeline_desc(&self, handle: PipelineHandle) -> Result<PipelineDesc, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         state
             .pipelines
             .get(&handle)
@@ -433,7 +439,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn destroy_pipeline(&self, handle: PipelineHandle) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         state
             .pipelines
             .remove(&handle)
@@ -457,7 +463,7 @@ impl RenderDevice for WgpuRenderDevice {
         if !self.caps.supports_queue(command_list.queue_class()) {
             return Err(RhiError::UnsupportedQueue(command_list.queue_class()));
         }
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         validate_recorded_commands(
             &state,
             command_list.recorded_commands(),
@@ -471,7 +477,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn is_fence_complete(&self, fence: FenceValue) -> Result<bool, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         if fence.0 == 0 || fence.0 >= state.next_fence {
             return Err(RhiError::UnknownFence(fence.0));
         }
@@ -479,11 +485,11 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn transient_allocator_stats(&self) -> TransientAllocatorStats {
-        self.state.lock().unwrap().transient_allocator_stats()
+        self.lock_state().transient_allocator_stats()
     }
 
     fn write_buffer(&self, handle: BufferHandle, offset: u64, data: &[u8]) -> Result<(), RhiError> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.lock_state();
         let buffer = state
             .buffers
             .get_mut(&handle)
@@ -509,7 +515,7 @@ impl RenderDevice for WgpuRenderDevice {
         offset: u64,
         size: u64,
     ) -> Result<Vec<u8>, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         let buffer = state
             .buffers
             .get(&handle)
@@ -528,7 +534,7 @@ impl RenderDevice for WgpuRenderDevice {
     }
 
     fn read_texture(&self, handle: TextureHandle) -> Result<Vec<u8>, RhiError> {
-        let state = self.state.lock().unwrap();
+        let state = self.lock_state();
         let texture = state
             .textures
             .get(&handle)
@@ -731,5 +737,41 @@ impl CommandList for WgpuCommandList {
     fn dispatch_compute(&mut self, x: u32, y: u32, z: u32) {
         self.commands
             .push(CommandListCommand::DispatchCompute { x, y, z });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wgpu_render_device_state_accessors_recover_poisoned_lock() {
+        let device = WgpuRenderDevice::new_headless();
+        let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _state = device.state.lock().unwrap();
+            panic!("poison wgpu render device state lock");
+        }));
+        assert!(poison.is_err());
+
+        assert_eq!(
+            device.transient_allocator_stats(),
+            TransientAllocatorStats::default()
+        );
+        let buffer = device
+            .create_buffer(&BufferDesc::new(
+                "poisoned-staging",
+                4,
+                BufferUsage::STAGING_READ | BufferUsage::STAGING_WRITE,
+            ))
+            .expect("poisoned render device state lock should recover for creates");
+        device
+            .write_buffer(buffer, 0, &[1, 2, 3, 4])
+            .expect("poisoned render device state lock should recover for writes");
+        assert_eq!(
+            device
+                .read_buffer(buffer, 0, 4)
+                .expect("poisoned render device state lock should recover for reads"),
+            vec![1, 2, 3, 4]
+        );
     }
 }

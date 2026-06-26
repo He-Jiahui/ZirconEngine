@@ -5,7 +5,7 @@ use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::is_visible_frame;
 use super::super::super::paint_primitives::{draw_border, draw_rect};
 use super::super::super::paint_template_nodes::draw_template_nodes;
-use super::super::{ACCENT, TOP_BAR};
+use super::super::{SEPARATOR, TOP_BAR};
 use super::geometry::{constrained_menu_popup_frame, scrolled_menu_frame};
 use super::rows::draw_menu_popup_rows;
 use submenus::draw_open_submenu_popups;
@@ -37,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
         return;
     }
     draw_rect(frame, popup.clone(), TOP_BAR);
-    draw_border(frame, popup.clone(), ACCENT);
+    draw_border(frame, popup.clone(), SEPARATOR);
     if menu.popup_nodes.row_count() > 0 {
         draw_template_nodes(frame, &menu.popup_nodes, &popup, &popup, None);
     } else {

@@ -8,7 +8,8 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
         .expect("runtime crate should live under the repository root");
     let old_tests_path = repo_root.join("zircon_runtime/src/dynamic_api/session/tests.rs");
     let tests_mod = include_str!("../../../dynamic_api/session/tests/mod.rs");
-    let helpers = include_str!("../../../dynamic_api/session/tests/helpers.rs");
+    let vampire_runtime_support =
+        include_str!("../../../dynamic_api/session/tests/vampire_runtime_support.rs");
     let gameplay = include_str!("../../../dynamic_api/session/tests/vampire_gameplay.rs");
     let menu = include_str!("../../../dynamic_api/session/tests/vampire_menu.rs");
     let hud = include_str!("../../../dynamic_api/session/tests/vampire_hud.rs");
@@ -27,11 +28,12 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
 
     for module_decl in [
         "mod frame_diagnostics;",
-        "mod helpers;",
+        "mod lock_poison;",
         "mod runtime_errors;",
         "mod vampire_gameplay;",
         "mod vampire_hud;",
         "mod vampire_menu;",
+        "mod vampire_runtime_support;",
     ] {
         assert!(
             tests_mod.contains(module_decl),
@@ -51,8 +53,8 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
         "pub(super) fn summarize_hud_region",
     ] {
         assert!(
-            helpers.contains(helper_anchor),
-            "dynamic session helpers.rs should retain shared helper `{helper_anchor}`"
+            vampire_runtime_support.contains(helper_anchor),
+            "dynamic session vampire_runtime_support.rs should retain shared support `{helper_anchor}`"
         );
     }
 
@@ -106,7 +108,7 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
 
     for doc_anchor in [
         "Dynamic Session Test Owner Split",
-        "session/tests/{mod,helpers,vampire_gameplay,vampire_menu,vampire_hud,frame_diagnostics,runtime_errors}.rs",
+        "session/tests/{mod,vampire_runtime_support,vampire_gameplay,vampire_menu,vampire_hud,frame_diagnostics,runtime_errors,lock_poison}.rs",
         "runtime_10_dynamic_session_test_owner_split_keeps_focused_modules",
         "session/tests/frame_diagnostics.rs",
     ] {

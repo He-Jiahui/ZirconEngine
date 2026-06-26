@@ -4,6 +4,7 @@ mod close_prompt;
 mod close_prompt_hit;
 mod entry;
 mod menu_press;
+mod page_overflow_menu;
 mod pane_callbacks;
 mod pane_route;
 mod primary_press;

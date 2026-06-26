@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::navigation::{
@@ -37,6 +37,12 @@ impl BuiltinNavigationManager {
             state: Mutex::new(BuiltinNavigationState::default()),
         }
     }
+
+    fn lock_state(&self) -> MutexGuard<'_, BuiltinNavigationState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 }
 
 impl Default for BuiltinNavigationManager {
@@ -63,7 +69,7 @@ impl NavigationManager for BuiltinNavigationManager {
                 "cannot load an empty navmesh asset",
             ));
         }
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        let mut state = self.lock_state();
         let handle = NavMeshHandle(state.next_handle);
         state.next_handle += 1;
         state.loaded.insert(handle, BakedNavMesh::new(asset));
@@ -75,13 +81,13 @@ impl NavigationManager for BuiltinNavigationManager {
         &self,
         settings: NavigationSettingsAsset,
     ) -> Result<(), NavigationError> {
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        let mut state = self.lock_state();
         state.settings = settings;
         Ok(())
     }
 
     fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError> {
-        let state = self.state.lock().expect("navigation state lock poisoned");
+        let state = self.lock_state();
         let mesh = state.selected_mesh(query.nav_mesh)?;
         Ok(mesh.find_path(query))
     }
@@ -90,13 +96,13 @@ impl NavigationManager for BuiltinNavigationManager {
         &self,
         query: NavSampleQuery,
     ) -> Result<Option<NavSampleHit>, NavigationError> {
-        let state = self.state.lock().expect("navigation state lock poisoned");
+        let state = self.lock_state();
         let mesh = state.selected_mesh(query.nav_mesh)?;
         Ok(mesh.sample_position(query))
     }
 
     fn raycast(&self, query: NavRaycastQuery) -> Result<NavRaycastResult, NavigationError> {
-        let state = self.state.lock().expect("navigation state lock poisoned");
+        let state = self.lock_state();
         let mesh = state.selected_mesh(query.nav_mesh)?;
         Ok(mesh.raycast(query))
     }
@@ -118,7 +124,7 @@ impl NavigationManager for BuiltinNavigationManager {
             ..NavAgentTickReport::default()
         };
         {
-            let mut state = self.state.lock().expect("navigation state lock poisoned");
+            let mut state = self.lock_state();
             state.stats.active_agents = agents.len();
             state.stats.active_obstacles = obstacles.len();
         }
@@ -158,7 +164,7 @@ impl NavigationManager for BuiltinNavigationManager {
             ..NavAgentTickReport::default()
         };
         {
-            let mut state = self.state.lock().expect("navigation state lock poisoned");
+            let mut state = self.lock_state();
             state.stats.active_agents = agents.len();
             state.stats.active_obstacles = obstacles.len();
         }
@@ -176,11 +182,7 @@ impl NavigationManager for BuiltinNavigationManager {
     }
 
     fn stats(&self) -> NavigationRuntimeStats {
-        self.state
-            .lock()
-            .expect("navigation state lock poisoned")
-            .stats
-            .clone()
+        self.lock_state().stats.clone()
     }
 }
 
@@ -211,7 +213,7 @@ impl BuiltinNavigationManager {
         let current = transform.translation;
         let destination = Vec3::from_array(destination);
         let path_target = {
-            let state = self.state.lock().expect("navigation state lock poisoned");
+            let state = self.lock_state();
             match state.selected_mesh(None) {
                 Ok(mesh) => match mesh.find_path(NavPathQuery {
                     nav_mesh: None,
@@ -257,7 +259,7 @@ impl BuiltinNavigationManager {
         let direction = Vec3::new(delta.x, 0.0, delta.z).normalize_or_zero();
         let mut next = current + direction * max_step.min(distance);
         if let Some(sampled) = {
-            let state = self.state.lock().expect("navigation state lock poisoned");
+            let state = self.lock_state();
             state.selected_mesh(None).ok().and_then(|mesh| {
                 mesh.sample_position(NavSampleQuery {
                     nav_mesh: None,

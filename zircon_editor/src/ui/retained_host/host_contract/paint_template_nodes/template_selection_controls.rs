@@ -32,8 +32,6 @@ use style::{
     radio_background, radio_border_color, selection_mark_label_color, selection_text_color,
     selection_visual_state, selection_visual_unavailable, toggle_thumb_color, toggle_track_color,
 };
-#[cfg(test)]
-use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 #[cfg(test)]
 #[path = "template_selection_controls_tests/mod.rs"]

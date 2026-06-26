@@ -6,6 +6,7 @@ use super::{
     INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
 };
 
+pub(crate) const FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT: u32 = 1;
 const MATERIAL_BIND_GROUP_SLOT: u32 = 2;
 pub(crate) const GPU_SCENE_BIND_GROUP_SLOT: u32 = 3;
 const TRACKED_BIND_GROUP_COUNT: usize = 4;
@@ -154,6 +155,19 @@ impl MeshDrawCommandReplayer {
             .as_ref()
             .expect("mesh command must carry standard material bind group for this pass");
         self.bind_group_if_needed(pass, MATERIAL_BIND_GROUP_SLOT, handle);
+    }
+
+    pub(crate) fn bind_forward_shadow_receiver_if_needed<'pass>(
+        &mut self,
+        pass: &mut wgpu::RenderPass<'pass>,
+        bind_group: &'pass wgpu::BindGroup,
+    ) {
+        self.bind_raw_group_if_needed(
+            pass,
+            FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT,
+            bind_group as *const wgpu::BindGroup as usize as u64,
+            bind_group,
+        );
     }
 
     pub(crate) fn bind_geometry_if_needed<'pass>(
@@ -316,7 +330,7 @@ mod tests {
         MeshPassPipelineKind, MeshPipelineVariantId,
     };
 
-    use super::MeshDrawCommandReplayer;
+    use super::{MeshDrawCommandReplayer, FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT};
 
     #[test]
     fn mesh_draw_command_replayer_rebinds_after_external_pipeline() {
@@ -373,6 +387,17 @@ mod tests {
 
         assert_eq!(replayer.stats().state_change_count, 2);
         assert_eq!(replayer.stats().bind_skip_count, 1);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_tracks_forward_shadow_receiver_slot() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let base_variant = MeshPipelineVariantId::new(1);
+
+        assert!(replayer.should_bind_raw_group(FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, 10));
+        assert!(!replayer.should_bind_raw_group(FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, 10));
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, base_variant));
+        assert!(replayer.should_bind_raw_group(FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, 10));
     }
 
     #[test]

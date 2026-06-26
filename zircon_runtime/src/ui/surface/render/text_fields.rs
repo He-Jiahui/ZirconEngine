@@ -15,22 +15,22 @@ use zircon_runtime_interface::ui::{
 use super::painter_state::UiRenderPainterStateSource;
 use crate::ui::text::{resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest};
 
-const DEFAULT_PADDING_X: f32 = 10.0;
+const DEFAULT_PADDING_X: f32 = 8.0;
 const DEFAULT_PADDING_Y: f32 = 4.0;
-const DEFAULT_FONT_SIZE: f32 = 11.0;
+const DEFAULT_FONT_SIZE: f32 = 10.0;
 const DEFAULT_LINE_HEIGHT: f32 = DEFAULT_FONT_SIZE * 1.2;
-const SURFACE_IDLE: &str = "#10161a";
-const SURFACE_HOVER: &str = "#151d22";
-const SURFACE_PRESSED: &str = "#182a30";
-const SURFACE_FOCUSED: &str = "#111a1f";
-const SURFACE_DISABLED: &str = "#252c31";
-const BORDER_IDLE: &str = "#323f47";
-const BORDER_HOVER: &str = "#40515a";
-const BORDER_FOCUS: &str = "#35c7d0";
-const BORDER_DISABLED: &str = "#343f47";
-const TEXT: &str = "#c5d0d5";
-const TEXT_PLACEHOLDER: &str = "#68747b";
-const TEXT_DISABLED: &str = "#59656c";
+const SURFACE_IDLE: &str = "#0f1316";
+const SURFACE_HOVER: &str = "#1b1f23";
+const SURFACE_PRESSED: &str = "#252b31";
+const SURFACE_FOCUSED: &str = "#0f1316";
+const SURFACE_DISABLED: &str = "#1b1f23";
+const BORDER_IDLE: &str = "#262d33";
+const BORDER_HOVER: &str = "#323a41";
+const BORDER_FOCUS: &str = "#2aa6b8";
+const BORDER_DISABLED: &str = "#2c3237";
+const TEXT: &str = "#e8ecee";
+const TEXT_PLACEHOLDER: &str = "#a4aeb4";
+const TEXT_DISABLED: &str = "#656f76";
 
 pub(super) fn text_field_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(is_text_field)

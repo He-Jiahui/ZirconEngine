@@ -27,7 +27,7 @@ impl MeshPassProcessor for OpaqueBasePassProcessor {
             return;
         }
         let pipeline_kind = MeshPassPipelineKind::Base;
-        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, &batch.pipeline_key);
+        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
         out.push(batch.command(phase, pipeline_kind, pipeline_variant_id));
     }
 }

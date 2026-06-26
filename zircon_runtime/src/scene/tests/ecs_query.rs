@@ -53,7 +53,7 @@ where
     &query.cached_component_locations()[start..end]
 }
 
-mod cache_helpers;
+mod cached_queries;
 mod fixed_ticks;
 mod iter_many;
 mod mutation_access;

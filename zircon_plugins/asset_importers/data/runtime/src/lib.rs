@@ -13,9 +13,11 @@ pub use capability::{
     YAML_IMPORTER_CAPABILITY,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, DataAssetImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    DataAssetImporterRuntimePlugin, ASSET_IMPORTER_DATA_DIST_CRATE_NAME,
+    ASSET_IMPORTER_DATA_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_toml_data(
@@ -153,6 +155,50 @@ mod tests {
         assert!(manifest
             .capabilities
             .contains(&XML_IMPORTER_CAPABILITY.to_string()));
+    }
+
+    #[test]
+    fn data_asset_importer_package_manifest_declares_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("data importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(distribution.dist_crate, ASSET_IMPORTER_DATA_DIST_CRATE_NAME);
+        assert_eq!(
+            distribution.runtime_entry,
+            ASSET_IMPORTER_DATA_DIST_RUNTIME_ENTRY
+        );
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "asset_importer.data.dist")
+            .expect("data importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(dist_module.crate_name, ASSET_IMPORTER_DATA_DIST_CRATE_NAME);
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+        assert!(dist_module
+            .capabilities
+            .contains(&JSON_IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

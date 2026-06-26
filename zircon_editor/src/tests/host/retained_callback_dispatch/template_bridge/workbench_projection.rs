@@ -8,7 +8,7 @@ use crate::ui::retained_host::{
     to_host_contract_workbench_window_nodes, TemplatePaneMenuItemData, TemplatePaneNodeData,
     TemplatePaneOptionData,
 };
-use crate::ui::workbench::autolayout::{compact_bottom_height_limit, WorkbenchChromeMetrics};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reference::EditorWorkbenchTemplateControlIds;
@@ -17,6 +17,7 @@ use crate::ui::workbench::snapshot::{
     SceneEntry,
 };
 use std::sync::Arc;
+use zircon_runtime_interface::ui::layout::UiMargin;
 use zircon_runtime_interface::ui::style::UiStyleColor;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 use zircon_runtime_interface::ui::v2::{
@@ -195,9 +196,15 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
 
     assert_eq!(bridge.surface().tree.roots.len(), 1);
+    let viewport_frame = bridge
+        .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT)
+        .expect("viewport control frame");
+    assert!(viewport_frame.width > 0.0);
+    assert!(viewport_frame.height > 0.0);
+    assert_eq!(bridge.frames().viewport, viewport_frame);
     assert_eq!(
-        bridge.frames().viewport,
-        UiFrame::new(404.0, 60.0, 864.0, 428.0)
+        bridge.layout_frames().document_region_frame,
+        Some(viewport_frame)
     );
     assert_eq!(
         bridge.control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT),
@@ -343,6 +350,34 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(component_buttons.frame.width, 204.0);
     let component_icon_buttons = template_contract_node(&nodes, "WorkbenchComponentIconButtons");
     assert_eq!(component_icon_buttons.frame.width, 210.0);
+    for panel_id in [
+        "WorkbenchComponentButtons",
+        "WorkbenchComponentIconButtons",
+        "WorkbenchComponentInputs",
+        "WorkbenchComponentSelection",
+        "WorkbenchComponentSliders",
+        "WorkbenchComponentLabs",
+        "WorkbenchComponentList",
+        "WorkbenchComponentTable",
+        "WorkbenchComponentFeedback",
+    ] {
+        let panel = template_contract_node(&nodes, panel_id);
+        assert_eq!(panel.surface_variant.as_str(), "component-panel");
+        assert_eq!(panel.corner_radius, 4.0);
+        assert_eq!(panel.border_width, 1.0);
+    }
+    assert_eq!(
+        slot_padding_for_control(&bridge, "WorkbenchButtonsTitle"),
+        Some(UiMargin::new(8.0, 4.0, 8.0, 0.0))
+    );
+    assert_eq!(
+        slot_padding_for_control(&bridge, "WorkbenchButtonsRowTail"),
+        Some(UiMargin::new(8.0, 0.0, 8.0, 4.0))
+    );
+    assert_eq!(
+        slot_padding_for_control(&bridge, "WorkbenchFeedbackAlerts"),
+        Some(UiMargin::new(8.0, 4.0, 0.0, 4.0))
+    );
     let component_top_row = template_contract_node(&nodes, "WorkbenchComponentTopRow");
     let component_lower_row = template_contract_node(&nodes, "WorkbenchComponentLowerRow");
     assert_eq!(component_top_row.frame.height, 202.0);
@@ -356,6 +391,11 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     let button_icon = template_contract_node(&nodes, "WorkbenchButtonIcon");
     let button_delete = template_contract_node(&nodes, "WorkbenchButtonDelete");
     let disabled_button = template_contract_node(&nodes, "WorkbenchDisabledButton");
+    let buttons_title = template_contract_node(&nodes, "WorkbenchButtonsTitle");
+    assert!((buttons_title.frame.x - (component_buttons.frame.x + 8.0)).abs() < 0.001);
+    assert!((buttons_title.frame.y - (component_buttons.frame.y + 4.0)).abs() < 0.001);
+    assert!(buttons_title.frame.width <= component_buttons.frame.width - 16.0 + 0.001);
+    assert!(primary_button.frame.x >= component_buttons.frame.x + 8.0 - 0.001);
     assert!((primary_button.label_brightness - 1.0).abs() < 0.001);
     assert!((secondary_button.label_brightness - 1.01).abs() < 0.001);
     assert_eq!(primary_button.layout_offset_x, 3.0);
@@ -369,7 +409,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
                 .background_color
                 .as_ref()
         ),
-        Some([53, 199, 208, 255])
+        Some([18, 57, 65, 255])
     );
     assert_eq!(
         style_color_u8(primary_button.button_style.element.border_color.as_ref()),
@@ -392,10 +432,10 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(tertiary_button.text.as_str(), "Tertiary");
     assert_eq!(tertiary_button.button_variant.as_str(), "text");
     assert_eq!(tertiary_button.layout_offset_x, 1.0);
-    assert_eq!(tertiary_button.corner_radius, 9.0);
+    assert_eq!(tertiary_button.corner_radius, 5.0);
     assert_eq!(outline_button.text.as_str(), "Outline");
     assert_eq!(outline_button.layout_offset_x, 1.0);
-    assert_eq!(outline_button.corner_radius, 9.0);
+    assert_eq!(outline_button.corner_radius, 5.0);
     assert_eq!(
         style_color_u8(
             tertiary_button
@@ -435,11 +475,14 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         Some([216, 227, 231, 255])
     );
     assert_eq!(button_icon.text.as_str(), "Icon");
-    assert_eq!(button_icon.icon_name.as_str(), "plus");
+    assert_eq!(
+        button_icon.icon_name.as_str(),
+        "zircon_editor_shell/controls/add.svg"
+    );
     assert_eq!(button_icon.layout_offset_x, 3.0);
     assert_eq!(button_icon.layout_offset_y, 1.0);
     assert!((button_icon.label_brightness - 1.02).abs() < 0.001);
-    assert_eq!(button_icon.corner_radius, 9.0);
+    assert_eq!(button_icon.corner_radius, 5.0);
     assert_eq!(
         style_color_u8(button_icon.button_style.element.background_color.as_ref()),
         Some([29, 35, 40, 255])
@@ -452,9 +495,12 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         style_color_u8(button_icon.button_style.element.foreground_color.as_ref()),
         Some([216, 227, 231, 255])
     );
-    assert_eq!(button_delete.icon_name.as_str(), "trash");
+    assert_eq!(
+        button_delete.icon_name.as_str(),
+        "zircon_editor_shell/controls/delete.svg"
+    );
     assert_eq!(button_delete.validation_level.as_str(), "danger");
-    assert_eq!(button_delete.corner_radius, 9.0);
+    assert_eq!(button_delete.corner_radius, 5.0);
     assert!((button_delete.label_brightness - 1.02).abs() < 0.001);
     assert_eq!(
         style_color_u8(button_delete.button_style.element.foreground_color.as_ref()),
@@ -516,14 +562,17 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         style_color_u8(mini_add.button_style.element.border_color.as_ref()),
         Some([42, 50, 56, 255])
     );
-    assert_eq!(mini_add.corner_radius, 10.0);
+    assert_eq!(mini_add.corner_radius, 5.0);
     let mini_eye = template_contract_node(&nodes, "WorkbenchMiniEye");
     let mini_eye_off = template_contract_node(&nodes, "WorkbenchMiniEyeOff");
     let mini_lock = template_contract_node(&nodes, "WorkbenchMiniLock");
     let mini_more = template_contract_node(&nodes, "WorkbenchMiniMore");
     let mini_delete = template_contract_node(&nodes, "WorkbenchMiniDelete");
     assert_eq!(mini_eye.role.as_str(), "IconButton");
-    assert_eq!(mini_eye.icon_name.as_str(), "eye");
+    assert_eq!(
+        mini_eye.icon_name.as_str(),
+        "zircon_editor_shell/scene/eye.svg"
+    );
     assert_eq!(mini_eye.value_number, 18.0);
     assert!((mini_eye.layout_offset_y - 1.35).abs() < 0.001);
     assert_eq!(mini_eye.frame.width, 38.0);
@@ -539,11 +588,20 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         style_color_u8(mini_eye.button_style.element.border_color.as_ref()),
         Some([42, 50, 56, 255])
     );
-    assert_eq!(mini_eye.corner_radius, 10.0);
-    assert_eq!(mini_eye_off.icon_name.as_str(), "eye-off");
-    assert_eq!(mini_lock.icon_name.as_str(), "lock");
-    assert_eq!(mini_more.icon_name.as_str(), "more");
-    assert_eq!(mini_delete.corner_radius, 10.0);
+    assert_eq!(mini_eye.corner_radius, 5.0);
+    assert_eq!(
+        mini_eye_off.icon_name.as_str(),
+        "zircon_editor_shell/scene/eye-off.svg"
+    );
+    assert_eq!(
+        mini_lock.icon_name.as_str(),
+        "zircon_editor_shell/scene/lock.svg"
+    );
+    assert_eq!(
+        mini_more.icon_name.as_str(),
+        "zircon_editor_shell/toolbar/more-vertical.svg"
+    );
+    assert_eq!(mini_delete.corner_radius, 5.0);
     assert_eq!(
         style_color_u8(mini_delete.button_style.element.border_color.as_ref()),
         Some([236, 111, 98, 255])
@@ -557,10 +615,10 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(icon_toggle.layout_offset_y, 1.0);
     assert!(icon_toggle.has_selected_segment_border_width);
     assert_eq!(icon_toggle.selected_segment_border_width, 0.0);
-    assert_eq!(icon_toggle.selected_segment_underline_height, 1.0);
+    assert_eq!(icon_toggle.selected_segment_underline_height, 2.0);
     assert_eq!(
         icon_toggle.selected_segment_underline_color,
-        crate::ui::retained_host::primitives::Color::from_argb_u8(122, 50, 211, 222)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(255, 42, 166, 184)
     );
     let component_inputs = template_contract_node(&nodes, "WorkbenchComponentInputs");
     let component_selection = template_contract_node(&nodes, "WorkbenchComponentSelection");
@@ -593,11 +651,11 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         style_color_u8(checkbox_on.button_style.element.background_color.as_ref()),
-        Some([32, 159, 168, 255])
+        Some([23, 57, 66, 255])
     );
     assert_eq!(
         style_color_u8(checkbox_on.button_style.element.border_color.as_ref()),
-        Some([32, 159, 168, 255])
+        Some([42, 166, 184, 255])
     );
     let checkbox_off = template_contract_node(&nodes, "WorkbenchCheckboxOff");
     assert_eq!(checkbox_off.layout_icon_size, 16.0);
@@ -624,7 +682,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         radio_on.value_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(67, 216, 226)
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(42, 166, 184)
     );
     assert_eq!(
         style_color_u8(radio_on.button_style.element.background_color.as_ref()),
@@ -644,7 +702,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         radio_off.value_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(67, 216, 226)
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(42, 166, 184)
     );
     assert_eq!(
         style_color_u8(radio_off.button_style.element.background_color.as_ref()),
@@ -661,15 +719,15 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(toggle.layout_content_offset_y, 18.0);
     assert_eq!(
         style_color_u8(toggle.button_style.element.background_color.as_ref()),
-        Some([53, 199, 208, 255])
+        Some([23, 57, 66, 255])
     );
     assert_eq!(
         style_color_u8(toggle.button_style.element.foreground_color.as_ref()),
-        Some([255, 255, 255, 255])
+        Some([232, 236, 238, 255])
     );
     assert_eq!(
         style_color_u8(toggle.button_style.element.border_color.as_ref()),
-        Some([49, 191, 201, 255])
+        Some([42, 166, 184, 255])
     );
     assert!(toggle.frame.x >= component_labs.frame.x);
     assert!(
@@ -699,17 +757,24 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         info_alert.frame.x + info_alert.frame.width
             <= feedback_alerts.frame.x + feedback_alerts.frame.width + 0.001
     );
+    for alert in [&info_alert, &success_alert, &warning_alert, &error_alert] {
+        assert_eq!(alert.frame.height, 30.0);
+    }
     assert!(
-        (success_alert.frame.y - (info_alert.frame.y + info_alert.frame.height + 6.0)).abs()
+        (success_alert.frame.y - (info_alert.frame.y + info_alert.frame.height + 4.0)).abs()
             < 0.001
     );
     assert!(
-        (warning_alert.frame.y - (success_alert.frame.y + success_alert.frame.height + 6.0)).abs()
+        (warning_alert.frame.y - (success_alert.frame.y + success_alert.frame.height + 4.0)).abs()
             < 0.001
     );
     assert!(
-        (error_alert.frame.y - (warning_alert.frame.y + warning_alert.frame.height + 6.0)).abs()
+        (error_alert.frame.y - (warning_alert.frame.y + warning_alert.frame.height + 4.0)).abs()
             < 0.001
+    );
+    assert!(
+        error_alert.frame.y + error_alert.frame.height
+            <= feedback_alerts.frame.y + feedback_alerts.frame.height + 0.001
     );
     let feedback_tooltip = template_contract_node(&nodes, "WorkbenchTooltipRoot");
     let standalone_toast = template_contract_node(&nodes, "WorkbenchToastRoot");
@@ -722,11 +787,16 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         standalone_toast.frame.x + standalone_toast.frame.width
             <= feedback_toast_column.frame.x + feedback_toast_column.frame.width + 0.001
     );
+    assert_eq!(standalone_toast.frame.height, 30.0);
     assert!(standalone_toast.frame.y > feedback_tooltip.frame.y);
     assert!(
         standalone_toast.frame.y + standalone_toast.frame.height
             <= component_feedback.frame.y + component_feedback.frame.height + 0.001
     );
+    assert!(bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchFeedbackToastOffset")
+        .is_none());
     let table_item = template_contract_node(&nodes, "WorkbenchTableItem");
     assert_eq!(table_item.role.as_str(), "Table");
     assert_eq!(table_item.component_role.as_str(), "table");
@@ -797,12 +867,12 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(input_slider.value_text.as_str(), "0.75");
     assert_eq!(input_slider.layout_offset_x, -18.0);
     assert_eq!(input_slider.layout_offset_y, 1.0);
-    assert_eq!(input_slider.layout_icon_size, 9.0);
+    assert_eq!(input_slider.layout_icon_size, 0.0);
     assert_eq!(input_slider.layout_content_offset_x, -10.0);
     assert_eq!(input_slider.layout_first_cell_offset_x, 18.0);
     assert_eq!(
         input_slider.icon_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(183, 241, 248)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0)
     );
     assert_eq!(
         style_color_u8(input_slider.button_style.element.border_color.as_ref()),
@@ -810,7 +880,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         input_slider.state_layer_color,
-        crate::ui::retained_host::primitives::Color::from_argb_u8(61, 50, 211, 222)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0)
     );
     assert!(input_slider.frame.x >= component_sliders.frame.x);
     assert!(
@@ -819,7 +889,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         input_slider.label_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(136, 147, 153)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0)
     );
     assert_eq!(
         style_color_u8(input_slider.button_style.element.background_color.as_ref()),
@@ -827,19 +897,19 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         input_slider.value_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(32, 153, 162)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(255, 216, 227, 231)
     );
     let range_slider = template_contract_node(&nodes, "WorkbenchInputRangeSlider");
     assert_eq!(range_slider.label_text.as_str(), "Range");
     assert_eq!(range_slider.value_text.as_str(), "0.80");
     assert_eq!(range_slider.layout_offset_x, -18.0);
-    assert_eq!(range_slider.layout_icon_size, 9.0);
+    assert_eq!(range_slider.layout_icon_size, 11.0);
     assert_eq!(range_slider.layout_content_offset_x, -10.0);
     assert_eq!(range_slider.layout_first_cell_offset_x, 18.0);
     assert_eq!(range_slider.layout_second_cell_offset_x, 20.0);
     assert_eq!(
         range_slider.icon_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(183, 241, 248)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0)
     );
     assert_eq!(range_slider.frame.height, 46.0);
     assert_eq!(range_slider.value_color, input_slider.value_color);
@@ -852,13 +922,13 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert_eq!(steps_slider.label_text.as_str(), "Steps");
     assert_eq!(steps_slider.value_text.as_str(), "3");
     assert_eq!(steps_slider.layout_offset_x, -18.0);
-    assert_eq!(steps_slider.layout_icon_size, 9.0);
+    assert_eq!(steps_slider.layout_icon_size, 0.0);
     assert_eq!(steps_slider.layout_content_offset_x, -10.0);
     assert_eq!(steps_slider.layout_first_cell_offset_x, 18.0);
     assert_eq!(steps_slider.layout_third_cell_offset_x, 5.0);
     assert_eq!(
         steps_slider.icon_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(183, 241, 248)
+        crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0)
     );
     assert!(steps_slider.frame.x >= component_sliders.frame.x);
     assert!(
@@ -954,10 +1024,10 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         crate::ui::retained_host::primitives::Color::from_rgb_u8(146, 158, 164)
     );
     let status_ready = template_contract_node(&nodes, "WorkbenchStatusReady");
-    assert!((status_ready.layout_offset_x - 4.0).abs() < 0.001);
-    assert!((status_ready.layout_offset_y + 1.0).abs() < 0.001);
+    assert!(status_ready.layout_offset_x.abs() < 0.001);
+    assert!(status_ready.layout_offset_y.abs() < 0.001);
     assert!((status_ready.layout_content_offset_x - 8.0).abs() < 0.001);
-    assert!((status_ready.value_number - 9.0).abs() < 0.001);
+    assert!((status_ready.value_number - 8.0).abs() < 0.001);
     assert_eq!(
         status_ready.value_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(143, 154, 160)
@@ -971,17 +1041,16 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         status_errors.label_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(88, 184, 102)
     );
-    assert_eq!(
-        status_errors.icon_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(17, 32, 24)
-    );
-    assert!((status_errors.layout_icon_size - 12.04).abs() < 0.001);
+    assert!(status_errors.layout_offset_x.abs() < 0.001);
+    assert!(status_errors.layout_offset_y.abs() < 0.001);
+    assert!((status_errors.layout_content_offset_x - 8.0).abs() < 0.001);
+    assert!((status_errors.value_number - 8.0).abs() < 0.001);
     let status_warnings = template_contract_node(&nodes, "WorkbenchStatusWarnings");
-    assert!((status_warnings.layout_offset_x - 5.5).abs() < 0.001);
-    assert!((status_warnings.layout_offset_y + 2.0).abs() < 0.001);
-    assert!((status_warnings.layout_content_offset_x - 6.45).abs() < 0.001);
-    assert!((status_warnings.layout_content_offset_y + 2.0).abs() < 0.001);
-    assert!((status_warnings.value_number - 21.0).abs() < 0.001);
+    assert!(status_warnings.layout_offset_x.abs() < 0.001);
+    assert!(status_warnings.layout_offset_y.abs() < 0.001);
+    assert!((status_warnings.layout_content_offset_x - 8.0).abs() < 0.001);
+    assert!(status_warnings.layout_content_offset_y.abs() < 0.001);
+    assert!((status_warnings.value_number - 8.0).abs() < 0.001);
     assert_eq!(
         status_warnings.value_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(135, 146, 153)
@@ -990,16 +1059,12 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
         status_warnings.label_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(242, 195, 86)
     );
-    assert_eq!(
-        status_warnings.icon_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(17, 24, 26)
-    );
-    assert!((status_warnings.icon_stroke_width - 1.45).abs() < 0.001);
     let status_messages = template_contract_node(&nodes, "WorkbenchStatusMessages");
-    assert!((status_messages.layout_offset_x + 6.0).abs() < 0.001);
-    assert!((status_messages.layout_offset_y + 2.0).abs() < 0.001);
-    assert!((status_messages.layout_content_offset_y - 2.0).abs() < 0.001);
-    assert!((status_messages.value_number - 18.0).abs() < 0.001);
+    assert!(status_messages.layout_offset_x.abs() < 0.001);
+    assert!(status_messages.layout_offset_y.abs() < 0.001);
+    assert!((status_messages.layout_content_offset_x - 8.0).abs() < 0.001);
+    assert!(status_messages.layout_content_offset_y.abs() < 0.001);
+    assert!((status_messages.value_number - 8.0).abs() < 0.001);
     assert_eq!(
         status_messages.value_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(151, 163, 169)
@@ -1301,9 +1366,13 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     ));
 
     bridge.recompute_layout(UiSize::new(1440.0, 941.0)).unwrap();
+    let resized_viewport_frame = bridge
+        .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT)
+        .expect("resized viewport control frame");
+    assert_eq!(bridge.frames().viewport, resized_viewport_frame);
     assert_eq!(
-        bridge.frames().viewport,
-        UiFrame::new(404.0, 60.0, 632.0, 428.0)
+        bridge.layout_frames().document_region_frame,
+        Some(resized_viewport_frame)
     );
     assert_eq!(
         bridge
@@ -2266,7 +2335,9 @@ fn componentized_workbench_window_template_bridge_updates_tool_selection_state()
     );
     assert_eq!(
         bridge.frames().viewport,
-        UiFrame::new(404.0, 60.0, 632.0, 428.0)
+        bridge
+            .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT)
+            .expect("resized viewport control frame")
     );
     assert_eq!(
         bridge
@@ -2843,9 +2914,9 @@ fn componentized_workbench_window_projection_exports_dropdown_and_popup_rows() {
 
     let dropdown = template_contract_node(&nodes, "WorkbenchInputDropdown");
     assert_eq!(dropdown.role.as_str(), "Dropdown");
-    assert_eq!(dropdown.layout_offset_x, -4.0);
-    assert_eq!(dropdown.layout_offset_y, 8.0);
-    assert_eq!(dropdown.frame.height, 30.5);
+    assert_eq!(dropdown.layout_offset_x, 0.0);
+    assert_eq!(dropdown.layout_offset_y, 0.0);
+    assert_eq!(dropdown.frame.height, 32.0);
     assert_eq!(
         dropdown.options_text.as_str(),
         "dropdown, option_a, option_b"
@@ -2873,9 +2944,9 @@ fn componentized_workbench_window_projection_exports_dropdown_and_popup_rows() {
 
     let stepper = template_contract_node(&nodes, "WorkbenchInputStepper");
     assert_eq!(stepper.role.as_str(), "InputField");
-    assert_eq!(stepper.layout_offset_x, -4.0);
-    assert_eq!(stepper.layout_offset_y, 8.0);
-    assert_eq!(stepper.frame.height, 30.5);
+    assert_eq!(stepper.layout_offset_x, 0.0);
+    assert_eq!(stepper.layout_offset_y, 0.0);
+    assert_eq!(stepper.frame.height, 32.0);
 
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
     assert_eq!(popup_menu.role.as_str(), "Menu");
@@ -3266,7 +3337,7 @@ fn componentized_workbench_window_template_bridge_updates_component_drawer_selec
     assert!(control_bool(&bridge, "WorkbenchCheckboxOff", "selected"));
     assert_eq!(
         render_background_for_control(&bridge, "WorkbenchCheckboxOff").as_deref(),
-        Some("#209fa8")
+        Some("#173942")
     );
 
     assert!(matches!(
@@ -3562,6 +3633,25 @@ fn control_visibility(
             .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
             .map(|_| node.visibility)
     })
+}
+
+fn slot_padding_for_control(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    control_id: &str,
+) -> Option<UiMargin> {
+    let node_id = bridge.surface().tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
+            .map(|_| node.node_id)
+    })?;
+    bridge
+        .surface()
+        .tree
+        .slots
+        .iter()
+        .find(|slot| slot.child_id == node_id)
+        .map(|slot| slot.padding)
 }
 
 fn render_background_for_control(

@@ -37,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     order: i32,
     opacity: f32,
 ) -> bool {
-    if !is_table_row(node) {
+    if is_workbench_table_row(node) || !is_table_row(node) {
         return false;
     }
 

@@ -1,6 +1,6 @@
 use crate::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MaterialGraphAsset,
-    TerrainAsset, TileMapAsset,
+    AssetAuthoringError, AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset,
+    MaterialGraphAsset, TerrainAsset, TileMapAsset,
 };
 
 pub(super) fn import_prefab(
@@ -16,7 +16,7 @@ pub(super) fn import_material_graph(
     let graph: MaterialGraphAsset = parse_typed_toml(context, "material graph toml")?;
     graph
         .validate_output_node()
-        .map_err(AssetImportError::Parse)?;
+        .map_err(asset_authoring_parse_error)?;
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
         ImportedAsset::MaterialGraph(graph),
@@ -29,7 +29,7 @@ pub(super) fn import_terrain(
     let terrain: TerrainAsset = parse_typed_toml(context, "terrain toml")?;
     terrain
         .validate_dimensions()
-        .map_err(AssetImportError::Parse)?;
+        .map_err(asset_authoring_parse_error)?;
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
         ImportedAsset::Terrain(terrain),
@@ -55,7 +55,9 @@ pub(super) fn import_tilemap(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let tilemap: TileMapAsset = parse_typed_toml(context, "tilemap toml")?;
-    tilemap.validate_layers().map_err(AssetImportError::Parse)?;
+    tilemap
+        .validate_layers()
+        .map_err(asset_authoring_parse_error)?;
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
         ImportedAsset::TileMap(tilemap),
@@ -87,4 +89,8 @@ fn parse_typed_toml<T: serde::de::DeserializeOwned>(
     let document = context.source_text()?;
     toml::from_str::<T>(&document)
         .map_err(|error| AssetImportError::Parse(format!("parse {label}: {error}")))
+}
+
+fn asset_authoring_parse_error(error: AssetAuthoringError) -> AssetImportError {
+    AssetImportError::Parse(error.to_string())
 }

@@ -33,6 +33,7 @@ use self::support::{
     resource_locator_for_path, runtime_asset_root, split_import_fragment,
     split_widget_component_import, zui_component_import_path, BUILTIN_ZUI_ASSET_ID_ALIASES,
 };
+use crate::ui::workbench::FloatingWindow;
 
 fn duplicate_entries<'a>(values: impl IntoIterator<Item = &'a String>) -> Vec<String> {
     let mut counts = BTreeMap::<&str, usize>::new();
@@ -143,6 +144,7 @@ fn editor_workbench_zui_assets_are_grouped_by_functional_component_folder() {
         "res://ui/editor/components/workbench/primitives/data/",
         "res://ui/editor/components/workbench/primitives/feedback/",
         "res://ui/editor/components/workbench/primitives/chrome/",
+        "res://ui/editor/components/workbench/floating/",
         "res://ui/editor/components/workbench/shell/",
         "res://ui/editor/components/workbench/modules/core/ai/",
         "res://ui/editor/components/workbench/modules/core/assets/",
@@ -580,7 +582,8 @@ fn production_v2_ui_toml_assets_are_view_or_style_roots_only() {
 #[test]
 fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
-    let referenced_zui_locators = production_widget_import_zui_locators(&asset_roots);
+    let mut referenced_zui_locators = production_widget_import_zui_locators(&asset_roots);
+    referenced_zui_locators.extend(workbench_design_contract_zui_locators());
     let mut checked_assets = 0usize;
     let mut offenders = Vec::new();
 
@@ -590,7 +593,7 @@ fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
             let expected_locator = resource_locator_for_path(asset_root, &path);
             if !referenced_zui_locators.contains(&expected_locator) {
                 offenders.push(format!(
-                    "{} is not reachable from any production .v2.ui.toml widget import",
+                    "{} is not reachable from any production .v2.ui.toml widget import or Workbench design contract",
                     path.display()
                 ));
             }
@@ -607,8 +610,18 @@ fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
     );
     assert!(
         offenders.is_empty(),
-        "production .zui component assets must remain reachable from direct or transitive res:// .zui widget imports or registered builtin aliases: {offenders:#?}"
+        "production .zui component assets must remain reachable from direct or transitive res:// .zui widget imports, registered builtin aliases, or typed Workbench design contracts: {offenders:#?}"
     );
+}
+
+fn workbench_design_contract_zui_locators() -> BTreeSet<String> {
+    [
+        "res://ui/editor/components/workbench/shell/workbench_skeleton.zui".to_string(),
+        FloatingWindow::command_palette().content_asset,
+        FloatingWindow::preferences().content_asset,
+    ]
+    .into_iter()
+    .collect()
 }
 
 #[test]

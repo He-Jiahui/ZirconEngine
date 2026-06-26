@@ -24,7 +24,12 @@ related_code:
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
 implementation_files:
   - zircon_runtime/src/asset/project/manifest.rs
@@ -50,7 +55,12 @@ implementation_files:
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
 plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
@@ -62,6 +72,12 @@ tests:
   - validate_report_summarizes_profile_plan_and_fatal_state
   - feature_matrix_links_selected_plugins_only
   - source_template_profile_carries_build_validation_plan
+  - runtime_15_export_build_plan_tests_are_folder_backed
+  - source_template_preserves_builtin_catalog_target_modes_after_manifest_completion
+  - source_template_links_rendering_default_owner_features
+  - source_template_with_native_dynamic_merges_native_loader_reports
+  - runtime_15_export_build_plan_platform_tests_are_folder_backed
+  - generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins
   - native_dynamic_generates_loader_manifest_without_source_template
   - validate_report_exposes_native_dynamic_abi_v3_package_exports
   - loader_manifest_deserializes_abi_v3_contract_fields
@@ -269,6 +285,12 @@ The M1 export profile slice adds four focused regressions:
 - `source_template_profile_carries_build_validation_plan` covers M4-T1 SourceTemplate planning:
   SourceTemplate-only profiles link selected runtime crates, carry a generated-project build
   command, and expose that command in the Validate report.
+- `source_template_preserves_builtin_catalog_target_modes_after_manifest_completion`,
+  `source_template_links_rendering_default_owner_features`, and
+  `source_template_with_native_dynamic_merges_native_loader_reports` cover the Runtime 15 M3
+  catalog-projection child owner: builtin catalog completion, render default feature providers, and
+  SourceTemplate plus NativeDynamic bootstrap projection stay isolated in
+  `tests/plugin_extensions/export_build_plan/catalog_projection.rs`.
 - `native_dynamic_generates_loader_manifest_without_source_template` covers M5-T1 loader manifest
   generation with `package_report` and ABI v3 contract fields.
 - `validate_report_exposes_native_dynamic_abi_v3_package_exports` covers Validate report exposure of
@@ -303,6 +325,27 @@ targets now pass through a shared export-relative path resolver before disk writ
 this slice covered rustfmt check, old flat-file absence, conflict-marker scan, stale old-path scan,
 trailing-whitespace scan, and path-scoped `git diff --check`; Cargo and focused behavior tests are
 deferred under the implementation-first direction.
+
+2026-06-24 Runtime 15 M3 export build plan test folder split
+(`runtime_15_export_build_plan_tests_folder_split_static_passed_cargo_deferred`):
+`export_build_plan.rs` now mounts `export_build_plan/catalog_projection.rs`, keeping the
+SourceTemplate/LibraryEmbed export-plan fixtures folder-backed. The parent is 723 lines and retains
+11 tests plus shared helpers; the child is 263 lines and owns 5 builtin catalog, render feature, and
+native merge projection tests.
+`runtime_15_export_build_plan_tests_are_folder_backed` locks the parent mount, moved-test
+non-regression, total 16-test preservation, per-owner line budgets, and cross-document/status
+anchors. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not
+claimed as passing.
+
+2026-06-24 Runtime 15 M3 export build plan platform test folder split
+(`runtime_15_export_build_plan_platform_tests_folder_split_static_passed_cargo_deferred`):
+`export_build_plan_platform.rs` now mounts `export_build_plan_platform/browser_hosts.rs`, keeping
+browser-specific WebGPU/WASM host glue checks out of the platform policy parent. The parent is 780
+lines and retains 9 tests; the child is 69 lines and owns the WebAssembly export and allowed
+asset-origin gate test. `runtime_15_export_build_plan_platform_tests_are_folder_backed` locks the
+parent mount, moved-test non-regression, total 10-test preservation, per-owner line budgets, and
+cross-document/status anchors. Cargo remains deferred under the Runtime 15 implementation-slice
+cadence and is not claimed as passing.
 
 2026-06-20 NativeDynamic materialization symlink boundary update: package discovery now avoids
 symlinked directories and symlinked `plugin.toml` files, and payload copy skips symlinked package,

@@ -12,8 +12,9 @@ pub use extension_ids::{
     MATERIAL_EDITOR_DRAWER_ID, MATERIAL_EDITOR_TEMPLATE_ID, MATERIAL_EDITOR_VIEW_ID,
 };
 pub use plugin::{
-    editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, MaterialEditorPlugin,
+    editor_capabilities, editor_plugin, editor_plugin_descriptor,
+    material_editor_dist_module_manifest, package_manifest, plugin_registration,
+    MaterialEditorPlugin, MATERIAL_EDITOR_DIST_CRATE_NAME, MATERIAL_EDITOR_DIST_EDITOR_ENTRY,
 };
 use zircon_runtime::asset::{
     AlphaMode, AssetReference, MaterialAsset, MaterialGraphAsset, MaterialGraphLinkAsset,

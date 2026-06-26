@@ -58,11 +58,16 @@ fn numeric_axis_value(
     let Some(value) = axis_table.get(key) else {
         return Ok(None);
     };
+    if axis_token_reference(value).is_some() {
+        return Ok(None);
+    }
     let Some(number) = value
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
     else {
-        return Err(format!("layout.{axis}.{key} is not numeric"));
+        return Err(format!(
+            "layout.{axis}.{key} is not numeric or a token reference"
+        ));
     };
     if !number.is_finite() {
         return Err(format!("layout.{axis}.{key} is not finite"));
@@ -71,6 +76,15 @@ fn numeric_axis_value(
         return Err(format!("layout.{axis}.{key} is negative"));
     }
     Ok(Some(number))
+}
+
+fn axis_token_reference(value: &Value) -> Option<&str> {
+    let token = value.as_str()?;
+    let token = token.strip_prefix('$')?;
+    if token.is_empty() || string_token_metadata_offender(token, "axis token").is_some() {
+        return None;
+    }
+    Some(token)
 }
 
 fn axis_ordering_offenders(axis: &str, axis_table: &toml::Table) -> Vec<String> {

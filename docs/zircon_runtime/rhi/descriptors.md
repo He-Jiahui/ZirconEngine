@@ -4,12 +4,14 @@ related_code:
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/rhi/descriptors/pipeline.rs
   - zircon_runtime/src/rhi/device.rs
+  - zircon_runtime/src/rhi/device/handles.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
   - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
   - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
   - zircon_runtime/src/rhi_wgpu/resource_validation.rs
@@ -21,12 +23,14 @@ implementation_files:
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/rhi/descriptors/pipeline.rs
   - zircon_runtime/src/rhi/device.rs
+  - zircon_runtime/src/rhi/device/handles.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation.rs
   - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
   - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
   - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
   - zircon_runtime/src/rhi_wgpu/resource_validation.rs
@@ -76,6 +80,10 @@ tests:
   - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_reports_live_transient_allocator_stats_for_buffers_and_textures
   - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_destroying_bound_resources_updates_stats_without_releasing_descriptors
   - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_submit_rejects_bind_group_with_destroyed_resource
+  - zircon_runtime/src/rhi_wgpu/device.rs::tests::wgpu_render_device_state_accessors_recover_poisoned_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs::runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs::runtime_15_rhi_device_handles_are_child_owner
   - zircon_runtime/src/rhi/tests/command_list.rs::command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout
   - zircon_runtime/src/rhi/tests/command_list.rs::command_list_submit_validates_compute_pipeline_bind_groups
   - zircon_runtime/src/rhi/tests/command_list.rs::command_list_submit_validates_bind_group_layout_compatibility
@@ -196,7 +204,11 @@ Pipeline and command-list tests now live in `rhi/tests/pipeline.rs` and `rhi/tes
 
 `rhi_wgpu::command_validation` owns command-list submit validation and the headless copy execution path. The split keeps `rhi_wgpu::device` focused on resource allocation, descriptor storage, command-list construction, and fence bookkeeping while command validation grows to cover debug marker/group balancing, compute dispatches, bind group command binding, raster draws, vertex/index buffer binding ranges, and texture-copy execution.
 
+Runtime 15 M4 RHI device handle owner split is recorded as `runtime_15_rhi_device_handles_owner_split_static_passed_cargo_deferred`. `rhi/device.rs` remains the typed RHI device contract owner for `RhiError`, command/render-pass DTOs, `CommandList`, and `RenderDevice`; `rhi/device/handles.rs` now owns the neutral resource handle newtypes and their `new/raw` accessors. The parent re-exports the moved handles through `pub use self::handles::{...}`, so existing `rhi::device::*` and `rhi::*` paths stay unchanged. The structure guard `runtime_15_rhi_device_handles_are_child_owner` keeps the handles from returning to the parent, verifies `rhi/mod.rs` still exports the same handle names, and keeps both owners below the production-file budget.
+
 Runtime 15 M4 RHI WGPU command validation render-state owner split is recorded as `runtime_15_rhi_wgpu_command_validation_render_state_split_static_passed_cargo_lock_blocked`. `rhi_wgpu/command_validation.rs` stays the command-list validation/execution owner for `validate_recorded_commands(...)`, `execute_recorded_commands(...)`, debug group, render pass, queue, copy, draw, and dispatch traversal. `rhi_wgpu/command_validation/render_state.rs` now owns `RecordedRenderState`, `CommandResourceLookup`, bind group slot validation, binding range validation, vertex/index/strided draw-range helpers, and pipeline-layout lookup. The structure guard `runtime_15_rhi_wgpu_command_validation_state_is_child_owner` keeps those helpers from returning to the parent and keeps both owners under the 800-line production-file budget.
+
+Runtime 15 M3 RHI WGPU render device lock poison recovery is recorded as `runtime_15_rhi_wgpu_render_device_lock_poison_recovery_static_passed_cargo_deferred`. `rhi_wgpu/device.rs` keeps owning the headless WGPU `RenderDevice` contract, but its `WgpuRenderDeviceState` mutex is now opened only through `WgpuRenderDevice::lock_state()`, which recovers poisoned locks instead of panicking through direct `.lock().unwrap()`. The helper covers resource allocation/destruction, descriptor snapshots, bind group and pipeline validation lookups, command submission, fence completion, transient allocator stats, staging buffer write/read, and texture readback without changing neutral RHI handles or descriptor semantics. The module-local `wgpu_render_device_state_accessors_recover_poisoned_lock` deliberately poisons the state lock and verifies transient stats, staging buffer creation, write, and read still recover. The structure guard `runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state` locks the helper/test/status anchors through `docs/zircon_runtime/rhi/descriptors.md` and rejects direct production lock unwraps in `rhi_wgpu/device.rs`.
 
 `rhi_wgpu::render_pass_validation` owns active render-pass attachment validation and pipeline/pass compatibility checks. Keeping that state in its own module prevents `command_validation` from becoming another descriptor catch-all while letting WGPU-style render-pass rules grow toward concrete attachment views, resolves, load/store actions, and depth/stencil operations.
 

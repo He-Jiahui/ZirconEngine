@@ -1,6 +1,6 @@
 use crate::core::math::Transform;
 
-use super::{SceneResult, World};
+use super::{SceneError, SceneResult, World};
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::ecs::LifecycleEventKind;
 use crate::scene::EntityId;
@@ -102,17 +102,17 @@ impl World {
         parent: Option<EntityId>,
     ) -> SceneResult<bool> {
         if !self.contains_entity(child) {
-            return Err(format!("cannot reparent missing node {child}").into());
+            return Err(SceneError::missing_entity("reparent", child));
         }
         if parent == Some(child) {
-            return Err("node cannot become its own parent".to_string().into());
+            return Err(SceneError::EntityCannotParentItself { entity: child });
         }
         if let Some(parent) = parent {
             if !self.contains_entity(parent) {
-                return Err(format!("cannot use missing parent node {parent}").into());
+                return Err(SceneError::MissingParent { child, parent });
             }
             if self.is_descendant(parent, child) {
-                return Err("cannot create hierarchy cycle".to_string().into());
+                return Err(SceneError::HierarchyCycle { child, parent });
             }
         }
         self.validate_reparent(child, parent)?;
@@ -130,7 +130,11 @@ impl World {
     ) -> SceneResult<bool> {
         self.ensure_transform_mutable(entity)?;
         let Some(local) = self.local_transforms.get(&entity) else {
-            return Err(format!("cannot update transform for missing node {entity}").into());
+            return Err(SceneError::MissingRequiredComponent {
+                operation: "update transform",
+                entity,
+                component: "LocalTransform",
+            });
         };
         if local.transform == transform {
             return Ok(false);
@@ -151,20 +155,17 @@ impl World {
                         continue;
                     }
                     if self.mobility(child) == Some(Mobility::Static) {
-                        return Err(format!(
-                            "cannot make node {entity} Dynamic while it owns Static children"
-                        )
-                        .into());
+                        return Err(SceneError::DynamicMobilityWithStaticChildren { entity });
                     }
                 }
             }
             Mobility::Static => {
                 if let Some(parent) = self.parent_of(entity) {
                     if self.mobility(parent) == Some(Mobility::Dynamic) {
-                        return Err(format!(
-                            "cannot make node {entity} Static under Dynamic parent"
-                        )
-                        .into());
+                        return Err(SceneError::StaticMobilityUnderDynamicParent {
+                            entity,
+                            parent,
+                        });
                     }
                 }
             }
@@ -174,21 +175,17 @@ impl World {
 
     fn ensure_transform_mutable(&self, entity: EntityId) -> SceneResult<()> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update transform for missing node {entity}").into());
+            return Err(SceneError::missing_entity("update transform for", entity));
         }
         if self.mobility(entity) == Some(Mobility::Static) {
-            return Err(
-                format!("cannot update transform for Static node {entity} at runtime").into(),
-            );
+            return Err(SceneError::StaticTransformMutation { entity });
         }
         Ok(())
     }
 
     fn validate_reparent(&self, child: EntityId, _parent: Option<EntityId>) -> SceneResult<()> {
         if self.mobility(child) == Some(Mobility::Static) {
-            return Err(
-                format!("cannot reparent Static node {child} during runtime mutation").into(),
-            );
+            return Err(SceneError::StaticReparentMutation { entity: child });
         }
         Ok(())
     }

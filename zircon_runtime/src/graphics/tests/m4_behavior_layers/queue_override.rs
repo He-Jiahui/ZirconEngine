@@ -3,8 +3,9 @@ use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::AssetManager;
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderMeshSnapshot, RenderPhase, RenderPhaseMeshSource, RenderQualityProfile,
+    CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhase, RenderPhaseMeshSource,
+    RenderQualityProfile,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{

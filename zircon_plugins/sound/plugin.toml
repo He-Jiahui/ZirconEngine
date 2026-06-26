@@ -10,7 +10,16 @@ supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.sound"]
 content_roots = ["editor"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_sound_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_sound_runtime_entry_v3"
 
 [[capability_statuses]]
 capability = "runtime.plugin.sound"
@@ -179,12 +188,19 @@ crate_name = "zircon_plugin_sound_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.sound_authoring"]
 
+[[modules]]
+name = "sound.dist"
+kind = "native"
+crate_name = "zircon_plugin_sound_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.sound"]
+
 [[optional_features]]
 id = "sound.timeline_animation_track"
 display_name = "Sound Timeline Animation Track"
 owner_plugin_id = "sound"
 capabilities = ["runtime.feature.sound.timeline_animation_track"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -211,12 +227,19 @@ crate_name = "zircon_plugin_sound_timeline_animation_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.feature.sound.timeline_animation_track"]
 
+[[optional_features.modules]]
+name = "sound.timeline_animation_track.dist"
+kind = "native"
+crate_name = "zircon_plugin_sound_timeline_animation_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.sound.timeline_animation_track"]
+
 [[optional_features]]
 id = "sound.ray_traced_convolution_reverb"
 display_name = "Ray Traced Convolution Reverb"
 owner_plugin_id = "sound"
 capabilities = ["runtime.feature.sound.ray_traced_convolution_reverb"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
 enabled_by_default = false
 
 [[optional_features.dependencies]]
@@ -247,3 +270,10 @@ kind = "editor"
 crate_name = "zircon_plugin_sound_ray_traced_convolution_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.feature.sound.ray_traced_convolution_reverb"]
+
+[[optional_features.modules]]
+name = "sound.ray_traced_convolution_reverb.dist"
+kind = "native"
+crate_name = "zircon_plugin_sound_ray_traced_convolution_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.sound.ray_traced_convolution_reverb"]

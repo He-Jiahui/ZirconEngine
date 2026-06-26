@@ -31,7 +31,8 @@ pub use package::events::{sound_event_catalogs, SOUND_DYNAMIC_EVENT_NAMESPACE};
 pub use package::options::sound_options;
 pub use plugin::{
     package_manifest, plugin_registration, primary_runtime_capability, runtime_capabilities,
-    runtime_plugin, runtime_selection, SoundRuntimePlugin,
+    runtime_plugin, runtime_selection, sound_dist_module_manifest, SoundRuntimePlugin,
+    SOUND_DIST_CRATE_NAME, SOUND_DIST_RUNTIME_ENTRY,
 };
 pub use runtime_plugin::descriptor::runtime_plugin_descriptor;
 pub use runtime_plugin::feature_manifest::{

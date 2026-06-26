@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock, Weak};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use crate::core::framework::script::ScriptHostValue;
 use crate::core::{CoreRuntime, PluginContext};
@@ -136,12 +136,12 @@ impl VmPluginManager {
     }
 
     pub fn selected_backend_name(&self) -> String {
-        self.selected_backend.read().unwrap().clone()
+        self.selected_backend_read().clone()
     }
 
     pub fn select_default_backend(&self, backend_name: &str) -> Result<(), VmError> {
         self.backends.resolve(backend_name)?;
-        *self.selected_backend.write().unwrap() = backend_name.to_string();
+        *self.selected_backend_write() = backend_name.to_string();
         Ok(())
     }
 
@@ -316,6 +316,18 @@ impl VmPluginManager {
             slot_lifecycle: Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
         }
     }
+
+    fn selected_backend_read(&self) -> RwLockReadGuard<'_, String> {
+        self.selected_backend
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn selected_backend_write(&self) -> RwLockWriteGuard<'_, String> {
+        self.selected_backend
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 }
 
 fn derive_plugin_roots(
@@ -334,4 +346,26 @@ fn derive_plugin_roots(
     });
     let data_root = package_root.as_ref().map(|root| root.join("data"));
     (package_root, source_root, data_root)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock() {
+        let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
+        let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut selected = manager.selected_backend.write().unwrap();
+            *selected = DEFAULT_BACKEND_SELECTOR.to_string();
+            panic!("poison vm plugin manager selected backend lock");
+        }));
+        assert!(poison.is_err());
+
+        assert_eq!(manager.selected_backend_name(), DEFAULT_BACKEND_SELECTOR);
+        manager
+            .select_default_backend("builtin:mock")
+            .expect("poisoned selected backend lock should recover for writes");
+        assert_eq!(manager.selected_backend_name(), "builtin:mock");
+    }
 }

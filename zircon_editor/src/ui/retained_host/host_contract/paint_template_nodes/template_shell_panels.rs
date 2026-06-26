@@ -1,6 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
+mod frame;
 mod identity;
 mod separators;
 mod surface;

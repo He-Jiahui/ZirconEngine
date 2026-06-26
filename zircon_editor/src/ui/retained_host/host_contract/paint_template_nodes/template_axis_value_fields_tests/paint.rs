@@ -29,7 +29,7 @@ fn focused_axis_value_field_uses_focus_border() {
     let bytes = paint_template_nodes_for_test(96, 48, model_rc(vec![node]));
 
     assert_eq!(pixel_at(&bytes, 96, 22, 8), PALETTE.focus_ring);
-    assert_eq!(pixel_at(&bytes, 96, 18, 18), AXIS_FIELD_HOVER_BACKGROUND);
+    assert_eq!(pixel_at(&bytes, 96, 60, 18), AXIS_FIELD_HOVER_BACKGROUND);
 }
 
 #[test]

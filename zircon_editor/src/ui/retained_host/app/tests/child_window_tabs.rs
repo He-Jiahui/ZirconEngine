@@ -1,4 +1,7 @@
 use super::support::*;
+use crate::ui::workbench::document_tabs::{
+    document_tab_close_x, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
+};
 
 #[test]
 fn child_window_document_tab_pointer_event_dispatches_focus_view_and_tracks_window_focus() {
@@ -40,13 +43,16 @@ fn child_window_document_tab_close_pointer_event_dispatches_close_view_and_keeps
     let asset_browser = harness.open_view("editor.asset_browser");
     let child = harness.detach_view_to_child_window(asset_browser.0.as_str(), "window:browser");
     let baseline = harness.journal_len();
+    let tab_x = 8.0;
+    let tab_width = DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH;
+    let close_center_x = document_tab_close_x(tab_x, tab_width) + DOCUMENT_TAB_CLOSE_EXTENT * 0.5;
 
     host_context(&child).invoke_document_tab_close_pointer_clicked(
         "window:browser".into(),
         0,
-        8.0,
-        120.0,
-        112.0,
+        tab_x,
+        tab_width,
+        close_center_x,
         16.0,
     );
 

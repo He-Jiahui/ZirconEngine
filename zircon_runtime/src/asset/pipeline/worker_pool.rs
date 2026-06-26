@@ -2,7 +2,7 @@
 
 use crossbeam_channel::{bounded, unbounded, TrySendError};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
 use crate::core::diagnostics::DiagnosticStore;
@@ -285,10 +285,7 @@ impl AssetWorkerPool {
     }
 
     pub fn request(&self, request: AssetRequest) -> Result<(), ZirconError> {
-        let mut in_flight = self
-            .in_flight
-            .lock()
-            .expect("asset worker in-flight lock poisoned");
+        let mut in_flight = self.lock_in_flight();
         if let Some(waiter_count) = in_flight.get_mut(&request) {
             *waiter_count += 1;
             self.record_in_flight_locked(&in_flight);
@@ -325,10 +322,7 @@ impl AssetWorkerPool {
     }
 
     pub fn diagnostics(&self) -> AssetWorkerPoolDiagnostics {
-        *self
-            .diagnostics
-            .lock()
-            .expect("asset worker diagnostics lock poisoned")
+        *self.lock_diagnostics()
     }
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
@@ -382,12 +376,17 @@ impl AssetWorkerPool {
 
     fn record_in_flight_locked(&self, in_flight: &HashMap<AssetRequest, usize>) {
         let in_flight_count = total_waiter_count(in_flight);
-        let mut diagnostics = self
-            .diagnostics
-            .lock()
-            .expect("asset worker diagnostics lock poisoned");
+        let mut diagnostics = self.lock_diagnostics();
         diagnostics.in_flight = in_flight_count;
         diagnostics.queue_peak = diagnostics.queue_peak.max(in_flight_count);
+    }
+
+    fn lock_in_flight(&self) -> MutexGuard<'_, HashMap<AssetRequest, usize>> {
+        lock_in_flight_map(&self.in_flight)
+    }
+
+    fn lock_diagnostics(&self) -> MutexGuard<'_, AssetWorkerPoolDiagnostics> {
+        lock_worker_diagnostics(&self.diagnostics)
     }
 }
 
@@ -418,16 +417,12 @@ fn publish_completion(
 ) {
     let request = request_for_payload(&payload);
     let (waiter_count, remaining_waiters) = {
-        let mut in_flight = in_flight
-            .lock()
-            .expect("asset worker in-flight lock poisoned");
+        let mut in_flight = lock_in_flight_map(in_flight);
         let waiter_count = in_flight.remove(&request).unwrap_or(1);
         (waiter_count, total_waiter_count(&in_flight))
     };
     {
-        let mut diagnostics = diagnostics
-            .lock()
-            .expect("asset worker diagnostics lock poisoned");
+        let mut diagnostics = lock_worker_diagnostics(diagnostics);
         diagnostics.in_flight = remaining_waiters;
         diagnostics.completed += waiter_count as u64;
         if matches!(payload, CpuAssetPayload::Failure { .. }) {
@@ -437,6 +432,22 @@ fn publish_completion(
     for _ in 0..waiter_count {
         let _ = completion_tx.send(payload.clone());
     }
+}
+
+fn lock_in_flight_map(
+    in_flight: &Mutex<HashMap<AssetRequest, usize>>,
+) -> MutexGuard<'_, HashMap<AssetRequest, usize>> {
+    in_flight
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn lock_worker_diagnostics(
+    diagnostics: &Mutex<AssetWorkerPoolDiagnostics>,
+) -> MutexGuard<'_, AssetWorkerPoolDiagnostics> {
+    diagnostics
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 fn total_waiter_count(in_flight: &HashMap<AssetRequest, usize>) -> usize {
@@ -455,17 +466,56 @@ fn process_request(request: AssetRequest) -> CpuAssetPayload {
     match request {
         AssetRequest::Texture(source) => match texture::load_texture(&source) {
             Ok(texture) => CpuAssetPayload::Texture(texture),
-            Err(message) => CpuAssetPayload::Failure {
+            Err(error) => CpuAssetPayload::Failure {
                 request: AssetRequest::Texture(source),
-                message,
+                message: error.to_string(),
             },
         },
         AssetRequest::Mesh(source) => match mesh::load_mesh(&source) {
             Ok(mesh) => CpuAssetPayload::Mesh(mesh),
-            Err(message) => CpuAssetPayload::Failure {
+            Err(error) => CpuAssetPayload::Failure {
                 request: AssetRequest::Mesh(source),
-                message,
+                message: error.to_string(),
             },
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use crate::asset::types::TextureSource;
+
+    use super::*;
+
+    #[test]
+    fn asset_worker_pool_accessors_recover_poisoned_locks() {
+        let pool = AssetWorkerPool::new_without_workers_for_test(
+            AssetWorkerPoolOptions::new(1).with_queue_depth(1),
+        );
+        let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
+
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = pool.in_flight.lock().unwrap();
+            panic!("poison asset worker in-flight lock");
+        }));
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = pool.diagnostics.lock().unwrap();
+            panic!("poison asset worker diagnostics lock");
+        }));
+
+        pool.request(request.clone())
+            .expect("request should recover poisoned locks");
+        assert_eq!(pool.diagnostics().in_flight, 1);
+
+        pool.publish_completion_for_test(CpuAssetPayload::Failure {
+            request,
+            message: "decode failed".to_string(),
+        });
+        let diagnostics = pool.diagnostics();
+        assert_eq!(diagnostics.in_flight, 0);
+        assert_eq!(diagnostics.completed, 1);
+        assert_eq!(diagnostics.failed, 1);
     }
 }

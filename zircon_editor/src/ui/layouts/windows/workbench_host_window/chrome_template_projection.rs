@@ -7,6 +7,11 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
     build_view_template_nodes, load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData,
 };
+use crate::ui::workbench::page_tabs::{
+    main_page_project_path_width, main_page_tab_preferred_width,
+    main_page_tab_visible_cap_for_width, MAIN_PAGE_TAB_CHROME_SIDE_INSET, MAIN_PAGE_TAB_GAP,
+    MAIN_PAGE_TAB_MAX_WIDTH, MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_OVERFLOW_WIDTH,
+};
 
 use super::{
     FrameRect, HostChromeControlFrameData, HostChromeTabData, HostMenuChromeMenuData,
@@ -15,12 +20,14 @@ use super::{
 
 mod activity_rail;
 mod dock_header;
+mod menu_chrome;
 mod status_bar;
 
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
 #[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.v2.ui.toml";
 const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.v2.ui.toml";
+const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.v2.ui.toml";
 const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.v2.ui.toml";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.v2.ui.toml";
 
@@ -83,155 +90,14 @@ pub(super) fn menu_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_menu_chrome_nodes(menus, width, height);
-    }
-
-    let mut text_overrides = BTreeMap::new();
-    for row in 0..menus.row_count() {
-        if let Some(menu) = menus.row_data(row) {
-            text_overrides.insert(format!("{MENU_SLOT_PREFIX}{row}"), menu.label.to_string());
-        }
-    }
-
-    let nodes = template_nodes(
-        "host.menu.chrome",
-        MENU_CHROME_ASSET,
-        width,
-        height,
-        &text_overrides,
-        &[SlotFilter::new(MENU_SLOT_PREFIX, MENU_SLOT_COUNT)],
-    );
-    if nodes.row_count() == 0 || control_frame(&nodes, "MenuSlot0").width <= 0.0 {
-        return fallback_menu_chrome_nodes(menus, width, height);
-    }
-    model_rc(expand_menu_chrome_slot_nodes(model_nodes(&nodes), menus))
+    menu_chrome::menu_chrome_nodes(menus, width, height)
 }
 
 pub(super) fn menu_control_frames(
     nodes: &ModelRc<ViewTemplateNodeData>,
     count: usize,
 ) -> ModelRc<HostChromeControlFrameData> {
-    control_frames(nodes, MENU_SLOT_PREFIX, count)
-}
-
-fn fallback_menu_chrome_nodes(
-    menus: &ModelRc<HostMenuChromeMenuData>,
-    width: f32,
-    height: f32,
-) -> ModelRc<ViewTemplateNodeData> {
-    let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
-    let mut nodes = Vec::with_capacity(slot_count + 1);
-    nodes.push(ViewTemplateNodeData {
-        node_id: "FallbackWorkbenchMenuTopBar".into(),
-        control_id: MENU_TOP_BAR_CONTROL_ID.into(),
-        role: "Panel".into(),
-        surface_variant: "panel".into(),
-        frame: ViewTemplateFrameData {
-            x: 0.0,
-            y: 0.0,
-            width: width.max(1.0),
-            height: height.max(24.0),
-        },
-        ..ViewTemplateNodeData::default()
-    });
-
-    let mut x = 8.0;
-    for row in 0..slot_count {
-        let label = menus
-            .row_data(row)
-            .map(|menu| menu.label)
-            .unwrap_or_default();
-        let slot_width = menu_slot_width(label.as_str());
-        nodes.push(ViewTemplateNodeData {
-            node_id: format!("FallbackMenuSlot{row}").into(),
-            control_id: format!("{MENU_SLOT_PREFIX}{row}").into(),
-            role: "Button".into(),
-            text: label,
-            text_tone: "default".into(),
-            font_size: 12.0,
-            font_weight: 500,
-            surface_variant: "".into(),
-            button_variant: "ghost".into(),
-            frame: ViewTemplateFrameData {
-                x,
-                y: 2.0,
-                width: slot_width,
-                height: (height - 4.0).clamp(20.0, 24.0),
-            },
-            ..ViewTemplateNodeData::default()
-        });
-        x += slot_width + 4.0;
-    }
-
-    model_rc(nodes)
-}
-
-fn expand_menu_chrome_slot_nodes(
-    raw_nodes: Vec<ViewTemplateNodeData>,
-    menus: &ModelRc<HostMenuChromeMenuData>,
-) -> Vec<ViewTemplateNodeData> {
-    let mut output_nodes = Vec::new();
-    let mut slot_templates = BTreeMap::new();
-
-    for node in raw_nodes {
-        if let Some(row) = slot_index(node.control_id.as_str(), MENU_SLOT_PREFIX) {
-            slot_templates.insert(row, node);
-        } else {
-            output_nodes.push(node);
-        }
-    }
-    if slot_templates.is_empty() {
-        return output_nodes;
-    }
-
-    let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
-    let gap = menu_slot_gap(&slot_templates).unwrap_or(2.0);
-    let mut projected_slots: Vec<ViewTemplateNodeData> = Vec::with_capacity(slot_count);
-    for row in 0..slot_count {
-        let template_index = row.min(MENU_SLOT_COUNT - 1);
-        let Some(mut node) = slot_templates.get(&template_index).cloned() else {
-            continue;
-        };
-        let label = menus
-            .row_data(row)
-            .map(|menu| menu.label.to_string())
-            .unwrap_or_default();
-        node.node_id = format!("{MENU_SLOT_PREFIX}{row}").into();
-        node.control_id = format!("{MENU_SLOT_PREFIX}{row}").into();
-        node.text = label.clone().into();
-        if row >= MENU_SLOT_COUNT {
-            if let Some(previous) = projected_slots.last() {
-                node.frame.x = previous.frame.x + previous.frame.width + gap;
-            }
-            node.frame.width = menu_slot_width(&label);
-        }
-        projected_slots.push(node.clone());
-        output_nodes.push(node);
-    }
-    output_nodes
-}
-
-fn model_nodes(nodes: &ModelRc<ViewTemplateNodeData>) -> Vec<ViewTemplateNodeData> {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .collect()
-}
-
-fn menu_slot_width(label: &str) -> f32 {
-    ((label.chars().count() as f32 * 7.0) + 24.0).clamp(40.0, 128.0)
-}
-
-fn menu_slot_gap(templates: &BTreeMap<usize, ViewTemplateNodeData>) -> Option<f32> {
-    let ordered = templates.values().collect::<Vec<_>>();
-    ordered
-        .windows(2)
-        .rev()
-        .filter_map(|pair| {
-            let gap = pair[1].frame.x - (pair[0].frame.x + pair[0].frame.width);
-            (gap > 0.0).then_some(gap)
-        })
-        .next()
+    menu_chrome::menu_control_frames(nodes, count)
 }
 
 #[cfg(test)]
@@ -240,189 +106,7 @@ pub(super) fn menu_popup_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let mut text_overrides = BTreeMap::new();
-    for row in 0..items.row_count().min(MENU_POPUP_ITEM_COUNT) {
-        if let Some(item) = items.row_data(row) {
-            text_overrides.insert(
-                format!("{MENU_POPUP_ITEM_LABEL_PREFIX}{row}"),
-                item.label.to_string(),
-            );
-            text_overrides.insert(
-                format!("{MENU_POPUP_ITEM_SHORTCUT_PREFIX}{row}"),
-                item.shortcut.to_string(),
-            );
-        }
-    }
-
-    model_rc(expand_menu_popup_item_nodes(
-        raw_template_nodes(
-            "host.menu.popup",
-            MENU_POPUP_ASSET,
-            width,
-            height,
-            &text_overrides,
-        ),
-        items,
-    ))
-}
-
-#[cfg(test)]
-fn expand_menu_popup_item_nodes(
-    raw_nodes: Vec<ViewTemplateNodeData>,
-    items: &ModelRc<super::HostMenuChromeItemData>,
-) -> Vec<ViewTemplateNodeData> {
-    let mut output_nodes = Vec::new();
-    let mut row_templates = BTreeMap::new();
-    let mut label_templates = BTreeMap::new();
-    let mut shortcut_templates = BTreeMap::new();
-
-    for node in raw_nodes {
-        if let Some(row) = slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_ROW_PREFIX) {
-            row_templates.insert(row, node);
-        } else if let Some(row) = slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_LABEL_PREFIX)
-        {
-            label_templates.insert(row, node);
-        } else if let Some(row) =
-            slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_SHORTCUT_PREFIX)
-        {
-            shortcut_templates.insert(row, node);
-        } else {
-            output_nodes.push(node);
-        }
-    }
-
-    let row_step = indexed_row_step(&row_templates, MENU_POPUP_ROW_STEP_FALLBACK_PX);
-    for item_index in 0..items.row_count() {
-        let Some(item) = items.row_data(item_index) else {
-            continue;
-        };
-
-        if let Some(node) = indexed_slot_node(
-            &row_templates,
-            MENU_POPUP_ITEM_ROW_PREFIX,
-            MENU_POPUP_ITEM_COUNT,
-            item_index,
-            row_step,
-            None,
-        ) {
-            output_nodes.push(node);
-        }
-        if let Some(mut label_node) = indexed_slot_node(
-            &label_templates,
-            MENU_POPUP_ITEM_LABEL_PREFIX,
-            MENU_POPUP_ITEM_COUNT,
-            item_index,
-            row_step,
-            Some(item.label.as_str()),
-        ) {
-            apply_template_icon(&mut label_node, &menu_popup_item_icon_name(&item));
-            if !item.enabled {
-                label_node.text_tone = "muted".into();
-            }
-            output_nodes.push(label_node);
-        }
-        if let Some(mut shortcut_node) = indexed_slot_node(
-            &shortcut_templates,
-            MENU_POPUP_ITEM_SHORTCUT_PREFIX,
-            MENU_POPUP_ITEM_COUNT,
-            item_index,
-            row_step,
-            Some(item.shortcut.as_str()),
-        ) {
-            if !item.enabled {
-                shortcut_node.text_tone = "muted".into();
-            }
-            output_nodes.push(shortcut_node);
-        }
-    }
-
-    output_nodes
-}
-
-#[cfg(test)]
-fn menu_popup_item_icon_name(item: &super::HostMenuChromeItemData) -> String {
-    let action = item.action_id.as_str();
-    if let Some(icon) = normalized_chrome_icon_key(action) {
-        return icon;
-    }
-    match action {
-        "workbench.project.open" => "folder-open-outline",
-        "workbench.scene.open" => "cube-outline",
-        "workbench.scene.create" => "add-outline",
-        "workbench.project.save" | "workbench.layout.save" => "save-outline",
-        "workbench.layout.reset" => "sync-outline",
-        "workbench.play_mode.enter" => "play-outline",
-        "workbench.play_mode.exit" => "remove-outline",
-        "workbench.history.undo" => "chevron-back-outline",
-        "workbench.history.redo" => "chevron-forward-outline",
-        "workbench.selection.delete_selected" => "remove-outline",
-        _ if action.starts_with("workbench.layout.preset.save.") => "save-outline",
-        _ if action.starts_with("workbench.layout.preset.load.") => "folder-open-outline",
-        _ if action.starts_with("workbench.scene.node.create.") => {
-            scene_create_menu_icon_name(action)
-        }
-        _ if action.starts_with("workbench.view.open.") => open_view_menu_icon_name(action),
-        _ => menu_label_icon_name(item.label.as_str()),
-    }
-    .to_string()
-}
-
-#[cfg(test)]
-fn scene_create_menu_icon_name(action: &str) -> &'static str {
-    match action
-        .strip_prefix("workbench.scene.node.create.")
-        .unwrap_or_default()
-    {
-        "cube" => "cube-outline",
-        "camera" => "scan-outline",
-        "ambient_light" | "directional_light" | "point_light" | "rect_light" | "spot_light" => {
-            "color-fill-outline"
-        }
-        _ => "add-outline",
-    }
-}
-
-#[cfg(test)]
-fn open_view_menu_icon_name(action: &str) -> &'static str {
-    let descriptor = action
-        .strip_prefix("workbench.view.open.")
-        .unwrap_or_default()
-        .replace('-', "_")
-        .to_lowercase();
-    match descriptor.as_str() {
-        "editor.project" => "albums-outline",
-        "editor.hierarchy" => "layers-outline",
-        "editor.inspector" => "options-outline",
-        "editor.scene" => "cube-outline",
-        "editor.game" => "game-controller-outline",
-        "editor.assets" | "editor.asset_browser" => "folder-open-outline",
-        "editor.console" => "terminal-outline",
-        "editor.runtime_diagnostics" => "grid-outline",
-        "editor.module_plugins" => "git-network-outline",
-        "editor.build_export_desktop" => "share-outline",
-        "editor.prefab" => "cube-outline",
-        _ => "ellipse-outline",
-    }
-}
-
-#[cfg(test)]
-fn menu_label_icon_name(label: &str) -> &'static str {
-    let label = label.to_lowercase();
-    if label.contains("open") {
-        "folder-open-outline"
-    } else if label.contains("save") {
-        "save-outline"
-    } else if label.contains("reset") || label.contains("reload") || label.contains("refresh") {
-        "sync-outline"
-    } else if label.contains("play") {
-        "play-outline"
-    } else if label.contains("delete") || label.contains("remove") {
-        "remove-outline"
-    } else if label.contains("guide") || label.contains("help") {
-        "construct-outline"
-    } else {
-        "ellipse-outline"
-    }
+    menu_chrome::menu_popup_nodes(items, width, height)
 }
 
 fn indexed_slot_node(
@@ -512,6 +196,19 @@ pub(super) fn page_tab_frames(
 
 pub(super) fn page_tab_row_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
     control_frame(nodes, PAGE_BAR_CONTROL_ID)
+}
+
+pub(super) fn page_overflow_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
+    control_frame(nodes, "PageTabOverflow")
+}
+
+pub(super) fn page_overflow_hidden_tab_indices(
+    nodes: &ModelRc<ViewTemplateNodeData>,
+    tabs: &ModelRc<TabData>,
+) -> Vec<usize> {
+    (0..tabs.row_count())
+        .filter(|row| !has_control_frame(nodes, &format!("{PAGE_TAB_PREFIX}{row}")))
+        .collect()
 }
 
 pub(super) fn page_project_path_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
@@ -679,7 +376,9 @@ fn fallback_page_chrome_nodes(
 ) -> ModelRc<ViewTemplateNodeData> {
     let page_bar_y = MENU_TOP_BAR_HEIGHT_PX + 1.0;
     let bar_height = (height - page_bar_y).max(PAGE_BAR_HEIGHT_PX);
-    let mut nodes = Vec::with_capacity(tabs.row_count() + 2);
+    let visible_tab_indices = visible_page_tab_indices(tabs, width);
+    let has_overflow = visible_tab_indices.len() < tabs.row_count();
+    let mut nodes = Vec::with_capacity(visible_tab_indices.len() + usize::from(has_overflow) + 2);
     nodes.push(ViewTemplateNodeData {
         node_id: "FallbackWorkbenchPageBar".into(),
         control_id: PAGE_BAR_CONTROL_ID.into(),
@@ -694,15 +393,23 @@ fn fallback_page_chrome_nodes(
         ..ViewTemplateNodeData::default()
     });
 
-    let mut x = 12.0;
-    let right_label_width = width.mul_add(0.28, 0.0).clamp(160.0, 320.0);
-    let max_tab_right = (width - right_label_width - 12.0).max(12.0);
-    for row in 0..tabs.row_count() {
+    let mut x = MAIN_PAGE_TAB_CHROME_SIDE_INSET;
+    let right_label_width = main_page_project_path_width(width);
+    let max_tab_right = (width - right_label_width - MAIN_PAGE_TAB_CHROME_SIDE_INSET)
+        .max(MAIN_PAGE_TAB_CHROME_SIDE_INSET);
+    let tab_right_limit = if has_overflow {
+        (max_tab_right - MAIN_PAGE_TAB_OVERFLOW_WIDTH - MAIN_PAGE_TAB_GAP).max(12.0)
+    } else {
+        max_tab_right
+    };
+    for row in visible_tab_indices.iter().copied() {
         let Some(tab) = tabs.row_data(row) else {
             continue;
         };
-        let tab_width = ((tab.title.as_str().len() as f32 * 7.0) + 34.0).clamp(70.0, 180.0);
-        let draw_width = tab_width.min((max_tab_right - x).max(42.0));
+        let tab_width = page_tab_width(&tab);
+        let draw_width = tab_width
+            .min((tab_right_limit - x).max(MAIN_PAGE_TAB_MIN_WIDTH))
+            .clamp(MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_MAX_WIDTH);
         let text_tone = if tab.active { "default" } else { "subtle" };
         let font_weight = if tab.active { 600 } else { 400 };
         let icon_name = chrome_tab_icon_name(&tab);
@@ -728,7 +435,32 @@ fn fallback_page_chrome_nodes(
         };
         apply_template_icon(&mut tab_node, &icon_name);
         nodes.push(tab_node);
-        x = (x + tab_width + 4.0).min(max_tab_right);
+        x = (x + draw_width + MAIN_PAGE_TAB_GAP).min(tab_right_limit);
+    }
+
+    if has_overflow {
+        let mut overflow_node = ViewTemplateNodeData {
+            node_id: "FallbackPageTabOverflow".into(),
+            control_id: "PageTabOverflow".into(),
+            role: "IconButton".into(),
+            text: "".into(),
+            text_tone: "subtle".into(),
+            font_size: CHROME_TEXT_FONT_SIZE_PX,
+            font_weight: 600,
+            button_variant: "ghost".into(),
+            frame: ViewTemplateFrameData {
+                x: x.min(
+                    (max_tab_right - MAIN_PAGE_TAB_OVERFLOW_WIDTH)
+                        .max(MAIN_PAGE_TAB_CHROME_SIDE_INSET),
+                ),
+                y: page_bar_y + CHROME_TAB_HEIGHT_INSET_PX,
+                width: MAIN_PAGE_TAB_OVERFLOW_WIDTH,
+                height: (bar_height - CHROME_TAB_HEIGHT_INSET_PX).max(20.0),
+            },
+            ..ViewTemplateNodeData::default()
+        };
+        apply_template_icon(&mut overflow_node, "ellipsis-horizontal-outline");
+        nodes.push(overflow_node);
     }
 
     nodes.push(ViewTemplateNodeData {
@@ -743,7 +475,8 @@ fn fallback_page_chrome_nodes(
         text_tone: "muted".into(),
         font_size: 11.0,
         frame: ViewTemplateFrameData {
-            x: (width - right_label_width - 12.0).max(12.0),
+            x: (width - right_label_width - MAIN_PAGE_TAB_CHROME_SIDE_INSET)
+                .max(MAIN_PAGE_TAB_CHROME_SIDE_INSET),
             y: page_bar_y + 6.0,
             width: right_label_width,
             height: (bar_height - 12.0).max(16.0),
@@ -752,6 +485,62 @@ fn fallback_page_chrome_nodes(
     });
 
     model_rc(nodes)
+}
+
+fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
+    let tab_count = tabs.row_count();
+    if tab_count == 0 {
+        return Vec::new();
+    }
+
+    let right_label_width = main_page_project_path_width(width);
+    let max_tab_right = (width - right_label_width - MAIN_PAGE_TAB_CHROME_SIDE_INSET)
+        .max(MAIN_PAGE_TAB_CHROME_SIDE_INSET);
+    let visible_cap = main_page_tab_visible_cap_for_width(width, tab_count);
+    let force_overflow = visible_cap < tab_count;
+    let mut x = MAIN_PAGE_TAB_CHROME_SIDE_INSET;
+    let mut visible = Vec::new();
+    for row in 0..tab_count {
+        if visible.len() >= visible_cap {
+            break;
+        }
+        let Some(tab) = tabs.row_data(row) else {
+            continue;
+        };
+        let remaining_after_row = tab_count.saturating_sub(row + 1);
+        let overflow_reserve = if remaining_after_row > 0 || force_overflow {
+            MAIN_PAGE_TAB_OVERFLOW_WIDTH + MAIN_PAGE_TAB_GAP
+        } else {
+            0.0
+        };
+        let tab_width = page_tab_width(&tab);
+        if !visible.is_empty() && x + tab_width + overflow_reserve > max_tab_right {
+            break;
+        }
+        visible.push(row);
+        x += tab_width + MAIN_PAGE_TAB_GAP;
+    }
+
+    if let Some(active_row) = active_tab_row(tabs) {
+        if !visible.contains(&active_row) {
+            if let Some(last_visible) = visible.last_mut() {
+                *last_visible = active_row;
+            } else {
+                visible.push(active_row);
+            }
+        }
+    }
+
+    visible.dedup();
+    visible
+}
+
+fn page_tab_width(tab: &TabData) -> f32 {
+    main_page_tab_preferred_width(tab.title.as_str())
+}
+
+fn active_tab_row(tabs: &ModelRc<TabData>) -> Option<usize> {
+    (0..tabs.row_count()).find(|row| tabs.row_data(*row).is_some_and(|tab| tab.active))
 }
 
 fn fallback_dock_header_nodes(
@@ -926,6 +715,12 @@ fn control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> Fra
         .find(|node| node.control_id.as_str() == control_id)
         .map(|node| frame_rect(&node))
         .unwrap_or_default()
+}
+
+fn has_control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> bool {
+    (0..nodes.row_count())
+        .filter_map(|row| nodes.row_data(row))
+        .any(|node| node.control_id.as_str() == control_id && node.frame.width > 0.0)
 }
 
 fn frame_rect(node: &ViewTemplateNodeData) -> FrameRect {

@@ -155,6 +155,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
+  - zircon_runtime/src/ui/surface/render/selection_controls.rs
+  - zircon_runtime/src/ui/tests/render_selection_controls.rs
+  - zircon_runtime/src/ui/tests/render_painter_state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
   - docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/index.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
@@ -170,12 +173,19 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/disclosure.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/eye.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/lock.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/kebab.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
@@ -191,7 +201,15 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/adornment.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/paint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests/paint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_field_stepper.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests.rs
@@ -202,6 +220,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/mod.rs
@@ -215,6 +234,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/checks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/chevrons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/cubes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/swatches.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels_tests.rs
@@ -223,6 +246,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer.rs
@@ -301,6 +326,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/variants.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
@@ -476,6 +503,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/disclosure.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/eye.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/lock.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/kebab.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
@@ -491,7 +522,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/adornment.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/paint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests/paint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_field_stepper.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests.rs
@@ -502,6 +541,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/mod.rs
@@ -515,6 +555,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/checks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/chevrons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/cubes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_glyphs/swatches.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/separators.rs
@@ -587,7 +631,14 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/disclosure.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/eye.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/lock.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_row_glyphs/actions/kebab.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows_tests/paint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/paint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests.rs
@@ -832,6 +883,7 @@ tests:
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes render-command conversion ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after render-command conversion responsibility split: passed with existing warning noise only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes list-row glyph ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after list-row glyph responsibility split: passed with existing warning noise only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes list-row test ownership scan; touched-file trailing whitespace scan; scoped git diff --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after list-row test responsibility split: passed with existing warning noise only; scoped diff check emitted LF/CRLF warnings only; list-row tests live in `template_list_rows_tests.rs`, `template_list_rows.rs` is 124 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; cargo test -p zircon_editor --lib template_list_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never; cargo build -p zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never; capture_m3_gui_acceptance_visual_artifacts --ignored; direct component atlas binary (2026-06-27 after selected-only list-row adornment split: template_list_rows 9/9 passed; M3 and component atlas screenshots refreshed under docs/tests/editor, not repo target)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes field-stepper ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after field-stepper responsibility split: passed with existing warning noise only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes field test ownership scan; touched-file trailing whitespace scan; scoped git diff --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after field test responsibility split: passed with existing warning noise only; diff check emitted LF/CRLF working-tree warnings only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; paint_template_nodes dropdown glyph ownership scan; scoped git diff --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 after dropdown glyph responsibility split: passed with existing warning noise only)
@@ -997,7 +1049,7 @@ tests:
   - rustfmt --edition 2021 --check over zircon_runtime/src/ui/surface/render/extract.rs, zircon_runtime/src/ui/surface/render/mod.rs, zircon_runtime/src/ui/surface/render/popup_menu.rs, zircon_runtime/src/ui/tests/render_popup_menu.rs, zircon_runtime/src/ui/tests/mod.rs, and native_workbench_window_menus.rs (2026-06-03: passed)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
   - cargo test -p zircon_runtime --lib render_extract_expands_open_context_action_menu_items --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-workbench-command-feedback -- --nocapture (2026-06-03 after runtime ContextActionMenu row rendering: passed, 1 passed / 2529 filtered)
-  - cargo test -p zircon_editor --lib componentized_workbench_toolbar_run_menu_paints_native_preview_pixels --locked --jobs 1 with ZIRCON_WRITE_WORKBENCH_PREVIEW=1 and ZIRCON_WORKBENCH_PREVIEW_PATH=target/editor-workbench-visual-check/editor-workbench-native-toolbar-run-menu-open-1672x941.png (2026-06-03 after native toolbar window-menu screenshot row rendering: passed, 1 passed / 1847 filtered)
+  - cargo test -p zircon_editor --lib componentized_workbench_toolbar_run_menu_paints_native_preview_pixels --locked --jobs 1 with ZIRCON_WRITE_WORKBENCH_PREVIEW=1 (2026-06-03 after native toolbar window-menu screenshot row rendering: passed, 1 passed / 1847 filtered; current toolbar evidence is now refreshed under docs/tests/editor instead of Cargo target)
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
@@ -1377,11 +1429,11 @@ Profiling artifact geometry extraction is also out of the production writer. `pr
 
 ## Behavior Model
 
-The constructor creates a `zircon_runtime::ui::surface::UiSurface` with a fixed tree ID of `editor.workbench.reference`. The root is a vertical layout with a fixed 60 px top bar, a fixed 428 px upper editor region, a computed component gallery band, and a fixed 46 px status bar.
+The constructor creates a `zircon_runtime::ui::surface::UiSurface` with a fixed tree ID of `editor.workbench.reference`. The current componentized Workbench window uses a fixed 72 px two-row top toolbar, a flexible upper editor region, a computed component gallery band, and a fixed 46 px status bar. The toolbar height is authored as a 36 px command row, a 2 px vertical gap, and a 34 px module tab row.
 
 The upper region is a horizontal layout. Its fixed columns are the 72 px activity rail, the 332 px hierarchy panel, and the 404 px inspector. The viewport column stretches into the remaining width. With the default 1672 px target width, that leaves an 864 px viewport, matching the reference workbench composition.
 
-The declarative template mirrors these same fixed bands: 60 px toolbar, 428 px main band, 407 px component drawer, and 46 px status bar. At the default width, the main band resolves to 72 px activity rail, 332 px scene tree, 864 px viewport, and 404 px inspector. Because `workbench_window.v2.ui.toml` now mounts large components through wrapper nodes, the host-visible chrome IDs are the wrapper controls such as `WorkbenchWindowTopToolbarRegion`, `WorkbenchWindowMainBandRegion`, `WorkbenchMainBandViewportPanel`, and `WorkbenchWindowStatusBarRegion`. Lower-level controls such as `WorkbenchPrimaryButton` remain directly addressable through the expanded component tree.
+The declarative template mirrors these same bands with a 72 px two-row toolbar, a flexible main band, a 407 px component drawer, and a 46 px status bar. At the default wide reference width, the main band resolves to 72 px activity rail, 332 px scene tree, a stretched viewport, and a 404 px inspector. Because `workbench_window.v2.ui.toml` now mounts large components through wrapper nodes, the host-visible chrome IDs are the wrapper controls such as `WorkbenchWindowTopToolbarRegion`, `WorkbenchWindowMainBandRegion`, `WorkbenchMainBandViewportPanel`, and `WorkbenchWindowStatusBarRegion`. Lower-level controls such as `WorkbenchPrimaryButton` remain directly addressable through the expanded component tree.
 
 Interactive controls are regular runtime UI nodes. Buttons, tree rows, text fields, toggles, slider thumb, and list rows receive `UiInputPolicy::Receive`, pointer state flags, and widget contracts. Button-like nodes also receive click bindings so pointer dispatch can produce component events, not just hit-test results.
 
@@ -2465,8 +2517,8 @@ The toolbar window-menu follow-up keeps the top toolbar in the native componenti
 instead of returning to the browser sample. `workbench_window.v2.ui.toml` now owns the menu overlay
 at the window root: the normal workbench content stays in one vertical content child, while Main,
 Run Mode, and Layout are sibling `WorkbenchPopupMenu` wrapper nodes above it.
-`workbench_top_toolbar.zui` remains a horizontal toolbar component and only owns the trigger
-controls. The retained bridge routes `OpenMainMenu`, `OpenRunModeMenu`, and `OpenLayoutMenu`
+`workbench_top_toolbar.zui` now owns the two-row toolbar component: the upper command row carries
+the trigger controls and command groups, and the lower row carries the module tabs. The retained bridge routes `OpenMainMenu`, `OpenRunModeMenu`, and `OpenLayoutMenu`
 through `window_menu_state.rs`, which opens the requested menu, closes the other toolbar menus,
 updates the trigger selected/checked state, and reuses `popup_state.rs` for item selection and
 cancellation. Runtime `popup_menu.rs` still expands the wrapped `ContextActionMenu.menu_items`
@@ -2474,6 +2526,52 @@ into visible render commands, so the native screenshot path shows menu rows from
 state while production `.v2.ui.toml` imports reach the Workbench `.zui` wrapper assets directly.
 This keeps the response model component-level and table-driven instead of adding per-button pixel
 tweaks.
+
+As of 2026-06-26, toolbar popup placement is also computed from component frames rather than
+authored as static open-state coordinates. `window_menu_state.rs` reads the clicked trigger frame,
+the top toolbar frame bottom, the popup node constraints, and the root frame; then it writes the
+retained node position and `popup_anchor_*` metadata together after root-edge clamping. The focused
+regression `workbench_toolbar_window_menus_anchor_to_toolbar_controls_across_widths` covers Main,
+Module More, Run Mode, and Layout menus across the 900/1260/1672 Workbench widths. The compact
+toolbar density regression also asserts the More menu frame and metadata agree with the trigger.
+
+The later 2026-06-26 two-row toolbar pass updated the static fallback popup anchors and window
+top-toolbar region from 44 px to 72 px so authored open-state defaults match the arranged toolbar
+bottom before `window_menu_state.rs` applies live frame-based placement.
+
+The same 2026-06-26 toolbar follow-up changes the compact module overflow trigger to the toolbar
+`more-vertical.svg` asset. `WorkbenchModuleMore` therefore presents as a vertical three-dot toolbar
+overflow affordance instead of reusing the tab/file-shaped `tab-overflow.svg` placeholder, while the
+existing SVG asset raster and fallback glyph pipeline remains unchanged.
+
+The next 2026-06-26 toolbar icon pass applies the same local component rule to `WorkbenchRunMode`.
+The run mode trigger now uses `zircon_editor_shell/toolbar/dropdown.svg`, so the full-width toolbar
+distinguishes menu dropdowns from module overflow and tab overflow instead of reusing the
+tab/file-shaped placeholder. The 900px Workbench tier hides the run group by design, so the visible
+artifact for this icon is the 1672x941 focused toolbar screenshot while the normal M3 screenshot
+harness still covers the compact window shape.
+
+The next toolbar icon-family pass applies the same local component rule to Open, Browse, and Save.
+`WorkbenchToolbarOpen` and `WorkbenchModuleBrowse` now use
+`zircon_editor_shell/toolbar/folder-open.svg`, while `WorkbenchToolbarSave` and
+`WorkbenchModuleSave` use `zircon_editor_shell/toolbar/save.svg`. This keeps file-group icon buttons
+and module command buttons in the same toolbar asset family instead of mixing in Workbench menu
+assets.
+
+The later 2026-06-26 shell icon asset pass adds `template_icon_assets.rs` as the common retained-host
+helper for shell SVG pixel rendering. Icon buttons, icon-bearing buttons, list-row adornments,
+table-row actions, and Inspector row glyphs now share the same asset-first contract: semantic shell
+icons such as check, chevron-right, disabled, more-horizontal, dropdown, mesh, and material are
+looked up through `zircon_editor_shell` aliases and rasterized before any local fallback segment
+glyph is used. This keeps the bottom-up rule intact: the primitive image/glyph path is standardized
+before the Workbench combines it into toolbar groups, compound rows, drawers, and windows.
+
+The follow-up list/tree readability pass keeps that same bottom-up boundary and only tightens row
+glyph primitives. `template_list_row_glyphs/geometry.rs` moves list trailing adornments to a stable
+16 px frame. Tree disclosure arrows now try the shell `dropdown.svg` and `chevron-right.svg` assets
+before local fallback segments, while tree row action glyphs route through shell `eye.svg`,
+`lock.svg`, and `more-vertical.svg` first. The row painters still own only row-local fallback and
+command sequencing; the shared SVG raster path remains in `template_icon_assets.rs`.
 
 Native popup keyboard handling now covers boundary navigation and character search in the same
 workbench host path. `native_keyboard.rs` maps Home to the first enabled structured popup row, End
@@ -2521,11 +2619,145 @@ providers opening the hidden root `WorkbenchContextMenu` overlay through the sam
 template bridge and popup cancel chain. Remaining work is live manual acceptance and the later full
 runtime `UiSurface` hard-cutover pump.
 
-The toolbar menu screenshot evidence was generated on 2026-06-03 with
-`ZIRCON_WRITE_WORKBENCH_PREVIEW=1`. The native open-state output is
-`target/editor-workbench-visual-check/editor-workbench-native-toolbar-run-menu-open-1672x941.png`.
-The comparable window artifact against the current web component template screenshot is
-`target/editor-workbench-visual-check/editor-workbench-web-template-vs-native-toolbar-run-menu-open-1672x941.png`.
+Current toolbar and module-overflow visual evidence is generated by ignored screenshot harnesses and
+written under `docs/tests/editor`, not Cargo `target`. The 2026-06-26 relative-anchor pass refreshed
+`docs/tests/editor/editor-window-m3-workbench-module-overflow-900x620.png` and the broader M3 window
+artifacts while using `D:\cargo-targets\zircon-editor-components-0625` only for build output.
+The 2026-06-26 two-row toolbar pass refreshed
+`docs/tests/editor/editor-window-m3-workbench-900x620.png` and
+`docs/tests/editor/editor-window-m3-asset-browser-900x620.png` while using
+`D:\cargo-targets\zircon-editor-components-0626` only for build output.
+The follow-up More icon pass refreshed the same two M3 screenshots at 16:34:03 and 16:34:09, with the
+module overflow trigger now rendered as a vertical three-dot toolbar icon and no artifacts written
+under Cargo `target`.
+The follow-up Run Mode icon pass refreshed the same two M3 screenshots at 16:48:11 and 16:48:17, and
+also generated `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` at 16:53:12 so
+the full-width dropdown trigger is visible. Build output remained under
+`D:\cargo-targets\zircon-editor-components-0626`, with screenshot artifacts under `docs/tests/editor`.
+The follow-up Open/Browse/Save icon-family pass refreshed the same two M3 screenshots at 17:23:52
+and 17:23:58, and refreshed
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` at 17:24:33. The wide artifact
+still shows remaining X placeholder icon work; this pass only closes the toolbar/menu asset-family
+mismatch for those four controls. Build output remained under
+`D:\cargo-targets\zircon-editor-components-0626`, with screenshot artifacts under `docs/tests/editor`.
+The follow-up shell icon asset pass refreshed
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` after routing toolbar,
+list-row, table-row action, and Inspector row glyphs through the shared asset-first helper. Focused
+coverage passed for toolbar SVG pixel loading, semantic icon aliases, list-row adornments,
+table-row actions, and Inspector row resource/shadow/disclosure glyphs. Build output remained under
+`D:\cargo-targets\zircon-editor-components-0626`, and screenshots stayed under `docs/tests/editor`
+instead of Cargo `target`.
+The follow-up list/tree row glyph readability pass refreshed the same wide screenshot after raising
+list trailing adornments to 16 px and routing tree disclosure/action glyphs through shell SVG assets.
+Focused coverage passed for `template_list_rows` 7/7 and `template_tree_rows` 9/9 before the build
+and screenshot rerun. Build output again stayed under
+`D:\cargo-targets\zircon-editor-components-0626`, with the screenshot under `docs/tests/editor` and
+no Cargo artifacts written to the repository `target`.
+
+The follow-up retained text and component-panel spacing pass refreshed the same wide screenshot after
+rendering retained-host preview text at a 2x raster size and downsampling it back to logical pixels,
+then applying Slate-like `component-panel` surfaces and direct-child slot padding to the bottom
+component drawer panels. Focused coverage passed for `paint_text` 10/10, the `component-panel`
+surface role, and the Workbench bridge projection padding/inset assertions before the build and
+screenshot rerun. Build output stayed under
+`D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` and no Cargo artifacts written
+to the repository `target`.
+
+The follow-up Component feedback density pass kept the same bottom-up component boundary and only
+changed the authored drawer asset plus focused projection expectations. Feedback alert/toast rows
+now use a 30 px row height, 4 px alert stack gap, and 8 px internal feedback gap. The toast offset is
+a pure `Space` with no `WorkbenchFeedbackToastOffset` control id, so the host contract no longer
+exposes an empty framed spacer. Focused bridge coverage, the editor build, and the wide screenshot
+artifact passed with build output still under `D:\cargo-targets\zircon-editor-components-0626-panel`
+and the screenshot under `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png`.
+
+The follow-up selection controls pass keeps checkbox/radio/toggle styling in the same low-emphasis
+Workbench language instead of allowing authored cyan values to repaint the whole checked control.
+Runtime `selection_controls.rs`, retained `workbench_selection_control` selectors, and
+`workbench_window_projection.rs` now agree on a `#173942` selected surface with `#2aa6b8` markers for
+checkbox/toggle and a low-contrast checked radio fill/border with the same accent dot. Focused
+runtime, retained painter, template paint, and bridge projection tests passed before the editor build
+and wide screenshot rerun. Build output stayed under
+`D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` and no Cargo artifacts written
+to the repository `target`.
+
+The follow-up segmented/tab control pass keeps selected segmented controls in the same Slate-like
+active-tab language: runtime `segmented_controls.rs`, retained segmented selectors, and the component
+drawer icon toggle now use a low-emphasis selected surface with no default selected border and a
+2 px `#2aa6b8` underline. Focused runtime `render_segmented_controls` and retained
+`template_segmented_controls` tests passed before the editor build and wide screenshot rerun. Build
+output stayed under `D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png`.
+
+The follow-up button/icon-button pass moves primary and selected button surfaces away from large
+accent fills. Runtime `buttons.rs`, retained `workbench_button` palette, strict theme tokens, and the
+component drawer now use low-emphasis command surfaces with accent reserved for text, glyphs, borders,
+and selected markers. Focused runtime `render_buttons` and retained `template_buttons` tests passed
+before the editor build and the same wide screenshot artifact refresh; build output again stayed in
+the external Cargo target directory and screenshots stayed under `docs/tests/editor`.
+
+The follow-up generic primary-button clamp closes the remaining inherited Material-color path for
+ordinary editor actions. A Button can enter the Workbench path through `button_variant=primary`, but
+retained `workbench_button/selection.rs` now accepts declared colors only for controls that explicitly
+use Workbench visual language. This preserves authored Workbench button tuning while preventing
+Project Overview actions such as `OpenAssetsView` from repainting themselves with the old purple
+`.primary` style; those actions now fall back to the same low-emphasis primary command surface used
+by the standardized button family. Focused `template_buttons` coverage passed before the editor build,
+M3 screenshot refresh, and component atlas refresh, all with artifacts under `docs/tests/editor`.
+
+The follow-up text/search field pass standardizes input fields as recessed controls: runtime
+`text_fields.rs` and retained `workbench_text_field` now use `#0f1316` idle/focused input surfaces,
+muted placeholder text, and a 1 px accent focus border. The component drawer dropdown and stepper
+input groups also drop their old negative offsets and align at 32 px height. Focused runtime
+`render_text_fields`, retained `template_fields`, and Workbench bridge projection tests passed before
+the editor build and the same wide screenshot rerun, with no image written to Cargo `target`.
+
+The follow-up slider density pass applies the same bottom-up rule to Slider, RangeSlider, and Steps
+Slider. Runtime `sliders.rs`, retained `workbench_slider`, and `template_slider_geometry` now default
+to a Slate-like 4 px input bar, 8 px foreground thumb, and 16 px weak halo, while fill/tick/halo colors
+come from muted separator/text roles instead of cyan accent. The component drawer no longer declares
+explicit cyan slider track/thumb/halo overrides, so the examples exercise the shared selector and
+geometry owners. Focused runtime `render_sliders`, retained `template_sliders`, and Workbench bridge
+projection tests passed with `CARGO_INCREMENTAL=0` after one rustc incremental metadata ICE. The
+editor build and wide screenshot rerun also passed afterward, with build output under
+`D:\cargo-targets\zircon-editor-components-0626-panel` and the refreshed image under
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` instead of Cargo `target`.
+
+The follow-up progress bar pass applies the same low-emphasis primitive rule to Workbench progress
+feedback. `template_material_feedback/state/colors.rs` now keeps generic Material progress on its
+existing accent fallback while Workbench progress defaults to a recessed track and muted separator
+fill, and the authored Workbench progress assets no longer declare cyan `track_fill_color` overrides.
+Focused retained painter coverage passed for both the Workbench fallback and the generic Material
+fallback with `CARGO_INCREMENTAL=0`; Workbench bridge projection, `cargo fmt -p zircon_editor --check`,
+the editor build, and the wide screenshot rerun also passed. Build output stayed under
+`D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
+`docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` instead of Cargo `target`.
+
+The follow-up popup/dropdown row pass applies the same low-emphasis rule to compound popup rows.
+`style_selector/workbench_popup_row/selection.rs` keeps row colors on dark selected and hover
+surfaces with normal text and adornment colors; accent is limited to the 2px selection marker.
+`template_popup_rows/surface/*` owns the square 1px popup shell and marker width through
+`METRICS.selection_indicator_width`. Focused direct-binary coverage passed for `workbench_popup_row`
+2/2 and `template_popup_rows` 6/6; the editor build, M3 menu popup screenshot, and component atlas
+screenshot were refreshed under `docs/tests/editor`.
+
+The follow-up selected-only list-row pass applies the same row identity rule to regular list rows.
+`template_list_row_glyphs/selection.rs` now reserves the trailing check adornment for checked rows,
+while selected-only rows keep a muted navigation chevron and express selection through the dark row
+surface plus left 2px indicator. `style_selector/workbench_list_row/selection.rs` splits row marked
+state from adornment marked state so complex list and popup samples no longer show a bright
+right-side checked marker for mere selection. `template_list_rows` passed 9/9, the editor build
+passed, and M3/component-atlas screenshots were refreshed under `docs/tests/editor`.
+
+The follow-up image placeholder pass applies the same low-noise primitive rule to thumbnail preview
+surfaces. `template_asset_placeholder_visuals.rs` now paints one recessed well without an inner
+outline, then uses the existing visual asset pipeline to center the real `image` SVG icon. This
+replaces the earlier hand-drawn dot/ridge/baseline placeholder in the component atlas `Image preview`
+and the Asset Browser selected summary thumbnail. Focused placeholder tests passed 1/1 and 4/4, the
+editor build passed, and M3/component-atlas screenshots were refreshed under `docs/tests/editor`
+with build output kept under `D:\cargo-targets\zircon-editor-components-0626-panel`.
 
 `surface_property_mutation_keeps_template_visibility_metadata_in_sync` belongs to the shared runtime surface layer, but it is part of this workbench acceptance chain: it proves that a runtime write from `collapsed` to `visible` updates both the retained node and template metadata before the next layout refresh.
 

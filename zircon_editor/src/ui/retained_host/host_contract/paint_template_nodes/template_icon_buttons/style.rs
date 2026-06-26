@@ -12,6 +12,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
     let control_id = node.control_id.as_str();
     if control_id.starts_with("WorkbenchRail") {
         IconButtonContext::Rail
+    } else if is_tab_close_button(control_id) {
+        IconButtonContext::Toolbar
     } else if control_id.starts_with("WorkbenchToolbar")
         || control_id.starts_with("WorkbenchTool")
         || control_id.starts_with("WorkbenchRun")
@@ -22,6 +24,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
     } else {
         IconButtonContext::Panel
     }
+}
+
+fn is_tab_close_button(control_id: &str) -> bool {
+    control_id.starts_with("DockTabClose")
+        || control_id.starts_with("PageTabClose")
+        || control_id.starts_with("DocumentTabClose")
+        || control_id.ends_with("TabClose")
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_button_style(

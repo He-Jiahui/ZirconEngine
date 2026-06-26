@@ -127,6 +127,7 @@ pub(crate) struct ViewTemplateNodeData {
     pub value_text: SharedString,
     pub value_number: f32,
     pub value_percent: f32,
+    pub options: ModelRc<SharedString>,
     pub dispatch_kind: SharedString,
     pub action_id: SharedString,
     pub binding_id: SharedString,
@@ -177,6 +178,7 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("value_text", &self.value_text)
             .field("value_number", &self.value_number)
             .field("value_percent", &self.value_percent)
+            .field("options", &shared_string_model_values(&self.options))
             .field("dispatch_kind", &self.dispatch_kind)
             .field("action_id", &self.action_id)
             .field("binding_id", &self.binding_id)
@@ -231,6 +233,7 @@ impl PartialEq for ViewTemplateNodeData {
             && self.value_text == other.value_text
             && self.value_number == other.value_number
             && self.value_percent == other.value_percent
+            && shared_string_models_equal(&self.options, &other.options)
             && self.dispatch_kind == other.dispatch_kind
             && self.action_id == other.action_id
             && self.binding_id == other.binding_id
@@ -281,6 +284,7 @@ impl Default for ViewTemplateNodeData {
             value_text: SharedString::default(),
             value_number: 0.0,
             value_percent: 0.0,
+            options: ModelRc::default(),
             dispatch_kind: SharedString::default(),
             action_id: SharedString::default(),
             binding_id: SharedString::default(),
@@ -317,4 +321,16 @@ impl Default for ViewTemplateNodeData {
             frame: ViewTemplateFrameData::default(),
         }
     }
+}
+
+fn shared_string_models_equal(left: &ModelRc<SharedString>, right: &ModelRc<SharedString>) -> bool {
+    left.row_count() == right.row_count()
+        && (0..left.row_count()).all(|row| left.row_data(row) == right.row_data(row))
+}
+
+fn shared_string_model_values(model: &ModelRc<SharedString>) -> Vec<String> {
+    (0..model.row_count())
+        .filter_map(|row| model.row_data(row))
+        .map(|value| value.to_string())
+        .collect()
 }

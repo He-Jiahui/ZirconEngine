@@ -10,10 +10,10 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
-const TRACK_HEIGHT: f32 = 3.0;
+const TRACK_HEIGHT: f32 = 4.0;
 const TRACK_RADIUS: f32 = 2.0;
-const THUMB_SIZE: f32 = 11.0;
-const THUMB_HALO_SIZE: f32 = 20.0;
+const THUMB_SIZE: f32 = 8.0;
+const THUMB_HALO_SIZE: f32 = 16.0;
 const HORIZONTAL_INSET: f32 = 8.0;
 const LABEL_WIDTH: f32 = 50.0;
 const LABEL_GAP: f32 = 12.0;
@@ -21,17 +21,17 @@ const VALUE_WIDTH: f32 = 44.0;
 const VALUE_GAP: f32 = 10.0;
 const FONT_SIZE: f32 = 11.0;
 const LINE_HEIGHT: f32 = FONT_SIZE * 1.2;
-const TRACK: &str = "#364046";
+const TRACK: &str = "#11161a";
 const TRACK_DISABLED: &str = "#262d32";
 const VALUE_SURFACE: &str = "#11161a";
 const VALUE_BORDER: &str = "#2d3940";
 const BORDER_DISABLED: &str = "#343f47";
 const TEXT: &str = "#aebdc4";
 const TEXT_DISABLED: &str = "#59656c";
-const THUMB: &str = "#c9f2f6";
-const HALO: &str = "#35c7d03a";
-const TICK: &str = "#50606a";
-const ACCENT: &str = "#35c7d0";
+const THUMB: &str = "#e8ecee";
+const HALO: &str = "#d8e3e71a";
+const TICK: &str = "#262d33";
+const SLIDER_FILL: &str = "#414b54";
 const WARNING: &str = "#f5bd4f";
 const ERROR: &str = "#ff735f";
 const DISABLED_SURFACE: &str = "#252c31";
@@ -569,7 +569,7 @@ fn accent_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderSt
     } else {
         color_attribute(metadata, "value_color")
             .or_else(|| color_attribute(metadata, "accent_color"))
-            .unwrap_or(ACCENT)
+            .unwrap_or(SLIDER_FILL)
     }
 }
 
@@ -592,7 +592,7 @@ fn thumb_outline_color<'a>(
     } else {
         color_attribute(metadata, "thumb_outline_color")
             .or_else(|| color_attribute(metadata, "border_color"))
-            .unwrap_or_else(|| accent_color(metadata, state))
+            .unwrap_or(VALUE_BORDER)
     }
 }
 

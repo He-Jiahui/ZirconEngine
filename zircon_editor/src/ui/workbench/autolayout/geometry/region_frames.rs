@@ -2,25 +2,9 @@ use std::collections::BTreeMap;
 
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
-use super::super::WorkbenchChromeMetrics;
+use super::super::{compact_bottom_defaults, compact_side_defaults, WorkbenchChromeMetrics};
 use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
 use super::resolved_region_frames::ResolvedRegionFrames;
-
-const COMPACT_BOTTOM_AVAILABLE_HEIGHT: f32 = 900.0;
-const COMPACT_BOTTOM_MAX_HEIGHT: f32 = 148.0;
-const COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION: f32 = 0.23;
-const COMPACT_BOTTOM_MIN_HEIGHT: f32 = 120.0;
-const ULTRA_COMPACT_BOTTOM_AVAILABLE_HEIGHT: f32 = 420.0;
-const ULTRA_COMPACT_BOTTOM_MAX_HEIGHT: f32 = 96.0;
-const ULTRA_COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION: f32 = 0.20;
-const ULTRA_COMPACT_BOTTOM_MIN_HEIGHT: f32 = 80.0;
-const COMPACT_SIDE_AVAILABLE_WIDTH: f32 = 1100.0;
-const COMPACT_LEFT_SIDE_MAX_WIDTH: f32 = 340.0;
-const COMPACT_RIGHT_SIDE_MAX_WIDTH: f32 = 220.0;
-const COMPACT_SIDE_MIN_WIDTH: f32 = 196.0;
-const ULTRA_COMPACT_SIDE_AVAILABLE_WIDTH: f32 = 760.0;
-const ULTRA_COMPACT_LEFT_SIDE_MAX_WIDTH: f32 = 220.0;
-const ULTRA_COMPACT_RIGHT_SIDE_MAX_WIDTH: f32 = 160.0;
 
 pub(super) fn build_region_frames(
     size: ShellSizePx,
@@ -144,19 +128,20 @@ pub(super) fn build_region_frames(
 }
 
 pub(crate) fn compact_bottom_height_limit(available_height: f32) -> Option<f32> {
-    if available_height <= ULTRA_COMPACT_BOTTOM_AVAILABLE_HEIGHT {
+    let defaults = compact_bottom_defaults();
+    if available_height <= defaults.ultra_available_height {
         return Some(round_to_layout_pixel(
-            (available_height * ULTRA_COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION)
-                .min(ULTRA_COMPACT_BOTTOM_MAX_HEIGHT)
-                .max(ULTRA_COMPACT_BOTTOM_MIN_HEIGHT),
+            (available_height * defaults.ultra_max_available_fraction)
+                .min(defaults.ultra_max_height)
+                .max(defaults.ultra_min_height),
         ));
     }
 
-    (available_height <= COMPACT_BOTTOM_AVAILABLE_HEIGHT).then(|| {
+    (available_height <= defaults.available_height).then(|| {
         round_to_layout_pixel(
-            (available_height * COMPACT_BOTTOM_MAX_AVAILABLE_FRACTION)
-                .min(COMPACT_BOTTOM_MAX_HEIGHT)
-                .max(COMPACT_BOTTOM_MIN_HEIGHT),
+            (available_height * defaults.max_available_fraction)
+                .min(defaults.max_height)
+                .max(defaults.min_height),
         )
     })
 }
@@ -166,17 +151,18 @@ fn round_to_layout_pixel(value: f32) -> f32 {
 }
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {
-    if available_width <= ULTRA_COMPACT_SIDE_AVAILABLE_WIDTH {
+    let defaults = compact_side_defaults();
+    if available_width <= defaults.ultra_available_width {
         return Some(match region {
-            ShellRegionId::Left => ULTRA_COMPACT_LEFT_SIDE_MAX_WIDTH,
-            ShellRegionId::Right => ULTRA_COMPACT_RIGHT_SIDE_MAX_WIDTH,
+            ShellRegionId::Left => defaults.ultra_left_max_width,
+            ShellRegionId::Right => defaults.ultra_right_max_width,
             ShellRegionId::Bottom | ShellRegionId::Document => available_width,
         });
     }
 
-    (available_width <= COMPACT_SIDE_AVAILABLE_WIDTH).then(|| match region {
-        ShellRegionId::Left => COMPACT_LEFT_SIDE_MAX_WIDTH.max(COMPACT_SIDE_MIN_WIDTH),
-        ShellRegionId::Right => COMPACT_RIGHT_SIDE_MAX_WIDTH.max(COMPACT_SIDE_MIN_WIDTH),
+    (available_width <= defaults.available_width).then(|| match region {
+        ShellRegionId::Left => defaults.left_max_width.max(defaults.side_min_width),
+        ShellRegionId::Right => defaults.right_max_width.max(defaults.side_min_width),
         ShellRegionId::Bottom | ShellRegionId::Document => available_width,
     })
 }

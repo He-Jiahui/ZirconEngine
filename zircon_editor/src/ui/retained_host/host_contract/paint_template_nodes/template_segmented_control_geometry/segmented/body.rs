@@ -1,5 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::metrics::{SEGMENT_GROUP_LABEL_GAP, SEGMENT_GROUP_LABEL_HEIGHT};
+use super::super::metrics::{segment_group_label_gap, segment_group_label_height};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_body_rect(
     node: &TemplatePaneNodeData,
@@ -8,7 +8,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
     let label_block_height = if node.label_text.trim().is_empty() {
         0.0
     } else {
-        SEGMENT_GROUP_LABEL_HEIGHT + SEGMENT_GROUP_LABEL_GAP
+        segment_group_label_height() + segment_group_label_gap()
     };
 
     FrameRect {

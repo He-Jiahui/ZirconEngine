@@ -1,8 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
-
-const DROPDOWN_RADIUS: f32 = 4.0;
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
         order,
         Some(style.surface),
         Some(style.border),
-        1.0,
-        DROPDOWN_RADIUS,
+        METRICS.border_width,
+        METRICS.radius_control,
         opacity,
     ));
 }

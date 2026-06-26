@@ -1,7 +1,6 @@
 use super::super::super::template_style_color::resolved_style_color;
 use super::model::WorkbenchSegmentedControlKind;
 use super::palette::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
-use super::state::is_unavailable_segmented_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

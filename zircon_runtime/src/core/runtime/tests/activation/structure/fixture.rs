@@ -43,7 +43,11 @@ pub(super) fn registration_source() -> String {
         include_str!("../../../handle/registration/descriptor_entries_three.rs"),
         include_str!("../../../handle/registration/duplicates.rs"),
         include_str!("../../../handle/registration/entry.rs"),
-        include_str!("../../../handle/registration/service_lists.rs"),
+        include_str!("../../../handle/registration/service_lists/mod.rs"),
+        include_str!("../../../handle/registration/service_lists/multi.rs"),
+        include_str!("../../../handle/registration/service_lists/shutdown.rs"),
+        include_str!("../../../handle/registration/service_lists/specialized.rs"),
+        include_str!("../../../handle/registration/service_lists/types.rs"),
         include_str!("../../../handle/registration/validation.rs"),
     ]
     .join("\n")

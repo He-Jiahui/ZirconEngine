@@ -1,6 +1,6 @@
 mod cache;
 mod cached_direct;
-mod helpers;
+mod many_item_array;
 mod mutable;
 mod read_only;
 mod read_only_cached;

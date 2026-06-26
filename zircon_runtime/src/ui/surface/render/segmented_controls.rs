@@ -11,11 +11,11 @@ use zircon_runtime_interface::ui::{
 use super::painter_state::UiRenderPainterStateSource;
 
 const SEGMENTED_BACKGROUND: &str = "#1d2327";
-const SEGMENTED_BORDER: &str = "#4b626d";
-const SEGMENTED_SELECTED_SURFACE: &str = "#0f6574";
-const SEGMENTED_SELECTED_BORDER: &str = "#35c7d0";
-const SEGMENTED_HOVER: &str = "#2f4650";
-const SEGMENTED_PRESSED: &str = "#103c4a";
+const SEGMENTED_BORDER: &str = "#323a41";
+const SEGMENTED_SELECTED_SURFACE: &str = "#173942";
+const SEGMENTED_SELECTED_BORDER: &str = "#2aa6b8";
+const SEGMENTED_HOVER: &str = "#2a3036";
+const SEGMENTED_PRESSED: &str = "#20262b";
 const SEGMENTED_DISABLED: &str = "#191d22";
 const TEXT: &str = "#e6f1f4";
 const TEXT_MUTED: &str = "#8fa3ac";
@@ -603,13 +603,13 @@ fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
 
 fn selected_border_width(metadata: &UiTemplateNodeMetadata) -> f32 {
     number_attribute(metadata, "selected_border_width")
-        .unwrap_or(1.0)
+        .unwrap_or(0.0)
         .max(0.0)
 }
 
 fn selected_underline_height(metadata: &UiTemplateNodeMetadata) -> f32 {
     number_attribute(metadata, "selected_underline_height")
-        .unwrap_or(0.0)
+        .unwrap_or(TAB_UNDERLINE_HEIGHT)
         .max(0.0)
 }
 

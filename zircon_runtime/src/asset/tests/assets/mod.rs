@@ -11,6 +11,7 @@ mod management;
 mod material;
 mod mesh;
 mod model;
+mod navigation;
 mod obj_importer;
 mod physics_material;
 mod render_product;

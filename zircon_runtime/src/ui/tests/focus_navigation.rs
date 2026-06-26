@@ -16,7 +16,7 @@ use zircon_runtime_interface::ui::{
         UiNavigationGroup, UiNavigationGroupId, UiTabIndex,
     },
     surface::UiNavigationEventKind,
-    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 

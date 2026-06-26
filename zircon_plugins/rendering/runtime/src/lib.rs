@@ -7,7 +7,8 @@ mod plugin;
 pub use capability::{RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
-    runtime_plugin_descriptor, RenderingRuntimePlugin,
+    runtime_plugin_descriptor, RenderingRuntimePlugin, RENDERING_DIST_CRATE_NAME,
+    RENDERING_DIST_RUNTIME_ENTRY,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -158,22 +159,22 @@ mod tests {
     fn rendering_descriptor_declares_nine_owner_features() {
         let descriptor = runtime_plugin_descriptor();
 
-        assert_eq!(descriptor.category, "rendering");
+        assert_eq!(descriptor.category(), "rendering");
         assert_eq!(
-            descriptor.maturity,
+            descriptor.maturity(),
             zircon_runtime::plugin::PluginMaturity::Stable
         );
-        assert_eq!(descriptor.optional_features.len(), 9);
+        assert_eq!(descriptor.optional_features().len(), 9);
         assert!(
             descriptor
-                .optional_features
+                .optional_features()
                 .iter()
                 .any(|feature| feature.id == "rendering.contact_shadow"
                     && !feature.enabled_by_default)
         );
         assert_eq!(
             descriptor
-                .optional_features
+                .optional_features()
                 .iter()
                 .filter(|feature| feature.enabled_by_default)
                 .map(|feature| feature.id.as_str())
@@ -218,5 +219,53 @@ mod tests {
             dependency.plugin_id == PLUGIN_ID
                 && dependency.capability == "runtime.feature.rendering.shader_graph"
         }));
+    }
+
+    #[test]
+    fn rendering_package_manifest_declares_dist_contract() {
+        let manifest = package_manifest();
+
+        assert!(manifest
+            .default_packaging
+            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("rendering distribution manifest");
+        assert_eq!(distribution.forms, vec!["dist".to_string()]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+        assert_eq!(distribution.dist_crate, RENDERING_DIST_CRATE_NAME);
+        assert_eq!(
+            distribution.descriptor_symbol,
+            "zircon_native_plugin_descriptor_v3"
+        );
+        assert_eq!(distribution.runtime_entry, RENDERING_DIST_RUNTIME_ENTRY);
+
+        let native_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "rendering.dist")
+            .expect("rendering native dist module");
+        assert_eq!(
+            native_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(native_module.crate_name, RENDERING_DIST_CRATE_NAME);
+        assert_eq!(
+            native_module.target_modes,
+            vec![
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            ]
+        );
+        for capability in RUNTIME_CAPABILITIES {
+            assert!(native_module.capabilities.contains(&capability.to_string()));
+        }
     }
 }

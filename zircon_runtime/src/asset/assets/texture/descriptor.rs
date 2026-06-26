@@ -1,15 +1,110 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
-    RenderImageFallbackKind, RenderImageUsage, RenderSamplerAddressMode, RenderSamplerDescriptor,
-    RenderSamplerFilter,
+    RenderImageFallbackKind, RenderImageUsage, RenderSamplerDescriptor,
 };
 
 use super::TexturePayload;
 
+mod settings;
+
+use self::settings::{
+    bool_setting, parse_array_layout, parse_asset_usage_list, parse_color_space, parse_dimension,
+    parse_sampler, parse_usage_list, string_setting, u32_setting, ExtentSettingKeys,
+};
+
 pub const RGBA8_UNORM_SRGB_FORMAT: &str = "rgba8unorm_srgb";
 pub const RGBA8_UNORM_FORMAT: &str = "rgba8unorm";
+
+pub type TextureDescriptorResult<T> = std::result::Result<T, TextureDescriptorError>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum TextureDescriptorError {
+    #[error("texture import setting `{name}` must be {expected}")]
+    SettingType {
+        name: String,
+        expected: &'static str,
+    },
+    #[error("texture import setting `{name}` must fit in u32")]
+    SettingU32Overflow { name: String },
+    #[error("unsupported texture {kind} `{value}`")]
+    UnsupportedToken { kind: String, value: String },
+    #[error("texture import setting `array_layout` must set only one of row_count or row_height")]
+    ArrayLayoutExclusiveMode,
+    #[error("texture import setting `array_layout` must set row_count or row_height")]
+    ArrayLayoutMissingMode,
+    #[error("texture import setting `{key}` must be 1 for 3d textures")]
+    ArrayLayerCountFor3d { key: &'static str },
+    #[error(
+        "texture import settings `{array_key}` and `{depth_key}` must match for 1d/2d array textures"
+    )]
+    MismatchedExtentSettings {
+        array_key: &'static str,
+        depth_key: &'static str,
+    },
+    #[error(
+        "texture extent metadata must match for 1d/2d array textures: array_layer_count = {array_layer_count}, depth_or_array_layers = {depth_or_array_layers}"
+    )]
+    MismatchedExtentMetadata {
+        array_layer_count: u32,
+        depth_or_array_layers: u32,
+    },
+    #[error("texture import setting `array_layout` requires a decoded rgba8 image")]
+    ArrayLayoutRequiresRgba8,
+    #[error("texture import setting `array_layout` requires a 2d image")]
+    ArrayLayoutRequires2d,
+    #[error("texture import setting `array_layout` requires a single-layer image")]
+    ArrayLayoutRequiresSingleLayer,
+    #[error("texture import setting `{name}` must be greater than zero")]
+    ArrayLayoutZero { name: String },
+    #[error(
+        "texture import setting `array_layout` can not evenly divide height = {height} by row_height = {row_height}"
+    )]
+    ArrayLayoutRowHeightDivisibility { height: u32, row_height: u32 },
+    #[error(
+        "texture import setting `array_layout` can not evenly divide height = {height} by layers = {layers}"
+    )]
+    ArrayLayoutLayerDivisibility { height: u32, layers: u32 },
+    #[error(
+        "texture import setting `array_layout` expected rgba byte length {expected_len} but found {actual_len}"
+    )]
+    ArrayLayoutRgbaLength {
+        expected_len: usize,
+        actual_len: usize,
+    },
+    #[error("texture rgba8 extent {width}x{height} is too large to validate")]
+    Rgba8ExtentTooLarge { width: u32, height: u32 },
+}
+
+impl TextureDescriptorError {
+    pub(super) fn setting_type(name: &str, expected: &'static str) -> Self {
+        Self::SettingType {
+            name: name.to_string(),
+            expected,
+        }
+    }
+
+    pub(super) fn setting_u32_overflow(name: &str) -> Self {
+        Self::SettingU32Overflow {
+            name: name.to_string(),
+        }
+    }
+
+    pub(super) fn unsupported(kind: impl Into<String>, value: &str) -> Self {
+        Self::UnsupportedToken {
+            kind: kind.into(),
+            value: value.to_string(),
+        }
+    }
+
+    pub(super) fn array_layout_zero(name: &str) -> Self {
+        Self::ArrayLayoutZero {
+            name: name.to_string(),
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -19,7 +114,7 @@ pub enum TextureArrayLayout {
 }
 
 impl TextureArrayLayout {
-    pub fn from_import_settings(settings: &toml::Table) -> Result<Option<Self>, String> {
+    pub fn from_import_settings(settings: &toml::Table) -> TextureDescriptorResult<Option<Self>> {
         settings
             .get("array_layout")
             .map(parse_array_layout)
@@ -102,7 +197,10 @@ impl TextureAssetDescriptor {
         self
     }
 
-    pub fn apply_import_settings(mut self, settings: &toml::Table) -> Result<Self, String> {
+    pub fn apply_import_settings(
+        mut self,
+        settings: &toml::Table,
+    ) -> TextureDescriptorResult<Self> {
         let mut extent_keys = ExtentSettingKeys::default();
         if let Some(value) = settings.get("format") {
             self.format = string_setting("format", value)?.to_string();
@@ -197,13 +295,14 @@ impl TextureAssetDescriptor {
         }
     }
 
-    fn normalize_import_extent_fields(&mut self, keys: ExtentSettingKeys) -> Result<(), String> {
+    fn normalize_import_extent_fields(
+        &mut self,
+        keys: ExtentSettingKeys,
+    ) -> TextureDescriptorResult<()> {
         if self.dimension == RenderImageDimension::D3 {
             if let Some(key) = keys.array_layer_count {
                 if self.array_layer_count != 1 {
-                    return Err(format!(
-                        "texture import setting `{key}` must be 1 for 3d textures"
-                    ));
+                    return Err(TextureDescriptorError::ArrayLayerCountFor3d { key });
                 }
             }
             self.array_layer_count = 1;
@@ -213,9 +312,10 @@ impl TextureAssetDescriptor {
         match (keys.array_layer_count, keys.depth_or_array_layers) {
             (Some(array_key), Some(depth_key)) => {
                 if self.array_layer_count != self.depth_or_array_layers {
-                    return Err(format!(
-                        "texture import settings `{array_key}` and `{depth_key}` must match for 1d/2d array textures"
-                    ));
+                    return Err(TextureDescriptorError::MismatchedExtentSettings {
+                        array_key,
+                        depth_key,
+                    });
                 }
             }
             (Some(_), None) => {
@@ -229,10 +329,10 @@ impl TextureAssetDescriptor {
             }
         }
         if self.array_layer_count != self.depth_or_array_layers {
-            return Err(format!(
-                "texture extent metadata must match for 1d/2d array textures: array_layer_count = {}, depth_or_array_layers = {}",
-                self.array_layer_count, self.depth_or_array_layers
-            ));
+            return Err(TextureDescriptorError::MismatchedExtentMetadata {
+                array_layer_count: self.array_layer_count,
+                depth_or_array_layers: self.depth_or_array_layers,
+            });
         }
         Ok(())
     }
@@ -268,204 +368,6 @@ fn default_render_image_asset_usage() -> Vec<RenderImageAssetUsage> {
 
 fn default_depth_or_array_layers() -> u32 {
     1
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct ExtentSettingKeys {
-    array_layer_count: Option<&'static str>,
-    depth_or_array_layers: Option<&'static str>,
-}
-
-fn string_setting<'a>(name: &str, value: &'a toml::Value) -> Result<&'a str, String> {
-    value
-        .as_str()
-        .ok_or_else(|| format!("texture import setting `{name}` must be a string"))
-}
-
-fn u32_setting(name: &str, value: &toml::Value) -> Result<u32, String> {
-    let Some(value) = value.as_integer() else {
-        return Err(format!(
-            "texture import setting `{name}` must be an integer"
-        ));
-    };
-    u32::try_from(value).map_err(|_| format!("texture import setting `{name}` must fit in u32"))
-}
-
-fn bool_setting(name: &str, value: &toml::Value) -> Result<bool, String> {
-    value
-        .as_bool()
-        .ok_or_else(|| format!("texture import setting `{name}` must be a boolean"))
-}
-
-fn parse_usage_list(name: &str, value: &toml::Value) -> Result<Vec<RenderImageUsage>, String> {
-    if let Some(value) = value.as_str() {
-        return Ok(vec![parse_usage(value)?]);
-    }
-    let Some(values) = value.as_array() else {
-        return Err(format!(
-            "texture import setting `{name}` must be a string or array of strings"
-        ));
-    };
-    values
-        .iter()
-        .map(|value| parse_usage(string_setting(name, value)?))
-        .collect()
-}
-
-fn parse_asset_usage_list(
-    name: &str,
-    value: &toml::Value,
-) -> Result<Vec<RenderImageAssetUsage>, String> {
-    if let Some(value) = value.as_str() {
-        return Ok(vec![parse_asset_usage(name, value)?]);
-    }
-    let Some(values) = value.as_array() else {
-        return Err(format!(
-            "texture import setting `{name}` must be a string or array of strings"
-        ));
-    };
-    values
-        .iter()
-        .map(|value| parse_asset_usage(name, string_setting(name, value)?))
-        .collect()
-}
-
-fn parse_sampler(
-    value: &toml::Value,
-    mut sampler: RenderSamplerDescriptor,
-) -> Result<RenderSamplerDescriptor, String> {
-    if let Some(value) = value.as_str() {
-        return parse_sampler_shorthand(value, sampler);
-    }
-    let Some(table) = value.as_table() else {
-        return Err("texture import setting `sampler` must be a table or string".to_string());
-    };
-    if let Some(value) = table.get("address_mode_u") {
-        sampler.address_mode_u =
-            parse_address_mode(string_setting("sampler.address_mode_u", value)?)?;
-    }
-    if let Some(value) = table.get("address_mode_v") {
-        sampler.address_mode_v =
-            parse_address_mode(string_setting("sampler.address_mode_v", value)?)?;
-    }
-    if let Some(value) = table.get("address_mode_w") {
-        sampler.address_mode_w =
-            parse_address_mode(string_setting("sampler.address_mode_w", value)?)?;
-    }
-    if let Some(value) = table.get("mag_filter") {
-        sampler.mag_filter = parse_filter(string_setting("sampler.mag_filter", value)?)?;
-    }
-    if let Some(value) = table.get("min_filter") {
-        sampler.min_filter = parse_filter(string_setting("sampler.min_filter", value)?)?;
-    }
-    if let Some(value) = table.get("mipmap_filter") {
-        sampler.mipmap_filter = parse_filter(string_setting("sampler.mipmap_filter", value)?)?;
-    }
-    Ok(sampler)
-}
-
-fn parse_sampler_shorthand(
-    value: &str,
-    sampler: RenderSamplerDescriptor,
-) -> Result<RenderSamplerDescriptor, String> {
-    match normalized_token(value).as_str() {
-        "default" => Ok(sampler),
-        "linear" => Ok(sampler_with_filter(sampler, RenderSamplerFilter::Linear)),
-        "nearest" => Ok(sampler_with_filter(sampler, RenderSamplerFilter::Nearest)),
-        _ => Err(format!("unsupported texture sampler `{value}`")),
-    }
-}
-
-fn sampler_with_filter(
-    mut sampler: RenderSamplerDescriptor,
-    filter: RenderSamplerFilter,
-) -> RenderSamplerDescriptor {
-    sampler.mag_filter = filter;
-    sampler.min_filter = filter;
-    sampler.mipmap_filter = filter;
-    sampler
-}
-
-fn parse_array_layout(value: &toml::Value) -> Result<TextureArrayLayout, String> {
-    let Some(table) = value.as_table() else {
-        return Err("texture import setting `array_layout` must be a table".to_string());
-    };
-    match (table.get("row_count"), table.get("row_height")) {
-        (Some(rows), None) => Ok(TextureArrayLayout::RowCount {
-            rows: u32_setting("array_layout.row_count", rows)?,
-        }),
-        (None, Some(pixels)) => Ok(TextureArrayLayout::RowHeight {
-            pixels: u32_setting("array_layout.row_height", pixels)?,
-        }),
-        (Some(_), Some(_)) => Err(
-            "texture import setting `array_layout` must set only one of row_count or row_height"
-                .to_string(),
-        ),
-        (None, None) => Err(
-            "texture import setting `array_layout` must set row_count or row_height".to_string(),
-        ),
-    }
-}
-
-fn parse_color_space(value: &str) -> Result<RenderImageColorSpace, String> {
-    match normalized_token(value).as_str() {
-        "srgb" => Ok(RenderImageColorSpace::Srgb),
-        "linear" => Ok(RenderImageColorSpace::Linear),
-        "hdr" => Ok(RenderImageColorSpace::Hdr),
-        "unknown" => Ok(RenderImageColorSpace::Unknown),
-        _ => Err(format!("unsupported texture color_space `{value}`")),
-    }
-}
-
-fn parse_dimension(value: &str) -> Result<RenderImageDimension, String> {
-    match normalized_token(value).as_str() {
-        "1d" | "d1" => Ok(RenderImageDimension::D1),
-        "2d" | "d2" => Ok(RenderImageDimension::D2),
-        "3d" | "d3" => Ok(RenderImageDimension::D3),
-        _ => Err(format!("unsupported texture dimension `{value}`")),
-    }
-}
-
-fn parse_usage(value: &str) -> Result<RenderImageUsage, String> {
-    match normalized_token(value).as_str() {
-        "sampled" => Ok(RenderImageUsage::Sampled),
-        "storage" => Ok(RenderImageUsage::Storage),
-        "render_target" => Ok(RenderImageUsage::RenderTarget),
-        "copy_src" => Ok(RenderImageUsage::CopySrc),
-        "copy_dst" => Ok(RenderImageUsage::CopyDst),
-        _ => Err(format!("unsupported texture usage `{value}`")),
-    }
-}
-
-fn parse_asset_usage(name: &str, value: &str) -> Result<RenderImageAssetUsage, String> {
-    match normalized_token(value).as_str() {
-        "main_world" | "main" | "cpu" => Ok(RenderImageAssetUsage::MainWorld),
-        "render_world" | "render" | "gpu" => Ok(RenderImageAssetUsage::RenderWorld),
-        _ => Err(format!("unsupported texture {name} `{value}`")),
-    }
-}
-
-fn parse_address_mode(value: &str) -> Result<RenderSamplerAddressMode, String> {
-    match normalized_token(value).as_str() {
-        "clamp_to_edge" => Ok(RenderSamplerAddressMode::ClampToEdge),
-        "repeat" => Ok(RenderSamplerAddressMode::Repeat),
-        "mirror_repeat" => Ok(RenderSamplerAddressMode::MirrorRepeat),
-        _ => Err(format!(
-            "unsupported texture sampler address mode `{value}`"
-        )),
-    }
-}
-
-fn parse_filter(value: &str) -> Result<RenderSamplerFilter, String> {
-    match normalized_token(value).as_str() {
-        "nearest" => Ok(RenderSamplerFilter::Nearest),
-        "linear" => Ok(RenderSamplerFilter::Linear),
-        _ => Err(format!("unsupported texture sampler filter `{value}`")),
-    }
-}
-
-fn normalized_token(value: &str) -> String {
-    value.trim().to_ascii_lowercase().replace('-', "_")
 }
 
 #[cfg(test)]
@@ -523,8 +425,15 @@ depth_or_array_layers = 4
             .apply_import_settings(&settings)
             .expect_err("mismatched extent settings");
 
+        assert!(matches!(
+            error,
+            TextureDescriptorError::MismatchedExtentSettings {
+                array_key: "array_layer_count",
+                depth_key: "depth_or_array_layers",
+            }
+        ));
         assert!(
-            error.contains(
+            error.to_string().contains(
                 "texture import settings `array_layer_count` and `depth_or_array_layers` must match for 1d/2d array textures"
             ),
             "unexpected error: {error}"
@@ -545,7 +454,9 @@ array_layers = 2
             .expect_err("3d array layer override");
 
         assert!(
-            error.contains("texture import setting `array_layers` must be 1 for 3d textures"),
+            error
+                .to_string()
+                .contains("texture import setting `array_layers` must be 1 for 3d textures"),
             "unexpected error: {error}"
         );
     }
@@ -612,10 +523,41 @@ depth = 4
                 .expect_err("invalid alias setting");
 
             assert!(
-                error.contains(expected),
+                error.to_string().contains(expected),
                 "expected `{expected}` in `{error}`"
             );
         }
+    }
+
+    #[test]
+    fn invalid_import_settings_report_typed_error_variants() {
+        let settings = r#"sampler = 1"#.parse::<toml::Table>().expect("valid toml");
+        let error = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect_err("invalid sampler setting");
+
+        assert!(matches!(
+            error,
+            TextureDescriptorError::SettingType {
+                ref name,
+                expected: "a table or string",
+            } if name == "sampler"
+        ));
+
+        let settings = r#"render_asset_usage = "video_memory""#
+            .parse::<toml::Table>()
+            .expect("valid toml");
+        let error = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect_err("unsupported render asset usage");
+
+        assert!(matches!(
+            error,
+            TextureDescriptorError::UnsupportedToken {
+                ref kind,
+                ref value,
+            } if kind == "render_asset_usage" && value == "video_memory"
+        ));
     }
 
     #[test]

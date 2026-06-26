@@ -11,10 +11,7 @@ use super::resource_manager::ResourceManager;
 impl ResourceManager {
     pub fn register_record(&self, record: ResourceRecord) -> UntypedResourceHandle {
         let event_kind = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             match registry.upsert(record.clone()) {
                 Some(_) => ResourceEventKind::Updated,
                 None => ResourceEventKind::Added,
@@ -40,10 +37,7 @@ impl ResourceManager {
         diagnostics: Vec<ResourceDiagnostic>,
     ) -> Option<ResourceRecord> {
         let updated = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             let mut record = registry.get(id).cloned()?;
             if !matches!(
                 record.state,
@@ -76,10 +70,7 @@ impl ResourceManager {
         diagnostics: Vec<ResourceDiagnostic>,
     ) -> Option<ResourceRecord> {
         let updated = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             let mut record = registry.get(id).cloned()?;
             if !matches!(
                 record.state,
@@ -108,21 +99,12 @@ impl ResourceManager {
 
     pub fn remove_by_locator(&self, locator: &ResourceLocator) -> Option<ResourceRecord> {
         let removed = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             registry.remove_by_locator(locator)?
         };
 
-        self.payloads
-            .write()
-            .expect("resource payload lock poisoned")
-            .remove(&removed.id);
-        self.runtime
-            .write()
-            .expect("resource runtime lock poisoned")
-            .remove(&removed.id);
+        self.lock_payloads_write().remove(&removed.id);
+        self.lock_runtime_write().remove(&removed.id);
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Removed,
@@ -142,10 +124,7 @@ impl ResourceManager {
         to: ResourceLocator,
     ) -> CoreResult<ResourceRecord> {
         let renamed = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             registry.rename(from, to.clone())?
         };
 

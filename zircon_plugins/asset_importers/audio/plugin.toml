@@ -14,7 +14,16 @@ capabilities = [
 maturity = "experimental"
 asset_roots = []
 content_roots = []
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_asset_importer_audio_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_asset_importer_audio_runtime_entry_v3"
 
 [[asset_importers]]
 id = "asset_importer.audio.wav"
@@ -47,6 +56,16 @@ required_capabilities = ["runtime.asset.importer.native"]
 name = "asset_importer.audio.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_asset_importer_audio_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.asset_importer.audio",
+    "runtime.asset.importer.audio.codec",
+]
+
+[[modules]]
+name = "asset_importer.audio.dist"
+kind = "native"
+crate_name = "zircon_plugin_asset_importer_audio_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.audio",

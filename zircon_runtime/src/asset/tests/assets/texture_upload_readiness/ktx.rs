@@ -1,4 +1,4 @@
-use super::common::*;
+use super::container_fixtures::*;
 use crate::asset::{AssetUri, TextureAsset, TextureUploadSupport};
 
 #[test]
@@ -20,7 +20,9 @@ fn texture_upload_readiness_rejects_short_ktx_level_declarations() {
     );
     assert_eq!(
         ktx1.upload_readiness(support).unsupported_reason(),
-        Some("container texture payload format ktx/gl-internal-0x000083f1 declares 1 image bytes but needs at least 8")
+        Some(
+            "container texture payload format ktx/gl-internal-0x000083f1 declares 1 image bytes but needs at least 8"
+        )
     );
 
     let mut truncated_ktx2 = ktx2_bc1_level_bytes();
@@ -36,7 +38,9 @@ fn texture_upload_readiness_rejects_short_ktx_level_declarations() {
     );
     assert_eq!(
         ktx2.upload_readiness(support).unsupported_reason(),
-        Some("container texture payload format ktx2/vk-133/supercompression-0 declares 16 image bytes but only 8 are available")
+        Some(
+            "container texture payload format ktx2/vk-133/supercompression-0 declares 16 image bytes but only 8 are available"
+        )
     );
 }
 

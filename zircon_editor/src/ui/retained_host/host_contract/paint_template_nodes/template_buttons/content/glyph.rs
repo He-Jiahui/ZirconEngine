@@ -1,10 +1,11 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_button_glyphs::{
-    button_glyph_for_key, push_button_glyph, ButtonGlyph, BUTTON_ICON_SIZE,
+    button_glyph_for_key, button_icon_size, push_button_glyph, ButtonGlyph,
 };
+use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::button_key;
-use super::metrics::{BUTTON_CHEVRON_RESERVE, BUTTON_ICON_GAP, BUTTON_TEXT_INSET_X};
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph(
     node: &TemplatePaneNodeData,
@@ -12,9 +13,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     button_glyph_for_key(&button_key(node))
 }
 
-pub(super) fn button_glyph_width(glyph: ButtonGlyph) -> f32 {
-    if has_leading_glyph(glyph) {
-        BUTTON_ICON_SIZE + BUTTON_ICON_GAP
+pub(super) fn button_glyph_width(node: &TemplatePaneNodeData, glyph: ButtonGlyph) -> f32 {
+    if has_leading_asset_icon(node) || has_leading_glyph(glyph) {
+        button_icon_size() + METRICS.button_icon_gap
     } else {
         0.0
     }
@@ -22,7 +23,7 @@ pub(super) fn button_glyph_width(glyph: ButtonGlyph) -> f32 {
 
 pub(super) fn chevron_width(glyph: ButtonGlyph) -> f32 {
     if has_trailing_chevron(glyph) {
-        BUTTON_CHEVRON_RESERVE
+        METRICS.button_chevron_reserve
     } else {
         0.0
     }
@@ -32,25 +33,31 @@ pub(super) fn has_leading_glyph(glyph: ButtonGlyph) -> bool {
     matches!(glyph, ButtonGlyph::Plus | ButtonGlyph::Trash)
 }
 
+pub(super) fn has_leading_asset_icon(node: &TemplatePaneNodeData) -> bool {
+    !node.icon_name.trim().is_empty()
+}
+
 pub(super) fn has_trailing_chevron(glyph: ButtonGlyph) -> bool {
     glyph == ButtonGlyph::ChevronDown
 }
 
 pub(super) fn leading_glyph_rect(rect: &FrameRect, x: f32) -> FrameRect {
+    let icon_size = button_icon_size();
     FrameRect {
         x,
-        y: rect.y + (rect.height - BUTTON_ICON_SIZE).max(0.0) * 0.5,
-        width: BUTTON_ICON_SIZE,
-        height: BUTTON_ICON_SIZE,
+        y: rect.y + (rect.height - icon_size).max(0.0) * 0.5,
+        width: icon_size,
+        height: icon_size,
     }
 }
 
 pub(super) fn trailing_glyph_rect(rect: &FrameRect) -> FrameRect {
+    let icon_size = button_icon_size();
     FrameRect {
-        x: rect.x + rect.width - BUTTON_TEXT_INSET_X - BUTTON_ICON_SIZE,
-        y: rect.y + (rect.height - BUTTON_ICON_SIZE).max(0.0) * 0.5,
-        width: BUTTON_ICON_SIZE,
-        height: BUTTON_ICON_SIZE,
+        x: rect.x + rect.width - METRICS.button_pad_x - icon_size,
+        y: rect.y + (rect.height - icon_size).max(0.0) * 0.5,
+        width: icon_size,
+        height: icon_size,
     }
 }
 
@@ -64,4 +71,24 @@ pub(super) fn push_content_glyph(
     opacity: f32,
 ) {
     push_button_glyph(commands, rect, clip, order, glyph, color, opacity);
+}
+
+pub(super) fn push_content_asset_icon(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    color: [u8; 4],
+    opacity: f32,
+) -> bool {
+    push_icon_asset_pixels(
+        commands,
+        node.icon_name.as_str(),
+        rect,
+        clip,
+        order,
+        Some(color),
+        opacity,
+    )
 }

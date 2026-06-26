@@ -48,9 +48,11 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
             "fn processors_emit_expected_mesh_phases",
             "fn render_mesh_draw_processor_depth_prepass_filters_transparent",
             "fn render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shader_selection",
+            "fn render_mesh_draw_processor_uses_batch_geometry_source_for_pipeline_variant_key",
             "fn render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_variant",
             "fn velocity_processor_requires_velocity_history_and_previous_transform",
             "fn shadow_processor_respects_shadow_view_visibility",
+            "GEOMETRY_SOURCE_ID_SKINNED_MESH",
         ],
     );
 
@@ -63,7 +65,7 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
         (
             "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs",
             tests.as_str(),
-            430,
+            470,
         ),
     ] {
         let line_count = source.lines().count();

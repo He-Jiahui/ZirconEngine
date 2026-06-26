@@ -1,7 +1,8 @@
 use super::super::super::super::paint_theme::PALETTE;
-use super::super::colors::surface_color;
+use super::super::colors::{border_color, surface_color};
+use super::super::dimensions::template_border_width;
 use super::super::state::button_interaction_state;
-use super::support::{button_node, resolved_background};
+use super::support::{button_node, panel_node, resolved_background};
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 
 #[test]
@@ -35,4 +36,55 @@ fn native_template_button_style_keeps_declared_colors_after_state_resolution() {
 
     node.hovered = false;
     assert_eq!(surface_color(&node), [11, 22, 33, 255]);
+}
+
+#[test]
+fn asset_placeholder_surface_uses_low_emphasis_inset_without_border() {
+    let mut node = panel_node("asset-placeholder");
+    node.corner_radius = 6.0;
+    node.border_width = 0.0;
+
+    assert_eq!(surface_color(&node), PALETTE.surface_inset);
+    assert_eq!(template_border_width(&node), 0.0);
+
+    node.surface_variant = "asset-placeholder-visual".into();
+    assert_eq!(surface_color(&node), PALETTE.surface_inset);
+    assert_eq!(template_border_width(&node), 0.0);
+}
+
+#[test]
+fn component_panel_surface_uses_slate_panel_surface_with_thin_border() {
+    let mut node = panel_node("component-panel");
+    node.corner_radius = 4.0;
+    node.border_width = 1.0;
+
+    assert_eq!(surface_color(&node), PALETTE.surface);
+    assert_eq!(template_border_width(&node), 1.0);
+    assert_eq!(border_color(&node), PALETTE.border);
+}
+
+#[test]
+fn asset_preview_selected_surface_uses_slate_outline_emphasis() {
+    let mut node = panel_node("asset-preview");
+    node.selected = true;
+    node.corner_radius = 6.0;
+    node.border_width = 1.0;
+
+    assert_eq!(surface_color(&node), PALETTE.surface_pressed);
+    assert_ne!(surface_color(&node), PALETTE.surface_selected);
+    assert_eq!(template_border_width(&node), 1.0);
+    assert_eq!(border_color(&node), PALETTE.border);
+    assert_ne!(border_color(&node), PALETTE.focus_ring);
+
+    node.surface_variant = "asset-preview-visual".into();
+    assert_eq!(surface_color(&node), PALETTE.surface_pressed);
+    assert_ne!(surface_color(&node), PALETTE.surface_selected);
+    assert_eq!(border_color(&node), PALETTE.border);
+
+    node.selected = false;
+    node.focused = true;
+    assert_eq!(border_color(&node), PALETTE.border);
+
+    node.validation_level = "error".into();
+    assert_eq!(border_color(&node), PALETTE.error);
 }

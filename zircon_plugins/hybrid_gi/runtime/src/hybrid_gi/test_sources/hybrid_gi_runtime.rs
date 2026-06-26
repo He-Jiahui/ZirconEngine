@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::render::{
+    render_mesh_stable_instance_key, render_mesh_transform_revision,
     RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderMeshSnapshot,
+    RenderHybridGiTraceRegion, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
@@ -3963,27 +3964,35 @@ fn mesh_at(
     translation: Vec3,
     uniform_scale: f32,
 ) -> RenderMeshSnapshot {
+    let transform = Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale));
     RenderMeshSnapshot {
         node_id: entity,
-        transform: Transform::from_translation(translation).with_scale(Vec3::splat(uniform_scale)),
+        stable_instance_key: render_mesh_stable_instance_key(entity, 0),
+        transform_revision: render_mesh_transform_revision(&transform),
+        transform,
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
             "res://models/card.obj",
         )),
         mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(material)),
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
-        render_layer_mask: u32::MAX,
+        static_state: RenderMeshStaticState::from_transform_static(true),
+        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
     }
 }
 
 fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnapshot {
     RenderDirectionalLightSnapshot {
         node_id,
+        light_id: node_id,
+        layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         direction: Vec3::new(-0.4, -1.0, -0.2),
         color: Vec3::new(1.0, 0.95, 0.9),
         intensity,
+        shadow: None,
     }
 }
 

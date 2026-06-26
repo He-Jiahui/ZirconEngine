@@ -105,8 +105,9 @@ impl FloatingWindow {
             kind: FloatingWindowKind::CommandPalette,
             modal: false,
             layer: FloatingLayer::TopOverlay,
-            content_asset: "res://ui/editor/components/workbench/floating/command_palette.zui"
-                .to_string(),
+            content_asset:
+                "res://ui/editor/components/workbench/floating/workbench_command_palette.zui"
+                    .to_string(),
         }
     }
 
@@ -115,8 +116,9 @@ impl FloatingWindow {
             kind: FloatingWindowKind::Preferences,
             modal: true,
             layer: FloatingLayer::ModalOverlay,
-            content_asset: "res://ui/editor/components/workbench/floating/preferences.zui"
-                .to_string(),
+            content_asset:
+                "res://ui/editor/components/workbench/floating/workbench_preferences.zui"
+                    .to_string(),
         }
     }
 

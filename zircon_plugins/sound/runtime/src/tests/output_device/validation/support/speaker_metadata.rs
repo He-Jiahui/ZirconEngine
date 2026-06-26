@@ -1,7 +1,7 @@
 use super::super::super::super::*;
 use super::descriptor::software_test_descriptor;
 
-pub(super) fn invalid_speaker_metadata_descriptor() -> SoundOutputDeviceDescriptor {
+pub(crate) fn invalid_speaker_metadata_descriptor() -> SoundOutputDeviceDescriptor {
     software_test_descriptor(
         "sound.output.bad-speakers",
         "Bad Speaker Metadata Output",

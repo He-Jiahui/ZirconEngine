@@ -2,7 +2,7 @@ mod physics;
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::Quat;
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError, SceneResult};
 
 use super::super::World;
 use super::value_conversion::{
@@ -19,7 +19,7 @@ impl World {
         entity: EntityId,
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         self.set_property_impl(entity, property_path, value)
     }
 
@@ -28,9 +28,9 @@ impl World {
         entity: EntityId,
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
-            return Err(format!("cannot update missing entity {entity}"));
+            return Err(SceneError::missing_entity("update", entity));
         }
 
         let component = normalized_identifier(property_path.component());
@@ -48,7 +48,6 @@ impl World {
                     return property_type_error(property_path, "string");
                 };
                 self.rename_node(entity, name)
-                    .map_err(|error| error.to_string())
             }
             "hierarchy" => {
                 expect_segment_count(&segments, 1, property_path)?;
@@ -57,7 +56,6 @@ impl World {
                     return property_type_error(property_path, "entity reference");
                 };
                 self.set_parent_checked(entity, parent)
-                    .map_err(|error| error.to_string())
             }
             "transform" => self.set_transform_property(entity, &segments, value, property_path),
             "active" => {
@@ -67,14 +65,12 @@ impl World {
                     return property_type_error(property_path, "bool");
                 };
                 self.set_active_self(entity, active)
-                    .map_err(|error| error.to_string())
             }
             "renderlayer" | "renderlayermask" => {
                 expect_segment_count(&segments, 1, property_path)?;
                 expect_segment(&segments[0], &["mask"], property_path)?;
                 let mask = expect_u32(value, property_path)?;
                 self.set_render_layer_mask(entity, mask)
-                    .map_err(|error| error.to_string())
             }
             "mobility" => {
                 expect_segment_count(&segments, 1, property_path)?;
@@ -83,7 +79,6 @@ impl World {
                     return property_type_error(property_path, "enum");
                 };
                 self.set_mobility(entity, parse_mobility(&kind)?)
-                    .map_err(|error| error.to_string())
             }
             "camera" => {
                 let Some(camera) = self.cameras.get_mut(&entity) else {
@@ -129,9 +124,10 @@ impl World {
                         mesh.model = crate::core::resource::ResourceHandle::new(resource);
                     }
                     [field] if field == "mesh" => {
-                        return Err(format!(
-                            "property {property_path} is read-only optional mesh resource"
-                        ));
+                        return Err(SceneError::ReadOnlyProperty {
+                            property_path: property_path.to_string(),
+                            reason: "optional mesh resource",
+                        });
                     }
                     [field] if field == "material" => {
                         let resource = expect_resource_id(value, property_path)?;
@@ -169,28 +165,35 @@ impl World {
                         mesh.depth_bias = next;
                     }
                     [field] if field == "primitivebindingcount" || field == "primitives" => {
-                        return Err(format!(
-                            "property {property_path} is read-only mesh primitive binding data"
-                        ));
+                        return Err(SceneError::ReadOnlyProperty {
+                            property_path: property_path.to_string(),
+                            reason: "mesh primitive binding data",
+                        });
                     }
                     [field] if field == "lodlevelcount" || field == "lods" => {
-                        return Err(format!(
-                            "property {property_path} is read-only mesh LOD data"
-                        ));
+                        return Err(SceneError::ReadOnlyProperty {
+                            property_path: property_path.to_string(),
+                            reason: "mesh LOD data",
+                        });
                     }
                     [field] if field == "morphweightcount" => {
-                        return Err(format!(
-                            "property {property_path} is read-only mesh morph weight count"
-                        ));
+                        return Err(SceneError::ReadOnlyProperty {
+                            property_path: property_path.to_string(),
+                            reason: "mesh morph weight count",
+                        });
                     }
                     [field] if field == "morphweights" => {
-                        return Err(format!(
-                            "property {property_path} must address a morph weight index"
-                        ));
+                        return Err(SceneError::InvalidPropertyIndex {
+                            property_path: property_path.to_string(),
+                            index_kind: "morph weight index",
+                        });
                     }
                     [field, index] if field == "morphweights" => {
                         let index = index.parse::<usize>().map_err(|_| {
-                            format!("property `{property_path}` has an invalid morph weight index")
+                            SceneError::InvalidPropertyIndex {
+                                property_path: property_path.to_string(),
+                                index_kind: "morph weight index",
+                            }
                         })?;
                         let next = expect_scalar(value, property_path)?;
                         let resized = if mesh.morph_weights.len() <= index {
@@ -547,9 +550,7 @@ impl World {
                 }
                 Ok(changed)
             }
-            _ => self
-                .set_dynamic_component_property(entity, property_path, value)
-                .map_err(|error| error.to_string()),
+            _ => self.set_dynamic_component_property(entity, property_path, value),
         }
     }
 
@@ -559,7 +560,7 @@ impl World {
         segments: &[String],
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
-    ) -> Result<bool, String> {
+    ) -> SceneResult<bool> {
         let Some(current) = self.local_transforms.get(&entity).copied() else {
             return missing_component_error(entity, property_path);
         };
@@ -588,6 +589,5 @@ impl World {
             _ => return unknown_property_error(property_path),
         }
         self.update_transform(entity, next)
-            .map_err(|error| error.to_string())
     }
 }

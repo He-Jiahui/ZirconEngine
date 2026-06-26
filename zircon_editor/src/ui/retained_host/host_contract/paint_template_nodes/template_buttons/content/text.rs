@@ -1,37 +1,35 @@
-use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::metrics::{BUTTON_FONT_SIZE, BUTTON_LINE_HEIGHT};
+use super::metrics::button_label_line_height;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(super) fn push_button_label(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
     x: f32,
+    y_offset: f32,
     width: f32,
+    font_size: f32,
     label: String,
     color: [u8; 4],
     opacity: f32,
 ) {
+    let line_height = button_label_line_height(font_size);
     commands.push(HostPaintCommand::text(
         FrameRect {
             x,
-            y: rect.y + (rect.height - BUTTON_LINE_HEIGHT).max(0.0) * 0.5,
+            y: rect.y + (rect.height - line_height).max(0.0) * 0.5 + y_offset,
             width,
-            height: BUTTON_LINE_HEIGHT,
+            height: line_height,
         },
         Some(clip.clone()),
         order,
         label,
         color,
-        if node.font_size.is_finite() && node.font_size > 0.0 {
-            node.font_size.min(rect.height.max(1.0))
-        } else {
-            BUTTON_FONT_SIZE
-        },
-        BUTTON_LINE_HEIGHT,
+        font_size,
+        line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

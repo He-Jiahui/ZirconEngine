@@ -114,6 +114,9 @@ impl BuiltinHostWindowTemplateBridge {
     }
 
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
+        if is_componentized_drawer_frame(control_id) {
+            return None;
+        }
         self.host_projection
             .node_by_control_id(control_id)
             .map(|node| node.frame)
@@ -195,4 +198,16 @@ impl BuiltinHostWindowTemplateBridge {
             vec![UiBindingValue::string(page_id)],
         )
     }
+}
+
+fn is_componentized_drawer_frame(control_id: &str) -> bool {
+    matches!(
+        control_id,
+        "LeftDrawerShellRoot"
+            | "LeftDrawerHeaderRoot"
+            | "RightDrawerShellRoot"
+            | "RightDrawerHeaderRoot"
+            | "BottomDrawerShellRoot"
+            | "BottomDrawerHeaderRoot"
+    )
 }

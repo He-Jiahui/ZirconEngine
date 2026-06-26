@@ -1,5 +1,6 @@
 mod resource_streamer;
 mod resource_streamer_accessors;
+mod resource_streamer_construction;
 mod resource_streamer_ensure_material;
 mod resource_streamer_ensure_mesh;
 mod resource_streamer_ensure_model;
@@ -11,7 +12,6 @@ mod resource_streamer_ensure_texture;
 mod resource_streamer_execute_output_target_writeback;
 mod resource_streamer_load_animation_skeleton_asset;
 mod resource_streamer_load_model_asset;
-mod resource_streamer_new;
 mod resource_streamer_resolve_texture_id;
 mod resource_streamer_resource_revision;
 mod resource_streamer_validate_material_shader_layout;

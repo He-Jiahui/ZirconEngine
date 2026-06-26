@@ -1,6 +1,4 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-#[cfg(test)]
-use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
     select_workbench_segmented_control_style, WorkbenchSegmentedControlKind as SegmentedStyleKind,
     WorkbenchSegmentedControlStyle, WORKBENCH_SEGMENT_IDLE_BACKGROUND,
@@ -16,15 +14,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
     segmented_control_style(node)
         .background
         .unwrap_or(SEGMENT_IDLE_BACKGROUND)
-}
-
-#[cfg(test)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_border_color(
-    node: &TemplatePaneNodeData,
-) -> [u8; 4] {
-    segmented_control_style(node)
-        .border
-        .unwrap_or(PALETTE.border)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment_text_color(

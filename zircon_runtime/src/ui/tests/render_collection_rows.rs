@@ -37,6 +37,7 @@ selected = true
 expanded = true
 tree_depth = 1.0
 icon = "box"
+background_color = "#12383d"
 "##,
         visible_state(),
     );
@@ -102,6 +103,13 @@ icon = "folder"
             .count(),
         1
     );
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::TreeRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.style.background_color.as_deref() == Some("#12383d")
+    }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Image

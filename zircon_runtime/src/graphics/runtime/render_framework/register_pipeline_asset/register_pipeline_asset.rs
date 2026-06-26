@@ -8,7 +8,7 @@ use crate::graphics::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelin
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     mut pipeline: RenderPipelineAsset,
 ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
     let handle = pipeline.handle;
@@ -17,8 +17,8 @@ pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
     }
     let compiled = compile_pipeline_for_validation(&pipeline)?;
 
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     state
         .renderer
         .validate_compiled_pipeline_executors(&compiled)

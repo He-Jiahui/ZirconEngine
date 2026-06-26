@@ -3,7 +3,10 @@ use crate::hybrid_gi::types::{
     hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareVoxelClipmap,
     HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
 };
-use zircon_runtime::core::framework::render::RenderMeshSnapshot;
+use zircon_runtime::core::framework::render::{
+    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState,
+};
 use zircon_runtime::core::math::Vec3;
 
 use super::card_capture_shading::{mesh_capture_radiance, rgba8_from_color_with_alpha};
@@ -235,9 +238,13 @@ mod tests {
     }
 
     fn mesh_at(translation: Vec3) -> RenderMeshSnapshot {
+        let node_id = 11;
+        let transform = Transform::from_translation(translation);
         RenderMeshSnapshot {
-            node_id: 11,
-            transform: Transform::from_translation(translation),
+            node_id,
+            stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
+            transform,
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
@@ -245,10 +252,12 @@ mod tests {
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                 "builtin://material/default",
             )),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Static,
-            render_layer_mask: u32::MAX,
+            static_state: RenderMeshStaticState::from_transform_static(true),
+            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
         }
     }
 }

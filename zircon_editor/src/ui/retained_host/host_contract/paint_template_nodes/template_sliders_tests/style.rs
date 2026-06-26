@@ -1,4 +1,7 @@
-use super::super::super::style_selector::WORKBENCH_SLIDER_TRACK_DISABLED as SLIDER_TRACK_DISABLED;
+use super::super::super::style_selector::{
+    WORKBENCH_SLIDER_FILL as SLIDER_FILL, WORKBENCH_SLIDER_THUMB as SLIDER_THUMB,
+    WORKBENCH_SLIDER_TRACK_DISABLED as SLIDER_TRACK_DISABLED,
+};
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::super::template_slider_geometry::slider_thumb_size;
 use super::support::{
@@ -7,6 +10,7 @@ use super::support::{
     slider_visual_state,
 };
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::{
     ResolvedButtonStyle, UiPainterResolvedState, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,
@@ -25,6 +29,16 @@ fn workbench_slider_uses_shared_selector_for_drop_hover_halo() {
 
     let bytes = paint_template_nodes_for_test(190, 48, model_rc(vec![node]));
     assert_ne!(pixel_at(&bytes, 190, 61, 15), [0, 0, 0, 255]);
+}
+
+#[test]
+fn workbench_slider_defaults_to_slate_bar_thumb_density() {
+    let node = positioned_slider_node("WorkbenchInputSlider", 0.75, 8.0, 8.0, 184.0, 30.0);
+
+    assert_eq!(slider_accent(&node), SLIDER_FILL);
+    assert_eq!(slider_thumb_size(&node), 8.0);
+    assert_eq!(slider_thumb_color(&node), SLIDER_THUMB);
+    assert_eq!(slider_thumb_outline_color(&node), PALETTE.border);
 }
 
 #[test]
@@ -61,6 +75,6 @@ fn workbench_slider_uses_declared_thumb_colors() {
 
     let bytes = paint_template_nodes_for_test(220, 48, model_rc(vec![node]));
 
-    assert_eq!(pixel_at(&bytes, 220, 104, 23), [183, 241, 248, 255]);
+    assert_eq!(pixel_at(&bytes, 220, 101, 23), [183, 241, 248, 255]);
     assert_ne!(pixel_at(&bytes, 220, 96, 23), [0, 0, 0, 255]);
 }

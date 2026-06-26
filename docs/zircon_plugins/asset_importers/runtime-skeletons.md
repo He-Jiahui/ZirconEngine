@@ -12,18 +12,26 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
+  - zircon_plugins/gltf_importer/dist/Cargo.toml
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/obj_importer/plugin.toml
   - zircon_plugins/obj_importer/runtime/Cargo.toml
   - zircon_plugins/obj_importer/runtime/src/lib.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
+  - zircon_plugins/obj_importer/dist/Cargo.toml
+  - zircon_plugins/obj_importer/dist/src/lib.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
+  - zircon_plugins/texture_importer/dist/Cargo.toml
+  - zircon_plugins/texture_importer/dist/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
+  - zircon_plugins/audio_importer/dist/Cargo.toml
+  - zircon_plugins/audio_importer/dist/src/lib.rs
   - zircon_plugins/opus_importer/runtime/Cargo.toml
   - zircon_plugins/opus_importer/runtime/src/lib.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
@@ -44,16 +52,33 @@ related_code:
   - zircon_plugins/asset_importers/model/runtime/src/tests/registration.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests/importers.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests/support.rs
+  - zircon_plugins/asset_importers/model/plugin.toml
+  - zircon_plugins/asset_importers/model/dist/Cargo.toml
+  - zircon_plugins/asset_importers/model/dist/src/lib.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/plugin.toml
+  - zircon_plugins/asset_importers/texture/dist/Cargo.toml
+  - zircon_plugins/asset_importers/texture/dist/src/lib.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/plugin.toml
+  - zircon_plugins/asset_importers/audio/dist/Cargo.toml
+  - zircon_plugins/asset_importers/audio/dist/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/shader/plugin.toml
+  - zircon_plugins/asset_importers/shader/dist/Cargo.toml
+  - zircon_plugins/asset_importers/shader/dist/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/data/plugin.toml
+  - zircon_plugins/asset_importers/data/dist/Cargo.toml
+  - zircon_plugins/asset_importers/data/dist/src/lib.rs
   - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
@@ -69,18 +94,26 @@ implementation_files:
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
+  - zircon_plugins/gltf_importer/dist/Cargo.toml
+  - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/obj_importer/plugin.toml
   - zircon_plugins/obj_importer/runtime/Cargo.toml
   - zircon_plugins/obj_importer/runtime/src/lib.rs
   - zircon_plugins/obj_importer/runtime/src/plugin.rs
+  - zircon_plugins/obj_importer/dist/Cargo.toml
+  - zircon_plugins/obj_importer/dist/src/lib.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
+  - zircon_plugins/texture_importer/dist/Cargo.toml
+  - zircon_plugins/texture_importer/dist/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_plugins/audio_importer/runtime/src/plugin.rs
+  - zircon_plugins/audio_importer/dist/Cargo.toml
+  - zircon_plugins/audio_importer/dist/src/lib.rs
   - zircon_plugins/opus_importer/runtime/Cargo.toml
   - zircon_plugins/opus_importer/runtime/src/lib.rs
   - zircon_plugins/opus_importer/runtime/src/plugin.rs
@@ -102,15 +135,29 @@ implementation_files:
   - zircon_plugins/asset_importers/model/runtime/src/tests/importers.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests/support.rs
   - zircon_plugins/asset_importers/texture/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/texture/plugin.toml
+  - zircon_plugins/asset_importers/texture/dist/Cargo.toml
+  - zircon_plugins/asset_importers/texture/dist/src/lib.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/audio/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/audio/plugin.toml
+  - zircon_plugins/asset_importers/audio/dist/Cargo.toml
+  - zircon_plugins/asset_importers/audio/dist/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/audio/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/shader/plugin.toml
+  - zircon_plugins/asset_importers/shader/dist/Cargo.toml
+  - zircon_plugins/asset_importers/shader/dist/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/src/plugin.rs
+  - zircon_plugins/asset_importers/data/plugin.toml
+  - zircon_plugins/asset_importers/data/dist/Cargo.toml
+  - zircon_plugins/asset_importers/data/dist/src/lib.rs
   - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
@@ -187,6 +234,15 @@ tests:
   - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
   - 2026-06-04: Model Asset Importer runtime root/test split static checks: rustfmt check, diff hygiene, trailing-whitespace scan, and conflict-marker scan over `model/runtime/src/{lib.rs,registration.rs,mesh_importer.rs,cad.rs,tests/*}` plus this doc/session note passed; focused Cargo validation is pending while other Cargo/rustc lanes are active.
   - 2026-06-23: Plugins 12 M3/T1 importer family registration cutover: `asset_importers/{data,model,shader}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; `asset_importers/*` public `pub fn register(...)` scan is empty; `tools/audit_plugin_structure.py --json` reports `registration_conformance.m3_t1_gate_status=family-single-entry-clean`; `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_data_runtime -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_asset_importer_shader_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never` passed with existing runtime warnings.
+  - 2026-06-24: Plugins 13 M5/T1 asset_importer.data dist rollout: `asset_importers/data/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `asset_importer.data.dist`, and TOML/JSON/YAML/XML capabilities. Scoped rustfmt passed; dist check/test passed; `data_asset_importer_package_manifest_declares_dist_contract` passed 1/1; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=17`, `dist_build_matrix_count=17`, and zero dist boundary/distribution violations; real `plugin build asset_importer.data --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 asset_importer.model dist rollout: `asset_importers/model/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `asset_importer.model.dist`, and root/mesh/CAD capabilities. Scoped rustfmt passed; dist locked check/test passed; `model_asset_importer_package_manifest_declares_dist_contract` first timed out after 604s during compile without a test result, then passed 1/1 on rerun; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=18`, `dist_build_matrix_count=18`, and zero dist boundary/distribution violations; real `plugin build asset_importer.model --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 asset_importer.shader dist rollout: `asset_importers/shader/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `asset_importer.shader.dist`, and root/WGSL/Naga capabilities. Scoped rustfmt passed; dist locked check/test passed; `shader_asset_importer_package_manifest_declares_dist_contract` first timed out after 904s during compile without a test result and residual cargo/rustc processes were stopped, then passed 1/1 on rerun with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=19`, `dist_build_matrix_count=19`, and zero dist boundary/distribution violations; real `plugin build asset_importer.shader --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 asset_importer.audio dist rollout: `asset_importers/audio/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `asset_importer.audio.dist`, and root/codec capabilities. Scoped rustfmt passed; dist locked check/test passed; `audio_asset_importer_package_manifest_declares_dist_contract` first timed out after 604s during compile without a test result and residual cargo/rustc processes were stopped, then passed 1/1 on rerun with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=20`, `dist_build_matrix_count=20`, and zero dist boundary/distribution violations; real `plugin build asset_importer.audio --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 asset_importer.texture dist rollout: `asset_importers/texture/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `asset_importer.texture.dist`, and root/container/PSD capabilities. Scoped rustfmt passed; dist locked check/test passed; `texture_asset_importer_package_manifest_declares_dist_contract` first timed out after 1204s during parallel compile without a test result, then passed 1/1 on rerun with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=21`, `dist_build_matrix_count=21`, and zero dist boundary/distribution violations; real `plugin build asset_importer.texture --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 audio_importer split importer dist rollout: `audio_importer/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `audio_importer.dist`, and root/WAV/codec capabilities. Scoped rustfmt passed; dist test passed; `package_manifest_declares_audio_importer_dist_contract` first cold compile produced no target test result and left same target-dir cargo processes, then passed 1/1 after clearing overlap and rerunning with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=22`, `dist_build_matrix_count=22`, and zero dist boundary/distribution violations; real `plugin build audio_importer --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 obj_importer split importer dist rollout: `obj_importer/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `obj_importer.dist`, and root/OBJ model importer capabilities. Scoped rustfmt passed; dist test passed; `package_manifest_declares_obj_importer_dist_contract` first cold compile attempts produced no target test result, then passed 1/1 after the residual cargo process finished and the lane reran with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=23`, `dist_build_matrix_count=23`, and zero dist boundary/distribution violations; real `plugin build obj_importer --form dist --offline` passed with `fatal=false`.
+  - 2026-06-24: Plugins 13 M5/T1 gltf_importer split importer dist rollout: `gltf_importer/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `gltf_importer.dist`, and root/glTF model importer capabilities. Scoped rustfmt passed; dist test passed; `package_manifest_declares_gltf_importer_dist_contract` first long compile attempt timed out before target test result and a follow-up run exposed/fixed the PluginModuleKind assertion, then passed 1/1 with `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=24`, `dist_build_matrix_count=24`, and zero dist boundary/distribution violations; real `plugin build gltf_importer --form dist --offline` passed with `fatal=false`.
+  - 2026-06-25: Plugins 13 M5/T1 texture_importer split importer dist rollout: `texture_importer/dist` exports ABI v3 via `native_dist_runtime_plugin_v3!`; runtime package manifest declares `[distribution]`, native module `texture_importer.dist`, and root/image/container/PSD texture importer capabilities. Scoped rustfmt passed; dist test passed; `package_manifest_declares_texture_importer_dist_contract` first two 305s compile attempts timed out before target test result, then passed 1/1 with a 20-minute timeout and `CARGO_PROFILE_DEV_DEBUG=0`; CI matrix unittest passed; audit JSON reports `dist_capable_plugin_count=25`, `dist_build_matrix_count=25`, and zero dist boundary/distribution violations; real `plugin build texture_importer --form dist --offline` passed with `fatal=false`.
   - 2026-06-22: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-importer-m3-0622 --message-format short --color never registration_contributes_stl_ply_and_dxf_importers -- --test-threads=1 --nocapture was blocked by unrelated zircon_runtime MaterialCaptureSeed / MaterialRuntime::capture_seed lib-test drift after an earlier 904s timeout without a test result.
   - 2026-06-23: Plugins 12 M3/T1 split importer registration cutover: `zircon_plugins/{gltf_importer,obj_importer,texture_importer,audio_importer,opus_importer,shader_wgsl_importer,ui_document_importer}/runtime/src/plugin.rs` owns trait-backed RuntimePlugin entries; split importer public `pub fn register(...)` scan is empty; `tools/audit_plugin_structure.py --json` reports `registration_conformance.m3_split_importer_gate_status=split-importer-single-entry-clean` and aggregate `m3_importer_gate_status=importer-single-entry-clean`; split importer focused cargo check passed with existing zircon_runtime warnings.
   - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
@@ -231,11 +287,22 @@ The older family packages still exist as migration packages:
 
 Most family crates remain declaration aggregators during migration so existing workspace and test
 callers do not lose their importer declarations while the split package ids are adopted. The model,
-data, and shader family crates are the current exceptions: model owns real STL/PLY mesh interchange
-backends plus a DXF CAD mesh-surface backend, data owns real TOML/JSON/YAML/XML backends, and shader
-owns the real Naga-backed WGSL/GLSL/SPIR-V path. As of Plugins 12 M3/T1, those three family crates
-and the root-level split importers use `src/plugin.rs` as the single RuntimePlugin registration
-owner; the importer public free-function registration audit is clean for both tracks.
+data, shader, audio, and texture family crates are the current exceptions: model owns real STL/PLY
+mesh interchange backends plus a DXF CAD mesh-surface backend, data owns real TOML/JSON/YAML/XML
+backends, shader owns the real Naga-backed WGSL/GLSL/SPIR-V path, audio owns WAV plus
+Symphonia-backed codec declarations, and texture owns common image/container/PSD declarations. As of
+Plugins 12 M3/T1 plus the runtime-only owner follow-up, those family crates and the root-level split
+importers use `src/plugin.rs` as the single RuntimePlugin registration owner; the importer public
+free-function registration audit is clean for both tracks. As of Plugins 13 M5/T1,
+`asset_importer.data`, `asset_importer.model`, `asset_importer.shader`, `asset_importer.audio`,
+`asset_importer.texture`, and the split `audio_importer`, `obj_importer`, `gltf_importer`, and `texture_importer` packages also have standalone dist wrapper packages
+(`zircon_plugin_asset_importer_data_dist`, `zircon_plugin_asset_importer_model_dist`,
+`zircon_plugin_asset_importer_shader_dist`, `zircon_plugin_asset_importer_audio_dist`,
+`zircon_plugin_asset_importer_texture_dist`, `zircon_plugin_audio_importer_dist`, and
+`zircon_plugin_obj_importer_dist`, `zircon_plugin_gltf_importer_dist`, and
+`zircon_plugin_texture_importer_dist`). They
+expose family data/model/shader/audio/texture capabilities plus split audio/OBJ/glTF/texture capabilities through
+ABI v3 while the actual importer implementations remain in the runtime modules.
 
 ## Public Surface
 
@@ -265,8 +332,8 @@ Importer runtime crates no longer expose public `pub fn register(...)` free func
 `asset_importers/{data,model,shader}` and the root-level split importers, `plugin_registration()`
 delegates to `RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())`,
 `runtime_selection()` is derived from the runtime descriptor, and direct registry mutation is private
-to `RuntimePlugin::register`. `asset_importers/audio` and `asset_importers/texture` still remain
-declaration-only skeleton migration debt, but they are not public registration owners.
+to `RuntimePlugin::register`. `asset_importers/audio` and `asset_importers/texture` are
+trait-backed family skeletons rather than public free-function registration owners.
 
 ## Boundaries
 
@@ -319,17 +386,25 @@ bind matrices beside the compatibility primitive data. Its runtime tests include
 glTF fixture that exercises the real importer path and validates primitive indices, cooked
 virtual-geometry source metadata, morph target position deltas, and inverse bind matrices; the crate
 declares `toml` as a dev-dependency for the test-side `AssetImportContext` metadata table.
+Its standalone distribution shape uses `zircon_plugin_gltf_importer_dist` as the native ABI v3
+wrapper while glTF/GLB parsing, labeled subassets, scene/material/skin/animation placeholder
+handling, descriptors, and runtime registration stay in `gltf_importer/runtime`.
 
 `obj_importer` declares Wavefront `obj` model inputs with
 `runtime.asset.importer.model.obj` and registers a function backend that triangulates OBJ meshes and
 emits cooked `ModelAsset` primitives.
+Its standalone distribution shape uses `zircon_plugin_obj_importer_dist` as the native ABI v3
+wrapper while OBJ triangulation, descriptors, virtual-geometry metadata, and runtime registration
+stay in `obj_importer/runtime`.
 
 `texture_importer` declares common image formats as the primary image importer and now has real
 rows for DDS, KTX, KTX2, ASTC, and PSD. Common images decode to `TextureAsset` RGBA8 payloads;
 container files parse width, height, mip count, array layers, and format metadata, then preserve the
 source bytes in `TexturePayload::Container`. PSD files decode through the Rust `psd` crate into a
 flattened RGBA8 texture. Cubemap authoring files and loose DXGI-style payloads remain NativeDynamic
-diagnostics.
+diagnostics. Its standalone distribution shape uses `zircon_plugin_texture_importer_dist` as the
+native ABI v3 wrapper while image/container/PSD decoding, optional native container diagnostics,
+descriptors, and runtime registration stay in `texture_importer/runtime`.
 
 `audio_importer` declares WAV plus a codec row for MP3, OGG/Vorbis, FLAC, AIFF, and AIF. WAV keeps
 the direct Rust path, while the codec row decodes through Symphonia and emits interleaved f32
@@ -362,9 +437,12 @@ imports `3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces into `
 primitives with generated virtual-geometry metadata; linework, curves, blocks, and solid-kernel BREP
 payloads remain outside this backend and produce no mesh output. The package root is a structural
 facade: `plugin.rs` owns the `ModelAssetImporterRuntimePlugin`, descriptors, manifest projection,
-runtime selection, and private registry wiring; `mesh_importer.rs` owns STL/PLY import plus shared
-model/mesh subasset packaging and virtual-geometry cooking; `cad.rs` owns DXF conversion and reuses
-the shared model mesh helpers; crate tests live under `tests/{registration,importers,support}.rs`.
+runtime selection, dist module projection, and private registry wiring; `mesh_importer.rs` owns
+STL/PLY import plus shared model/mesh subasset packaging and virtual-geometry cooking; `cad.rs`
+owns DXF conversion and reuses the shared model mesh helpers; crate tests live under
+`tests/{registration,importers,support}.rs`. The `asset_importers/model/dist` wrapper only exports
+the ABI v3 descriptor/runtime entry/registration manifest; STL/PLY/DXF decoding remains in the
+runtime crate.
 
 `texture` declares standard image inputs, real container/compressed texture declarations for DDS,
 KTX/KTX2, ASTC, and PSD, plus optional NativeDynamic declarations for cubemap and DXGI-style
@@ -383,7 +461,9 @@ The plugin emits `DataAsset` values with source text plus canonical JSON. YAML i
 `serde_yaml`; XML is decoded through `roxmltree` into a stable neutral element tree object so XML can
 participate in the same artifact path without pretending to be native JSON syntax. The
 `src/plugin.rs` owner contains the trait-backed runtime plugin entry and keeps importer descriptor
-registration private to the trait.
+registration private to the trait. It also projects the standalone distribution contract consumed by
+`asset_importers/data/dist`: the native module name, dist crate name, ABI v3 descriptor symbol,
+runtime entry, engine compatibility range, and data importer capability list.
 
 The split `ui_document_importer` runtime package also participates in this importer family at the
 package layer. Its `.ui.toml` path now preserves the UI schema migration report returned by

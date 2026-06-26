@@ -1,6 +1,6 @@
 use super::state::is_unavailable_segmented_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_surface_color(
@@ -29,14 +29,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecte
     if node.has_selected_segment_border_width {
         finite_non_negative(node.selected_segment_border_width).unwrap_or(0.0)
     } else {
-        1.0
+        0.0
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_underline_height(
     node: &TemplatePaneNodeData,
 ) -> f32 {
-    finite_non_negative(node.selected_segment_underline_height).unwrap_or(0.0)
+    let height = finite_non_negative(node.selected_segment_underline_height).unwrap_or(0.0);
+    if height > 0.0 {
+        height
+    } else {
+        METRICS.tab_underline_height
+    }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_underline_color(

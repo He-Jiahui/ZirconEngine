@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_segmented_control_geometry::{
-    tab_label_rect, tab_line_height, tab_paint_rect, tab_underline_rect, TAB_FONT_SIZE,
+    tab_font_size, tab_label_rect, tab_line_height, tab_paint_rect, tab_underline_rect,
 };
 use super::style::{tab_style, tab_text_color};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -50,7 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_wo
             order + 3,
             label,
             tab_text_color(node),
-            TAB_FONT_SIZE,
+            tab_font_size(),
             tab_line_height(),
             UiTextRunPaintStyle::default(),
             opacity,

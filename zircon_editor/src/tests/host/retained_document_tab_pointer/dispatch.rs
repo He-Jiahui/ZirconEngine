@@ -14,6 +14,9 @@ use crate::ui::retained_host::document_tab_pointer::{
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::document_tabs::{
+    document_tab_close_x, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
+};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -37,8 +40,18 @@ fn shared_document_tab_pointer_bridge_routes_document_and_floating_tab_targets()
         })
     );
 
+    let floating_tab_x = 8.0;
+    let floating_tab_width = DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH;
+    let floating_close_x =
+        document_tab_close_x(floating_tab_x, floating_tab_width) + DOCUMENT_TAB_CLOSE_EXTENT * 0.5;
     let floating_close = bridge
-        .handle_close_click("preview", 0, 8.0, 122.0, UiPoint::new(106.0, 14.0))
+        .handle_close_click(
+            "preview",
+            0,
+            floating_tab_x,
+            floating_tab_width,
+            UiPoint::new(floating_close_x, 14.0),
+        )
         .unwrap();
     assert_eq!(
         floating_close.route,
@@ -155,15 +168,19 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         &floating_window_projection_bundle,
     ));
 
+    let tab_x = 8.0 + close_index as f32 * 160.0;
+    let tab_width = DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH;
+    let close_center_x = document_tab_close_x(tab_x, tab_width) + DOCUMENT_TAB_CLOSE_EXTENT * 0.5;
+
     let dispatched = dispatch_shared_document_tab_close_pointer_click(
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
         "document",
         close_index,
-        8.0 + close_index as f32 * 160.0,
-        114.0,
-        UiPoint::new(8.0 + close_index as f32 * 160.0 + 96.0, 14.0),
+        tab_x,
+        tab_width,
+        UiPoint::new(close_center_x, 14.0),
     )
     .expect("shared document tab close route should dispatch close view");
 

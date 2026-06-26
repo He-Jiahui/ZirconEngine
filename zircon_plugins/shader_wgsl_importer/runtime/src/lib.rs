@@ -12,9 +12,11 @@ pub use capability::{
     IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
-    asset_importer_descriptors, module_descriptor, package_manifest, plugin_registration,
-    runtime_capabilities, runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor,
-    runtime_selection, supported_platforms, supported_targets, ShaderWgslImporterRuntimePlugin,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    ShaderWgslImporterRuntimePlugin, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME,
+    SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -63,6 +65,7 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime::plugin::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_wgsl_importer() {
@@ -76,6 +79,47 @@ mod tests {
             .asset_importers
             .iter()
             .any(|importer| importer.source_extensions.contains(&"wgsl".to_string())));
+    }
+
+    #[test]
+    fn package_manifest_declares_wgsl_importer_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("WGSL importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(
+            distribution.dist_crate,
+            SHADER_WGSL_IMPORTER_DIST_CRATE_NAME
+        );
+        assert_eq!(
+            distribution.runtime_entry,
+            SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY
+        );
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "shader_wgsl_importer.dist")
+            .expect("WGSL importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(dist_module.crate_name, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module
+            .capabilities
+            .contains(&IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

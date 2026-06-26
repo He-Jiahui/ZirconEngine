@@ -23,7 +23,6 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) double_sided: bool,
     #[cfg(test)]
     pub(crate) alpha_blend: bool,
-    #[cfg(test)]
     pub(crate) alpha_cutoff: Option<f32>,
     #[cfg(test)]
     pub(crate) lighting_model: RenderMaterialLightingModel,
@@ -59,7 +58,6 @@ pub(crate) struct MaterialRuntime {
     pub(crate) double_sided: bool,
     #[cfg(test)]
     pub(crate) alpha_blend: bool,
-    #[cfg(test)]
     pub(crate) alpha_cutoff: Option<f32>,
     #[cfg(test)]
     pub(crate) lighting_model: RenderMaterialLightingModel,

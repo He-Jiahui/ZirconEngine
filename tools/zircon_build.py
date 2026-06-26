@@ -20,6 +20,23 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
     print("Python 3.11 or newer is required because this tool uses tomllib.", file=sys.stderr)
     raise
 
+try:
+    from .zircon_build_shader_prewarm import (
+        build_shader_prewarm_command,
+        parse_shader_geometry_sources,
+        parse_shader_quality_tiers,
+        parse_shader_shading_model_ids,
+        print_shader_prewarm_plan,
+    )
+except ImportError:  # pragma: no cover - exercised when run as a script.
+    from zircon_build_shader_prewarm import (
+        build_shader_prewarm_command,
+        parse_shader_geometry_sources,
+        parse_shader_quality_tiers,
+        parse_shader_shading_model_ids,
+        print_shader_prewarm_plan,
+    )
+
 
 TARGETS = ("hub", "editor", "runtime", "plugins")
 MODES = ("debug", "release", "profiling")
@@ -120,6 +137,9 @@ class BuildConfig:
     dry_run: bool
     prewarm_shaders: bool
     shader_quality_tiers: tuple[str, ...]
+    shader_geometry_sources: tuple[str, ...]
+    shader_shading_model_ids: tuple[str, ...]
+    shader_resource_registry: Path | None
 
     @property
     def engine_root(self) -> Path:
@@ -251,6 +271,33 @@ Plugin carrier boundary:
         ),
     )
     parser.add_argument(
+        "--shader-geometry-source",
+        action="append",
+        choices=("static", "skinned", "morphed", "skinned-morphed", "all"),
+        default=[],
+        help=(
+            "Geometry source(s) to prewarm when --prewarm-shaders is enabled. "
+            "Repeat for multiple sources or use all. Default: static."
+        ),
+    )
+    parser.add_argument(
+        "--shader-shading-model-id",
+        action="append",
+        default=[],
+        metavar="CUSTOM=ID",
+        help=(
+            "Custom shading model plugin id(s) to prewarm when --prewarm-shaders is enabled. "
+            "Use custom:name=16 or name=16, repeat for multiple plugin models."
+        ),
+    )
+    parser.add_argument(
+        "--shader-resource-registry",
+        help=(
+            "ResourceRecord JSON array or {resources:[...]} file whose shader revisions "
+            "override asset-root source-hash revisions during --prewarm-shaders."
+        ),
+    )
+    parser.add_argument(
         "--list-plugins",
         action="store_true",
         help="List discovered plugins and exit.",
@@ -307,6 +354,11 @@ def resolve_config(
         dry_run=args.dry_run,
         prewarm_shaders=args.prewarm_shaders,
         shader_quality_tiers=parse_shader_quality_tiers(args.shader_quality_tier),
+        shader_geometry_sources=parse_shader_geometry_sources(args.shader_geometry_source),
+        shader_shading_model_ids=parse_shader_shading_model_ids(
+            args.shader_shading_model_id
+        ),
+        shader_resource_registry=resolve_optional_path(args.shader_resource_registry),
     )
 
 
@@ -333,13 +385,6 @@ def parse_feature_list(raw: str) -> tuple[str, ...]:
     return tuple(unique_in_order(values))
 
 
-def parse_shader_quality_tiers(raw: Sequence[str]) -> tuple[str, ...]:
-    values = tuple(raw) or ("medium",)
-    if "all" in values:
-        return ("low", "medium", "high", "ultra")
-    return tuple(unique_in_order(values))
-
-
 def default_runtime_features(targets: Sequence[str]) -> tuple[str, ...]:
     if "runtime" in targets:
         return ("target-client",)
@@ -349,6 +394,15 @@ def default_runtime_features(targets: Sequence[str]) -> tuple[str, ...]:
 
 
 def resolve_out_root(raw: str) -> Path:
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
+    return path
+
+
+def resolve_optional_path(raw: str | None) -> Path | None:
+    if not raw:
+        return None
     path = Path(raw).expanduser()
     if not path.is_absolute():
         path = (Path.cwd() / path).resolve()
@@ -602,8 +656,7 @@ def print_plan(config: BuildConfig) -> None:
     if config.dry_run:
         print("  dry-run: enabled")
     if config.prewarm_shaders:
-        print("  shader prewarm: enabled")
-        print(f"  shader quality tiers: {','.join(config.shader_quality_tiers)}")
+        print_shader_prewarm_plan(config)
     if config.plugins:
         print("  plugins:")
         for package in config.plugins:
@@ -780,45 +833,7 @@ def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview
 
 
 def prewarm_shaders(config: BuildConfig) -> None:
-    target_dir = config.targets_root / "shader_prewarm"
-    command = [
-        config.cargo,
-        "run",
-        "-p",
-        "zircon_runtime",
-        "--bin",
-        "zircon_shader_prewarm",
-        "--no-default-features",
-        "--features",
-        config.feature_arg_for_target("target-server"),
-        "--target-dir",
-        str(target_dir),
-    ]
-    if config.locked:
-        command.append("--locked")
-    if config.mode == "release":
-        command.append("--release")
-    elif config.mode == "profiling":
-        command.extend(["--profile", "profiling"])
-    if config.jobs:
-        command.extend(["--jobs", config.jobs])
-    command.extend(
-        [
-            "--",
-            "--project-root",
-            str(config.engine_root),
-            "--cache-dir",
-            str(config.shader_prewarm_cache_root),
-            "--report",
-            str(config.shader_prewarm_report_path),
-            "--asset-root",
-            str(config.engine_root / "assets"),
-            "--builtin-fallback",
-            "--pretty",
-        ]
-    )
-    for quality_tier in config.shader_quality_tiers:
-        command.extend(["--quality-tier", quality_tier])
+    command = build_shader_prewarm_command(config)
     if config.dry_run:
         print("DRY-RUN", quote_command(command))
         return

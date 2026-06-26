@@ -9,7 +9,16 @@ maturity = "experimental"
 supported_targets = ["editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["editor.extension.timeline_sequence_authoring"]
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_timeline_sequence_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+editor_entry = "zircon_plugin_timeline_sequence_editor_entry_v3"
 
 [[dependencies]]
 id = "animation"
@@ -20,5 +29,12 @@ capability = "runtime.feature.animation.timeline_event_track"
 name = "timeline_sequence.editor"
 kind = "editor"
 crate_name = "zircon_plugin_timeline_sequence_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.timeline_sequence_authoring"]
+
+[[modules]]
+name = "timeline_sequence.dist"
+kind = "native"
+crate_name = "zircon_plugin_timeline_sequence_dist"
 target_modes = ["editor_host"]
 capabilities = ["editor.extension.timeline_sequence_authoring"]

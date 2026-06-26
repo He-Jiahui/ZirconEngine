@@ -14,6 +14,7 @@ design_references:
   - docs/ui-and-layout/ai-workbench-style/prototype/README.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
+  - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md
   - docs/plans/zircon_editor/editor_ui/02-layout-taffy-and-containers.md
 status: in_progress
 ---
@@ -56,9 +57,9 @@ status: in_progress
 | `region.bottom` | 控制台/诊断/时间轴 |
 | `region.center` | 活动视口/文档表面 |
 
-### 3.2 约束 token(尺寸单源)
+### 3.2 约束 token(相对优先 + 逻辑单位,接 01/16)
 
-尺寸用 token 名声明,token 值集中在设计 token 资产(承接 01):`--left-drawer-width`/`--right-drawer-width`/`--bottom-output-height`,以及 `gap.*`。作者写 token 名,改一处全局生效。
+区域尺寸**优先用相对比例**表达自适应:抽屉/center 用 `flex-grow` 权重 / `flex-basis` 百分比(对标虚幻 `FAnchors` 的 0~1 锚点比例,见 `16` §3.3),固定厚度才用 token 名声明。token 值集中在设计 token 资产(承接 01)且是 **DPI 无关逻辑单位**:`--left-drawer-width`/`--right-drawer-width`/`--bottom-output-height`,以及 `gap.*`;渲染前统一乘 `scale_factor`(`16` §3.4),**不是固定物理像素**。作者写相对档或 token 名,改一处全局生效、随窗口/分辨率自适应。
 
 ### 3.3 声明式绑定接口
 
@@ -82,14 +83,14 @@ pub fn build_shell_layout(bindings: &[RegionBinding]) -> WorkbenchShellGeometry;
 | --- | --- | --- |
 | 新增 | `zircon_editor/src/ui/workbench/autolayout/region_binding.rs` | 区域语义 + 绑定接口 |
 | 修改 | `workbench_shell_geometry.rs` | 接受声明式绑定输入 |
-| 新增 | `zircon_editor/assets/ui/editor/layout/shell_regions.v2.ui.toml` | 区域→面板声明资产 |
+| 新增 | `zircon_editor/assets/ui/editor/layout/shell_regions.toml` | 区域→面板声明资产 |
 
 ## 6. 里程碑切片化
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 | -- | --- | --- | --- | --- |
 | S1 | 区域语义 + 约束 token 接口草案 | region_binding.rs | `cargo check -p zircon_editor --lib --locked` | 新建 |
-| S2 | 声明落到壳 autolayout + 区域资产 | workbench_shell_geometry.rs / shell_regions.v2.ui.toml | `cargo test -p zircon_editor --lib --locked` | 移除壳代码内联尺寸 |
+| S2 | 声明落到壳 autolayout + 区域资产 | workbench_shell_geometry.rs / shell_regions.toml | `cargo test -p zircon_editor --lib --locked` | 移除壳代码内联尺寸 |
 
 ## 7. 测试矩阵
 
@@ -107,17 +108,19 @@ pub fn build_shell_layout(bindings: &[RegionBinding]) -> WorkbenchShellGeometry;
 
 ## 10. 边界约束
 
-不改 Taffy 求解(属 `editor_ui/02`);约束 token 值来自 01;不手写绝对坐标。
+不改 Taffy 求解(属 `editor_ui/02`);约束 token 值来自 01;不手写绝对坐标;区域尺寸优先相对档、token 为逻辑单位,多分辨率/DPI 自适应规范遵 16。
 
 ## 11. 参考实现对照(dev/ 源码锚点)
 
 - `dev/bevy/crates/bevy_ui/src/layout/convert.rs`:声明式样式→taffy 转换样板。
 - `dev/Fyrox/fyrox-ui/src/dock`:docking 区域语义参考。
+- `dev/UnrealEngine/.../Slate/Public/Widgets/Layout/Anchors.h` + `UMG/Public/Components/CanvasPanelSlot.h`:区域用锚点 0~1 相对比例 + `FAnchorData`(Offsets/Anchors/Alignment)声明定位,对标本计划"区域尺寸优先相对档"(详见 16 §3.3)。
 
 ## 12. 状态与产出记录
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 02.S1 区域语义 + 约束 token 接口草案 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/autolayout/region_binding/` owner 树,包含 `EditorRegion`、`EditorRegionRole`、`WorkbenchConstraintTokenName`、`RegionBinding` 与 `RegionBindingError`;`zircon_editor/assets/ui/editor/layout/shell_regions.v2.ui.toml` 记录六区域声明;`zircon_editor/src/tests/workbench/layout/editor_layout_contracts.rs` 覆盖职责匹配与区域映射。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 02.S2:把声明资产加载接入壳 autolayout,替换 `workbench_main_band.zui` 内裸尺寸为 `--left-drawer-width` / `--right-drawer-width` / `--bottom-output-height` token。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
-| 2026-06-23 | 02.S2a 壳声明 token extents + 抽屉资产尺寸 token 化 | implemented-focused-passed | `WorkbenchSkeleton::preferred_region_extents_from_tokens(...)` 已把区域绑定里的 `size_token` 投影成 `BTreeMap<ShellRegionId, f32>`,并通过既有 `compute_workbench_shell_geometry(..., transient_region_preferred)` normal path 喂入壳 autolayout。`workbench_main_band.zui`、`workbench_scene_tree_panel.zui`、`workbench_inspector_panel.zui` 已导入 `editor_tokens.v2.ui.toml`,左/右抽屉宽度从内联 `332.0`/`404.0` 改为 `$--left-drawer-width`/`$--right-drawer-width`。验证:`editor_layout_contracts` 新增 2 个断言,覆盖 token extents 改变壳几何与抽屉资产不保留旧内联宽度;`cargo check -p zircon_editor --lib --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过;`cargo test -p zircon_editor --lib editor_layout_contracts --no-run --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过;直接运行测试二进制 `editor_layout_contracts --test-threads=1 --nocapture` 8/8 通过;scoped rustfmt、diff check、token 资产扫描和尾随空白扫描通过。 | 02.S2 还剩 authored `shell_regions.v2.ui.toml` 到 DTO 的加载入口与完整区域资产 ingestion;本轮只关闭内置 skeleton 声明投影、壳 autolayout token feed 和抽屉壳资产裸宽度替换。 |
-| 2026-06-23 | 02.S2b authored shell_regions 资产加载入口 | implemented-focused-passed | 新增 `zircon_editor/src/ui/workbench/autolayout/shell_regions_asset.rs` owner,负责 `shell_regions.v2.ui.toml` 的 header schema、TOML 解析、区域完整性/重复区域校验、职责错配 typed error,并把验证后的 `RegionBinding` 列表投影到 `WorkbenchSkeleton::from_shell_regions_asset(...)` / `from_shell_regions_asset_str(...)`。`autolayout/mod.rs` 只新增模块声明和 re-export。`editor_layout_contracts` 新增真实资产加载断言和职责错配拒绝断言,并证明真实资产生成的 skeleton extents 能继续喂入 `compute_workbench_shell_geometry(..., transient_region_preferred)`。验证:`cargo test -p zircon_editor --lib editor_layout_contracts --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never -- --test-threads=1 --nocapture` 10/10 通过;scoped `rustfmt --check`、生产 debt scan、尾随空白扫描、`Cargo.lock` 无内容 diff 和备份清理检查通过。 | 02.S2 的声明资产到 DTO/shell autolayout 路径已具备 focused 证据;后续可进入 03.S2 停靠状态运行时或继续补 01.S2 旧 shell/module 资产 token hard cutover。 |
+| 2026-06-23 | 02.S1 区域语义 + 约束 token 接口草案 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/autolayout/region_binding/` owner 树,包含 `EditorRegion`、`EditorRegionRole`、`WorkbenchConstraintTokenName`、`RegionBinding` 与 `RegionBindingError`;`zircon_editor/assets/ui/editor/layout/shell_regions.toml` 记录六区域声明;`zircon_editor/src/tests/workbench/layout/editor_layout_contracts.rs` 覆盖职责匹配与区域映射。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 02.S2:把声明资产加载接入壳 autolayout,替换 `workbench_main_band.zui` 内裸尺寸为 `--left-drawer-width` / `--right-drawer-width` / `--bottom-output-height` token。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-23 | 02.S2a 壳声明 token extents + 抽屉资产尺寸 token 化 | implemented-focused-passed | `WorkbenchSkeleton::preferred_region_extents_from_tokens(...)` 已把区域绑定里的 `size_token` 投影成 `BTreeMap<ShellRegionId, f32>`,并通过既有 `compute_workbench_shell_geometry(..., transient_region_preferred)` normal path 喂入壳 autolayout。`workbench_main_band.zui`、`workbench_scene_tree_panel.zui`、`workbench_inspector_panel.zui` 已导入 `editor_tokens.v2.ui.toml`,左/右抽屉宽度从内联 `332.0`/`404.0` 改为 `$--left-drawer-width`/`$--right-drawer-width`。验证:`editor_layout_contracts` 新增 2 个断言,覆盖 token extents 改变壳几何与抽屉资产不保留旧内联宽度;`cargo check -p zircon_editor --lib --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过;`cargo test -p zircon_editor --lib editor_layout_contracts --no-run --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过;直接运行测试二进制 `editor_layout_contracts --test-threads=1 --nocapture` 8/8 通过;scoped rustfmt、diff check、token 资产扫描和尾随空白扫描通过。 | 02.S2 还剩 authored `shell_regions.toml` 到 DTO 的加载入口与完整区域资产 ingestion;本轮只关闭内置 skeleton 声明投影、壳 autolayout token feed 和抽屉壳资产裸宽度替换。 |
+| 2026-06-23 | 02.S2b authored shell_regions 资产加载入口 | implemented-focused-passed | 新增 `zircon_editor/src/ui/workbench/autolayout/shell_regions_asset.rs` owner,负责 `shell_regions.toml` 的 header schema、TOML 解析、区域完整性/重复区域校验、职责错配 typed error,并把验证后的 `RegionBinding` 列表投影到 `WorkbenchSkeleton::from_shell_regions_asset(...)` / `from_shell_regions_asset_str(...)`。`autolayout/mod.rs` 只新增模块声明和 re-export。`editor_layout_contracts` 新增真实资产加载断言和职责错配拒绝断言,并证明真实资产生成的 skeleton extents 能继续喂入 `compute_workbench_shell_geometry(..., transient_region_preferred)`。验证:`cargo test -p zircon_editor --lib editor_layout_contracts --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never -- --test-threads=1 --nocapture` 10/10 通过;scoped `rustfmt --check`、生产 debt scan、尾随空白扫描、`Cargo.lock` 无内容 diff 和备份清理检查通过。 | 02.S2 的声明资产到 DTO/shell autolayout 路径已具备 focused 证据;后续可进入 03.S2 停靠状态运行时或继续补 01.S2 旧 shell/module 资产 token hard cutover。 |
+| 2026-06-24 | 02.S2b shell regions 专用资产命名收束 | implemented-focused-pending-broader-matrix | `shell_regions.v2.ui.toml` 硬切为 `shell_regions.toml`，保留 typed `WorkbenchShellRegionsAsset` loader、资产 header kind/id/version 与六区域声明，不再让通用 UI v2 资产治理把 `kind = "layout_regions"` 当作 view/style root 解析。 | `editor_layout_contracts` 直接二进制 focused 10/10 通过；完整 editor lib-test / integration_contracts 仍按 Editor UI 08/10 验收矩阵补跑。 |

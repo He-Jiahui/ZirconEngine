@@ -1,9 +1,19 @@
 use super::super::super::super::data::{TemplateNodeFrameData, TemplatePaneNodeData};
 
 pub(super) fn list_node(selected: bool, disabled: bool) -> TemplatePaneNodeData {
+    list_node_with_flags(selected, selected, disabled)
+}
+
+pub(super) fn list_node_with_flags(
+    selected: bool,
+    checked: bool,
+    disabled: bool,
+) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
         control_id: if disabled {
             "WorkbenchListDisabled".into()
+        } else if checked {
+            "WorkbenchListChecked".into()
         } else {
             "WorkbenchListSelected".into()
         },
@@ -15,7 +25,7 @@ pub(super) fn list_node(selected: bool, disabled: bool) -> TemplatePaneNodeData 
             "Selected item".into()
         },
         selected,
-        checked: selected,
+        checked,
         disabled,
         frame: TemplateNodeFrameData {
             x: 4.0,

@@ -5,7 +5,7 @@ use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot, MainP
 use crate::ui::workbench::{CenterSplitLayout, LayoutPresetName, PageLayoutTemplate};
 
 const PAGE_TEMPLATES_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/layout/page_templates.v2.ui.toml");
+    include_str!("../../../../assets/ui/editor/layout/page_templates.toml");
 
 #[test]
 fn built_in_page_templates_cover_thirteen_editor_pages() {

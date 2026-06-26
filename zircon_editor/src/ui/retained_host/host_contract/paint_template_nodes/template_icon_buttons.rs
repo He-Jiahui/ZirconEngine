@@ -11,8 +11,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use comman
 mod tests;
 
 #[cfg(test)]
-use super::style_selector::WORKBENCH_ICON_PANEL_RADIUS as ICON_PANEL_RADIUS;
-#[cfg(test)]
 use geometry::{icon_button_paint_rect, icon_glyph_rect};
 #[cfg(test)]
 use identity::is_workbench_icon_button;

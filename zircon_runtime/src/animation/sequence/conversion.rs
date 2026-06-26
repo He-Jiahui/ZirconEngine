@@ -1,18 +1,19 @@
 use crate::asset::AnimationChannelValueAsset;
+use crate::core::framework::animation::{AnimationError, AnimationResult};
 use crate::core::framework::scene::ScenePropertyValue;
 use crate::core::math::Real;
 
 pub(super) fn scene_property_value_from_channel(
     value: &AnimationChannelValueAsset,
-) -> Result<ScenePropertyValue, String> {
+) -> AnimationResult<ScenePropertyValue> {
     if !animation_channel_value_is_finite(value) {
-        return Err(format!("non-finite animation channel sample: {value:?}"));
+        return Err(AnimationError::NonFiniteChannelSample {
+            sample_kind: animation_channel_value_kind(value),
+        });
     }
     if let AnimationChannelValueAsset::Quaternion(value) = value {
         if !quaternion_array_is_normalizable(value) {
-            return Err(format!(
-                "zero-length quaternion animation channel sample: {value:?}"
-            ));
+            return Err(AnimationError::ZeroLengthQuaternionChannelSample);
         }
     }
 
@@ -25,6 +26,18 @@ pub(super) fn scene_property_value_from_channel(
         AnimationChannelValueAsset::Vec4(value) => ScenePropertyValue::Vec4(*value),
         AnimationChannelValueAsset::Quaternion(value) => ScenePropertyValue::Quaternion(*value),
     })
+}
+
+fn animation_channel_value_kind(value: &AnimationChannelValueAsset) -> &'static str {
+    match value {
+        AnimationChannelValueAsset::Bool(_) => "bool",
+        AnimationChannelValueAsset::Integer(_) => "integer",
+        AnimationChannelValueAsset::Scalar(_) => "scalar",
+        AnimationChannelValueAsset::Vec2(_) => "vec2",
+        AnimationChannelValueAsset::Vec3(_) => "vec3",
+        AnimationChannelValueAsset::Vec4(_) => "vec4",
+        AnimationChannelValueAsset::Quaternion(_) => "quaternion",
+    }
 }
 
 fn animation_channel_value_is_finite(value: &AnimationChannelValueAsset) -> bool {

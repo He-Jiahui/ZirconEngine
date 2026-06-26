@@ -560,7 +560,7 @@ mod tests {
         .expect("valid authored particle sprite");
 
         assert!(sprite.depth_test);
-        assert_eq!(sprite.render_layer_mask, 1 << 5);
+        assert_eq!(sprite.render_layer_mask.to_legacy_mask_lossy(), 1 << 5);
     }
 
     #[test]

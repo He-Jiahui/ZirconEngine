@@ -1,5 +1,6 @@
 pub(crate) mod activity_rail_pointer;
 mod app;
+mod asset_control_ids;
 pub(crate) mod asset_pointer;
 pub(crate) mod callback_dispatch;
 pub(crate) mod detail_pointer;

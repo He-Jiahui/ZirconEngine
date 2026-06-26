@@ -23,10 +23,7 @@ impl ResourceManager {
         let payload = self.get_untyped(handle.id())?;
         let payload = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
         {
-            let mut runtime = self
-                .runtime
-                .write()
-                .expect("resource runtime lock poisoned");
+            let mut runtime = self.lock_runtime_write();
             let slot = runtime.entry(handle.id()).or_default();
             slot.ref_count += 1;
             slot.state = RuntimeResourceState::Loaded;
@@ -44,10 +41,7 @@ impl ResourceManager {
 
     pub fn release(&self, id: ResourceId) -> Option<usize> {
         let next_ref_count = {
-            let mut runtime = self
-                .runtime
-                .write()
-                .expect("resource runtime lock poisoned");
+            let mut runtime = self.lock_runtime_write();
             let slot = runtime.get_mut(&id)?;
             if slot.ref_count == 0 {
                 return Some(0);
@@ -60,28 +54,21 @@ impl ResourceManager {
         };
 
         if next_ref_count == 0 {
-            self.payloads
-                .write()
-                .expect("resource payload lock poisoned")
-                .remove(&id);
+            self.lock_payloads_write().remove(&id);
         }
 
         Some(next_ref_count)
     }
 
     pub fn ref_count(&self, id: ResourceId) -> Option<usize> {
-        self.runtime
-            .read()
-            .expect("resource runtime lock poisoned")
+        self.lock_runtime_read()
             .get(&id)
             .map(|slot| slot.ref_count)
             .or_else(|| self.registry().get(id).map(|_| 0))
     }
 
     pub fn runtime_state(&self, id: ResourceId) -> Option<RuntimeResourceState> {
-        self.runtime
-            .read()
-            .expect("resource runtime lock poisoned")
+        self.lock_runtime_read()
             .get(&id)
             .map(|slot| slot.state)
             .or_else(|| {

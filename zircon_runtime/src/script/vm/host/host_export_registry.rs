@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::script::{
     ScriptHostCallContext, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
@@ -82,6 +82,12 @@ impl HostExportRegistry {
         }
     }
 
+    fn lock_modules(&self) -> MutexGuard<'_, HashMap<String, HostExportModuleEntry>> {
+        self.modules
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn register_module(
         &self,
         descriptor: ScriptHostModuleDescriptor,
@@ -91,7 +97,7 @@ impl HostExportRegistry {
         let callbacks = collect_callbacks(&descriptor.name, callbacks)?;
         validate_callbacks(&descriptor, &callbacks)?;
 
-        let mut modules = self.modules.lock().unwrap();
+        let mut modules = self.lock_modules();
         if modules.contains_key(&descriptor.name) {
             return Err(VmError::Operation(format!(
                 "host export module already registered: {}",
@@ -113,18 +119,14 @@ impl HostExportRegistry {
     }
 
     pub fn module(&self, module_name: &str) -> Option<HostExportModuleRecord> {
-        self.modules
-            .lock()
-            .unwrap()
+        self.lock_modules()
             .get(module_name)
             .map(|entry| entry.record.clone())
     }
 
     pub fn modules(&self) -> Vec<HostExportModuleRecord> {
         let mut records = self
-            .modules
-            .lock()
-            .unwrap()
+            .lock_modules()
             .values()
             .map(|entry| entry.record.clone())
             .collect::<Vec<_>>();
@@ -133,7 +135,7 @@ impl HostExportRegistry {
     }
 
     pub fn script_call_table(&self) -> Result<ScriptCallTable, VmError> {
-        let modules = self.modules.lock().unwrap();
+        let modules = self.lock_modules();
         let mut module_names = modules.keys().cloned().collect::<Vec<_>>();
         module_names.sort();
 
@@ -185,7 +187,7 @@ impl HostExportRegistry {
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
         let (descriptor, callback) = {
-            let modules = self.modules.lock().unwrap();
+            let modules = self.lock_modules();
             let entry = modules.get(module_name).ok_or_else(|| {
                 VmError::Operation(format!("host export module not registered: {module_name}"))
             })?;
@@ -463,4 +465,51 @@ fn validate_identifier(label: &str, value: &str) -> Result<(), VmError> {
         )));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use crate::core::framework::script::{ScriptHostFunctionDescriptor, ScriptHostValueKind};
+
+    use super::*;
+
+    #[test]
+    fn host_export_registry_accessors_recover_poisoned_module_lock() {
+        let registry = HostExportRegistry::default();
+
+        let poison_result = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = registry.modules.lock().unwrap();
+            panic!("poison host export registry");
+        }));
+        assert!(poison_result.is_err());
+
+        let descriptor = ScriptHostModuleDescriptor::new("test.host", "1").with_function(
+            ScriptHostFunctionDescriptor::new("ping", 0, 0, ScriptHostValueKind::Null),
+        );
+        let handle = registry
+            .register_module(
+                descriptor,
+                [HostExportFunction::new("ping", |_| {
+                    Ok(ScriptHostValue::Null)
+                })],
+            )
+            .unwrap();
+
+        assert!(registry.module("test.host").is_some());
+        assert_eq!(registry.modules()[0].handle, handle);
+        assert_eq!(
+            registry.call("test.host", "ping", Vec::new()).unwrap(),
+            ScriptHostValue::Null
+        );
+        let call_table = registry.script_call_table().unwrap();
+        let call_site = call_table.resolve("test.host", "ping").unwrap();
+        assert_eq!(
+            call_site
+                .call(Vec::new(), &CapabilitySet::default())
+                .unwrap(),
+            ScriptHostValue::Null
+        );
+    }
 }

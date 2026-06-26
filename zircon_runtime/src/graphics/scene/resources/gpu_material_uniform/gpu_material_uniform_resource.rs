@@ -108,6 +108,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
         material.unlit,
         material.shading_model_id.value(),
         material.taa_reactive_mask_strength,
+        material.alpha_cutoff,
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
     )
@@ -121,6 +122,7 @@ fn fallback_standard_material_uniform_contents() -> Vec<u8> {
         false,
         2,
         0.0,
+        None,
         [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
         [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
     )
@@ -133,6 +135,7 @@ fn standard_material_uniform_contents_from_values(
     unlit: bool,
     shading_model_id: u8,
     taa_reactive_mask_strength: f32,
+    alpha_cutoff: Option<f32>,
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
 ) -> Vec<u8> {
@@ -155,6 +158,7 @@ fn standard_material_uniform_contents_from_values(
     values[31] = material_uv_channel_scalar(texture_uv_channels[3]);
     values[32] = finite_or(taa_reactive_mask_strength, 0.0).clamp(0.0, 1.0);
     values[33] = f32::from(shading_model_id) / SHADING_MODEL_GBUFFER_ALPHA_SCALE;
+    values[34] = material_alpha_cutoff_scalar(alpha_cutoff);
 
     bytemuck::cast_slice(&values).to_vec()
 }
@@ -189,6 +193,12 @@ fn material_uv_channel_scalar(channel: u32) -> f32 {
     channel.min(1) as f32
 }
 
+fn material_alpha_cutoff_scalar(alpha_cutoff: Option<f32>) -> f32 {
+    alpha_cutoff
+        .map(|cutoff| finite_or(cutoff, 0.0).clamp(0.0, 1.0))
+        .unwrap_or(0.0)
+}
+
 fn finite_or(value: f32, fallback: f32) -> f32 {
     if value.is_finite() {
         value
@@ -212,6 +222,7 @@ mod tests {
             true,
             0,
             1.4,
+            Some(1.4),
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
         );
@@ -226,6 +237,7 @@ mod tests {
         assert_eq!(f32_at(&bytes, 24), 2.0);
         assert_eq!(f32_at(&bytes, 128), 1.0);
         assert_eq!(f32_at(&bytes, 132), 0.0);
+        assert_eq!(f32_at(&bytes, 136), 1.0);
     }
 
     #[test]
@@ -237,6 +249,7 @@ mod tests {
             false,
             2,
             0.25,
+            Some(0.625),
             [
                 transform([2.0, 3.0], [0.25, 0.5]),
                 transform([4.0, 5.0], [0.125, 0.25]),
@@ -254,7 +267,7 @@ mod tests {
         assert_eq!(vec4_at(&bytes, 96), [1.0, 11.0, 0.0, -0.25]);
         assert_eq!(f32_at(&bytes, 28), 1.0);
         assert_eq!(vec4_at(&bytes, 112), [1.0, 0.0, 1.0, 1.0]);
-        assert_eq!(vec4_at(&bytes, 128), [0.25, 2.0 / 255.0, 0.0, 0.0]);
+        assert_eq!(vec4_at(&bytes, 128), [0.25, 2.0 / 255.0, 0.625, 0.0]);
     }
 
     #[test]
@@ -266,11 +279,37 @@ mod tests {
             false,
             16,
             0.0,
+            None,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
         );
 
         assert_eq!(f32_at(&bytes, 132), 16.0 / 255.0);
+    }
+
+    #[test]
+    fn standard_material_uniform_packs_alpha_cutoff_for_template_clip() {
+        for (alpha_cutoff, expected) in [
+            (None, 0.0),
+            (Some(-1.0), 0.0),
+            (Some(0.42), 0.42),
+            (Some(1.4), 1.0),
+            (Some(f32::NAN), 0.0),
+        ] {
+            let bytes = standard_material_uniform_contents_from_values(
+                0.5,
+                0.5,
+                [0.0, 0.0, 0.0],
+                false,
+                2,
+                0.0,
+                alpha_cutoff,
+                [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+                [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            );
+
+            assert_eq!(f32_at(&bytes, 136), expected);
+        }
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {

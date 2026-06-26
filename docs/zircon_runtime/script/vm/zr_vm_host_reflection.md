@@ -16,6 +16,7 @@ related_code:
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
+  - zircon_runtime/src/script/vm/host/host_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
@@ -29,6 +30,7 @@ related_code:
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/dynamic_api/session/tests.rs
@@ -41,6 +43,7 @@ related_code:
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
@@ -73,6 +76,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
+  - zircon_runtime/src/script/vm/host/host_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
@@ -86,6 +90,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/dynamic_api/session/tests.rs
@@ -98,6 +103,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
@@ -128,8 +134,19 @@ plan_sources:
   - user: 2026-06-10 vampire roguelite animation state-machine follow-up
   - user: 2026-06-10 vampire graphical HUD, terrain-backed jungle, screen-space health HUD, and buff particles
   - user: 2026-06-12 remove runtime Vampire fallback backend
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
+  - vm_backend_registry_accessors_recover_poisoned_family_lock
+  - host_registry_accessors_recover_poisoned_handle_lock
+  - host_export_registry_accessors_recover_poisoned_module_lock
+  - hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock
+  - runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
+  - runtime_15_script_vm_hot_reload_coordinator_tests_are_folder_backed
+  - vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock
+  - runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector
   - "cargo test -p zircon_runtime script::vm: passed 2026-05-15"
   - "cargo test -p zircon_runtime script::vm --locked --target-dir target\\codex-reflection-macros: passed 2026-05-16"
   - "cargo fmt --manifest-path zircon_runtime/reflection_macros/Cargo.toml --check: passed 2026-05-16"
@@ -275,6 +292,24 @@ Runtime 15 F12 script reflection macro fixture dead-code cleanup keeps the runti
 Each registered module receives a `HostHandle` through the shared `HostRegistry`, using a `host.module.<module>` capability label. This keeps script-visible handles stable and lets existing handle validation continue to work.
 
 Calls go through `call_with_capabilities`. The registry checks arity and required capabilities before building a `ScriptHostCallContext` and dispatching the callback. Backends should pass the package capability set from `VmPluginHostContext`.
+
+Runtime 15 M3 script VM registry lock poison recovery status: `runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred`.
+
+The VM registry surfaces now recover poisoned internal mutexes instead of panicking in production paths. `VmBackendRegistry` owns `lock_families()` for backend family registration and selector resolution. `HostRegistry` owns `lock_handles()` for capability handle allocation and lookup. `HostExportRegistry` owns `lock_modules()` for descriptor/callback storage, module snapshots, script call table generation, and capability-checked dispatch. `HotReloadCoordinator` owns `lock_slots()` for package load, hot reload, slot restoration, unload, package-name lookup, export calls, list projection, and debug slot-count projection.
+
+This does not change VM backend traits, host descriptor validation, capability enforcement, script call-table dispatch, slot generation, or hot-reload lifecycle states. The new module-local recovery tests are `vm_backend_registry_accessors_recover_poisoned_family_lock`, `host_registry_accessors_recover_poisoned_handle_lock`, `host_export_registry_accessors_recover_poisoned_module_lock`, and `hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock`. The cross-module guard `runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries` keeps those helpers, production direct-lock scans, and Runtime 15/status anchors synchronized.
+
+Runtime 15 M3 script VM hot-reload coordinator test folder split status: `runtime_15_script_vm_hot_reload_coordinator_tests_folder_split_static_passed_cargo_deferred`.
+
+`HotReloadCoordinator` now keeps production slot lifecycle logic in `hot_reload_coordinator.rs` while module-local tests live in `hot_reload_coordinator/tests.rs`. The child owner contains the policy recording backend, lifecycle-query backend, slot lifecycle fixture, and the five hot-reload/poison-recovery tests. This keeps the production owner focused without changing VM backend traits, slot generation, hot-reload policy semantics, host lifecycle queries, host export dispatch, or poison recovery behavior.
+
+The structure guard `runtime_15_script_vm_hot_reload_coordinator_tests_are_folder_backed` keeps the parent mount, moved-test scan, test count, line budget, Runtime 15/status rows, and this document synchronized.
+
+Runtime 15 M3 VM plugin manager selected-backend lock poison recovery status: `runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred`.
+
+`VmPluginManager` now recovers poisoned selected-backend `RwLock` state through `selected_backend_read()` and `selected_backend_write()`. The public `selected_backend_name()` and `select_default_backend(...)` paths no longer direct unwrap read/write guards, so a panic while updating the selected backend cannot permanently break later selector reads or writes.
+
+This does not change backend family resolution, plugin package discovery, slot lifecycle calls, host export dispatch, or default backend selector values. The module-local `vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock` test poisons the selected-backend lock, verifies the default selector is still readable, then switches to `builtin:mock`. The structure guard `runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector` keeps the helper shape, production direct RwLock unwrap scan, Runtime 15 plan/status rows, and this document synchronized.
 
 ## Built-In Modules
 

@@ -5,7 +5,7 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
     let parent = read_runtime_src("scene/tests/ecs_systems.rs");
     let commands = read_runtime_src("scene/tests/ecs_systems/commands.rs");
     let events = read_runtime_src("scene/tests/ecs_systems/events.rs");
-    let query_helpers = read_runtime_src("scene/tests/ecs_systems/query_helpers.rs");
+    let many_single_queries = read_runtime_src("scene/tests/ecs_systems/many_single_queries.rs");
     let removal_local = read_runtime_src("scene/tests/ecs_systems/removal_local.rs");
     let run_window_filters = read_runtime_src("scene/tests/ecs_systems/run_window_filters.rs");
     let state_params = read_runtime_src("scene/tests/ecs_systems/state_params.rs");
@@ -26,7 +26,7 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
         &[
             "mod commands;",
             "mod events;",
-            "mod query_helpers;",
+            "mod many_single_queries;",
             "mod removal_local;",
             "mod run_window_filters;",
             "mod state_params;",
@@ -92,8 +92,8 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
         ],
     );
     assert_contains_all(
-        "query helper child owns many and single query contracts",
-        &query_helpers,
+        "many/single query child owns many and single query contracts",
+        &many_single_queries,
         &[
             "use super::*;",
             "fn system_query_get_many_helpers_preserve_order_duplicates_and_run_window_filters",
@@ -117,7 +117,7 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
         state_params.as_str(),
         events.as_str(),
         run_window_filters.as_str(),
-        query_helpers.as_str(),
+        many_single_queries.as_str(),
         removal_local.as_str(),
     ]
     .iter()
@@ -133,8 +133,8 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
         ("scene/tests/ecs_systems/commands.rs", commands.as_str()),
         ("scene/tests/ecs_systems/events.rs", events.as_str()),
         (
-            "scene/tests/ecs_systems/query_helpers.rs",
-            query_helpers.as_str(),
+            "scene/tests/ecs_systems/many_single_queries.rs",
+            many_single_queries.as_str(),
         ),
         (
             "scene/tests/ecs_systems/removal_local.rs",

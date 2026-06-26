@@ -7,6 +7,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::{to_host_contract_workbench_window_nodes, TemplatePaneNodeData};
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};
+use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
 #[test]
@@ -99,8 +100,72 @@ fn componentized_workbench_status_bar_collapses_task_slot_when_idle() {
         control_visibility(&bridge, "WorkbenchStatusTaskProgress"),
         Some(UiVisibility::Collapsed)
     );
+    let ready = bridge
+        .control_frame("WorkbenchStatusReady")
+        .expect("ready status should stay visible");
+    let errors = bridge
+        .control_frame("WorkbenchStatusErrors")
+        .expect("error status should stay visible");
+    let warnings = bridge
+        .control_frame("WorkbenchStatusWarnings")
+        .expect("warning status should stay visible");
+    let messages = bridge
+        .control_frame("WorkbenchStatusMessages")
+        .expect("message status should stay visible");
+    assert_compact_status_item_frame(ready, 72.0);
+    assert_compact_status_item_frame(errors, 92.0);
+    assert_compact_status_item_frame(warnings, 96.0);
+    assert_compact_status_item_frame(messages, 100.0);
+
+    assert!(bridge.control_frame("WorkbenchStatusFill").is_none());
+    assert!(bridge
+        .control_frame("WorkbenchStatusTaskProgress")
+        .is_none());
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusGrid")
+            .expect("grid status should stay visible"),
+        80.0,
+    );
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusSnap")
+            .expect("snap status should stay visible"),
+        74.0,
+    );
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusSnapToggle")
+            .expect("snap toggle should stay visible"),
+        28.0,
+    );
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusWorld")
+            .expect("world status should stay visible"),
+        28.0,
+    );
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusTarget")
+            .expect("target status should stay visible"),
+        28.0,
+    );
+    assert_compact_status_item_frame(
+        bridge
+            .control_frame("WorkbenchStatusZoom")
+            .expect("zoom status should stay visible"),
+        56.0,
+    );
+
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert!(template_contract_node_optional(&nodes, "WorkbenchStatusFill").is_none());
     assert!(template_contract_node_optional(&nodes, "WorkbenchStatusTaskProgress").is_none());
+}
+
+fn assert_compact_status_item_frame(frame: UiFrame, expected_width: f32) {
+    assert!((frame.width - expected_width).abs() < 0.001);
+    assert!((frame.height - 46.0).abs() < 0.001 || (frame.height - 30.0).abs() < 0.001);
 }
 
 fn template_contract_node(

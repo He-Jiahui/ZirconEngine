@@ -91,7 +91,9 @@ fn runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed() {
     assert_contains_all(
         "existing exact-five child remains mounted",
         &exact_five_dependency_matcher,
-        &["fn deactivate_exact_five_services_reports_first_shutdown_service_when_dependent_names_all"],
+        &[
+            "fn deactivate_exact_five_services_reports_first_shutdown_service_when_dependent_names_all",
+        ],
     );
 
     let child_test_total = [

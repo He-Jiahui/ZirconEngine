@@ -295,10 +295,17 @@ where
     pub(crate) fn pipeline_variant_id(
         &mut self,
         pipeline_kind: MeshPassPipelineKind,
-        pipeline_key: &PipelineKey,
+        batch: &MeshBatchRef,
     ) -> MeshPipelineVariantId {
-        self.variant_resolver
-            .resolve_variant(pipeline_kind, pipeline_key, self.shader_quality)
+        self.variant_resolver.resolve_variant_for_geometry(
+            pipeline_kind,
+            &batch.pipeline_key,
+            batch
+                .queue_profile
+                .geometry_source()
+                .shader_geometry_source_id(),
+            self.shader_quality,
+        )
     }
 }
 

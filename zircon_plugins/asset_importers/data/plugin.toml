@@ -17,7 +17,16 @@ capabilities = [
 maturity = "experimental"
 asset_roots = []
 content_roots = []
-default_packaging = ["source_template", "library_embed"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_asset_importer_data_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_asset_importer_data_runtime_entry_v3"
 
 [[asset_importers]]
 id = "asset_importer.data.toml"
@@ -59,6 +68,19 @@ required_capabilities = ["runtime.asset.importer.data.xml"]
 name = "asset_importer.data.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_asset_importer_data_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = [
+    "runtime.plugin.asset_importer.data",
+    "runtime.asset.importer.data.toml",
+    "runtime.asset.importer.data.json",
+    "runtime.asset.importer.data.yaml",
+    "runtime.asset.importer.data.xml",
+]
+
+[[modules]]
+name = "asset_importer.data.dist"
+kind = "native"
+crate_name = "zircon_plugin_asset_importer_data_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.data",

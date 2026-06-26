@@ -220,3 +220,161 @@ fn widget_popup_open_traps_focus_loop_and_restores_previous_focus() {
     assert_eq!(close_report.focus_change.unwrap().current, Some(id(2)));
     assert!(surface.input.popup_stack.is_empty());
 }
+
+#[test]
+fn widget_popup_without_focusable_descendants_opens_without_stealing_focus() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.popup.focus.empty"));
+    surface.tree.insert_root(root_node());
+    surface
+        .tree
+        .insert_child(id(1), focus_node(2, "outside", 0.0, 0.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/popup"))
+                .with_frame(UiFrame::new(0.0, 40.0, 120.0, 24.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    ..Default::default()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Dropdown".to_string(),
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(false))]
+                        .into_iter()
+                        .collect(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Popup,
+                        open_property: Some("popup_open".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface.focus_node(id(2)).unwrap();
+
+    let open_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert!(open_report.focus_change.is_none());
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root/popup"]
+    );
+    assert_eq!(surface.focus.modal_restore_stack.len(), 1);
+    assert_eq!(surface.focus.modal_restore_stack[0].restore, Some(id(2)));
+
+    let focused_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "focused",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert!(focused_report.focus_change.is_none());
+
+    let close_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(false),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert!(close_report.focus_change.is_none());
+    assert!(surface.input.popup_stack.is_empty());
+    assert!(surface.focus.modal_restore_stack.is_empty());
+}
+
+#[test]
+fn widget_popup_under_hidden_ancestor_opens_without_focus_error() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.popup.focus.hidden_ancestor"));
+    surface.tree.insert_root(root_node());
+    surface
+        .tree
+        .insert_child(id(1), focus_node(2, "outside", 0.0, 0.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/hidden"))
+                .with_visibility(UiVisibility::Collapsed)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(3),
+            UiTreeNode::new(id(4), UiNodePath::new("root/hidden/popup"))
+                .with_frame(UiFrame::new(0.0, 40.0, 120.0, 24.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    focusable: true,
+                    ..Default::default()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Dropdown".to_string(),
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(false))]
+                        .into_iter()
+                        .collect(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Popup,
+                        open_property: Some("popup_open".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface.focus_node(id(2)).unwrap();
+
+    let open_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(4),
+            "popup_open",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert!(open_report.focus_change.is_none());
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root/hidden/popup"]
+    );
+}

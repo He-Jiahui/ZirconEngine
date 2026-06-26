@@ -26,7 +26,8 @@ pub use capability::{
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
-    runtime_plugin_descriptor, VirtualGeometryRuntimePlugin,
+    runtime_plugin_descriptor, VirtualGeometryRuntimePlugin, VIRTUAL_GEOMETRY_DIST_CRATE_NAME,
+    VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY,
 };
 pub use provider::PluginVirtualGeometryRuntimeProvider;
 

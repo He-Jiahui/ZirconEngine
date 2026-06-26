@@ -11,7 +11,8 @@ mod template;
 mod tint;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use asset::{
-    load_visual_asset_pixels, load_visual_asset_pixels_for_size,
+    load_existing_icon_asset_pixels_for_size, load_visual_asset_pixels,
+    load_visual_asset_pixels_for_size,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use pixels::HostPaintImagePixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use retained::retained_image_pixels;

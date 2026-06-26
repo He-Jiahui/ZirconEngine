@@ -11,13 +11,13 @@ use super::super::super::capability_validation::validate_compiled_pipeline_capab
 use super::viewport_record_state::ViewportRecordState;
 
 pub(super) fn compile_submission_pipeline(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
     camera_target: RenderGraphCompileCameraTargetFingerprint,
 ) -> Result<Arc<CompiledRenderPipeline>, RenderFrameworkError> {
     compile_submission_pipeline_with_options(
-        server,
+        framework,
         state,
         extract,
         camera_target,
@@ -26,7 +26,7 @@ pub(super) fn compile_submission_pipeline(
 }
 
 pub(super) fn compile_submission_pipeline_with_options(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     state: &ViewportRecordState,
     extract: &RenderFrameExtract,
     camera_target: RenderGraphCompileCameraTargetFingerprint,
@@ -41,7 +41,7 @@ pub(super) fn compile_submission_pipeline_with_options(
         state.shader_quality(),
     );
     let frame_fingerprint = key.frame;
-    let mut framework_state = server.lock_state();
+    let mut framework_state = framework.lock_state();
     let lookup = framework_state
         .compiled_graph_cache
         .get_or_compile_with_status(key, || {

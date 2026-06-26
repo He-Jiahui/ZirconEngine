@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::helpers::for_each_feature_bundle;
+use super::feature_bundle_rows::for_each_feature_bundle;
 
 pub(in crate::tests::plugin_extensions::static_manifest_contracts) fn for_each_optional_feature(
     table: &toml::Table,

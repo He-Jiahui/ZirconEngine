@@ -5,7 +5,7 @@ pub(super) fn software_test_descriptor(
     display_name: &str,
     channel_layout: SoundChannelLayout,
     channel_count: u16,
-    block_size_frames: u32,
+    block_size_frames: usize,
 ) -> SoundOutputDeviceDescriptor {
     SoundOutputDeviceDescriptor {
         id: SoundOutputDeviceId::new(id),

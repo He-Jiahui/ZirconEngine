@@ -1,6 +1,7 @@
 use super::super::data::{HostTextInputFocusData, TemplatePaneNodeData};
 
 mod focus;
+mod input_kind;
 mod property;
 mod values;
 

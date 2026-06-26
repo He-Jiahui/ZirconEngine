@@ -1,3 +1,4 @@
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
 
 use crate::capability::{ASSET_FIXTURE_CAPABILITY, CAPABILITY, WINDOW_CAPABILITY};
@@ -5,7 +6,10 @@ use crate::extension_ids::{
     ASSET_INSPECTOR_VIEW_ID, MODEL_ASSET_KIND, MODEL_IMPORTER_ID, MODEL_IMPORT_SETTINGS_COMPONENT,
     MODEL_IMPORT_SETTINGS_TEMPLATE_ID, WINDOW_VIEW_ID,
 };
-use crate::plugin::{package_manifest, plugin_registration};
+use crate::plugin::{
+    package_manifest, plugin_registration, PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME,
+    PLUGIN_SDK_EXAMPLES_DIST_EDITOR_ENTRY,
+};
 
 #[test]
 fn sdk_examples_package_contributes_window_importer_and_inspector() {
@@ -79,4 +83,38 @@ fn sdk_examples_package_manifest_declares_sdk_fixture_metadata() {
     assert!(manifest
         .default_packaging
         .contains(&ExportPackagingStrategy::SourceTemplate));
+}
+
+#[test]
+fn sdk_examples_package_manifest_declares_editor_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.modules.iter().any(|module| {
+        module.name == "plugin_sdk_examples.dist"
+            && module.kind == PluginModuleKind::Native
+            && module.crate_name == PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME
+            && module.target_modes == vec![RuntimeTargetMode::EditorHost]
+            && module
+                .capabilities
+                .contains(&ASSET_FIXTURE_CAPABILITY.to_string())
+    }));
+
+    let distribution = manifest
+        .distribution
+        .as_ref()
+        .expect("SDK examples should declare native dynamic distribution");
+    assert_eq!(distribution.forms, vec!["dist".to_string()]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.dist_crate, PLUGIN_SDK_EXAMPLES_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.editor_entry,
+        PLUGIN_SDK_EXAMPLES_DIST_EDITOR_ENTRY
+    );
+    assert!(distribution.runtime_entry.is_empty());
 }

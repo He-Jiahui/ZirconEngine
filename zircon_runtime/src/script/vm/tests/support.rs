@@ -33,7 +33,7 @@ impl VmPluginSlotLifecycle for NoopSlotLifecycle {
         &self,
         backend_selector: &str,
         _package: VmPluginPackage,
-    ) -> Result<super::super::super::PluginSlotId, VmError> {
+    ) -> Result<super::super::PluginSlotId, VmError> {
         Err(VmError::Operation(format!(
             "noop slot lifecycle cannot load backend {backend_selector}"
         )))
@@ -41,7 +41,7 @@ impl VmPluginSlotLifecycle for NoopSlotLifecycle {
 
     fn hot_reload_slot(
         &self,
-        slot: super::super::super::PluginSlotId,
+        slot: super::super::PluginSlotId,
         _package: VmPluginPackage,
     ) -> Result<(), VmError> {
         Err(VmError::Operation(format!(
@@ -50,14 +50,14 @@ impl VmPluginSlotLifecycle for NoopSlotLifecycle {
         )))
     }
 
-    fn unload_slot(&self, slot: super::super::super::PluginSlotId) -> Result<(), VmError> {
+    fn unload_slot(&self, slot: super::super::PluginSlotId) -> Result<(), VmError> {
         Err(VmError::Operation(format!(
             "noop slot lifecycle cannot unload slot {}",
             slot.get()
         )))
     }
 
-    fn slot(&self, slot: super::super::super::PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
+    fn slot(&self, slot: super::super::PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
         Err(VmError::MissingSlot(slot.get()))
     }
 
@@ -149,7 +149,7 @@ pub(super) fn test_package(name: &str, version: &str) -> VmPluginPackage {
             version: version.to_string(),
             entry: "main".to_string(),
             capabilities: CapabilitySet::default().with("render"),
-            management: super::super::super::VmPluginManagementPolicy::default(),
+            management: super::super::VmPluginManagementPolicy::default(),
         },
         zr_vm_project: None,
         bytecode: vec![1, 2, 3],

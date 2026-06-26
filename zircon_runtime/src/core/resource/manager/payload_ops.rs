@@ -18,10 +18,7 @@ impl ResourceManager {
         TData: ResourceData,
     {
         let event_kind = {
-            let mut registry = self
-                .registry
-                .write()
-                .expect("resource registry lock poisoned");
+            let mut registry = self.lock_registry_write();
             let previous = registry.get(record.id).cloned();
             if previous
                 .as_ref()
@@ -47,9 +44,7 @@ impl ResourceManager {
             }
         };
 
-        self.payloads
-            .write()
-            .expect("resource payload lock poisoned")
+        self.lock_payloads_write()
             .insert(record.id, Arc::new(payload));
         self.mark_runtime_loaded(record.id);
 
@@ -68,11 +63,7 @@ impl ResourceManager {
     }
 
     pub fn get_untyped(&self, id: ResourceId) -> Option<Arc<dyn ResourceData>> {
-        self.payloads
-            .read()
-            .expect("resource payload lock poisoned")
-            .get(&id)
-            .cloned()
+        self.lock_payloads_read().get(&id).cloned()
     }
 
     pub fn store_payload<TData>(&self, id: ResourceId, payload: TData) -> bool
@@ -82,10 +73,7 @@ impl ResourceManager {
         if self.registry().get(id).is_none() {
             return false;
         }
-        self.payloads
-            .write()
-            .expect("resource payload lock poisoned")
-            .insert(id, Arc::new(payload));
+        self.lock_payloads_write().insert(id, Arc::new(payload));
         self.mark_runtime_loaded(id);
         true
     }

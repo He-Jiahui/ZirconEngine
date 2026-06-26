@@ -1,13 +1,14 @@
+mod text;
+
+use self::text::push_status_chip_text;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_chip_style;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_status_control_geometry::{
-    status_chip_chevron_rect, status_chip_text_rect, status_control_offset_rect,
-    status_line_height, STATUS_CHIP_RADIUS, STATUS_FONT_SIZE,
+    status_chip_radius, status_control_offset_rect,
 };
-use super::super::template_status_glyphs::push_down_chevron;
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_chip(
     commands: &mut Vec<HostPaintCommand>,
@@ -19,34 +20,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 ) {
     let rect = status_control_offset_rect(node, rect);
     let style = select_workbench_status_chip_style(node);
-    commands.push(HostPaintCommand::quad(
-        rect.clone(),
-        Some(clip.clone()),
+    push_status_chip_surface(
+        commands,
+        &rect,
+        clip,
         order,
-        Some(style.background),
-        Some(style.border),
-        1.0,
-        STATUS_CHIP_RADIUS,
+        style.background,
+        style.border,
         opacity,
-    ));
+    );
 
     let label = template_node_label(node, None);
     if !label.trim().is_empty() {
-        commands.push(HostPaintCommand::text(
-            status_chip_text_rect(&rect),
-            Some(clip.clone()),
+        push_status_chip_text(
+            commands,
+            &rect,
+            clip,
             order + 2,
-            label,
+            &label,
             style.text,
-            STATUS_FONT_SIZE,
-            status_line_height(),
-            UiTextRunPaintStyle::default(),
             opacity,
-        ));
+        );
     }
-
-    let chevron = status_chip_chevron_rect(&rect);
-    push_down_chevron(commands, &chevron, clip, order + 3, style.text, opacity);
 }
 
 #[cfg(test)]
@@ -54,4 +49,39 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
     select_workbench_status_chip_style(node).text
+}
+
+fn push_status_chip_surface(
+    commands: &mut Vec<HostPaintCommand>,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    background: [u8; 4],
+    border: [u8; 4],
+    opacity: f32,
+) {
+    let background = visible_color(background);
+    let border = visible_color(border);
+    if background.is_none() && border.is_none() {
+        return;
+    }
+    let border_width = if border.is_some() {
+        METRICS.border_width
+    } else {
+        0.0
+    };
+    commands.push(HostPaintCommand::quad(
+        rect.clone(),
+        Some(clip.clone()),
+        order,
+        background,
+        border,
+        border_width,
+        status_chip_radius(),
+        opacity,
+    ));
+}
+
+fn visible_color(color: [u8; 4]) -> Option<[u8; 4]> {
+    (color[3] > 0).then_some(color)
 }

@@ -32,16 +32,26 @@ const RETIRED_CORE_ROOT_ENTRIES: &[&str] = &[
 
 const EXPECTED_RUNTIME_02_GUARD_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "zircon_runtime/src/tests/runtime_absorption/root_entries.rs",
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs",
         &[
             "core_root_retires_channel_and_service_alias_fragments",
             "core_root_retires_runtime_kernel_fragment_files",
             "core_root_splits_event_dto_from_runtime_event_bus",
             "core_root_reexports_runtime_diagnostics_without_root_directory",
             "core_module_tree_matches_decided_spine_shape",
+        ],
+    ),
+    (
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs",
+        &[
             "runtime_crate_root_does_not_flatten_plugin_surface",
             "runtime_crate_root_does_not_flatten_builtin_module_assembly_functions",
             "builtin_root_stays_structural_after_runtime_module_split",
+        ],
+    ),
+    (
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs",
+        &[
             "runtime_navigation_boundary_file_set_requires_doc_update",
             "runtime_animation_backlog_boundary_requires_doc_update",
             "runtime_animation_status_json_boundary_sanitizes_non_finite_values",
@@ -178,8 +188,13 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
         "generated behavior decision count changed without Runtime 02 audit sync"
     );
 
+    let root_entries_guard_files = [
+        "src/tests/runtime_absorption/root_entries/core_spine.rs",
+        "src/tests/runtime_absorption/root_entries/module_families.rs",
+        "src/tests/runtime_absorption/root_entries/runtime_root.rs",
+    ];
     assert_eq!(
-        rust_test_count(&runtime_root.join("src/tests/runtime_absorption/root_entries.rs")),
+        rust_test_count_in_files(runtime_root, &root_entries_guard_files),
         13,
         "root_entries guard test count changed without Runtime 02 audit sync"
     );
@@ -197,6 +212,9 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
 
     for relative in [
         "zircon_runtime/src/tests/runtime_absorption/root_entries.rs",
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs",
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs",
+        "zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs",
         "zircon_runtime/src/tests/runtime_absorption/root_surface.rs",
         "zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs",
         "zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs",
@@ -402,6 +420,13 @@ fn behavior_labels(locations: &[GeneratedBehaviorLocation]) -> BTreeSet<&'static
 fn rust_test_count(path: &Path) -> usize {
     let source = read_source(path);
     source.matches("#[test]").count()
+}
+
+fn rust_test_count_in_files(runtime_root: &Path, relatives: &[&str]) -> usize {
+    relatives
+        .iter()
+        .map(|relative| rust_test_count(&runtime_root.join(relative)))
+        .sum()
 }
 
 fn collect_rust_source_files(root: &Path, files: &mut Vec<PathBuf>) {

@@ -10,7 +10,7 @@ mod scope;
 mod tracy;
 mod ui_hotspot;
 
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 #[cfg(feature = "profiling")]
 use std::{env, path::PathBuf};
 
@@ -45,25 +45,25 @@ pub fn start_capture(config: ProfileCaptureConfig) -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    recorder().lock().unwrap().start_capture(config)
+    lock_recorder().start_capture(config)
 }
 
 pub fn stop_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    recorder().lock().unwrap().stop_capture()
+    lock_recorder().stop_capture()
 }
 
 pub fn reset_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    recorder().lock().unwrap().reset()
+    lock_recorder().reset()
 }
 
 pub fn snapshot() -> ProfileSnapshot {
-    recorder().lock().unwrap().snapshot()
+    lock_recorder().snapshot()
 }
 
 pub fn export_report() -> Result<ProfileExportReport, String> {
@@ -242,8 +242,14 @@ pub fn record_counter(stream: &'static str, name: &'static str, value: f64) {
 }
 
 pub(crate) fn with_recorder<R>(action: impl FnOnce(&mut ProfileRecorder) -> R) -> R {
-    let mut recorder = recorder().lock().unwrap();
+    let mut recorder = lock_recorder();
     action(&mut recorder)
+}
+
+fn lock_recorder() -> MutexGuard<'static, ProfileRecorder> {
+    recorder()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 fn recorder() -> &'static Mutex<ProfileRecorder> {
@@ -251,16 +257,37 @@ fn recorder() -> &'static Mutex<ProfileRecorder> {
         .get_or_init(|| Mutex::new(ProfileRecorder::new(ProfileCaptureConfig::default())))
 }
 
-#[cfg(all(test, feature = "profiling"))]
-pub(crate) fn test_capture_lock() -> std::sync::MutexGuard<'static, ()> {
+#[cfg(test)]
+pub(crate) fn test_capture_lock() -> MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 #[cfg(test)]
 mod tests {
+    use super::{snapshot, test_capture_lock, with_recorder};
+
     #[cfg(feature = "profiling")]
-    use super::{reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig};
+    use super::{reset_capture, start_capture, ProfileCaptureConfig};
+
+    #[test]
+    fn profile_recorder_accessors_recover_poisoned_global_lock() {
+        let _guard = test_capture_lock();
+        let poison_result = std::panic::catch_unwind(|| {
+            let _recorder = super::lock_recorder();
+            panic!("poison profile recorder lock");
+        });
+        assert!(poison_result.is_err());
+
+        let snapshot_after_poison = snapshot();
+        assert!(!snapshot_after_poison.active);
+
+        let status = with_recorder(|recorder| recorder.reset());
+        assert_eq!(status.message, "profile capture reset");
+        assert!(!snapshot().active);
+    }
 
     #[cfg(feature = "profiling")]
     #[test]

@@ -1,5 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::{TREE_BASE_INSET_X, TREE_DISCLOSURE_SIZE, TREE_GUIDE_STEP, TREE_ICON_SIZE};
+use super::metrics::{
+    TREE_BASE_INSET_X, TREE_DISCLOSURE_SIZE, TREE_GUIDE_OFFSET_X, TREE_GUIDE_STEP, TREE_ICON_SIZE,
+    TREE_TEXT_GAP,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_disclosure_rect(
     node: &TemplatePaneNodeData,
@@ -22,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_ic
     disclosure: &FrameRect,
 ) -> FrameRect {
     FrameRect {
-        x: disclosure.x + disclosure.width + 4.0,
+        x: disclosure.x + disclosure.width + TREE_TEXT_GAP,
         y: disclosure.y + (disclosure.height - TREE_ICON_SIZE).max(0.0) * 0.5,
         width: TREE_ICON_SIZE,
         height: TREE_ICON_SIZE,
@@ -33,5 +36,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_gu
     rect: &FrameRect,
     level: usize,
 ) -> f32 {
-    rect.x + TREE_BASE_INSET_X + 5.0 + level as f32 * TREE_GUIDE_STEP
+    rect.x + TREE_BASE_INSET_X + TREE_GUIDE_OFFSET_X + level as f32 * TREE_GUIDE_STEP
 }

@@ -70,13 +70,13 @@ pub fn restore_layout(page: DocumentId) -> Option<LayoutPreset>;
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
 | 新增 | `zircon_editor/src/ui/workbench/layout_preset.rs` | 预设 + 持久化接口 |
-| 新增 | `zircon_editor/assets/ui/editor/layout/presets.v2.ui.toml` | 内置四预设 |
+| 新增 | `zircon_editor/assets/ui/editor/layout/presets.toml` | 内置四预设 |
 
 ## 6. 里程碑切片化
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 | -- | --- | --- | --- | --- |
-| S1 | 布局预设档案 + 切换 | layout_preset.rs / presets.v2.ui.toml | `cargo test -p zircon_editor --lib --locked` | 新建 |
+| S1 | 布局预设档案 + 切换 | layout_preset.rs / presets.toml | `cargo test -p zircon_editor --lib --locked` | 新建 |
 | S2 | 持久化(按页面/用户) | layout_preset.rs | `cargo test -p zircon_editor --lib --locked` | — |
 
 ## 7. 测试矩阵
@@ -105,5 +105,6 @@ pub fn restore_layout(page: DocumentId) -> Option<LayoutPreset>;
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 04.S1 布局预设档案 + 切换声明 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/layout_preset.rs` 与 `zircon_editor/assets/ui/editor/layout/presets.v2.ui.toml`;内置 Authoring/Review/Focus/Debug 四档案,记录抽屉状态、尺寸 token 覆盖和 center 分屏语义。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 04.S2:补页面/用户持久化、版本校验与失配回退。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-23 | 04.S1 布局预设档案 + 切换声明 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/layout_preset.rs` 与 `zircon_editor/assets/ui/editor/layout/presets.toml`;内置 Authoring/Review/Focus/Debug 四档案,记录抽屉状态、尺寸 token 覆盖和 center 分屏语义。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 04.S2:补页面/用户持久化、版本校验与失配回退。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-24 | 04.S1 presets 专用资产命名收束 | implemented-focused-pending-broader-matrix | `presets.v2.ui.toml` 硬切为 `presets.toml`，保留 `LayoutPreset` owner 和四预设数据，不再让通用 UI v2 资产治理把 `kind = "layout_presets"` 当作 view/style root 解析。 | `editor_layout_contracts` 直接二进制 focused 10/10 通过；完整 editor lib-test / integration_contracts 仍按 Editor UI 08/10 验收矩阵补跑。 |
 | 2026-06-23 | 04.S2 持久化(按页面/用户) | implemented-focused-passed | `LayoutPresetPersistenceStore` 按 `(user_id,page_id)` 保存 `LayoutPreset`,持久化文档带 `LAYOUT_PRESET_PERSISTENCE_VERSION`;缺失或版本不匹配时回退 Authoring。`LayoutPreset::capture_from_layout(...)` 只采集抽屉 mode、抽屉 extent/token 覆盖与 center split 形状,不写入视图实例 ID 或模块 payload;`apply_to_layout(...)` 恢复抽屉状态、尺寸和 split 形状。`EditorManager`/`EditorUiHost` 新增页面布局保存/恢复接口,`ActivateMainPage` 在 host 边界用 default 用户保存旧页并恢复目标页。验证:`cargo test -p zircon_editor --lib layout_preset_persistence --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309 --message-format short --color never -- --test-threads=1 --nocapture` 2/2 通过;scoped rustfmt、diff check、尾随空白扫描和 editor layout 生产债务扫描通过。复跑过程中暴露下层 `zircon_runtime::ui::component::catalog::editor_showcase` helper split 后漏导 `numeric`;已最小补导入,不改 catalog 行为。 | 04.S2 focused path 关闭;后续进入 05.S2 其余页面模板、06.S2 设计对齐验收,并保留 03.S2 全量 editor-layout Cargo 与旧 shell/module token hard cutover 的验证债。 |

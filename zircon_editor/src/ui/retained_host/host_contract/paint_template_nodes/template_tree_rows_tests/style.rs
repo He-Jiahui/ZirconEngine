@@ -2,7 +2,7 @@ use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::WORKBENCH_TREE_ROW_TEXT_SELECTED as TREE_TEXT_SELECTED;
 use super::super::style::tree_row_style;
 use super::support::tree_node;
-use zircon_runtime_interface::ui::style::UiPainterResolvedState;
+use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
 
 #[test]
 fn tree_row_style_uses_shared_state_priority() {
@@ -20,7 +20,7 @@ fn tree_row_style_uses_shared_state_priority() {
 
     let pressed = tree_row_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
-    assert_eq!(pressed.background, Some(PALETTE.surface_selected));
+    assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
     assert_eq!(pressed.border, Some(PALETTE.focus_ring));
     assert_eq!(pressed.text, TREE_TEXT_SELECTED);
 
@@ -38,4 +38,24 @@ fn tree_row_style_uses_shared_state_priority() {
     assert_eq!(disabled.background, None);
     assert_eq!(disabled.border, None);
     assert_eq!(disabled.text, PALETTE.text_disabled);
+}
+
+#[test]
+fn tree_row_selected_state_uses_shared_surface_without_focus_border() {
+    let mut node = tree_node(
+        "WorkbenchScenePlayerItem",
+        "TreeRow",
+        "tree-row",
+        "PlayerStart",
+        0,
+        true,
+    );
+    node.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(18, 56, 61, 255)));
+
+    let selected = tree_row_style(&node);
+
+    assert_eq!(selected.background, Some(PALETTE.surface_pressed));
+    assert_eq!(selected.border, None);
+    assert_eq!(selected.text, TREE_TEXT_SELECTED);
 }

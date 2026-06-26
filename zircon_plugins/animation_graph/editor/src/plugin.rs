@@ -9,11 +9,23 @@ use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::{
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
+};
 
 use crate::capability::{CAPABILITY, PLUGIN_ID};
 use crate::extension_ids::{
     ANIMATION_GRAPH_DRAWER_ID, ANIMATION_GRAPH_TEMPLATE_ID, ANIMATION_GRAPH_VIEW_ID,
 };
+
+pub const ANIMATION_GRAPH_DIST_CRATE_NAME: &str = "zircon_plugin_animation_graph_dist";
+pub const ANIMATION_GRAPH_DIST_EDITOR_ENTRY: &str = "zircon_plugin_animation_graph_editor_entry_v3";
+const ANIMATION_GRAPH_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct AnimationGraphEditorPlugin {
@@ -69,15 +81,36 @@ pub fn editor_plugin() -> AnimationGraphEditorPlugin {
     AnimationGraphEditorPlugin::new()
 }
 
-fn base_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Animation Graph")
+fn base_manifest() -> PluginPackageManifest {
+    PluginPackageManifest::new(PLUGIN_ID, "Animation Graph")
         .with_category("authoring")
-        .with_supported_targets([zircon_runtime::builtin::RuntimeTargetMode::EditorHost])
+        .with_supported_targets([RuntimeTargetMode::EditorHost])
+        .with_supported_platforms([
+            ExportTargetPlatform::Windows,
+            ExportTargetPlatform::Linux,
+            ExportTargetPlatform::Macos,
+        ])
         .with_capabilities([CAPABILITY])
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
+        ])
         .with_dependency(
             zircon_runtime::plugin::PluginDependencyManifest::new("animation", true)
                 .with_capability("runtime.plugin.animation"),
         )
+        .with_native_module(animation_graph_dist_module_manifest())
+        .with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: ANIMATION_GRAPH_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: ANIMATION_GRAPH_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            editor_entry: ANIMATION_GRAPH_DIST_EDITOR_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
 }
 
 pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
@@ -90,6 +123,12 @@ pub fn editor_capabilities() -> Vec<String> {
 
 pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     zircon_editor::EditorPluginRegistrationReport::from_plugin(&editor_plugin(), base_manifest())
+}
+
+pub fn animation_graph_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native("animation_graph.dist", ANIMATION_GRAPH_DIST_CRATE_NAME)
+        .with_target_modes([RuntimeTargetMode::EditorHost])
+        .with_capabilities([CAPABILITY])
 }
 
 fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {

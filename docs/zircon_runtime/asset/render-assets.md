@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
@@ -19,7 +20,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/upload_support/layout.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/common.rs
+  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs
@@ -47,6 +48,13 @@ related_code:
   - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
+  - zircon_runtime/src/asset/assets/mesh/mesh_asset/management.rs
+  - zircon_runtime/src/asset/tests/assets/mesh.rs
+  - zircon_runtime/src/asset/tests/assets/mesh/document_roundtrip.rs
+  - zircon_runtime/src/asset/tests/assets/mesh/validation.rs
+  - zircon_runtime/src/asset/tests/assets/mesh/summaries.rs
+  - zircon_runtime/src/asset/tests/assets/mesh/conversion_import.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/mesh_asset.rs
   - zircon_runtime/src/asset/assets/shader/mod.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
@@ -147,6 +155,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
@@ -161,6 +170,7 @@ implementation_files:
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/metadata.rs
   - zircon_runtime/src/asset/assets/texture/payload.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
@@ -173,7 +183,7 @@ implementation_files:
   - zircon_runtime/src/asset/assets/texture/upload_support/layout.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/common.rs
+  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs
@@ -293,6 +303,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
 plan_sources:
   - user: 2026-05-09 implement M3A from render M4+ product pipeline plan
@@ -357,9 +368,11 @@ tests:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key
   - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::compressed_upload_readiness_reports_shape_before_feature_support
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs::project_manager_imports_minimal_gltf_material_shader_mesh_sample
-  - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
-  - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
-  - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::scene_assets_instantiate_world_with_asset_bound_meshes
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs::scene_assets_roundtrip_asset_bound_physics_and_animation_components
   - zircon_runtime/src/asset/tests/assets/mesh.rs::mesh_asset_to_morphed_model_primitive_applies_weighted_position_and_normal_deltas
   - zircon_runtime/src/asset/tests/assets/mesh.rs::mesh_asset_to_morphed_model_primitive_rejects_active_position_delta_with_wrong_format
   - cargo test -p zircon_runtime --lib morph --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 explicit morph-weight conversion: passed, 5 passed, 2272 filtered; package-cache/artifact lock waits and existing zircon_runtime lib-test warnings only)
@@ -385,7 +398,7 @@ tests:
   - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_selection_preserves_request_order_and_missing_ids
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs::render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_material_properties_prepare_uniform_payload
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_exposes_material_uniform_debug_counts
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs::render_product_streamer_exposes_material_uniform_debug_counts
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_non_blocking_diagnostics
@@ -570,15 +583,15 @@ tests:
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::tests::linear_color_space_normalizes_default_rgba8_format_to_linear
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_normalizes_default_linear_rgba8_format
   - zircon_plugins/texture_importer/runtime/src/lib.rs::tests::image_importer_normalizes_default_linear_rgba8_format
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::rgba8_wgpu_format_uses_upload_plan_format
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::rgba8_mip_uploads_pack_levels_and_layers_in_payload_order
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::rgba8_mip_uploads_pack_layers_inside_each_mip_level
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::rgba8_material_texture_view_keeps_current_d2_binding_contract
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::wgpu_texture_usages_maps_render_image_usage_for_asset_residency
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::wgpu_texture_usages_does_not_add_upload_dst_when_not_required
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::wgpu_texture_usages_skips_storage_for_non_storage_formats
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::wgpu_texture_usages_skips_render_attachment_for_non_renderable_formats
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs::tests::sampler_descriptor_maps_texture_asset_sampler_settings
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_wgpu_format_uses_upload_plan_format
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_mip_uploads_pack_levels_and_layers_in_payload_order
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_mip_uploads_pack_layers_inside_each_mip_level
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_material_texture_view_keeps_current_d2_binding_contract
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_maps_render_image_usage_for_asset_residency
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_does_not_add_upload_dst_when_not_required
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_skips_storage_for_non_storage_formats
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_skips_render_attachment_for_non_renderable_formats
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::sampler_descriptor_maps_texture_asset_sampler_settings
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_uses_resolved_texture_target_only
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_ignores_non_texture_targets
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_marks_srgb_texture_ready_for_direct_import
@@ -608,8 +621,8 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/texture/upload_support.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs (2026-05-29 KTX/KTX2 upload readiness structure: passed)
   - git diff --check -- zircon_runtime/src/asset/assets/texture/upload_support.rs docs/zircon_runtime/asset/render-assets.md .codex/sessions/20260529-1316-texture-ktx-header-structure.md (2026-05-29 KTX/KTX2 upload readiness structure: passed with line-ending warnings only)
   - Cargo validation for `texture_upload_readiness_rejects_ktx_structural_header_mismatches` (2026-05-29 KTX/KTX2 upload readiness structure: deferred during implementation slice because concurrent Cargo/Rust processes were active)
-  - rustfmt --edition 2021 --check zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/common.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/ktx.rs (2026-05-29 texture upload readiness test split: passed)
-  - git diff --check -- zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/common.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/ktx.rs docs/zircon_runtime/asset/render-assets.md .codex/sessions/20260529-1329-texture-upload-readiness-test-split.md (2026-05-29 texture upload readiness test split: passed with docs line-ending warning only; untracked split modules were also covered by rustfmt and direct scans)
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/ktx.rs (2026-05-29 texture upload readiness test split: passed; Runtime 15 M2 later renamed the shared fixture owner from `common.rs` to `container_fixtures.rs`)
+  - git diff --check -- zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs zircon_runtime/src/asset/tests/assets/texture_upload_readiness/ktx.rs docs/zircon_runtime/asset/render-assets.md .codex/sessions/20260529-1329-texture-upload-readiness-test-split.md (2026-05-29 texture upload readiness test split: passed with docs line-ending warning only; untracked split modules were also covered by rustfmt and direct scans; Runtime 15 M2 later renamed the shared fixture owner from `common.rs` to `container_fixtures.rs`)
   - Select-String conflict-marker and trailing-whitespace scans over the split upload readiness tests, render-assets doc, and session note (2026-05-29 texture upload readiness test split: passed, no matches)
   - Cargo validation for folder-backed `texture_upload_readiness` split (2026-05-29 texture upload readiness test split: deferred because concurrent Cargo/Rust processes were active)
   - rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/texture/upload_support.rs zircon_runtime/src/asset/assets/texture/upload_support/astc.rs zircon_runtime/src/asset/assets/texture/upload_support/bytes.rs zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs zircon_runtime/src/asset/assets/texture/upload_support/dds.rs zircon_runtime/src/asset/assets/texture/upload_support/ktx.rs zircon_runtime/src/asset/assets/texture/upload_support/layout.rs zircon_runtime/src/asset/assets/texture/upload_support/tests.rs (2026-05-29 texture upload support module split: passed)
@@ -673,7 +686,7 @@ tests:
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/common.rs
+  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/dds.rs
@@ -695,6 +708,7 @@ tests:
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::dimension_3d_keeps_depth_and_single_array_layer
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::import_extent_override_replaces_existing_2d_container_layers
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::bevy_alias_diagnostics_report_actual_setting_keys
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs::runtime_15_texture_descriptor_settings_parser_is_child_owner
   - zircon_runtime/src/asset/importer/image_decode.rs::default_format_reports_missing_extension
   - zircon_runtime/src/asset/importer/image_decode.rs::explicit_source_format_reports_unsupported_token
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_decodes_common_extension_format_matrix
@@ -720,6 +734,7 @@ tests:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
   - tests/acceptance/render-product-m3a-assets.md
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo test -p zircon_runtime --locked material
@@ -766,6 +781,8 @@ doc_type: module-detail
 
 # Render Assets
 
+2026-06-24 Render material product debug-counts test owner split keeps the material uniform debug/counts, management record/query/selection, and prepared-state aggregate product coverage in `zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs`, while `render_product_material_property_tests.rs` stays as the compact product fixture/root owner. Status anchor: `render_plan08_material_product_debug_counts_test_owner_split_static_passed_cargo_deferred_active_compile_lane`; structure guard: `runtime_15_render_material_product_debug_counts_tests_are_child_owner`.
+
 ## Purpose
 
 M3A turns render-facing assets into product contracts for `RenderProductFeature::{Image, Mesh, Shader, Material}`. The asset structs remain under `zircon_runtime::asset`, while the neutral descriptors they produce live under `zircon_runtime::core::framework::render`.
@@ -778,10 +795,25 @@ Texture importers now construct textures through `TextureAsset::new_rgba8(...)` 
 
 The fallible descriptor/settings mutation surface is `apply_import_settings(...)`, not a builder
 chain. `TextureAssetDescriptor` and `TextureAsset` both use that name to signal parse/validation
-failure, and `review_f8_texture_import_settings_use_fallible_apply_not_with` guards runtime and
-texture-importer plugin call sites. Status: F8 texture import settings apply API /
-`texture_import_settings_apply_api_coremin_check_passed`; RuntimePluginDescriptor test fixture migration
-remains pending outside this texture asset slice.
+failure, and that surface now returns `TextureDescriptorResult<_>` backed by
+`TextureDescriptorError` rather than `Result<_, String>`. The typed error covers setting type
+mismatches, u32 overflow, unsupported tokens, extent mismatch, array-layout mode/RGBA8/2D/
+single-layer/divisibility/byte-length failures, and rgba8 extent overflow. Runtime and
+texture-importer plugin call sites still stringify only at the `AssetImportError::Parse` boundary.
+`review_f8_texture_import_settings_use_fallible_apply_not_with` guards both the fallible apply API
+and the absence of `Result<_, String>` / `Err(format!(...))` regressions. Status:
+`runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred`.
+
+The 2026-06-24 Runtime 15 M4 texture descriptor settings parser owner split keeps the texture
+descriptor production owner below the structure budget. `asset/assets/texture/descriptor.rs` now
+owns the public descriptor DTO, fallible settings application entry, render descriptor projection,
+and extent normalization, while `asset/assets/texture/descriptor/settings.rs` owns TOML parser
+helpers for usage, asset usage, sampler, array layout, color space, dimension, and Bevy-style token
+normalization. Guard `runtime_15_texture_descriptor_settings_parser_is_child_owner` locks moved
+parser helper ownership, the status anchor
+`runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred`, and the
+800-line production-file budget; current evidence is scoped rustfmt/static/line-count/docs-anchor/
+whitespace/diff-check only, with Cargo deferred because external cargo/rustc lanes were active.
 
 The built-in `.cube` LUT path is deliberately a texture asset ingress path, not a renderer shortcut. `texture_asset_from_cube_lut(...)` parses text `.cube` files with `LUT_3D_SIZE`, skips common metadata rows such as domain and input/output range declarations, rejects 1D shaper sections explicitly until a real shaper policy exists, enforces the post-process LUT size range `2..=256`, and emits a linear `rgba8unorm` `TextureAsset` whose descriptor is `RenderImageDimension::D3`, `depth_or_array_layers = size`, `array_layer_count = 1`, `mip_count = 1`, and clamp/linear sampling. `AssetImporter::default()` registers that parser under `zircon.builtin.texture.cube_lut` for `.cube` files, so post-process authoring can feed the existing renderer-private 3D LUT binding through normal asset loading while `app`, `editor`, and framework DTOs still avoid WGPU types.
 
@@ -820,12 +852,14 @@ files and image crate source files expose the same render-facing `TextureAssetDe
 Runtime texture fixture coverage lives in `zircon_runtime/src/asset/tests/assets/texture_importer.rs`,
 while upload readiness coverage lives in the folder-backed
 `zircon_runtime/src/asset/tests/assets/texture_upload_readiness/` modules with shared fixtures in
-`common.rs` and container, boundary, DDS, and KTX regressions split by behavior family.
+`container_fixtures.rs` and container, boundary, DDS, and KTX regressions split by behavior family.
 `importer_texture_fixture_reinterprets_stacked_array_layout` keeps the decoded `[array_layout]`
 fixture aligned with the RGBA8 upload planner by asserting a ready plan, offset, length, block size,
 and bytes-per-block for each stacked layout form.
 This keeps descriptor/decode matrix tests separate from GPU-ready container support queries and from
 the generic importer registry/model/UI fixture coverage in `importer.rs`.
+
+Fresh 2026-06-25 Runtime 15 M2 asset texture upload readiness container fixtures module naming hard cutover evidence (`Runtime 15 M2 asset texture upload readiness container fixtures module naming hard cutover` / `runtime_15_asset_texture_upload_readiness_container_fixtures_naming_hard_cutover_static_passed_cargo_deferred`): `asset/tests/assets/texture_upload_readiness/common.rs` has been removed and the DDS/KTX/ASTC fixture-byte owner now lives at `asset/tests/assets/texture_upload_readiness/container_fixtures.rs`. `asset/tests/assets/texture_upload_readiness.rs` mounts only `mod container_fixtures;`, and `boundaries.rs`, `containers.rs`, `dds.rs`, and `ktx.rs` import from `super::container_fixtures::*`. `naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name` pins the missing old file, the new owner/module-entry shape, the caller imports, and the Runtime 15/status/docs anchors. Static validation covers rustfmt, old-path/source scans, docs/status anchor scans, whitespace and line-budget scans, and scoped diff hygiene; Cargo is deferred by the Runtime 15 implementation-slice cadence and is not claimed as passing.
 
 Runtime glTF importer fixture coverage now lives in
 `zircon_runtime/src/asset/tests/assets/gltf_importer.rs`, with triangle, multi-primitive, line-mode,
@@ -865,6 +899,10 @@ The split glTF runtime importer module was validated on the current 2026-06-05 t
 `ModelPrimitiveAsset::render_mesh_descriptor()` projects primitive vertex/index data into topology, bounds, primitive kind, 2D/3D suitability, primitive counts, and Virtual Geometry payload presence through `RenderMeshDescriptor`.
 
 `MeshAsset` is the first-class typed mesh asset introduced for the Bevy-style asset plan. It stores topology, a named attribute map, optional u16/u32 indices, main-world/render-world residency intent, morph target metadata, optional skin inverse bind matrices, and optional Virtual Geometry payload. `MeshAsset::render_mesh_descriptor()` projects the attribute map into the same `RenderMeshDescriptor` surface, with required `position` data driving bounds and planar/spatial classification. The current built-in mesh attribute surface includes `uv0` and `uv1`; `MeshVertex` keeps both channels, old assets default `uv1` to zero, and renderer upload exposes the second channel at mesh vertex location 7 for the built-in WGSL paths. `MeshAsset::to_morphed_model_primitive(...)` is the CPU compatibility conversion for explicit morph weights: it applies active position/normal deltas to the current `ModelPrimitiveAsset` upload shape and preserves the existing strict conversion errors for malformed active deltas. Existing model import paths keep legacy `ModelAsset.primitives` while emitting matching labeled `MeshAsset` subassets. `ResourceStreamer::ensure_model(...)` now resolves each primitive's mesh reference through the project resource registry and asks `GpuModelResource::from_asset_with_mesh_assets(...)` to prefer the loaded `MeshAsset` payload when it can convert back to the current GPU primitive shape. Scene mesh instances can also carry an optional direct `MeshAsset` handle through `MeshRenderer.mesh` and `RenderMeshSnapshot.mesh`, plus per-instance `morph_weights` that originate from scene assets, glTF mesh default weights, or animation/property writes. `ResourceStreamer::ensure_mesh(...)` prepares the direct handle into `PreparedMesh`, and draw construction consumes it before falling back to the prepared model. If an extracted animation pose exists for a direct mesh instance, draw construction converts the prepared `MeshAsset` through `skin_mesh_asset_primitive(...)`, applying instance morph weights before CPU skinning. If there is no pose but at least one instance morph weight is non-zero, draw construction uploads a dynamic morphed primitive instead of the static prepared mesh. Zero-weight direct meshes stay on the static prepared path. If the reference is unresolved, the mesh payload fails to load, strict conversion fails, or the skeleton for a pose cannot load, renderer preparation keeps the legacy primitive or static prepared-mesh fallback so older model roots and in-flight importer diagnostics continue to render.
+
+The 2026-06-24 Runtime 15 M3 asset mesh test root split keeps this mesh asset contract coverage under the structure budget. `asset/tests/assets/mesh.rs` now owns only shared mesh fixtures and child mounts, while `asset/tests/assets/mesh/document_roundtrip.rs`, `validation.rs`, `summaries.rs`, and `conversion_import.rs` own `.zmesh` roundtrip, strict validation, summary/management, and model/import conversion regressions. Guard `runtime_15_asset_mesh_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_mesh_tests_root_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M3 scene asset integration test folder split keeps scene-to-render asset binding coverage under the same test-file budget. `scene/tests/asset_scene.rs` now owns only shared helpers and child mounts, while `scene/tests/asset_scene/mesh_bindings.rs`, `scene/tests/asset_scene/hierarchy_sources.rs`, and `scene/tests/asset_scene/product_fields.rs` own the asset-bound mesh, hierarchy/source, physics/animation, camera, ambient, and rect-light roundtrip tests. Guard `runtime_15_scene_asset_integration_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_scene_asset_integration_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
 
 Multi-primitive scene bindings use the same direct mesh path without changing the render DTO into a nested primitive list. `SceneMeshInstanceAsset.primitives` stores mesh/material pairs, `World::from_scene_asset(...)` maps them to `MeshRenderer.primitives`, and render extraction expands them into one `RenderMeshSnapshot` per primitive. Each expanded snapshot has a direct `MeshMarker` and the primitive's material, so resource streaming and draw construction reuse the prepared mesh path above. The root model handle stays present for compatibility while the old model-envelope renderer path is still accepted, but imported glTF scenes no longer need to render all primitives through a single `Mesh{n}` model material.
 
@@ -940,9 +978,19 @@ Shader fallback is exposed through `ensure_shader_source(...)`, which now return
 
 Texture lookup is exposed through `resolve_texture_reference(...)`, which returns the resolved texture id plus an unresolved-reference validation error, fallback usage, and slot-state fallback detail when the declared texture locator is missing, is the wrong typed payload, cannot load as a `TextureAsset`, or is not upload-ready. The compatibility helper uses an uncompressed-only support profile; renderer preparation calls `resolve_texture_reference_with_support(...)` with actual device support so uploadable RGBA8 D2 textures, packed RGBA8 D2 array or six-layer skybox/cubemap payloads, complete RGBA8 mip chains, DDS BC, ASTC 2D, KTX1 BC1-7/ETC2/ASTC, and KTX2 BC1-7/ETC2/ASTC containers can avoid fallback. Unsupported compression, KTX/KTX2 uncompressed payloads, KTX2 supercompression, DDS descriptor/header drift, unsupported RGBA8 D1/D3 upload shapes, compressed array/mip-chain upload shapes, malformed byte lengths, and unavailable GPU features are reported as `TextureNotUploadReady` using the resolved descriptor format and asset locator, and the same reason is copied into `RenderMaterialTextureSlotFallbackReason::NotUploadReady`. Camera texture targets reuse the same `TextureAsset::render_image_descriptor()` metadata at submit preflight: they must be nonzero D2, single layer, single mip, renderable RGBA8 format, and include `RenderImageUsage::RenderTarget` before their descriptor extent can size the offscreen submission. After that preflight, `ResourceStreamer::ensure_scene_resources(...)` prepares the resolved texture output target through `OutputTargetTextureResource`, a separate residency cache that allocates a renderable WGPU texture/view without material/sprite sampled bind-group requirements. `ViewportRenderOutputTarget::graph_import_plan(...)` and `RenderCameraTargetGraphImportReport` report readiness and execution separately: prepared `rgba8unorm_srgb` targets start as `ReadyForDirectImport`, successful graph execution imports the prepared texture view as the final graph target aliases and records `DirectImported`, linear `rgba8unorm` targets remain on the conversion writeback path, and unsupported labels remain blocked. `ResourceStreamer::execute_output_target_writeback(...)` is skipped for direct-imported sRGB targets and still handles linear `rgba8unorm` targets through the fullscreen output-target conversion pass. Texture-target residency, graph-import readiness/execution, skipped-direct-import, copied/converted status, copy/conversion counts, and separate marker emission are visible through `RenderStats.last_camera_target_graph_import`, `RenderStats.last_camera_target_writeback`, `render.camera.target.graph_import.*`, and `render.camera.target.writeback.*` diagnostics without exposing the prepared WGPU texture. RGBA8 payloads are packed mip-major and layer-major inside each mip: all layers of mip 0 are followed by all layers of mip 1, and so on. Current material/sprite bind groups still expose the first layer as a D2 texture view; array and cube sampling require a later shader/material binding contract instead of changing the existing PBR texture ABI implicitly. The upload-readiness path now mirrors the importer enough to reject malformed container structure and currently unsupported upload shapes before GPU feature checks: KTX1 compressed payloads must carry zero `glType`/`glFormat`, `glTypeSize == 1`, nonzero internal/base formats, and 4-byte-aligned key/value data; KTX2 payloads must carry nonzero `typeSize`, a present 4-byte-aligned DFD range whose `dfdTotalSize` matches `dfdByteLength`, and a DFD range that does not overlap the selected level payload. DDS readiness similarly validates the main header and DX10 extension fields rather than relying only on descriptor metadata and payload offsets.
 
+The 2026-06-24 GpuTextureResource from_asset tests owner split keeps the texture upload owner below the structure budget: `graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs` owns WGPU upload, compressed format mapping, texture usage, sampler, and mip upload helpers, while `graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs` owns the rgba8 format, mip upload ordering, D2 view, usage mapping, and sampler tests. Guard `runtime_15_gpu_texture_from_asset_tests_are_child_owner` locks that boundary and the status anchor `render_plan13_gpu_texture_from_asset_tests_owner_split_static_passed_cargo_deferred_active_compile_lane`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred because active compile lanes were present.
+
 Runtime 15 F12 retired the former id-only `ResourceStreamer::resolve_texture_id(...)` helper. Compatibility/uncompressed-only lookup now refers to `resolve_texture_reference(...)`, while renderer preparation keeps using `resolve_texture_reference_with_support(...)` for device-support-aware texture fallback and readiness reporting. Status: `runtime_15_resource_streamer_resolve_texture_id_cleanup_static_passed_cargo_lock_blocked`; guard: `runtime_15_resource_streamer_resolve_texture_id_cleanup`.
 
 The M6 project sample keeps this texture fallback path tied to project asset flow instead of only renderer-specific fixtures. Its authored `.zmaterial` points the `base_color` slot at `res://textures/hero_albedo_bc1.dds`, the project imports that DDS container as a `TextureAsset`, and the test verifies `TextureUploadSupport::uncompressed_only()` reports the BC compression fallback reason while the material still resolves its texture locator.
+
+The 2026-06-24 Runtime 15 M3 asset artifact store test folder split keeps artifact cache coverage under the test-file budget. `asset/tests/assets/artifact_store.rs` now owns only shared artifact payload/reference helpers and child mounts, while `asset/tests/assets/artifact_store/material_data.rs`, `asset/tests/assets/artifact_store/scene_script.rs`, `asset/tests/assets/artifact_store/scene_components.rs`, `asset/tests/assets/artifact_store/binary_payloads.rs`, and `asset/tests/assets/artifact_store/library_assets.rs` own material/data dynamic payloads, scene script/reference payloads, bincode/binary payloads, and library artifact roundtrip/rejection coverage. Guard `runtime_15_asset_artifact_store_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M3 asset UI test folder split keeps UI asset coverage under the test-file budget. `asset/tests/assets/ui.rs` now owns only TOML/ZUI fixtures plus shared importer helpers and child mounts, while `asset/tests/assets/ui/wrappers.rs`, `asset/tests/assets/ui/references.rs`, `asset/tests/assets/ui/importer.rs`, `asset/tests/assets/ui/project_manager.rs`, and `asset/tests/assets/ui/fixture_validation.rs` own wrapper/facade labels, dependency collection, importer decoding, ProjectManager scan/restore, and legacy component-kind rejection coverage. Guard `runtime_15_asset_ui_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_ui_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M3 asset pipeline manager test folder split keeps ProjectAssetManager pipeline coverage under the test-file budget. `asset/tests/pipeline/manager.rs` now owns only shared imports, the first-wave plugin fixture helper, and child mounts, while `asset/tests/pipeline/manager/project_open.rs`, `asset/tests/pipeline/manager/model_import.rs`, `asset/tests/pipeline/manager/watcher.rs`, `asset/tests/pipeline/manager/resource_records.rs`, `asset/tests/pipeline/manager/service_capabilities.rs`, `asset/tests/pipeline/manager/resource_revisions.rs`, and `asset/tests/pipeline/manager/runtime_leases.rs` own project scan, virtual-geometry model import, watcher reimport/sidecar suppression, ResourceManager records, importer capability service, resource revision, and runtime lease lifecycle coverage. Guard `runtime_15_asset_pipeline_manager_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_pipeline_manager_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M4 mesh asset management record owner split keeps the mesh asset production owner below the structure budget. `asset/assets/mesh/mesh_asset.rs` now owns `MeshAsset` behavior, model primitive conversion, morph-target application, validation, render descriptor projection, and the management entry methods, while `asset/assets/mesh/mesh_asset/management.rs` owns `MeshAssetOverview`, management records, failures, record-set summaries, and record-set aggregation. Guard `runtime_15_mesh_asset_management_records_are_child_owner` locks the parent/child boundary, moved management DTO/impl ownership, the status anchor `runtime_15_mesh_asset_management_record_owner_split_static_passed_cargo_deferred`, and the 800-line production-file budget; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred because external cargo/rustc lanes were active.
 
 ## Scope Boundary
 

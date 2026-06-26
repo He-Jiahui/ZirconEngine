@@ -330,6 +330,7 @@ tests:
   - cargo test -p zircon_editor --lib asset_open_event_does_not_open_ui_asset_editor_for_legacy_ui_toml_source --jobs 1 --target-dir target\codex-ui-v2-guard
   - cargo test -p zircon_editor --lib workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset --jobs 1 --target-dir target\codex-ui-v2-guard
   - cargo test -p zircon_editor --lib editor_manager_refreshes_clean_v2_ui_asset_session_from_external_file_change --jobs 1 --target-dir target\codex-ui-v2-guard
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-visual-fix-0624 --message-format short --color never (2026-06-24: passed with existing warning noise after host session typed-error cleanup and ThemeTokens style routing)
   - zircon_editor/src/tests/editor_event/runtime.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
@@ -867,6 +868,8 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 UI Asset Editor 的 v2 authoring preview 现在有独立的 import compiler state。`UiAssetEditorSession` 保存 `last_valid_v2_document` 之外，还保存 `UiAssetV2CompilerImports`；host 或测试可以用 `register_v2_widget_import(...)` / `register_v2_style_import(...)` 把已经加载好的 v2 component/style asset 注册进会话。会话重新校验时不会重新反序列化整棵旧 UI 树，而是把当前 view 文档、style tokens/rules 和已注册的 component prototype 放入堆上的 v2 prototype store，再编译成 preview surface。
 
 Host 层的 UI Asset Editor session 构造现在按 source schema 分流。`editor_event_execution::asset_event` 只把 `.v2.ui.toml` 交给 `OpenAsset -> UI Asset Editor` 生产入口；layout `.ui.toml` 保持普通资产打开状态行，不创建 `editor.ui_asset` view instance。`asset_editor_sessions::mod` 提供集中 helper：v2 source 通过 `UiV2AssetLoader` 推导 route kind 并走 `UiAssetEditorSession::from_v2_source(...)`，layout source 才走 `UiAssetEditorSession::from_source(...)` 和 `UiAssetDocument` parser。首次打开、workspace restore、从磁盘 reload、clean external-change hot reload 共用这个 helper，所以 v2 authoring session 不会在刷新路径回退到 layout parser。
+
+The 2026-06-24 visual-layout pass tightened this helper boundary. `UiV2AssetKind::ThemeTokens` is routed as an editor Style asset anywhere the legacy UI Asset Editor route kind is needed, matching the runtime v2 loader and authoring preview behavior for style/theme-token documents. The helper return type also preserves `UiAssetEditorSessionError` until the host API boundary instead of collapsing parse/session failures into `Result<_, String>` inside `asset_editor_sessions::mod`; `lifecycle.rs`, `open.rs`, and `refresh.rs` stringify only when converting into the existing host-facing `EditorError::UiAsset`.
 
 这个路径覆盖了当前最关键的复合组件 authoring 语义：外部 `asset#Component` 引用可展开，`Slot` 占位会被调用方 children 填充，prototype 的 `default_classes` 与实例节点的 `classes` 合并，实例 `props/state/layout/style/events` 会 patch 到 prototype root。canonical save 仍保存当前 v2 view 的 flat `[nodes.*]` 和 import reference，不把外部 prototype 的内部节点复制回当前 asset。尚未完成的是可视化 UI 上的 import 管理器、slot picker、props/state patch inspector；底层 session/preview 合同已经先落地。
 

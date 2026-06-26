@@ -21,7 +21,7 @@ impl MeshPassProcessor for TaaReactiveMaskPassProcessor {
         let Some(pipeline_kind) = reactive_mask_pipeline_kind(batch) else {
             return;
         };
-        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, &batch.pipeline_key);
+        let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
         out.push(batch.command(RenderPhase::PostProcess, pipeline_kind, pipeline_variant_id));
     }
 }

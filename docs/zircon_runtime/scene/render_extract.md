@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
@@ -10,6 +11,14 @@ related_code:
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/world/derived_state.rs
@@ -38,6 +47,7 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
@@ -45,6 +55,14 @@ implementation_files:
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/world_state.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/world/derived_state.rs
@@ -75,7 +93,10 @@ plan_sources:
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
-  - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_keep_script_only_entities_as_empty_nodes
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs::scene_assets_keep_script_only_entities_as_empty_nodes
+  - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
+  - zircon_runtime/src/scene/tests/asset_scene/product_fields.rs::scene_assets_roundtrip_camera_product_fields
   - zircon_runtime/src/scene/tests/ecs_schedule.rs::render_extract_projects_scene_camera_component_product_fields
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_collects_dynamic_particle_gpu_frames_by_camera_layers
@@ -84,13 +105,16 @@ tests:
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_scene_world_render_visibility_input_is_child_owner
-  - zircon_runtime/src/scene/tests/world_basics.rs::render_product_sprite_world_frame_extract_filters_by_camera_layers
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_render_lights.rs::runtime_15_scene_world_render_light_collectors_are_child_owner
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs::mesh_renderer_sort_fields_feed_geometry_phase_queue
+  - zircon_runtime/src/scene/tests/world_basics/render_extract.rs::render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_light_slots
+  - zircon_runtime/src/scene/tests/world_basics/sprites.rs::render_product_sprite_world_frame_extract_filters_by_camera_layers
   - zircon_runtime/src/core/framework/render/camera_ordering.rs::tests::render_camera_order_report_carries_descriptor_render_type
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs::explicit_request_camera_uses_volume_mask_for_post_process_volumes
   - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
-  - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - tests/acceptance/ecs-to-render-chain.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/validation-evidence.md
@@ -124,6 +148,10 @@ The prepared path is:
 
 `SceneViewportRenderPacket` remains available through `to_render_snapshot()` / `to_render_extract()` for preview and roundtrip callers, and `RenderFrameExtract::from_snapshot(...)` remains a framework adapter for tests or legacy snapshot owners. The scene producer no longer uses that adapter for frame extraction.
 
+The 2026-06-24 Runtime 15 M3 scene asset integration test folder split keeps scene asset render-extract coverage under the test-file budget. `scene/tests/asset_scene.rs` now owns only shared helpers and child mounts, while `scene/tests/asset_scene/mesh_bindings.rs`, `scene/tests/asset_scene/hierarchy_sources.rs`, and `scene/tests/asset_scene/product_fields.rs` own the 9 asset-scene integration tests. Guard `runtime_15_scene_asset_integration_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_scene_asset_integration_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
+The 2026-06-24 Runtime 15 M3 scene world basics test folder split keeps baseline world render-extract coverage under the same test-file budget. `scene/tests/world_basics.rs` now owns only shared imports and child mounts, while `scene/tests/world_basics/world_state.rs`, `scene/tests/world_basics/render_extract.rs`, and `scene/tests/world_basics/sprites.rs` own the 15 world basics tests. Guard `runtime_15_scene_world_basics_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_scene_world_basics_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+
 ## Snapshot Contents
 
 `World::build_prepared_render_frame_extract_for_request(...)` emits sorted meshes, sprites, directional lights, point lights, rect lights, spot lights, and active ambient light records. Mesh rows include stable node id, world transform, model handle, material handle, tint, mobility, and the scene-derived layer authority as a typed `RenderLayerSet`: `World::render_mesh_snapshots_for_camera(...)` reads the authoring-side entity `u32` mask, wraps it at the mesh DTO boundary with `RenderLayerSet::from_legacy_mask(...)`, and filters against the selected camera's typed culling mask before adding the row. Sprite rows follow the same typed boundary through `World::render_sprite_snapshot_for_camera(...)`. Light row types live under `render::light`; `LightingExtract` only aggregates those rows with reflection-probe, baked-lighting, and Hybrid GI sidebands. Directional, point, spot, and rect light rows now carry their layer mask as `RenderLayerSet`; scene extraction wraps the authoring-side legacy entity mask at the DTO boundary rather than leaking raw `u32` into render light snapshots. Rect light rows follow Bevy's orientation contract by deriving the emitted direction from the entity transform's forward vector, while keeping the authored color, intensity, range, and size in `RenderRectLightSnapshot`. Ambient light snapshots are no longer marked renderer-degraded because the basic forward/deferred scene uniform now folds active authored ambient color times intensity into `SceneUniform::ambient_color`; rect lights remain renderer-degraded until a concrete area-light shader path lands. The prepared frame path also builds `GeometryPhaseInput` from the same sorted mesh rows and each `MeshRenderer.material_alpha_mode`, so mesh indices and phase classification stay aligned for opaque, alpha-mask, and transparent queues. Camera rows preserve explicit viewport-request overrides and derive aspect ratio from the request size when present.
@@ -142,6 +170,10 @@ The 2026-06-23 Plan 09 CO-M4 typed-mask slices keep that scene candidate union t
 
 The follow-up Plan 09 CO-M4 world visibility input owner split moves the `VisibilityInput` assembly out of `scene/world/render.rs` into `scene/world/render_visibility.rs`. The child owner now holds `build_visibility_input(...)`, particle emitter layer union, and the empty visibility fallback; the parent remains the frame-extract orchestrator. `runtime_15_scene_world_render_visibility_input_is_child_owner` locks this boundary, the moved functions, and the status anchor `render_plan09_world_visibility_input_owner_split_static_passed_cargo_timeout_no_result`.
 
+Runtime 15 M4 scene world render light collection owner split is recorded as `runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred`. `scene/world/render.rs` remains the scene render extract orchestrator and shared camera-layer boundary, while `scene/world/render/lights.rs` owns ambient, directional, point, rect, and spot light snapshot collection. Guard `runtime_15_scene_world_render_light_collectors_are_child_owner` locks the moved collectors, the parent/child file budget, and the Runtime 15/status/docs mirrors without changing `RenderFrameExtract::lighting` semantics.
+
+Runtime 15 M4 scene component lighting/post-process owner split is recorded as `runtime_15_scene_component_light_postprocess_owner_split_static_passed_cargo_deferred`. `scene/components/scene.rs` remains the scene component aggregate and public re-export surface, while `scene/components/scene/lighting.rs` owns ambient/directional/point/rect/spot component DTOs and `scene/components/scene/post_process.rs` owns post-process settings/volume DTOs and builder helpers. Guard `runtime_15_scene_components_light_postprocess_are_child_owners` locks the moved declarations, the parent/child file budget, and the Runtime 15/status/docs mirrors without changing light extraction, selected-camera post-process settings, or volume extraction semantics.
+
 The scene producer builds `RenderViewExtract.cameras` from active scene cameras in deterministic scheduling order. The selected scene camera descriptor is rebuilt from the effective `view.camera` payload so request projection-mode and viewport-size overrides do not leave the descriptor list stale. Runtime 05 keeps that selected descriptor in the list even when the selected camera entity is inactive, preserving selected-camera target/layer metadata for diagnostics and consumers while inactive non-selected camera descriptors remain filtered out. `RenderViewExtract::selected_camera_descriptor()` is the scene/extract helper for consumers that need selected camera layers or target facts. Explicit `SceneViewportExtractRequest::camera` descriptors do not attach scene camera metadata and keep a single synthetic descriptor with `entity = None`, because their provenance is outside the scene world. Asset-preserving worlds that contain no scene camera now use the same non-persistent synthetic descriptor with the default render layer mask, allowing sparse imported assets to produce safe empty or mesh-only extracts without adding camera nodes to the world or to `SceneAsset` serialization.
 
 Inactive entities are filtered by `ActiveInHierarchy`. Because `RenderExtractPrepare` runs before the rows are collected, parent active-state propagation, parent reorders, and world transform propagation are current when the renderer sees the prepared extract. Read-only clone-based helpers can also produce a fresh packet or frame extract, but they do not clear dirty bits on the original world.
@@ -151,6 +183,14 @@ Inactive entities are filtered by `ActiveInHierarchy`. Because `RenderExtractPre
 The 2026-06-23 Plan 09 CO-M4 status anchor `render_plan09_volume_mask_separate_from_culling_static_passed_cargo_lock_blocked_timeout_no_result` covers this separation. `World::collect_post_process_volumes_for_view(...)` delegates the selected/stack `volume_mask` union to `scene/world/render_post_process.rs`; `explicit_request_camera_uses_volume_mask_for_post_process_volumes` locks the explicit-camera case where `culling_mask` and `volume_mask` differ.
 
 M3 now fills the non-snapshot frame sections with explicit defaults. `PostProcessExtract` carries preview/display mode plus selected scene-camera base bloom/manual-exposure/color-grading/effect-stack settings and any scene-authored planned post-process volume DTOs. `GeometryExtract` carries the request's virtual-geometry debug override and an empty VG sideband. `LightingExtract` carries an empty disabled Hybrid GI sideband. `VisibilityInput` is derived from the same sorted mesh rows so renderable, static, dynamic, and layer-mask inputs are aligned with geometry. The renderer submit path treats an empty VG sideband as no authored VG payload, preserving automatic provider extraction for advanced profiles while still making the scene-produced frame shape canonical. Render submit statistics also split extracted lights into ready/degraded slots: authored ambient entries, the first directional slot, and the first fixed scene-uniform point-light slots are visible as basic-renderer-ready, while extra directional lights, point lights beyond the fixed uniform cap, spot lights, and rect lights remain explicit degraded slots until their concrete clustered/Forward+/cone/area-light shader paths land.
+
+## Runtime 15 M3 scene render extract test folder split
+
+Status anchor: `runtime_15_scene_render_extract_tests_folder_split_static_passed_cargo_deferred`.
+
+`scene/tests/render_extract.rs` is now a folder-backed parent for the canonical scene frame-extract regression suite. The parent keeps only shared imports, helper construction functions, source guards, and child module mounting. Direct frame section, LOD, inactive-camera, and layer-filtering regressions live in `scene/tests/render_extract/direct_sections.rs`; dynamic particle, neutral GPU-frame, and world HUD bar extraction regressions live in `scene/tests/render_extract/particles.rs`; light filtering, explicit request layer overrides, and post-process volume extraction regressions live in `scene/tests/render_extract/lighting_postprocess.rs`; camera order, explicit camera metadata, and custom-target visibility regressions live in `scene/tests/render_extract/camera_order.rs`; LevelSystem pose merge and source-adapter guards live in `scene/tests/render_extract/level_source_guards.rs`.
+
+`runtime_15_scene_render_extract_tests_are_folder_backed` locks the parent/child layout, prevents representative render-extract tests from moving back into the parent, preserves all 19 scene render-extract tests, and keeps every owner under the Runtime 15 file budget. This is static structure evidence only; Cargo remains deferred while external cargo/rustc lanes remain active.
 
 ## Validation Scope
 

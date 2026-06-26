@@ -10,12 +10,14 @@ actual package boundary.
 - Editor capability: `editor.extension.prefab_tools_authoring`
 - Runtime crate: `zircon_plugin_prefab_tools_runtime`
 - Editor crate: `zircon_plugin_prefab_tools_editor`
+- Dist crate: `zircon_plugin_prefab_tools_dist`
 - Runtime asset kind: `prefab.asset`
 
-The runtime side contributes prefab component/package manifest metadata. The
-editor side registers create-from-selection, open, apply overrides, revert
-overrides, and break instance operations, plus the prefab authoring view, drawer,
-component drawer, templates, menu items, and payload schema ids.
+The runtime side contributes prefab component/package manifest metadata,
+including the NativeDynamic dist contract. The editor side registers
+create-from-selection, open, apply overrides, revert overrides, and break
+instance operations, plus the prefab authoring view, drawer, component drawer,
+templates, menu items, and payload schema ids.
 
 Runtime DTOs must not contain editor-only open state. Breaking an instance
 should remove the prefab link and leave ordinary scene state behind.

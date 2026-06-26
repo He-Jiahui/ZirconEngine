@@ -24,9 +24,3 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
 ) -> [u8; 4] {
     status_signal_style(node, kind).text
 }
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_signal_mark_color(
-    node: &TemplatePaneNodeData,
-) -> [u8; 4] {
-    status_signal_style(node, StatusSignalKind::Ready).mark
-}

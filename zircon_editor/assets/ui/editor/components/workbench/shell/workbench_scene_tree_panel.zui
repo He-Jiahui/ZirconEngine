@@ -95,7 +95,7 @@ children = [{ node = "scene_root_item" }, { node = "scene_environment_item" }, {
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneRootItem"
 classes = ["workbench-tree-item"]
-props = { text = "Root", tree_depth = 0, expanded = true }
+props = { text = "Root", icon = "zircon_editor_shell/scene/root.svg", tree_depth = 0, expanded = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectRoot", event = "Click", route = "workbench.hierarchy.select_root" }]
 
@@ -103,7 +103,7 @@ events = [{ id = "Hierarchy/SelectRoot", event = "Click", route = "workbench.hie
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneEnvironmentItem"
 classes = ["workbench-tree-item", "workbench-indent-1"]
-props = { text = "Environment", tree_depth = 1, expanded = true }
+props = { text = "Environment", icon = "zircon_editor_shell/scene/sky.svg", tree_depth = 1, expanded = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectEnvironment", event = "Click", route = "workbench.hierarchy.select_environment" }]
 
@@ -111,7 +111,7 @@ events = [{ id = "Hierarchy/SelectEnvironment", event = "Click", route = "workbe
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneLevelItem"
 classes = ["workbench-tree-item", "workbench-indent-1"]
-props = { text = "Level", tree_depth = 1, expanded = true }
+props = { text = "Level", icon = "zircon_editor_shell/scene/geometry.svg", tree_depth = 1, expanded = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectLevel", event = "Click", route = "workbench.hierarchy.select_level" }]
 
@@ -119,7 +119,7 @@ events = [{ id = "Hierarchy/SelectLevel", event = "Click", route = "workbench.hi
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchScenePropsItem"
 classes = ["workbench-tree-item", "workbench-indent-2"]
-props = { text = "Props", tree_depth = 2, tree_indent_px = 40.0, expanded = true, selected = true }
+props = { text = "Props", icon = "zircon_editor_shell/scene/props.svg", tree_depth = 2, tree_indent_px = 40.0, expanded = true, selected = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectProps", event = "Click", route = "workbench.hierarchy.select_props" }]
 
@@ -127,7 +127,7 @@ events = [{ id = "Hierarchy/SelectProps", event = "Click", route = "workbench.hi
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchScenePlayerItem"
 classes = ["workbench-tree-item"]
-props = { text = "PlayerStart", tree_depth = 0, expanded = false }
+props = { text = "PlayerStart", icon = "zircon_editor_shell/scene/player-start.svg", tree_depth = 0, expanded = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectPlayer", event = "Click", route = "workbench.hierarchy.select_player" }]
 
@@ -135,7 +135,7 @@ events = [{ id = "Hierarchy/SelectPlayer", event = "Click", route = "workbench.h
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneAudioItem"
 classes = ["workbench-tree-item"]
-props = { text = "AudioZone", tree_depth = 0, expanded = false }
+props = { text = "AudioZone", icon = "zircon_editor_shell/scene/audio-zone.svg", tree_depth = 0, expanded = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectAudio", event = "Click", route = "workbench.hierarchy.select_audio" }]
 

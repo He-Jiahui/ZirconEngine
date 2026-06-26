@@ -31,6 +31,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
   - zircon_runtime/src/graphics/tests/advanced_followup_slots.rs
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile/particle.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_plugin_feature_compile_particle_tests.rs
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
@@ -88,8 +90,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
@@ -97,7 +99,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
 implementation_files:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
@@ -150,8 +152,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
@@ -159,7 +161,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -198,6 +200,8 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/graphics/tests/advanced_followup_slots.rs
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile/particle.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_plugin_feature_compile_particle_tests.rs::runtime_15_plugin_feature_compile_particle_tests_are_child_owner
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
@@ -224,8 +228,8 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_skinned_mesh_queue_count
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs::render_product_diagnostics_record_skinned_mesh_queue_count
   - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_plugins/rendering/runtime/src/lib.rs
@@ -327,6 +331,18 @@ binding, or backend capability requirement. Descriptor-only advanced built-ins
 are registered through the shared catalog in
 `builtin_render_feature/advanced_slots.rs`, so descriptor dispatch, explicit
 opt-in, sparse capability metadata, and tests use the same slot table.
+
+The runtime built-in `Particle` slot follows the same descriptor-first policy.
+Core scene particles can request the neutral `particles` extract section and
+compile the built-in billboard pass only when particle sprites are present,
+while the executable external particle feature still comes from a plugin
+descriptor named `particle`. Plugin feature compile particle tests owner split
+keeps `graphics/tests/plugin_feature_compile.rs` as the generic plugin/advanced/SMAA
+compile parent and moves particle plugin/core-scene particle compile guards into
+`graphics/tests/plugin_feature_compile/particle.rs`. Guard
+`runtime_15_plugin_feature_compile_particle_tests_are_child_owner` records this
+shape under
+`render_plugin_feature_compile_particle_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`.
 
 The runtime built-in `MeshLod` feature follows the same descriptor-first policy
 at the SRP layer, but conventional scene data now has a first runtime extraction

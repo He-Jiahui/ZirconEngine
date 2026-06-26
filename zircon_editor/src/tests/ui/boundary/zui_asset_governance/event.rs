@@ -43,6 +43,7 @@ fn owned_route_namespace_for_id_namespace(namespace: &str) -> &str {
         "ButtonGroup" | "MaterialLab" => "material_lab",
         "ComponentLab" | "UiComponentShowcase" => "component_lab",
         "DockCommand"
+        | "DocumentTabs"
         | "Hierarchy"
         | "Inspector"
         | "MenuAction"

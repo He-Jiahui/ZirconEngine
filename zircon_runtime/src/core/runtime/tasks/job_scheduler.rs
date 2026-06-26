@@ -2,7 +2,7 @@
 
 use std::fmt;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 
 use crate::core::diagnostics::DiagnosticStore;
@@ -158,12 +158,7 @@ struct PendingScheduledJob {
 
 impl PendingScheduledJob {
     fn try_launch(&self) {
-        let Some(task) = self
-            .task
-            .lock()
-            .expect("pending job task lock poisoned")
-            .take()
-        else {
+        let Some(task) = self.lock_task().take() else {
             return;
         };
         if self.dependency_count > 0 {
@@ -181,7 +176,7 @@ impl PendingScheduledJob {
 
     fn record_terminal_without_launch(&self) {
         let task_was_pending = {
-            let mut task = self.task.lock().expect("pending job task lock poisoned");
+            let mut task = self.lock_task();
             task.take().is_some()
         };
         if task_was_pending {
@@ -191,6 +186,12 @@ impl PendingScheduledJob {
             }
             self.diagnostics.record_completed();
         }
+    }
+
+    fn lock_task(&self) -> MutexGuard<'_, Option<ScheduledJob>> {
+        self.task
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
@@ -204,6 +205,47 @@ fn complete_scheduled_task(
     match result {
         Ok(()) => handle.mark_complete(),
         Err(payload) => handle.mark_panicked(panic_payload_message(payload)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{self, AssertUnwindSafe};
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    };
+    use std::time::Instant;
+
+    use super::{
+        JobHandle, JobSchedulerDiagnosticsState, PendingScheduledJob, TaskPool, TaskPoolDescriptor,
+    };
+
+    #[test]
+    fn pending_scheduled_job_recovers_poisoned_task_lock() {
+        let diagnostics = Arc::new(JobSchedulerDiagnosticsState::default());
+        let handle = JobHandle::pending_with_scheduler_diagnostics(0, Arc::clone(&diagnostics));
+        let task_ran = Arc::new(AtomicBool::new(false));
+        let task_ran_for_job = Arc::clone(&task_ran);
+        let pending = PendingScheduledJob {
+            pool: TaskPool::new(TaskPoolDescriptor::compute()),
+            handle: handle.clone(),
+            diagnostics,
+            created_at: Instant::now(),
+            dependency_count: 0,
+            task: Mutex::new(Some(Box::new(move || {
+                task_ran_for_job.store(true, Ordering::SeqCst);
+            }))),
+        };
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = pending.task.lock().unwrap();
+            panic!("poison pending scheduled job task");
+        }));
+
+        pending.try_launch();
+        handle.wait();
+        assert!(task_ran.load(Ordering::SeqCst));
     }
 }
 

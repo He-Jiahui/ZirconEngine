@@ -1,8 +1,5 @@
-use std::collections::HashMap;
 use std::ptr;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::sync::{Mutex, OnceLock};
 
 use zircon_runtime_interface::{
     ui::accessibility::UiAccessibilityTreeSnapshot, ProfileControlCommand, ProfileControlRequest,
@@ -21,7 +18,6 @@ use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
     write_diagnostic_store_snapshot, write_log, DiagnosticStoreLogSchedule,
-    DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
 };
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::NodeKind;
@@ -46,7 +42,9 @@ mod hud;
 mod input_events;
 mod menu;
 mod preview;
+mod profile;
 mod project;
+mod registry;
 mod scene_asset_reload_diagnostics;
 mod status;
 #[cfg(test)]
@@ -57,34 +55,16 @@ pub(super) use host_requests::{
     runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
 };
 use preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
+use profile::RuntimeDynamicSessionProfile;
 use project::RuntimeProjectConfig;
+#[cfg(test)]
+use registry::lock_session;
+use registry::{insert_session, lock_registry, with_session};
 use scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
 use status::{error_status, invalid_argument, not_found, unsupported_version};
 
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
-const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
-const RUNTIME_SESSION_PROFILE_RUNTIME: &[u8] = b"runtime";
-const RUNTIME_SESSION_PROFILE_EDITOR: &[u8] = b"editor";
-const RUNTIME_SESSION_PROFILE_DEV: &[u8] = b"dev";
-const RUNTIME_SESSION_PROFILE_MINIMAL: &[u8] = b"minimal";
-const RUNTIME_SESSION_PROFILE_HEADLESS: &[u8] = b"headless";
-
-static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
-
-struct SessionRegistry {
-    next_handle: AtomicU64,
-    sessions: HashMap<u64, Arc<Mutex<RuntimeDynamicSession>>>,
-}
-
-impl Default for SessionRegistry {
-    fn default() -> Self {
-        Self {
-            next_handle: AtomicU64::new(1),
-            sessions: HashMap::new(),
-        }
-    }
-}
 
 pub(super) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV1,
@@ -124,7 +104,7 @@ pub(super) unsafe fn destroy_session(handle: ZrRuntimeSessionHandle) -> ZrStatus
     if !handle.is_valid() {
         return invalid_argument(b"invalid runtime session handle");
     }
-    let mut registry = registry().lock().unwrap();
+    let mut registry = lock_registry();
     if registry.sessions.remove(&handle.raw()).is_none() {
         return not_found(b"runtime session not found");
     }
@@ -313,45 +293,6 @@ struct RuntimeDynamicSession {
     extract_cache: extract_cache::RuntimeFrameExtractCache,
     cursor: Vec2,
     input_manager: Arc<dyn InputManager>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum RuntimeDynamicSessionProfile {
-    Runtime,
-    Editor,
-    Dev,
-    Minimal,
-    Headless,
-}
-
-impl RuntimeDynamicSessionProfile {
-    fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        match bytes {
-            [] | RUNTIME_SESSION_PROFILE_RUNTIME => Some(Self::Runtime),
-            RUNTIME_SESSION_PROFILE_EDITOR => Some(Self::Editor),
-            RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev),
-            RUNTIME_SESSION_PROFILE_MINIMAL => Some(Self::Minimal),
-            RUNTIME_SESSION_PROFILE_HEADLESS => Some(Self::Headless),
-            _ => None,
-        }
-    }
-
-    fn max_fixed_steps_per_frame(self) -> u32 {
-        DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME
-    }
-
-    fn diagnostic_log_schedule(self) -> DiagnosticStoreLogSchedule {
-        match self {
-            Self::Dev => DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT),
-            Self::Runtime | Self::Editor | Self::Minimal | Self::Headless => {
-                DiagnosticStoreLogSchedule::disabled()
-            }
-        }
-    }
-
-    fn uses_render_bridge(self) -> bool {
-        matches!(self, Self::Runtime | Self::Editor | Self::Dev)
-    }
 }
 
 impl RuntimeDynamicSession {
@@ -691,19 +632,6 @@ impl RuntimeDynamicSession {
     }
 }
 
-fn registry() -> &'static Mutex<SessionRegistry> {
-    SESSION_REGISTRY.get_or_init(|| Mutex::new(SessionRegistry::default()))
-}
-
-fn insert_session(session: RuntimeDynamicSession) -> ZrRuntimeSessionHandle {
-    let mut registry = registry().lock().unwrap();
-    let handle = registry.next_handle.fetch_add(1, Ordering::SeqCst);
-    registry
-        .sessions
-        .insert(handle, Arc::new(Mutex::new(session)));
-    ZrRuntimeSessionHandle::new(handle)
-}
-
 fn install_builtin_scene_runtime_hooks(runtime: &CoreRuntime) -> Result<(), String> {
     let mut extensions = RuntimeExtensionRegistry::default();
     register_missing_scene_hook(
@@ -752,22 +680,4 @@ fn runtime_session_error(step: &'static str, error: impl ToString) -> String {
         return format!("{step} failed without additional diagnostics");
     }
     format!("{step}: {error}")
-}
-
-fn with_session(
-    handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession) -> ZrStatus,
-) -> ZrStatus {
-    if !handle.is_valid() {
-        return invalid_argument(b"invalid runtime session handle");
-    }
-    let session = {
-        let registry = registry().lock().unwrap();
-        registry.sessions.get(&handle.raw()).cloned()
-    };
-    let Some(session) = session else {
-        return not_found(b"runtime session not found");
-    };
-    let mut session = session.lock().unwrap();
-    action(&mut session)
 }

@@ -3,7 +3,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipel
 
 use super::super::{
     MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassPipelineKind,
-    MeshPassProcessor, MeshPipelineVariantId,
+    MeshPassProcessor,
 };
 
 pub(crate) struct DepthPrepassProcessor;
@@ -12,7 +12,7 @@ impl MeshPassProcessor for DepthPrepassProcessor {
     fn add_mesh_batch<R>(
         &mut self,
         batch: &MeshBatchRef,
-        _context: &mut MeshPassBuildContext<'_, R>,
+        context: &mut MeshPassBuildContext<'_, R>,
         out: &mut MeshDrawCommandList,
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
@@ -20,11 +20,9 @@ impl MeshPassProcessor for DepthPrepassProcessor {
         if batch.queue_profile.early_z_eligible()
             && batch.relevant_to_main_phase(RenderPhase::Prepass)
         {
-            out.push(batch.command(
-                RenderPhase::Prepass,
-                MeshPassPipelineKind::DepthPrepass,
-                MeshPipelineVariantId::new(0),
-            ));
+            let pipeline_kind = MeshPassPipelineKind::DepthPrepass;
+            let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
+            out.push(batch.command(RenderPhase::Prepass, pipeline_kind, pipeline_variant_id));
         }
     }
 }

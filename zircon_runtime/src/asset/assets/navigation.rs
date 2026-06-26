@@ -1,10 +1,21 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::core::framework::navigation::{
     default_navigation_areas, NavAreaId, NavLinkTraversalMode, NavigationAgentSettings,
     NavigationAreaSettings, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
 };
 use crate::core::math::Real;
+
+pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;
+
+#[derive(Debug, Error)]
+pub enum NavigationAssetError {
+    #[error("serialize navmesh asset: {0}")]
+    Serialize(#[source] bincode::Error),
+    #[error("deserialize navmesh asset: {0}")]
+    Deserialize(#[source] bincode::Error),
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NavMeshAsset {
@@ -160,12 +171,12 @@ impl NavMeshAsset {
             .collect()
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
-        bincode::serialize(self).map_err(|error| error.to_string())
+    pub fn to_bytes(&self) -> NavigationAssetResult<Vec<u8>> {
+        bincode::serialize(self).map_err(NavigationAssetError::Serialize)
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        bincode::deserialize(bytes).map_err(|error| error.to_string())
+    pub fn from_bytes(bytes: &[u8]) -> NavigationAssetResult<Self> {
+        bincode::deserialize(bytes).map_err(NavigationAssetError::Deserialize)
     }
 }
 

@@ -32,9 +32,6 @@ min = 0.0
 max = 100.0
 value_text = "0.75"
 tick_count = 5
-thumb_size = 11.0
-track_color = "#364046"
-value_color = "#35c7d0"
 "##,
                     )
                     .unwrap(),
@@ -55,14 +52,14 @@ value_color = "#35c7d0"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(78.0, 25.5, 108.0, 3.0)
-            && command.style.background_color.as_deref() == Some("#364046")
+            && command.frame == UiFrame::new(78.0, 25.0, 108.0, 4.0)
+            && command.style.background_color.as_deref() == Some("#11161a")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(78.0, 25.5, 81.0, 3.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && command.frame == UiFrame::new(78.0, 25.0, 81.0, 4.0)
+            && command.style.background_color.as_deref() == Some("#414b54")
     }));
     assert_eq!(
         commands
@@ -70,7 +67,7 @@ value_color = "#35c7d0"
             .filter(|command| {
                 command.node_id == UiNodeId::new(2)
                     && command.kind == UiRenderCommandKind::Quad
-                    && command.frame.y == 33.5
+                    && command.frame.y == 33.0
                     && command.frame.width == 1.0
                     && command.frame.height == 4.0
             })
@@ -80,8 +77,8 @@ value_color = "#35c7d0"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(153.5, 21.5, 11.0, 11.0)
-            && command.style.background_color.as_deref() == Some("#c9f2f6")
+            && command.frame == UiFrame::new(155.0, 23.0, 8.0, 8.0)
+            && command.style.background_color.as_deref() == Some("#e8ecee")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -134,9 +131,9 @@ drop_hovered = true
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.style.background_color.as_deref() == Some("#35c7d03a")
-            && command.frame.width == 20.0
-            && command.frame.height == 20.0
+            && command.style.background_color.as_deref() == Some("#d8e3e71a")
+            && command.frame.width == 16.0
+            && command.frame.height == 16.0
     }));
 }
 
@@ -164,9 +161,6 @@ range_min_percent = 0.2
 value_percent = 0.8
 value_text = "0.80"
 tick_count = 5
-thumb_size = 11.0
-track_color = "#364046"
-value_color = "#35c7d0"
 "##,
                     )
                     .unwrap(),
@@ -186,14 +180,14 @@ value_color = "#35c7d0"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(78.0, 33.5, 128.0, 3.0)
-            && command.style.background_color.as_deref() == Some("#364046")
+            && command.frame == UiFrame::new(78.0, 33.0, 128.0, 4.0)
+            && command.style.background_color.as_deref() == Some("#11161a")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && frame_approx(command.frame, 103.6, 33.5, 76.8, 3.0)
-            && command.style.background_color.as_deref() == Some("#35c7d0")
+            && frame_approx(command.frame, 103.6, 33.0, 76.8, 4.0)
+            && command.style.background_color.as_deref() == Some("#414b54")
     }));
     assert_eq!(
         commands
@@ -201,9 +195,9 @@ value_color = "#35c7d0"
             .filter(|command| {
                 command.node_id == UiNodeId::new(2)
                     && command.kind == UiRenderCommandKind::Quad
-                    && command.frame.width == 11.0
-                    && command.frame.height == 11.0
-                    && command.style.background_color.as_deref() == Some("#c9f2f6")
+                    && command.frame.width == 8.0
+                    && command.frame.height == 8.0
+                    && command.style.background_color.as_deref() == Some("#e8ecee")
             })
             .count(),
         2
@@ -251,13 +245,13 @@ focused = true
 drop_hovered = true
 loading = true
 validation_level = "warning"
-track_color = "#364046"
-value_color = "#35c7d0"
-thumb_color = "#c9f2f6"
-thumb_outline_color = "#35c7d0"
+track_color = "#2a3338"
+value_color = "#414b54"
+thumb_color = "#e8ecee"
+thumb_outline_color = "#2d3940"
 label_color = "#aebdc4"
 foreground_color = "#d9fbff"
-state_layer_color = "#35c7d03a"
+state_layer_color = "#d8e3e71a"
 "##,
                     )
                     .unwrap(),
@@ -272,7 +266,7 @@ state_layer_color = "#35c7d03a"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(78.0, 25.5, 108.0, 3.0)
+            && command.frame == UiFrame::new(78.0, 25.0, 108.0, 4.0)
             && command.style.painter_family == UiPainterFamily::Slider
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#262d32")
@@ -280,7 +274,7 @@ state_layer_color = "#35c7d03a"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(78.0, 25.5, 81.0, 3.0)
+            && command.frame == UiFrame::new(78.0, 25.0, 81.0, 4.0)
             && command.style.painter_family == UiPainterFamily::Slider
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#59656c")
@@ -288,7 +282,7 @@ state_layer_color = "#35c7d03a"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(153.5, 21.5, 11.0, 11.0)
+            && command.frame == UiFrame::new(155.0, 23.0, 8.0, 8.0)
             && command.style.painter_family == UiPainterFamily::Slider
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#59656c")
@@ -323,7 +317,7 @@ state_layer_color = "#35c7d03a"
             .filter(|command| {
                 command.node_id == UiNodeId::new(2)
                     && command.kind == UiRenderCommandKind::Quad
-                    && command.frame.y == 33.5
+                    && command.frame.y == 33.0
                     && command.frame.width == 1.0
                     && command.frame.height == 4.0
                     && command.style.background_color.as_deref() == Some("#343f47")
@@ -334,9 +328,9 @@ state_layer_color = "#35c7d03a"
     assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
-            && command.style.background_color.as_deref() == Some("#35c7d03a")
-            && command.frame.width == 20.0
-            && command.frame.height == 20.0
+            && command.style.background_color.as_deref() == Some("#d8e3e71a")
+            && command.frame.width == 16.0
+            && command.frame.height == 16.0
     }));
 }
 

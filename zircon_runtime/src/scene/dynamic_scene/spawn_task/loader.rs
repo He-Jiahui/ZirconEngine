@@ -10,7 +10,7 @@ use crate::core::JobScheduler;
 
 use super::super::{DynamicScene, DynamicSceneError};
 use super::prepared::PreparedDynamicSceneSpawn;
-use super::task::DynamicSceneSpawnTask;
+use super::task::{lock_spawn_result, lock_spawn_status, DynamicSceneSpawnTask};
 use super::SpawnTaskResult;
 
 static NEXT_DYNAMIC_SCENE_SPAWN_TASK_ID: AtomicU64 = AtomicU64::new(1);
@@ -86,24 +86,17 @@ impl DynamicSceneSpawnTask {
         let status_for_task = Arc::clone(&status);
         let result_for_task = Arc::clone(&result);
         let completion = scheduler.schedule(move || {
-            status_for_task
-                .lock()
-                .expect("dynamic scene spawn task status lock poisoned")
-                .mark_running();
+            lock_spawn_status(&status_for_task).mark_running();
 
             let prepared: SpawnTaskResult = loader().and_then(PreparedDynamicSceneSpawn::new);
             {
-                let mut status = status_for_task
-                    .lock()
-                    .expect("dynamic scene spawn task status lock poisoned");
+                let mut status = lock_spawn_status(&status_for_task);
                 match &prepared {
                     Ok(_) => status.mark_completed(),
                     Err(error) => status.mark_failed(error.to_string()),
                 }
             }
-            *result_for_task
-                .lock()
-                .expect("dynamic scene spawn task result lock poisoned") = Some(prepared);
+            *lock_spawn_result(&result_for_task) = Some(prepared);
         });
 
         Self {

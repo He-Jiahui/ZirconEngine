@@ -1,3 +1,4 @@
+mod aliases;
 mod paths;
 mod query;
 mod resolution;

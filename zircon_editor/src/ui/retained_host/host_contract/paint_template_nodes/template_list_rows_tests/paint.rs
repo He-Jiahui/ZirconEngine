@@ -1,13 +1,30 @@
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
-use super::support::{changed_pixel_count, list_node, pixel_at};
+use super::super::push_list_row_commands;
+use super::support::{changed_pixel_count, list_node, list_node_with_flags, pixel_at};
 
 #[test]
-fn selected_list_row_paints_surface_and_right_check() {
+fn selected_list_row_paints_muted_surface_left_indicator_and_navigation_adornment() {
+    let bytes = paint_template_nodes_for_test(
+        160,
+        40,
+        model_rc(vec![list_node_with_flags(true, false, false)]),
+    );
+
+    assert_eq!(pixel_at(&bytes, 160, 4, 18), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 160, 12, 30), PALETTE.surface_pressed);
+    assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
+}
+
+#[test]
+fn checked_list_row_paints_right_check_with_selection_color() {
     let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![list_node(true, false)]));
 
-    assert_ne!(pixel_at(&bytes, 160, 12, 18), [0, 0, 0, 255]);
+    assert_eq!(pixel_at(&bytes, 160, 4, 18), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 160, 12, 30), PALETTE.surface_pressed);
     assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
 }
 
@@ -17,4 +34,57 @@ fn disabled_list_row_keeps_background_empty_and_draws_disabled_adornment() {
 
     assert_eq!(pixel_at(&bytes, 160, 12, 18), [0, 0, 0, 255]);
     assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
+}
+
+#[test]
+fn workbench_list_row_adornments_paint_shell_asset_pixels() {
+    let rect = FrameRect {
+        x: 4.0,
+        y: 4.0,
+        width: 148.0,
+        height: 32.0,
+    };
+
+    for node in [
+        list_node(true, false),
+        list_node(false, false),
+        list_node(false, true),
+    ] {
+        let mut commands = Vec::new();
+        assert!(push_list_row_commands(
+            &mut commands,
+            &node,
+            &rect,
+            &rect,
+            0,
+            1.0,
+        ));
+
+        let icon_commands = commands
+            .iter()
+            .filter(|command| command.image_pixels.is_some())
+            .collect::<Vec<_>>();
+        assert!(
+            !icon_commands.is_empty(),
+            "{} should render its trailing adornment through shell icon pixels",
+            node.control_id
+        );
+        assert!(
+            icon_commands.iter().all(|command| command
+                .image_pixels
+                .as_ref()
+                .map(|image| !image.resource_key.starts_with("missing-icon:"))
+                .unwrap_or(false)),
+            "{} should not use missing-icon pixels for its trailing adornment",
+            node.control_id
+        );
+        assert!(
+            icon_commands.iter().any(|command| {
+                (command.frame.width - 16.0).abs() < f32::EPSILON
+                    && (command.frame.height - 16.0).abs() < f32::EPSILON
+            }),
+            "{} should use the Slate Icon16x16 trailing adornment size",
+            node.control_id
+        );
+    }
 }

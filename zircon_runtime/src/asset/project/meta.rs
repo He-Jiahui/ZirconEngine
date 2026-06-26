@@ -1,10 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use thiserror::Error;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
 const ASSET_META_FORMAT_VERSION: u32 = 6;
+
+pub type AssetMetaResult<T> = std::result::Result<T, AssetMetaError>;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum AssetMetaError {
+    #[error("asset meta format version {found} is newer than supported {supported}")]
+    UnsupportedFormatVersion { found: u32, supported: u32 },
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -100,9 +109,7 @@ impl AssetMetaDocument {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, std::io::Error> {
         let document = fs::read_to_string(path)?;
         let mut meta: Self = toml::from_str(&document).map_err(invalid_data)?;
-        meta.migrate_to_current().map_err(|error| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
-        })?;
+        meta.migrate_to_current().map_err(invalid_data)?;
         Ok(meta)
     }
 
@@ -119,12 +126,12 @@ impl AssetMetaDocument {
 }
 
 impl AssetMetaDocument {
-    fn migrate_to_current(&mut self) -> Result<(), String> {
+    fn migrate_to_current(&mut self) -> AssetMetaResult<()> {
         if self.format_version > ASSET_META_FORMAT_VERSION {
-            return Err(format!(
-                "asset meta format version {} is newer than supported {}",
-                self.format_version, ASSET_META_FORMAT_VERSION
-            ));
+            return Err(AssetMetaError::UnsupportedFormatVersion {
+                found: self.format_version,
+                supported: ASSET_META_FORMAT_VERSION,
+            });
         }
         if self.format_version < ASSET_META_FORMAT_VERSION {
             self.format_version = ASSET_META_FORMAT_VERSION;
@@ -139,4 +146,31 @@ impl AssetMetaDocument {
 
 fn invalid_data(error: impl std::error::Error) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn asset_meta_migration_reports_typed_future_version_error() {
+        let mut meta = AssetMetaDocument::new(
+            AssetUuid::new(),
+            AssetUri::parse("res://data/future.json").unwrap(),
+            AssetKind::Data,
+        );
+        meta.format_version = ASSET_META_FORMAT_VERSION + 1;
+
+        let error = meta
+            .migrate_to_current()
+            .expect_err("future meta version should fail");
+
+        assert_eq!(
+            error,
+            AssetMetaError::UnsupportedFormatVersion {
+                found: ASSET_META_FORMAT_VERSION + 1,
+                supported: ASSET_META_FORMAT_VERSION,
+            }
+        );
+    }
 }

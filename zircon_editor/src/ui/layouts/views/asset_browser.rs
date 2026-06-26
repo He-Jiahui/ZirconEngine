@@ -2,64 +2,45 @@ use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
-use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use crate::ui::workbench::snapshot::{
-    AssetFolderSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
+    AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
     AssetWorkspaceSnapshot,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
+use compact_layout::apply_asset_browser_compact_layout;
+
+mod compact_layout;
+mod toolbar_layout;
 
 const ASSET_BROWSER_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/asset_browser.v2.ui.toml";
 const ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.v2.ui.toml";
 const ASSET_BROWSER_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
 const ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.v2.ui.toml";
 const ASSET_BROWSER_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
+const ASSET_TABLE_HEADER_CELLS: [&str; 4] = ["Name", "Type", "Size", "Rev"];
 
 pub(crate) fn asset_browser_pane_nodes(
     snapshot: &AssetWorkspaceSnapshot,
     size: UiSize,
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
+    let selected_asset = selected_asset(snapshot);
     let project_root = if snapshot.project_root.is_empty() {
         "Project/assets".to_string()
     } else {
         snapshot.project_root.clone()
     };
     let selected_folder = selected_folder(snapshot);
-    let selection_name = if snapshot.selection.display_name.is_empty() {
-        "No Asset Selected".to_string()
-    } else {
-        snapshot.selection.display_name.clone()
-    };
-    let selection_locator = if snapshot.selection.locator.is_empty() {
-        "Select an asset to inspect".to_string()
-    } else {
-        snapshot.selection.locator.clone()
-    };
-    let selection_kind = snapshot
-        .selection
-        .kind
-        .map(resource_kind_label)
-        .unwrap_or("Unknown Type")
-        .to_string();
-    let selection_identity = snapshot
-        .selection
-        .uuid
-        .clone()
-        .unwrap_or_else(|| "No UUID".to_string());
-    let selection_revision = snapshot
-        .selection
-        .resource_revision
-        .map(|revision| format!("Revision {revision}"))
-        .unwrap_or_else(|| "Revision pending".to_string());
-    let selection_diagnostics = if snapshot.selection.diagnostics.is_empty() {
-        "No active diagnostics".to_string()
-    } else {
-        snapshot.selection.diagnostics.join("\n")
-    };
+    let selection_name = selection_display_name(&snapshot.selection, selected_asset);
+    let selection_locator = selection_locator(&snapshot.selection, selected_asset);
+    let selection_kind = selection_kind_label(&snapshot.selection, selected_asset).to_string();
+    let selection_identity = selection_identity(&snapshot.selection, selected_asset);
+    let selection_revision = selection_revision_label(&snapshot.selection, selected_asset);
+    let selection_diagnostics = selection_diagnostics_text(&snapshot.selection, selected_asset);
     let selection_metadata_summary = selection_metadata_summary(&snapshot.selection);
     let selection_metadata_body =
         selection_metadata_body(&snapshot.selection, &selection_diagnostics);
@@ -291,6 +272,95 @@ pub(crate) fn asset_browser_pane_nodes(
             snapshot.search_query.clone()
         },
     );
+    text_overrides.insert(
+        "AssetBrowserContentHeaderPathText".to_string(),
+        selected_folder
+            .map(|folder| {
+                format!(
+                    "{} assets in {}",
+                    folder.recursive_asset_count, folder.display_name
+                )
+            })
+            .unwrap_or_else(|| catalog_summary.clone()),
+    );
+    let asset_table_rows = asset_table_rows(snapshot);
+    for (index, row) in asset_table_rows.iter().enumerate() {
+        text_overrides.insert(
+            format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1),
+            asset_table_row_text(row),
+        );
+    }
+    if let Some(asset) = selected_asset {
+        text_overrides.insert(
+            "AssetBrowserContentPreviewName".to_string(),
+            asset.display_name.clone(),
+        );
+        text_overrides.insert(
+            "AssetBrowserContentPreviewMeta".to_string(),
+            format!(
+                "{} | {} | {}",
+                resource_kind_label(asset.kind),
+                asset_state_label(asset),
+                asset
+                    .resource_revision
+                    .map(|revision| format!("rev {revision}"))
+                    .unwrap_or_else(|| "untracked".to_string())
+            ),
+        );
+    } else {
+        text_overrides.insert(
+            "AssetBrowserContentPreviewName".to_string(),
+            "No Asset Selected".to_string(),
+        );
+        text_overrides.insert(
+            "AssetBrowserContentPreviewMeta".to_string(),
+            "Select a table row to inspect".to_string(),
+        );
+    }
+    if let Some(reference) = snapshot.selection.references.first() {
+        text_overrides.insert(
+            "AssetBrowserReferenceLeftEmptyText".to_string(),
+            format!("{} direct references", snapshot.selection.references.len()),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceLeftRowNameText".to_string(),
+            reference.display_name.clone(),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceLeftRowLocatorText".to_string(),
+            reference.locator.clone(),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceLeftRowKindText".to_string(),
+            reference
+                .kind
+                .map(resource_kind_label)
+                .unwrap_or("Unknown")
+                .to_string(),
+        );
+    }
+    if let Some(reference) = snapshot.selection.used_by.first() {
+        text_overrides.insert(
+            "AssetBrowserReferenceRightEmptyText".to_string(),
+            format!("{} usages", snapshot.selection.used_by.len()),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceRightRowNameText".to_string(),
+            reference.display_name.clone(),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceRightRowLocatorText".to_string(),
+            reference.locator.clone(),
+        );
+        text_overrides.insert(
+            "AssetBrowserReferenceRightRowKindText".to_string(),
+            reference
+                .kind
+                .map(resource_kind_label)
+                .unwrap_or("Unknown")
+                .to_string(),
+        );
+    }
 
     let mut nodes = build_view_template_nodes(
         "asset_browser.template_projection",
@@ -307,6 +377,9 @@ pub(crate) fn asset_browser_pane_nodes(
     )
     .unwrap_or_default();
     apply_asset_browser_visual_state(&mut nodes, snapshot);
+    apply_asset_browser_table_cells(&mut nodes, &asset_table_rows);
+    retain_active_utility_tab_nodes(&mut nodes, snapshot.utility_tab);
+    apply_asset_browser_compact_layout(&mut nodes, size);
     model_rc(nodes)
 }
 
@@ -405,20 +478,68 @@ fn apply_asset_browser_visual_state(
         "AssetBrowserKindStateChip",
         snapshot.kind_filter == Some(ResourceKind::AnimationStateMachine),
     );
+    mark_asset_table_rows(nodes, snapshot);
 
-    let has_selection =
-        snapshot.selected_asset_uuid.is_some() || !snapshot.selection.display_name.is_empty();
+    let has_selection = has_asset_selection(snapshot);
+    let has_content_preview = selected_asset(snapshot).is_some();
+    update_panel_surface(
+        nodes,
+        "AssetBrowserContentPreviewCard",
+        if has_content_preview {
+            "asset-preview"
+        } else {
+            "asset-placeholder"
+        },
+        if has_content_preview { 1.0 } else { 0.0 },
+    );
+    update_panel_surface(
+        nodes,
+        "AssetBrowserContentPreviewVisual",
+        if has_content_preview {
+            "asset-preview-visual"
+        } else {
+            "asset-placeholder-visual"
+        },
+        if has_content_preview { 1.0 } else { 0.0 },
+    );
+    mark_panel_selected(nodes, "AssetBrowserContentPreviewCard", has_content_preview);
+    update_panel_surface(
+        nodes,
+        "AssetBrowserDetailsPreviewPanel",
+        "asset-placeholder",
+        0.0,
+    );
+    update_panel_surface(
+        nodes,
+        "AssetBrowserDetailsPreviewVisualPanel",
+        "asset-placeholder-visual",
+        0.0,
+    );
+    update_panel_surface(
+        nodes,
+        "AssetBrowserPreviewPanel",
+        if has_selection {
+            "asset-preview"
+        } else {
+            "asset-placeholder"
+        },
+        if has_selection { 1.0 } else { 0.0 },
+    );
+    update_panel_surface(
+        nodes,
+        "AssetBrowserPreviewVisualPanel",
+        if has_selection {
+            "asset-preview-visual"
+        } else {
+            "asset-placeholder-visual"
+        },
+        if has_selection { 1.0 } else { 0.0 },
+    );
     mark_panel_selected(
         nodes,
         "AssetBrowserSourcesRowPanel",
         snapshot.selected_folder_id.is_some(),
     );
-    mark_panel_selected(nodes, "AssetBrowserDetailsHeaderPanel", has_selection);
-    mark_panel_selected(nodes, "AssetBrowserDetailsPreviewPanel", has_selection);
-    mark_panel_selected(nodes, "AssetBrowserDetailsLocatorPanel", has_selection);
-    mark_panel_selected(nodes, "AssetBrowserDetailsTypePanel", has_selection);
-    mark_panel_selected(nodes, "AssetBrowserDetailsIdentityPanel", has_selection);
-    mark_panel_selected(nodes, "AssetBrowserDetailsMetadataPanel", has_selection);
     mark_panel_selected(
         nodes,
         "AssetBrowserPreviewPanel",
@@ -440,8 +561,6 @@ fn apply_asset_browser_visual_state(
             "AssetBrowserMetaPathPanel",
             "AssetBrowserAdapterPanel",
             "AssetBrowserDiagnosticsPanel",
-            "AssetBrowserDetailsMetadataPanel",
-            "AssetBrowserDetailsDiagnosticsPanel",
         ],
         snapshot.utility_tab == AssetUtilityTab::Metadata,
     );
@@ -463,6 +582,228 @@ fn selected_folder(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetFolderSnap
         .iter()
         .chain(snapshot.folder_tree.iter())
         .find(|folder| folder.folder_id == selected_folder_id)
+}
+
+fn selected_asset(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetItemSnapshot> {
+    let selected_uuid = snapshot.selected_asset_uuid.as_deref();
+    snapshot
+        .visible_assets
+        .iter()
+        .find(|asset| selected_uuid == Some(asset.uuid.as_str()) || asset.selected)
+}
+
+fn has_asset_selection(snapshot: &AssetWorkspaceSnapshot) -> bool {
+    snapshot.selection.uuid.is_some()
+        || !snapshot.selection.display_name.is_empty()
+        || !snapshot.selection.locator.is_empty()
+        || selected_asset(snapshot).is_some()
+}
+
+fn selection_display_name(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> String {
+    if !selection.display_name.is_empty() {
+        selection.display_name.clone()
+    } else if let Some(asset) = selected_asset {
+        asset.display_name.clone()
+    } else {
+        "No Asset Selected".to_string()
+    }
+}
+
+fn selection_locator(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> String {
+    if !selection.locator.is_empty() {
+        selection.locator.clone()
+    } else if let Some(asset) = selected_asset {
+        asset.locator.clone()
+    } else {
+        "Select an asset to inspect".to_string()
+    }
+}
+
+fn selection_kind_label(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> &'static str {
+    selection
+        .kind
+        .or_else(|| selected_asset.map(|asset| asset.kind))
+        .map(resource_kind_label)
+        .unwrap_or("Unknown Type")
+}
+
+fn selection_identity(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> String {
+    selection
+        .uuid
+        .clone()
+        .or_else(|| selected_asset.map(|asset| asset.uuid.clone()))
+        .unwrap_or_else(|| "No UUID".to_string())
+}
+
+fn selection_revision_label(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> String {
+    selection
+        .resource_revision
+        .or_else(|| selected_asset.and_then(|asset| asset.resource_revision))
+        .map(|revision| format!("Revision {revision}"))
+        .unwrap_or_else(|| "Revision pending".to_string())
+}
+
+fn selection_diagnostics_text(
+    selection: &AssetSelectionSnapshot,
+    selected_asset: Option<&AssetItemSnapshot>,
+) -> String {
+    let diagnostics = if !selection.diagnostics.is_empty() {
+        &selection.diagnostics
+    } else if let Some(asset) = selected_asset {
+        &asset.diagnostics
+    } else {
+        return "No active diagnostics".to_string();
+    };
+
+    if diagnostics.is_empty() {
+        "No active diagnostics".to_string()
+    } else {
+        diagnostics.join("\n")
+    }
+}
+
+fn asset_table_rows(snapshot: &AssetWorkspaceSnapshot) -> Vec<[String; 4]> {
+    let mut rows = snapshot
+        .visible_assets
+        .iter()
+        .take(4)
+        .map(asset_table_row_cells)
+        .collect::<Vec<_>>();
+    while rows.len() < 4 {
+        rows.push([
+            "Empty Asset".to_string(),
+            "Asset".to_string(),
+            "0KB".to_string(),
+            "pending".to_string(),
+        ]);
+    }
+    rows
+}
+
+fn asset_table_row_cells(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> [String; 4] {
+    [
+        compact_asset_table_name(&asset.display_name).to_string(),
+        compact_resource_kind_label(asset.kind).to_string(),
+        asset_size_hint(asset).to_string(),
+        asset
+            .resource_revision
+            .map(|revision| format!("r{revision}"))
+            .unwrap_or_else(|| "new".to_string()),
+    ]
+}
+
+fn asset_table_row_text(row: &[String; 4]) -> String {
+    row.join(" ")
+}
+
+fn asset_size_hint(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> &'static str {
+    match asset.kind {
+        ResourceKind::Texture => "1.2M",
+        ResourceKind::Material | ResourceKind::MaterialGraph | ResourceKind::Shader => "512K",
+        ResourceKind::Scene | ResourceKind::Prefab | ResourceKind::UiLayout => "64K",
+        ResourceKind::Model | ResourceKind::Mesh | ResourceKind::AnimationClip => "2.4M",
+        _ => "16K",
+    }
+}
+
+fn compact_asset_table_name(display_name: &str) -> &'static str {
+    let lower = display_name.to_ascii_lowercase();
+    if lower.contains("workbench_host") {
+        "Host"
+    } else if lower.contains("editor_base") {
+        "Base"
+    } else if lower.contains("folder") {
+        "Folder"
+    } else if lower.contains("accessibility") {
+        "A11y"
+    } else if lower.contains("material") {
+        "Mat"
+    } else if lower.contains("scene") {
+        "Scene"
+    } else {
+        "Asset"
+    }
+}
+
+fn compact_resource_kind_label(kind: ResourceKind) -> &'static str {
+    match kind {
+        ResourceKind::Texture => "Tex",
+        ResourceKind::Material | ResourceKind::MaterialGraph => "Mat",
+        ResourceKind::Scene => "Scene",
+        ResourceKind::Model | ResourceKind::Mesh => "Mesh",
+        ResourceKind::Shader => "Shader",
+        ResourceKind::Prefab => "Prefab",
+        ResourceKind::UiLayout => "UI",
+        ResourceKind::UiWidget => "Widget",
+        ResourceKind::UiStyle => "Style",
+        _ => "Asset",
+    }
+}
+
+fn asset_state_label(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> &'static str {
+    if asset.diagnostics.is_empty() {
+        "Ready"
+    } else {
+        "Diagnostics"
+    }
+}
+
+fn mark_asset_table_rows(nodes: &mut [ViewTemplateNodeData], snapshot: &AssetWorkspaceSnapshot) {
+    let selected_uuid = snapshot.selected_asset_uuid.as_deref();
+    for index in 0..4 {
+        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
+        if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
+            let selected = snapshot
+                .visible_assets
+                .get(index)
+                .map(|asset| asset.selected || selected_uuid == Some(asset.uuid.as_str()))
+                .unwrap_or(false);
+            node.selected = selected;
+            node.focused = selected;
+        }
+    }
+}
+
+fn apply_asset_browser_table_cells(nodes: &mut [ViewTemplateNodeData], rows: &[[String; 4]]) {
+    if let Some(header) = nodes
+        .iter_mut()
+        .find(|node| node.control_id == "WorkbenchAssetBrowserTableHeader")
+    {
+        header.options = shared_string_options(
+            ASSET_TABLE_HEADER_CELLS
+                .iter()
+                .map(|cell| (*cell).to_string())
+                .collect(),
+        );
+        header.text = ASSET_TABLE_HEADER_CELLS.join(" ").into();
+    }
+
+    for (index, row) in rows.iter().enumerate() {
+        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
+        if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
+            node.options = shared_string_options(row.iter().cloned().collect());
+            node.text = asset_table_row_text(row).into();
+        }
+    }
+}
+
+fn shared_string_options(values: Vec<String>) -> ModelRc<SharedString> {
+    model_rc(values.into_iter().map(SharedString::from).collect())
 }
 
 fn mark_toggle_state(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
@@ -503,6 +844,74 @@ fn update_panel_variant(
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.surface_variant = surface_variant.into();
     }
+}
+
+fn update_panel_surface(
+    nodes: &mut [ViewTemplateNodeData],
+    control_id: &str,
+    surface_variant: &str,
+    border_width: f32,
+) {
+    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
+        node.surface_variant = surface_variant.into();
+        node.border_width = border_width;
+    }
+}
+
+fn retain_active_utility_tab_nodes(
+    nodes: &mut Vec<ViewTemplateNodeData>,
+    active_tab: AssetUtilityTab,
+) {
+    nodes.retain(
+        |node| match utility_tab_for_control_id(node.control_id.as_str()) {
+            Some(tab) => tab == active_tab,
+            None => true,
+        },
+    );
+}
+
+fn utility_tab_for_control_id(control_id: &str) -> Option<AssetUtilityTab> {
+    if matches!(
+        control_id,
+        "AssetBrowserPreviewPanel"
+            | "AssetBrowserPreviewVisualPanel"
+            | "AssetBrowserPreviewNameText"
+            | "AssetBrowserPreviewLocatorText"
+            | "AssetBrowserPreviewKindText"
+            | "AssetBrowserPreviewIdentityText"
+            | "AssetBrowserPreviewAdapterText"
+            | "AssetBrowserPreviewMetaPathText"
+            | "AssetBrowserPreviewDiagnosticsText"
+    ) {
+        return Some(AssetUtilityTab::Preview);
+    }
+
+    if control_id.starts_with("AssetBrowserReferenceLeft")
+        || control_id.starts_with("AssetBrowserReferenceRight")
+    {
+        return Some(AssetUtilityTab::References);
+    }
+
+    if control_id.starts_with("AssetBrowserMetaPath")
+        || control_id.starts_with("AssetBrowserAdapter")
+        || matches!(
+            control_id,
+            "AssetBrowserDiagnosticsPanel"
+                | "AssetBrowserDiagnosticsLabel"
+                | "AssetBrowserDiagnosticsText"
+        )
+    {
+        return Some(AssetUtilityTab::Metadata);
+    }
+
+    if matches!(
+        control_id,
+        "AssetBrowserPluginsPanel" | "AssetBrowserPluginsText"
+    ) {
+        return Some(AssetUtilityTab::Plugins);
+    }
+
+    None
 }
 
 fn selection_metadata_summary(selection: &AssetSelectionSnapshot) -> String {

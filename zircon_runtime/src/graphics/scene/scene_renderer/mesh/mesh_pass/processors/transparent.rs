@@ -22,8 +22,7 @@ impl MeshPassProcessor for TransparentPassProcessor {
             && batch.relevant_to_main_phase(RenderPhase::Transparent3d)
         {
             let pipeline_kind = MeshPassPipelineKind::Base;
-            let pipeline_variant_id =
-                context.pipeline_variant_id(pipeline_kind, &batch.pipeline_key);
+            let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
             out.push(batch.command(
                 RenderPhase::Transparent3d,
                 pipeline_kind,

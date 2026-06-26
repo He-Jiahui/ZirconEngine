@@ -5,7 +5,7 @@ use zircon_runtime_interface::{
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
-use super::helpers::*;
+use super::vampire_runtime_support::*;
 
 #[test]
 fn vampire_project_session_writes_world_hud_for_scene_authored_enemies() {
@@ -140,7 +140,8 @@ fn vampire_project_session_capture_frame_draws_world_hud_bars() {
     );
 
     assert_eq!(
-        render_stats.last_ui_command_count, 0,
+        render_stats.last_ui_command_count,
+        0,
         "captured vampire frame should not rely on screen-space combat HUD commands; color-only top-left heuristic matched {top_left_panel_pixels} scene pixels; hud_region={hud_pixel_summary}; ui_passes={} executed_passes={:?} executor_ids={:?}",
         render_stats.last_ui_graph_executed_pass_count,
         render_stats.last_graph_executed_passes,

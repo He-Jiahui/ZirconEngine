@@ -44,28 +44,28 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 component = "Label"
 control_id = "DockTab0"
 props = { text = "Project", text_tone = "default", font_size = 11.0, text_align = "center", overflow = "elide" }
-layout = { position = { x = 8.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { position = { x = 8.0, y = 1.0 }, width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_close_0]
 component = "IconButton"
 control_id = "DockTabClose0"
-props = { surface_variant = "inset", icon = "editor_pages/workbench/tabs/close-tab.svg", value = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
-layout = { position = { x = 76.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 4.0, border_width = 0.0 }
+layout = { position = { x = 136.0, y = 6.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_1]
 component = "Label"
 control_id = "DockTab1"
 props = { text = "Assets", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
-layout = { position = { x = 102.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { position = { x = 168.0, y = 1.0 }, width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_close_1]
 component = "IconButton"
 control_id = "DockTabClose1"
-props = { surface_variant = "inset", icon = "editor_pages/workbench/tabs/close-tab.svg", value = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
-layout = { position = { x = 170.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 4.0, border_width = 0.0 }
+layout = { position = { x = 296.0, y = 6.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_2]
 component = "Label"
 control_id = "DockTab2"
 props = { text = "Hierarchy", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
-layout = { position = { x = 196.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { position = { x = 328.0, y = 1.0 }, width = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

@@ -6,7 +6,7 @@ use super::super::super::super::data::{
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::is_visible_frame;
 use super::super::super::super::paint_primitives::{draw_border, draw_rect};
-use super::super::super::{ACCENT, TOP_BAR};
+use super::super::super::{SEPARATOR, TOP_BAR};
 use super::super::geometry::{
     constrained_submenu_popup_frame, menu_popup_height, menu_popup_row_frame,
 };
@@ -48,7 +48,7 @@ pub(super) fn draw_open_submenu_popups(
             break;
         }
         draw_rect(frame, popup.clone(), TOP_BAR);
-        draw_border(frame, popup.clone(), ACCENT);
+        draw_border(frame, popup.clone(), SEPARATOR);
         draw_menu_popup_rows(frame, &branch.children, &popup, level + 1, presentation);
 
         items = branch.children.clone();

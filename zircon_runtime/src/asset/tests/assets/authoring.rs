@@ -1,8 +1,8 @@
 use crate::asset::{
-    AssetReference, AssetUri, ImportedAsset, MaterialGraphAsset, MaterialGraphNodeAsset,
-    MaterialGraphNodeKindAsset, PrefabAsset, SceneAsset, SceneEntityAsset, TerrainAsset,
-    TerrainLayerAsset, TileMapAsset, TileMapLayerAsset, TileMapProjectionAsset, TileSetAsset,
-    TileSetTileAsset, TransformAsset,
+    AssetAuthoringError, AssetReference, AssetUri, ImportedAsset, MaterialGraphAsset,
+    MaterialGraphNodeAsset, MaterialGraphNodeKindAsset, PrefabAsset, SceneAsset, SceneEntityAsset,
+    TerrainAsset, TerrainLayerAsset, TileMapAsset, TileMapLayerAsset, TileMapProjectionAsset,
+    TileSetAsset, TileSetTileAsset, TransformAsset,
 };
 
 #[test]
@@ -100,6 +100,67 @@ fn material_graph_requires_output_node_and_reports_references() {
 
     graph.validate_output_node().unwrap();
     assert_eq!(graph.direct_references(), vec![shader, texture]);
+}
+
+#[test]
+fn authoring_asset_validation_reports_typed_errors() {
+    let terrain = TerrainAsset {
+        uri: AssetUri::parse("res://terrain/broken.terrain.toml").unwrap(),
+        name: "Broken Terrain".to_string(),
+        width: 2,
+        height: 2,
+        sample_spacing: 1.0,
+        height_scale: 1.0,
+        height_samples: vec![0.0, 1.0, 2.0],
+        layers: Vec::new(),
+    };
+    assert_eq!(
+        terrain.validate_dimensions(),
+        Err(AssetAuthoringError::TerrainSampleCount {
+            name: "Broken Terrain".to_string(),
+            width: 2,
+            height: 2,
+            actual: 3,
+        })
+    );
+
+    let tilemap = TileMapAsset {
+        uri: AssetUri::parse("res://tiles/broken.tilemap.toml").unwrap(),
+        width: 2,
+        height: 2,
+        projection: TileMapProjectionAsset::Orthogonal,
+        tile_set: reference("res://tiles/world.tileset.toml"),
+        layers: vec![TileMapLayerAsset {
+            name: "Ground".to_string(),
+            visible: true,
+            opacity: 1.0,
+            tiles: vec![Some(1)],
+        }],
+    };
+    assert_eq!(
+        tilemap.validate_layers(),
+        Err(AssetAuthoringError::TileMapLayerTileCount {
+            layer: "Ground".to_string(),
+            width: 2,
+            height: 2,
+            actual: 1,
+        })
+    );
+
+    let graph = MaterialGraphAsset {
+        uri: AssetUri::parse("res://materials/broken.material_graph.toml").unwrap(),
+        name: "Broken Graph".to_string(),
+        shader: None,
+        nodes: Vec::new(),
+        links: Vec::new(),
+        parameters: Default::default(),
+    };
+    assert_eq!(
+        graph.validate_output_node(),
+        Err(AssetAuthoringError::MaterialGraphMissingOutput {
+            name: "Broken Graph".to_string(),
+        })
+    );
 }
 
 #[test]

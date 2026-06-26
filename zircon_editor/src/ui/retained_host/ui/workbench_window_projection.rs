@@ -17,10 +17,17 @@ use super::pane_data_conversion::{
     projected_notification_center_options, projected_notification_center_structured_options,
     projected_notification_center_value_text, structured_menu_items, structured_options_for_node,
 };
+use super::template_layout_context::apply_table_layout_context_variant;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
 const WORKBENCH_STATUS_RIGHT_TEXT_COLOR: host_contract::primitives::Color =
     host_contract::primitives::Color::from_rgb_u8(125, 137, 144);
+const WORKBENCH_SELECTION_SELECTED_SURFACE: &str = "#173942";
+const WORKBENCH_SELECTION_ACCENT: &str = "#2aa6b8";
+const WORKBENCH_RADIO_SELECTED_SURFACE: &str = "#1b272d";
+const WORKBENCH_RADIO_SELECTED_BORDER: &str = "#4c5b63";
+const WORKBENCH_TOGGLE_SELECTED_THUMB: &str = "#e8ecee";
+const UI_HOST_WINDOW_ROOT_CONTROL_ID: &str = "UiHostWindowRoot";
 
 pub(crate) fn to_host_contract_workbench_window_nodes(
     projection: Option<&RetainedUiHostProjection>,
@@ -34,14 +41,25 @@ pub(crate) fn to_host_contract_workbench_window_nodes(
         .iter()
         .map(|node| (node.node_id.as_str(), node))
         .collect::<BTreeMap<_, _>>();
+    let layout_context_width = projection_layout_context_width(projection);
     model_rc(
         projection
             .nodes
             .iter()
             .filter(|node| host_projection_node_render_visible(node, &nodes_by_id))
             .filter_map(|node| to_host_contract_workbench_window_node(node, &nodes_by_id))
+            .map(|node| apply_table_layout_context_variant(node, layout_context_width))
             .collect(),
     )
+}
+
+fn projection_layout_context_width(projection: &RetainedUiHostProjection) -> f32 {
+    projection
+        .nodes
+        .iter()
+        .find(|node| node.control_id.as_deref() == Some(UI_HOST_WINDOW_ROOT_CONTROL_ID))
+        .map(|node| node.frame.width.max(0.0))
+        .unwrap_or(0.0)
 }
 
 fn host_projection_node_render_visible(
@@ -107,15 +125,17 @@ fn to_host_contract_workbench_window_node(
     {
         component_role = "notification-center".to_string();
     }
-    let button_style_values = toml_values_from_host_properties(&node.properties);
-    let value_text = node
-        .value_text
-        .clone()
-        .or_else(|| {
-            projected_notification_center_value_text(component_role.as_str(), &button_style_values)
-        })
-        .or_else(|| first_string_property(&node.properties, &["value_text", "value"]))
-        .unwrap_or_default();
+    let mut button_style_values = toml_values_from_host_properties(&node.properties);
+    if is_cleared_inspector_property_row(control_id.as_str(), &node.properties) {
+        clear_button_surface_style_values(&mut button_style_values);
+    }
+    normalize_workbench_selection_control_style_values(
+        &mut button_style_values,
+        node,
+        component_role.as_str(),
+    );
+    let value_text =
+        projected_workbench_value_text(node, component_role.as_str(), &button_style_values);
     let media_source = first_string_property(&node.properties, &["image", "source", "media"])
         .or_else(|| {
             matches!(node.component.as_str(), "Image" | "SvgIcon")
@@ -228,12 +248,7 @@ fn to_host_contract_workbench_window_node(
         node_id: node.node_id.clone().into(),
         control_id: control_id.into(),
         role: resolve_workbench_role(node.component.as_str()).into(),
-        text: node
-            .text
-            .clone()
-            .or_else(|| first_string_property(&node.properties, &["text", "label"]))
-            .unwrap_or_default()
-            .into(),
+        text: projected_workbench_text(node, component_role.as_str()).into(),
         label_text: label_text.into(),
         label_color,
         label_brightness,
@@ -419,6 +434,232 @@ fn is_status_right_control(node: &RetainedUiHostNodeModel) -> bool {
                 | "WorkbenchStatusTarget"
                 | "WorkbenchStatusZoom"
         )
+    )
+}
+
+fn is_cleared_inspector_property_row(
+    control_id: &str,
+    properties: &BTreeMap<String, RetainedUiHostValue>,
+) -> bool {
+    if !matches!(
+        control_id,
+        "WorkbenchMeshRow"
+            | "WorkbenchMaterialRow"
+            | "WorkbenchComponentPropertySlot03Row"
+            | "WorkbenchComponentPropertySlot04Row"
+    ) && !control_id.starts_with("WorkbenchComponentPropertyVirtualRow")
+    {
+        return false;
+    }
+
+    first_string_property(properties, &["text"]).is_none_or(|text| text.is_empty())
+        && first_string_property(properties, &["value_text"]).is_none_or(|value| value.is_empty())
+}
+
+fn clear_button_surface_style_values(values: &mut BTreeMap<String, toml::Value>) {
+    for key in ["background", "background_color", "border", "border_color"] {
+        values.remove(key);
+    }
+}
+
+fn normalize_workbench_selection_control_style_values(
+    values: &mut BTreeMap<String, toml::Value>,
+    node: &RetainedUiHostNodeModel,
+    component_role: &str,
+) {
+    if !active_workbench_selection_control(node) {
+        return;
+    }
+
+    if is_workbench_checkbox_control(node, component_role) {
+        set_toml_string_aliases(
+            values,
+            &["background", "background_color"],
+            WORKBENCH_SELECTION_SELECTED_SURFACE,
+        );
+        set_toml_string_aliases(
+            values,
+            &["border", "border_color"],
+            WORKBENCH_SELECTION_ACCENT,
+        );
+    } else if is_workbench_radio_control(node, component_role) {
+        set_toml_string_aliases(
+            values,
+            &["background", "background_color"],
+            WORKBENCH_RADIO_SELECTED_SURFACE,
+        );
+        set_toml_string_aliases(
+            values,
+            &["border", "border_color"],
+            WORKBENCH_RADIO_SELECTED_BORDER,
+        );
+    } else if is_workbench_toggle_control(node, component_role) {
+        set_toml_string_aliases(
+            values,
+            &["background", "background_color"],
+            WORKBENCH_SELECTION_SELECTED_SURFACE,
+        );
+        set_toml_string_aliases(
+            values,
+            &["border", "border_color"],
+            WORKBENCH_SELECTION_ACCENT,
+        );
+        set_toml_string_aliases(
+            values,
+            &["foreground", "foreground_color"],
+            WORKBENCH_TOGGLE_SELECTED_THUMB,
+        );
+    }
+}
+
+fn active_workbench_selection_control(node: &RetainedUiHostNodeModel) -> bool {
+    node.checked
+        || bool_property(&node.properties, "checked")
+        || bool_property(&node.properties, "selected")
+}
+
+fn is_workbench_checkbox_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
+    component_role == "checkbox"
+        || matches!(node.component.as_str(), "Checkbox" | "WorkbenchCheckbox")
+        || node
+            .control_id
+            .as_deref()
+            .is_some_and(|control_id| control_id.contains("Checkbox"))
+}
+
+fn is_workbench_radio_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
+    component_role == "radio"
+        || matches!(node.component.as_str(), "Radio" | "WorkbenchRadio")
+        || node
+            .control_id
+            .as_deref()
+            .is_some_and(|control_id| control_id.contains("Radio"))
+}
+
+fn is_workbench_toggle_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
+    component_role == "toggle"
+        || matches!(
+            node.component.as_str(),
+            "Toggle" | "Switch" | "WorkbenchToggle" | "WorkbenchSwitch"
+        )
+        || node
+            .control_id
+            .as_deref()
+            .is_some_and(|control_id| control_id.contains("Toggle"))
+}
+
+fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&str], value: &str) {
+    for key in keys {
+        values.insert((*key).to_string(), toml::Value::String(value.to_string()));
+    }
+}
+
+fn projected_workbench_text(node: &RetainedUiHostNodeModel, component_role: &str) -> String {
+    let authored_text = first_string_property(&node.properties, &["text", "label"]);
+    if prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
+        authored_text
+            .or_else(|| node.text.clone())
+            .unwrap_or_default()
+    } else {
+        node.text.clone().or(authored_text).unwrap_or_default()
+    }
+}
+
+fn prefers_authored_text_over_rendered_text(component: &str, component_role: &str) -> bool {
+    matches!(
+        component_role,
+        "button"
+            | "toggle"
+            | "tab"
+            | "tabs"
+            | "tab-list"
+            | "segmented-control"
+            | "checkbox"
+            | "radio"
+            | "icon-button"
+    ) || matches!(
+        component,
+        "Button"
+            | "Toggle"
+            | "ToggleButton"
+            | "Switch"
+            | "Checkbox"
+            | "Radio"
+            | "RadioField"
+            | "SegmentedControl"
+            | "Tab"
+            | "Tabs"
+            | "TabList"
+            | "IconButton"
+    )
+}
+
+fn projected_workbench_value_text(
+    node: &RetainedUiHostNodeModel,
+    component_role: &str,
+    button_style_values: &BTreeMap<String, toml::Value>,
+) -> String {
+    display_node_value_text(node, component_role)
+        .or_else(|| projected_notification_center_value_text(component_role, button_style_values))
+        .or_else(|| first_string_property(&node.properties, &["value_text"]))
+        .or_else(|| display_value_property_for_node(node, component_role))
+        .unwrap_or_default()
+}
+
+fn display_node_value_text(node: &RetainedUiHostNodeModel, component_role: &str) -> Option<String> {
+    if !uses_value_property_as_display_text(node.component.as_str(), component_role) {
+        return None;
+    }
+
+    node.value_text.clone()
+}
+
+fn display_value_property_for_node(
+    node: &RetainedUiHostNodeModel,
+    component_role: &str,
+) -> Option<String> {
+    if !uses_value_property_as_display_text(node.component.as_str(), component_role) {
+        return None;
+    }
+
+    first_string_property(&node.properties, &["value"])
+}
+
+fn uses_value_property_as_display_text(component: &str, component_role: &str) -> bool {
+    matches!(
+        component_role,
+        "input-field"
+            | "number-field"
+            | "range-field"
+            | "slider"
+            | "range-slider"
+            | "segmented-control"
+            | "combo-box"
+            | "dropdown"
+            | "enum-field"
+            | "flags-field"
+            | "search-select"
+            | "asset-field"
+            | "object-field"
+            | "instance-field"
+    ) || matches!(
+        component,
+        "InputField"
+            | "TextField"
+            | "LineEdit"
+            | "NumberField"
+            | "RangeField"
+            | "Slider"
+            | "RangeSlider"
+            | "SegmentedControl"
+            | "ComboBox"
+            | "Dropdown"
+            | "EnumField"
+            | "FlagsField"
+            | "SearchSelect"
+            | "AssetField"
+            | "ObjectField"
+            | "InstanceField"
     )
 }
 
@@ -709,5 +950,105 @@ fn toml_value_from_host_value(value: &RetainedUiHostValue) -> Option<toml::Value
                 .filter_map(|(key, value)| Some((key.clone(), toml_value_from_host_value(value)?)))
                 .collect(),
         )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::template_runtime::RetainedUiHostComponentKind;
+
+    #[test]
+    fn workbench_button_text_prefers_authored_label_over_value_render_text() {
+        let node = test_host_node(
+            "Button",
+            "button",
+            Some("thumbnail"),
+            [("text", "Thumb"), ("value", "thumbnail")],
+        );
+
+        assert_eq!(projected_workbench_text(&node, "button"), "Thumb");
+    }
+
+    #[test]
+    fn workbench_input_text_keeps_rendered_value_display_semantics() {
+        let node = test_host_node(
+            "TextField",
+            "input-field",
+            Some("albedo"),
+            [("text", "Search"), ("value", "albedo")],
+        );
+
+        assert_eq!(projected_workbench_text(&node, "input-field"), "albedo");
+    }
+
+    #[test]
+    fn workbench_segmented_control_projects_selected_value_text() {
+        let node = test_host_node(
+            "SegmentedControl",
+            "segmented-control",
+            None,
+            [("value", "grid")],
+        );
+
+        assert_eq!(
+            projected_workbench_value_text(&node, "segmented-control", &BTreeMap::new()),
+            "grid"
+        );
+    }
+
+    fn test_host_node<const N: usize>(
+        component: &str,
+        component_role: &str,
+        text: Option<&str>,
+        properties: [(&str, &str); N],
+    ) -> RetainedUiHostNodeModel {
+        RetainedUiHostNodeModel {
+            node_id: "test-node".to_string(),
+            parent_id: None,
+            kind: RetainedUiHostComponentKind::from_component(component),
+            component: component.to_string(),
+            control_id: Some("test-control".to_string()),
+            frame: UiFrame::new(0.0, 0.0, 100.0, 24.0),
+            clip_frame: None,
+            z_index: 0,
+            text: text.map(str::to_string),
+            icon: None,
+            component_role: Some(component_role.to_string()),
+            value_text: None,
+            validation_level: None,
+            validation_message: None,
+            popup_open: false,
+            has_popup_anchor: false,
+            popup_anchor_x: 0.0,
+            popup_anchor_y: 0.0,
+            selection_state: None,
+            options_text: None,
+            options: Vec::new(),
+            collection_items: Vec::new(),
+            menu_items: Vec::new(),
+            accepted_drag_payloads: Vec::new(),
+            drop_source_summary: None,
+            checked: false,
+            expanded: false,
+            focused: false,
+            hovered: false,
+            pressed: false,
+            dragging: false,
+            drop_hovered: false,
+            active_drag_target: false,
+            disabled: false,
+            properties: properties
+                .into_iter()
+                .map(|(key, value)| {
+                    (
+                        key.to_string(),
+                        RetainedUiHostValue::String(value.to_string()),
+                    )
+                })
+                .collect(),
+            style_tokens: BTreeMap::new(),
+            routes: Vec::new(),
+        }
     }
 }

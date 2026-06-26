@@ -1,5 +1,7 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!("#[allow(", "dead_code", ")]");
+
 #[test]
 fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
     let ui_mod = read_runtime_src("ui/mod.rs");
@@ -28,7 +30,7 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
         ],
     );
     assert!(
-        !ui_mod.contains("#[allow(dead_code)]"),
+        !ui_mod.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "ui root should not hide runtime UI dead code behind allow(dead_code)"
     );
     assert!(
@@ -115,7 +117,7 @@ fn runtime_15_runtime_owned_dead_code_suppression_cleanup() {
         ("core runtime module entry", module_entry.as_str()),
     ] {
         assert!(
-            !source.contains("#[allow(dead_code)]"),
+            !source.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
             "{label} should expose live code or test-only reads instead of dead-code suppression"
         );
     }
@@ -184,7 +186,7 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert!(
-        !builtin_host_modules.contains("#[allow(dead_code)]"),
+        !builtin_host_modules.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "script host descriptors should keep value layouts live without dead-code suppression"
     );
     assert_contains_all(
@@ -244,7 +246,7 @@ fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert!(
-        !reflection_docs.contains("#[allow(dead_code)]"),
+        !reflection_docs.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "reflection_docs macro fixtures should be exercised by test assertions instead of dead-code suppression"
     );
     assert_contains_all(
@@ -282,6 +284,56 @@ fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code() {
 }
 
 #[test]
+fn runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed() {
+    let child =
+        read_runtime_src("tests/runtime_absorption/structure_convention/runtime_dead_code.rs");
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+    );
+
+    assert!(
+        !child.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
+        "runtime dead-code guard should not embed the forbidden attribute as a source literal"
+    );
+    assert_contains_all(
+        "runtime dead-code guard constant-backed forbidden attribute",
+        &child,
+        &[
+            "const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!(\"#[allow(\", \"dead_code\", \")]\");",
+            "!ui_mod.contains(DEAD_CODE_ALLOW_ATTRIBUTE)",
+            "!builtin_host_modules.contains(DEAD_CODE_ALLOW_ATTRIBUTE)",
+            "runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed",
+        ],
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 runtime dead-code guard forbidden attribute literal cleanup",
+                "runtime_15_runtime_dead_code_guard_literal_cleanup_static_passed_cargo_deferred",
+                "structure_convention/runtime_dead_code.rs",
+                "runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed",
+            ],
+        );
+    }
+}
+
+#[test]
 fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child =
@@ -310,6 +362,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
         "fn runtime_15_runtime_owned_dead_code_suppression_cleanup",
         "fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code",
         "fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code",
+        "fn runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed",
     ] {
         assert!(
             !parent.contains(moved_guard),
@@ -352,6 +405,132 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
             ],
         );
     }
+}
+
+#[test]
+fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
+    let src_root = runtime_src_path("");
+    let mut production_sources = Vec::new();
+    collect_production_rust_sources(&src_root, &src_root, &mut production_sources);
+    production_sources.sort();
+
+    assert!(
+        production_sources.len() > 100,
+        "production dead-code scan should cover the runtime source tree; got {} files",
+        production_sources.len()
+    );
+
+    let mut violations = Vec::new();
+    for path in &production_sources {
+        let source = std::fs::read_to_string(path)
+            .unwrap_or_else(|error| panic!("failed to read production source `{path:?}`: {error}"));
+        if source.contains(DEAD_CODE_ALLOW_ATTRIBUTE) {
+            let relative = path
+                .strip_prefix(&src_root)
+                .unwrap_or(path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            violations.push(relative);
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "production runtime sources should not use dead-code suppression: {violations:?}"
+    );
+
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let session_note =
+        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
+    let status_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+    );
+    let date_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+    );
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M5 production dead-code suppression global gate",
+                "runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred",
+                "structure_convention/runtime_dead_code.rs",
+                "runtime_15_production_sources_do_not_allow_dead_code_suppression",
+            ],
+        );
+    }
+
+    assert_contains_all(
+        "Runtime 15 status map",
+        &status_map,
+        &[
+            "Runtime 15 M5 production dead-code suppression global gate",
+            "runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred",
+        ],
+    );
+    assert_contains_all(
+        "Runtime 15 date map",
+        &date_map,
+        &["Runtime 15 M5 production dead-code suppression global gate"],
+    );
+}
+
+fn collect_production_rust_sources(
+    src_root: &std::path::Path,
+    current_dir: &std::path::Path,
+    sources: &mut Vec<std::path::PathBuf>,
+) {
+    for entry in std::fs::read_dir(current_dir)
+        .unwrap_or_else(|error| panic!("failed to read directory `{current_dir:?}`: {error}"))
+    {
+        let entry = entry.unwrap_or_else(|error| {
+            panic!("failed to read directory entry under `{current_dir:?}`: {error}")
+        });
+        let path = entry.path();
+        if path.is_dir() {
+            collect_production_rust_sources(src_root, &path, sources);
+        } else if is_production_rust_source(src_root, &path) {
+            sources.push(path);
+        }
+    }
+}
+
+fn is_production_rust_source(root: &std::path::Path, path: &std::path::Path) -> bool {
+    if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+        return false;
+    }
+
+    let file_name = path
+        .file_name()
+        .and_then(|file_name| file_name.to_str())
+        .unwrap_or_default();
+    if file_name == "tests.rs" || file_name.ends_with("_tests.rs") {
+        return false;
+    }
+
+    let relative = path.strip_prefix(root).unwrap_or(path);
+    !relative.components().any(|component| match component {
+        std::path::Component::Normal(name) => name == std::ffi::OsStr::new("tests"),
+        _ => false,
+    })
 }
 
 fn read_runtime_src(relative: &str) -> String {

@@ -38,3 +38,31 @@ fn selection_controls_loading_state_uses_unavailable_visuals() {
         assert_eq!(style.label, PALETTE.text_disabled);
     }
 }
+
+#[test]
+fn selection_controls_checked_state_uses_low_emphasis_markers() {
+    let mut node = TemplatePaneNodeData::default();
+    node.checked = true;
+    node.selected = true;
+    node.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(53, 199, 208, 255)));
+    node.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(49, 191, 201, 255)));
+    node.button_style.element.foreground_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(255, 255, 255, 255)));
+
+    let checkbox =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Checkbox);
+    let radio =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Radio);
+    let toggle =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Toggle);
+
+    assert_eq!(checkbox.surface, PALETTE.surface_selected);
+    assert_eq!(checkbox.border, PALETTE.accent);
+    assert_eq!(radio.surface, PALETTE.surface_pressed);
+    assert_eq!(radio.border, PALETTE.separator_strong);
+    assert_eq!(toggle.surface, PALETTE.surface_selected);
+    assert_eq!(toggle.border, PALETTE.accent);
+    assert_eq!(toggle.thumb, PALETTE.text);
+}

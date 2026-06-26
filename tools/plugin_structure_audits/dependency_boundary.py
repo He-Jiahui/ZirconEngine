@@ -213,16 +213,29 @@ def collect_dist_distribution_violations(
         "engine_compat",
         "dist_crate",
         "descriptor_symbol",
-        "runtime_entry",
     ):
         string_field(display_path, distribution, f"distribution.{field}", violations)
+    runtime_entry = optional_string_field(
+        display_path,
+        distribution,
+        "distribution.runtime_entry",
+        violations,
+    )
+    editor_entry = optional_string_field(
+        display_path,
+        distribution,
+        "distribution.editor_entry",
+        violations,
+    )
+    if runtime_entry is None and editor_entry is None:
+        violations.append(
+            f"{display_path}: distribution must declare runtime_entry or editor_entry"
+        )
     abi_version = distribution.get("abi_version")
     if not isinstance(abi_version, int) or abi_version <= 0:
         violations.append(
             f"{display_path}: distribution.abi_version must be a positive integer"
         )
-    if "editor_entry" in distribution:
-        string_field(display_path, distribution, "distribution.editor_entry", violations)
     if "assets" in distribution:
         string_array_field(display_path, distribution, "distribution.assets", violations)
 
@@ -476,6 +489,18 @@ def string_field(
         )
         return None
     return value
+
+
+def optional_string_field(
+    display_path: str,
+    table: dict[str, Any],
+    field_label: str,
+    violations: list[str],
+) -> str | None:
+    field = field_label.split(".")[-1]
+    if field not in table:
+        return None
+    return string_field(display_path, table, field_label, violations)
 
 
 def read_toml(path: Path, violations: list[str]) -> dict[str, Any] | None:

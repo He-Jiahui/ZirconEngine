@@ -18,6 +18,7 @@ pub use readiness::{
 pub use shader_asset::ShaderAsset;
 pub use zshader::{
     ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
-    ShaderTextureSlotAsset, ZShaderDefinitionValueDocument, ZShaderDocument,
-    ZShaderEntryPointDocument, ZShaderImportDocument, ZShaderTextureSlotDocument,
+    ShaderTextureSlotAsset, ZShaderDefinitionError, ZShaderDefinitionResult,
+    ZShaderDefinitionValueDocument, ZShaderDocument, ZShaderEntryPointDocument,
+    ZShaderImportDocument, ZShaderTextureSlotDocument,
 };

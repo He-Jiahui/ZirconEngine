@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::identity::is_add_component_button;
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
-const BUTTON_RADIUS: f32 = 7.0;
 const ADD_COMPONENT_OFFSET_Y: f32 = 1.5;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_paint_rect(
@@ -24,7 +24,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     let radius = if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
         node.corner_radius
     } else {
-        BUTTON_RADIUS
+        METRICS.radius_control
     };
     radius.min(rect.height * 0.5).max(0.0)
 }

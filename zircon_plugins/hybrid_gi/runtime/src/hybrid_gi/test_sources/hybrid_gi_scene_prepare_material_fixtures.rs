@@ -788,6 +788,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -799,6 +800,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 2,
@@ -830,6 +832,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -841,6 +844,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
         ],
     };

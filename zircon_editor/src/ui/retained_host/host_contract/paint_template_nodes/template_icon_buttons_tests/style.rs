@@ -1,5 +1,6 @@
-use super::super::{icon_button_context, icon_button_style, IconButtonContext, ICON_PANEL_RADIUS};
+use super::super::{icon_button_context, icon_button_style, IconButtonContext};
 use super::support::{icon_node, resolved_panel_surface, resolved_panel_surface_with_radius};
+use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::{ResolvedButtonStyle, UiPainterResolvedState};
 
 #[test]
@@ -46,7 +47,7 @@ fn panel_icon_button_uses_declared_surface_and_border() {
     );
     assert_eq!(
         icon_button_style(&node, IconButtonContext::Panel).background,
-        Some([47, 70, 80, 255])
+        Some(PALETTE.surface_hover)
     );
 }
 
@@ -68,10 +69,10 @@ fn panel_icon_button_uses_declared_radius_before_panel_default() {
     );
 
     node.button_style = ResolvedButtonStyle::default();
-    node.corner_radius = 5.0;
+    node.corner_radius = 3.0;
     assert_eq!(
         icon_button_style(&node, IconButtonContext::Panel).radius,
-        ICON_PANEL_RADIUS
+        METRICS.radius_control
     );
 
     node.corner_radius = 10.0;
@@ -101,7 +102,7 @@ fn panel_danger_icon_button_honors_declared_border_before_error_fallback() {
     node.button_style = ResolvedButtonStyle::default();
     assert_eq!(
         icon_button_style(&node, IconButtonContext::Panel).border,
-        Some([239, 112, 102, 255])
+        Some(PALETTE.error)
     );
 }
 
@@ -121,9 +122,9 @@ fn icon_button_style_selector_uses_shared_state_priority() {
     let style = icon_button_style(&node, icon_button_context(&node));
 
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
-    assert_eq!(style.background, Some([16, 60, 74, 255]));
-    assert_eq!(style.border, Some([128, 234, 255, 255]));
-    assert_eq!(style.glyph, [128, 234, 255, 255]);
+    assert_eq!(style.background, Some(PALETTE.surface_pressed));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.glyph, PALETTE.focus_ring);
 
     node.disabled = true;
     let disabled_style = icon_button_style(&node, icon_button_context(&node));
@@ -131,5 +132,17 @@ fn icon_button_style_selector_uses_shared_state_priority() {
     assert_eq!(disabled_style.background, None);
     assert_eq!(disabled_style.border, None);
     assert_eq!(disabled_style.border_width, 1.0);
-    assert_eq!(disabled_style.glyph, [88, 101, 108, 255]);
+    assert_eq!(disabled_style.glyph, PALETTE.text_disabled);
+}
+
+#[test]
+fn dock_tab_close_button_uses_toolbar_context_without_persistent_panel_surface() {
+    let node = icon_node("DockTabClose0", "close-outline", false, 20.0, 20.0);
+    let context = icon_button_context(&node);
+    let style = icon_button_style(&node, context);
+
+    assert_eq!(context, IconButtonContext::Toolbar);
+    assert_eq!(style.background, None);
+    assert_eq!(style.border, None);
+    assert_eq!(style.border_width, 0.0);
 }

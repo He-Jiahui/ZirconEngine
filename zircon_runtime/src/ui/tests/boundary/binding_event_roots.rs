@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn binding_api_moves_under_binding_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let binding_mod_source = include_str!("../binding/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let binding_mod_source = include_str!("../../binding/mod.rs");
     let interface_binding_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/binding/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/binding/mod.rs");
 
     assert!(
         lib_source.contains("pub mod binding;"),
@@ -53,10 +53,10 @@ fn binding_api_moves_under_binding_namespace() {
 
 #[test]
 fn event_ui_api_moves_under_event_ui_namespace() {
-    let lib_source = include_str!("../mod.rs");
-    let event_ui_mod_source = include_str!("../event_ui/mod.rs");
+    let lib_source = include_str!("../../mod.rs");
+    let event_ui_mod_source = include_str!("../../event_ui/mod.rs");
     let interface_event_ui_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/event_ui/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/event_ui/mod.rs");
 
     assert!(
         lib_source.contains("pub mod event_ui;"),
@@ -146,9 +146,9 @@ fn event_ui_api_moves_under_event_ui_namespace() {
 
 #[test]
 fn dispatch_root_stays_structural_after_folder_split() {
-    let dispatch_mod_source = include_str!("../dispatch/mod.rs");
+    let dispatch_mod_source = include_str!("../../dispatch/mod.rs");
     let interface_dispatch_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/dispatch/mod.rs");
 
     for required in ["mod navigation;", "mod pointer;"] {
         assert!(
@@ -200,9 +200,9 @@ fn dispatch_root_stays_structural_after_folder_split() {
 
 #[test]
 fn surface_root_stays_structural_after_folder_split() {
-    let surface_mod_source = include_str!("../surface/mod.rs");
+    let surface_mod_source = include_str!("../../surface/mod.rs");
     let interface_surface_mod_source =
-        include_str!("../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
+        include_str!("../../../../../zircon_runtime_interface/src/ui/surface/mod.rs");
 
     for required in ["mod render;", "mod surface;"] {
         assert!(

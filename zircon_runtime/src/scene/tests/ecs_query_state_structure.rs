@@ -225,7 +225,7 @@ fn query_state_empty_helpers_scan_directly() {
 
 #[test]
 fn query_state_many_item_collection_uses_direct_initialized_array_read() {
-    let helpers = include_str!("../ecs/query/query_state/helpers.rs");
+    let helpers = include_str!("../ecs/query/query_state/many_item_array.rs");
     let collect_many = helpers
         .split("pub(super) fn collect_many_query_items")
         .nth(1)

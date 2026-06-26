@@ -11,6 +11,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 render shader template assembly guard WGSL contracts split",
+        &[
+            "runtime_15_render_shader_template_assembly_guard_wgsl_contracts_split_static_passed_cargo_deferred",
+            "structure_convention/production_file_budget/render_shader_template_assembly.rs",
+            "structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs",
+            "runtime_15_render_shader_template_wgsl_contracts_are_child_owner",
+        ],
+    ),
+    (
         "Runtime 15 M3 status output variable evidence anchors",
         &[
             "runtime_15_status_output_variable_evidence_anchors_static_passed_cargo_deferred",
@@ -55,6 +64,16 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "plan_status/status_output_tables/expected_slices/status/pre_runtime_15/runtime_01_05.rs",
             "plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_11_14.rs",
             "runtime_15_status_output_expected_slice_legacy_group_maps_are_child_owners",
+        ],
+    ),
+    (
+        "Runtime 15 M3 status output expected-slice guard child-owner split",
+        &[
+            "runtime_15_status_output_expected_slice_guard_child_owner_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_group_maps.rs",
+            "runtime_15_status_output_expected_slice_guard_child_owner_split",
         ],
     ),
 ];

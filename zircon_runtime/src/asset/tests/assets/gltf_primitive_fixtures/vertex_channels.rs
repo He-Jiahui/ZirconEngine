@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(super) fn write_tangent_color_triangle_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_tangent_color_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("tangent_color_triangle.bin");
     let gltf_path = root.join("tangent_color_triangle.gltf");
 
@@ -97,7 +97,7 @@ pub(super) fn write_tangent_color_triangle_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
-pub(super) fn write_uv_channel_triangle_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_uv_channel_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("uv_channel_triangle.bin");
     let gltf_path = root.join("uv_channel_triangle.gltf");
 
@@ -210,7 +210,7 @@ pub(super) fn write_uv_channel_triangle_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
-pub(super) fn write_skinned_triangle_gltf(root: &Path) -> PathBuf {
+pub(in super::super) fn write_skinned_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("skinned_triangle.bin");
     let gltf_path = root.join("skinned_triangle.gltf");
 

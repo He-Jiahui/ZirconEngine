@@ -7,6 +7,8 @@ related_code:
   - zircon_runtime/src/asset/artifact/cache_payload/mesh.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
@@ -23,6 +25,8 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/cache_payload/mesh.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
   - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
@@ -33,6 +37,7 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_mesh_references
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_camera_targets
@@ -40,6 +45,7 @@ tests:
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_script_binding_json_values
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata
   - zircon_runtime/src/asset/tests/project/zmeta.rs::project_manager_imports_compound_zshader_package_with_subassets
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs::runtime_15_asset_artifact_cache_ui_documents_are_child_owner
 doc_type: module-detail
 ---
 
@@ -71,13 +77,15 @@ The dedicated cache layer currently protects these known problematic shapes:
 - Scene joint metadata that uses physics constraint metadata with custom deserialization behavior.
 - UI v1/v2 document assets whose interface DTOs rely on TOML-like dynamic values and parser-owned validation.
 
-The cache wire owner is folder-backed where the payload family has its own conversion rules. `cache_payload/json_value.rs` owns bincode-safe JSON canonical values for data assets and scene script bindings. `cache_payload/mesh.rs` owns mesh attributes, indices, morph targets, skin, and virtual-geometry wire conversion. `cache_payload/toml_value.rs` owns TOML table/value conversion for material properties and shader editor metadata.
+The cache wire owner is folder-backed where the payload family has its own conversion rules. `cache_payload/json_value.rs` owns bincode-safe JSON canonical values for data assets and scene script bindings. `cache_payload/mesh.rs` owns mesh attributes, indices, morph targets, skin, and virtual-geometry wire conversion. `cache_payload/toml_value.rs` owns TOML table/value conversion for material properties and shader editor metadata. `cache_payload/ui.rs` owns the UI v1/v2 document TOML normalization cache boundary.
 
 The scene cache structs in `cache_payload/scene.rs` keep the runtime cache independent from authoring convenience syntax. `SceneCameraTargetAsset`, `SceneColliderShapeAsset`, and `PhysicsJointConstraintMetadata` are converted into cache-local structs or enums before bincode serialization and converted back after cache reads. `SceneMeshInstanceAsset` and `SceneMeshLodLevelAsset` now also protect direct binary serialization by writing all fields whenever `Serializer::is_human_readable()` is false, while their TOML/JSON-style output still omits absent or default authoring fields.
 
 Shader cache payloads follow the same rule. `ShaderImportRedirectAsset` and `ShaderTextureSlotAsset` remain authoring-facing TOML structs, while the `.zasset` cache stores `ArtifactCacheShaderImportRedirectAsset` and `ArtifactCacheShaderTextureSlotAsset`. That keeps `redirect`, `default`, `sampler`, `group`, and `label` present in the bincode stream even when their values are `None`, instead of letting authoring `skip_serializing_if` attributes shift the following bytes into invalid enum tags.
 
 UI cache payloads use a normalized text document boundary for the v1 and v2 UI document families. `UiLayoutAsset`, `UiWidgetAsset`, `UiStyleAsset`, `UiV2ViewAsset`, `UiV2ComponentAsset`, and `UiV2StyleAsset` serialize their validated document DTO back to TOML text before bincode caching, then restore through the typed `from_toml_str(...)` parsers after cache reads. `UiThemeAsset` and `UiIconAsset` remain direct cache variants because their payload structs are already bincode-compatible and do not require `deserialize_any`.
+
+Runtime 15 M4 records `Runtime 15 M4 asset artifact cache UI document owner split` with status `runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred`. `asset/artifact/cache_payload.rs` remains the artifact cache dispatcher, while `asset/artifact/cache_payload/ui.rs` owns `ArtifactCacheUiAssetDocument` and `ArtifactCacheUiV2AssetDocument`. The guard `runtime_15_asset_artifact_cache_ui_documents_are_child_owner` keeps the parent and child under the production-file budget and prevents UI document conversion helpers from drifting back into the dispatcher.
 
 Runtime 04 F7 keeps the cache boundary error contract typed. `ArtifactCacheAsset::from_imported(...)`, `ArtifactCacheAsset::into_imported(...)`, and TOML cache conversion now return `AssetImportError` rather than `Result<_, String>`. `AssetImportError::TomlSerialize`, `AssetImportError::TomlDeserialize`, `AssetImportError::CachedTomlDatetime`, `AssetImportError::UiDocument`, `AssetImportError::UiV2Document`, `AssetImportError::ArtifactCacheSerialize`, and `AssetImportError::ArtifactCacheDeserialize` keep the source error visible to callers. `AssetImportError::Registry(#[from] AssetImporterRegistryError)` also preserves importer registry failures without lossy `error.to_string()` conversion; `asset_import_error_preserves_registry_error_source` and `review_f7_asset_artifact_errors_use_asset_import_error_sources` lock the behavior and structure.
 

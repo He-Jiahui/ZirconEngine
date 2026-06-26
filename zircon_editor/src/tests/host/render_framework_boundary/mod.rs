@@ -84,6 +84,11 @@ fn editor_viewport_interaction_boundary_lives_in_editor_crate() {
 fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
     let app_source = include_str!("../../../ui/retained_host/app.rs");
     let host_window_source = include_str!("../../../ui/retained_host/host_contract/window.rs");
+    let host_window_event_loop_source =
+        include_str!("../../../ui/retained_host/host_contract/window/event_loop.rs");
+    let host_window_lifecycle_presenter_source = include_str!(
+        "../../../ui/retained_host/host_contract/window/event_loop/lifecycle/presenter.rs"
+    );
     let presenter_root_source =
         include_str!("../../../ui/retained_host/host_contract/presenter/mod.rs");
     let presenter_trait_source =
@@ -108,8 +113,8 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
         "editor host manifest should use winit plus the Rust-owned software presenter"
     );
     assert!(
-        host_window_source.contains("HostChromePresenter")
-            && host_window_source.contains("create_host_chrome_presenter"),
+        host_window_event_loop_source.contains("Box<dyn HostChromePresenter>")
+            && host_window_lifecycle_presenter_source.contains("create_host_chrome_presenter"),
         "retained host window should depend on the presenter seam instead of a concrete backend"
     );
     assert!(
@@ -125,8 +130,9 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
     assert!(
         presenter_backend_source.contains("Gpu")
             && presenter_backend_source.contains("default_native()")
-            && host_window_source.contains("HostPresenterBackend::default_native()")
-            && host_window_source.contains("HostPresenterBackend::fallback()"),
+            && host_window_lifecycle_presenter_source
+                .contains("HostPresenterBackend::default_native()")
+            && host_window_lifecycle_presenter_source.contains("HostPresenterBackend::fallback()"),
         "native retained host windows should default to GPU and keep softbuffer as an explicit fallback"
     );
     assert!(
@@ -144,6 +150,8 @@ fn editor_retained_host_presenter_boundary_keeps_wgpu_inside_runtime_rhi() {
     for source in [
         app_source,
         host_window_source,
+        host_window_event_loop_source,
+        host_window_lifecycle_presenter_source,
         presenter_root_source,
         presenter_trait_source,
         presenter_backend_source,

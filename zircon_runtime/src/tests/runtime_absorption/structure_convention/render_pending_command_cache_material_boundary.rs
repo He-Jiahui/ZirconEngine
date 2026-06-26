@@ -5,8 +5,6 @@ fn runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_r
     let non_material_rebuild = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs",
     );
-    let prepass_record =
-        read_runtime_src("graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs");
     let shadow_renderer =
         read_runtime_src("graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs");
     let velocity_executor = read_runtime_src(
@@ -28,9 +26,10 @@ fn runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_r
         ],
     );
     assert_contains_all(
-        "normal prepass still requires standard material binding during replay",
-        &prepass_record,
+        "depth prepass still requires standard material binding during replay",
+        &gpu_context,
         &[
+            "ensure_depth_prepass_pipeline_for_variant",
             "bind_gpu_scene_if_needed(pass, command",
             "bind_standard_material_if_needed(pass, command)",
             "bind_geometry_if_needed(pass, command)",
@@ -43,7 +42,7 @@ fn runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_r
             "MeshPassPipelineKind::ShadowDepthAlphaMask",
             "bind_standard_material_if_needed(pass, command)",
             "MeshPassPipelineKind::ShadowDepth",
-            "pass.set_pipeline(&self.pipeline)",
+            "ensure_shadow_pipeline_for_variant",
         ],
     );
     assert_contains_all(

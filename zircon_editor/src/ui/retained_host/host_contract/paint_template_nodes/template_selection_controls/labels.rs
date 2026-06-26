@@ -3,7 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
-const SELECTION_FONT_SIZE: f32 = 11.0;
+const SELECTION_FONT_SIZE: f32 = 10.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_selection_label(
     commands: &mut Vec<HostPaintCommand>,

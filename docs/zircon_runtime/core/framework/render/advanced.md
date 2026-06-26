@@ -24,6 +24,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
@@ -36,6 +37,12 @@ related_code:
   - zircon_runtime/src/graphics/types/graphics_error.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -69,6 +76,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
@@ -81,6 +89,12 @@ implementation_files:
   - zircon_runtime/src/graphics/types/graphics_error.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -222,6 +236,10 @@ Runtime submit now consumes provider availability before advanced features reach
 - `RenderStats::last_advanced_provider_reports` records the per-feature reports from the last submit.
 
 This is submit-local profile participation. It does not replace app-level render profile bundle selection or first-party provider collection; it ensures the runtime framework does not silently treat a requested advanced feature as enabled when the required provider is absent.
+
+Plan 09 frame submission context tests owner split keeps the submit-time advanced feature gating tests out of the production owner. `graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs` now owns the `FrameSubmissionContext` runtime plan gating, advanced-provider reports, view visibility, shared `source_extract`, and TAA jitter helper, while `graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs` owns the advanced-provider gating, VG/HGI payload-source sanitizing, view-visibility, and jitter assertions. `runtime_15_render_frame_submission_context_tests_are_child_owner` locks those owners below 800 lines and records `render_plan09_frame_submission_context_tests_owner_split_static_passed_cargo_deferred_active_compile_lane` in Plan 09, render index, structure convention, review findings, advanced docs, and anti-alias docs.
+
+Render framework bridge tests owner split keeps advanced-provider framework coverage out of the bridge root. `graphics/tests/render_framework_bridge.rs` now owns shared fixtures and child mounts, while `graphics/tests/render_framework_bridge/advanced_providers.rs` owns flagship baseline, provider degradation, stale-state clearing, legacy HGI history ignore, and plugin-private history coverage. `runtime_15_render_framework_bridge_tests_are_child_owners` locks that layout and the status anchor `render_framework_bridge_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`; current evidence is scoped rustfmt/static/line-count/docs-anchor/stale-path/whitespace/diff-check only, with Cargo/WGPU/RenderDoc deferred by milestone implementation cadence.
 
 `render_framework_degrades_requested_advanced_features_without_runtime_providers` covers the negative submit path: requested VG/HGI features without runtime providers do not enter `last_effective_features`, execute zero VG/HGI graph passes, clear payload-source stats to `None`, and report `ProviderMissing` degradations. The provider-backed bridge path separately proves selected provider IDs reach stats and authored VG/HGI payloads execute with ready reports.
 

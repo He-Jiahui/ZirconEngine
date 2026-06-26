@@ -1,7 +1,7 @@
 use super::super::resolved_state_for_node;
 use super::model::WorkbenchStatusIconButtonStyle;
 use super::palette::{
-    WORKBENCH_STATUS_ICON_COLOR, WORKBENCH_STATUS_ICON_MUTED, WORKBENCH_STATUS_RIGHT_BORDER,
+    WORKBENCH_STATUS_FLAT_TRANSPARENT, WORKBENCH_STATUS_ICON_COLOR, WORKBENCH_STATUS_ICON_MUTED,
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
@@ -35,7 +35,7 @@ fn status_icon_button_background(state: UiPainterResolvedState) -> [u8; 4] {
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Hovered => PALETTE.surface_hover,
-        UiPainterResolvedState::Normal => PALETTE.surface_inset,
+        UiPainterResolvedState::Normal => WORKBENCH_STATUS_FLAT_TRANSPARENT,
     }
 }
 
@@ -52,7 +52,7 @@ fn status_icon_button_border(state: UiPainterResolvedState) -> [u8; 4] {
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered => PALETTE.focus_ring,
         UiPainterResolvedState::Hovered | UiPainterResolvedState::Normal => {
-            WORKBENCH_STATUS_RIGHT_BORDER
+            WORKBENCH_STATUS_FLAT_TRANSPARENT
         }
     }
 }

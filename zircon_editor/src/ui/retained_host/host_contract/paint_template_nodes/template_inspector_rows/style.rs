@@ -1,9 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::template_style_color::resolved_style_color;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const INSPECTOR_FONT_SIZE:
-    f32 = 11.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const INSPECTOR_FIELD_RADIUS: f32 = 4.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const RESOURCE_FIELD_BACKGROUND: [u8; 4] = [22, 28, 32, 255];
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const RESOURCE_FIELD_BORDER: [u8; 4] = [40, 50, 56, 255];
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const RESOURCE_FIELD_HOVER:

@@ -92,3 +92,5 @@ __pycache__/
 /zircon_hub/node_modules/
 /zircon_hub/web/dist/
 /zircon_hub/web/.vite/
+
+.zircon-cache/

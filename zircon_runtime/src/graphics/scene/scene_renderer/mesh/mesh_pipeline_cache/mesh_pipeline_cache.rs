@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    GeometrySourceId, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -34,12 +35,18 @@ pub(crate) struct MeshPipelineCache {
         HashMap<String, wgpu::ShaderModule>,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_variant_pipelines:
         HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) gbuffer_mesh_pipelines:
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) depth_prepass_mesh_pipelines:
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) velocity_mesh_pipelines:
-        HashMap<PipelineKey, wgpu::RenderPipeline>,
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) shadow_mesh_pipelines:
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) taa_reactive_mask_mesh_pipelines:
-        HashMap<PipelineKey, wgpu::RenderPipeline>,
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) taa_reactive_material_mask_mesh_pipelines:
-        HashMap<PipelineKey, wgpu::RenderPipeline>,
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) pipeline_variant_registry:
         MeshPipelineVariantRegistry,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_variant_disk_cache:
@@ -53,16 +60,27 @@ impl MeshPipelineCache {
         pipeline_key: &PipelineKey,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        self.pipeline_variant_registry
-            .resolve_variant(kind, pipeline_key, shader_quality)
+        self.resolve_variant_for_geometry(
+            kind,
+            pipeline_key,
+            GEOMETRY_SOURCE_ID_STATIC_MESH,
+            shader_quality,
+        )
     }
 
-    pub(crate) fn pipeline_key_for_variant(
-        &self,
-        variant_id: MeshPipelineVariantId,
-    ) -> Option<(MeshPassPipelineKind, PipelineKey)> {
-        let key = self.pipeline_variant_registry.key_for_variant(variant_id)?;
-        Some((key.kind(), key.pipeline_key().clone()))
+    pub(crate) fn resolve_variant_for_geometry(
+        &mut self,
+        kind: MeshPassPipelineKind,
+        pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
+        shader_quality: ShaderQualityTier,
+    ) -> MeshPipelineVariantId {
+        self.pipeline_variant_registry.resolve_variant_for_geometry(
+            kind,
+            pipeline_key,
+            geometry_source,
+            shader_quality,
+        )
     }
 
     pub(crate) fn pipeline_and_shader_key_for_variant(
@@ -100,15 +118,30 @@ impl MeshPipelineCache {
     pub(crate) fn record_shader_variant_compile_miss(&mut self) {
         self.pipeline_variant_registry.record_compile_miss();
     }
+
+    #[cfg(test)]
+    pub(crate) fn replace_shader_variant_disk_cache_for_tests(
+        &mut self,
+        cache: ShaderVariantCacheDisk,
+    ) {
+        self.shader_variant_disk_cache = cache;
+    }
 }
 
 impl MeshPipelineVariantResolver for MeshPipelineCache {
-    fn resolve_variant(
+    fn resolve_variant_for_geometry(
         &mut self,
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        geometry_source: GeometrySourceId,
         shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        MeshPipelineCache::resolve_variant(self, kind, pipeline_key, shader_quality)
+        MeshPipelineCache::resolve_variant_for_geometry(
+            self,
+            kind,
+            pipeline_key,
+            geometry_source,
+            shader_quality,
+        )
     }
 }

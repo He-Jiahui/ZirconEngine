@@ -1,7 +1,8 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
+use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
@@ -13,7 +14,7 @@ use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     event_ui::UiTreeId,
     layout::UiSize,
-    surface::{UiRenderCommandKind, UiTextAlign},
+    surface::{UiRenderCommand, UiRenderCommandKind, UiTextAlign},
     tree::{UiTemplateNodeMetadata, UiTreeError},
     v2::UiV2AssetError,
 };
@@ -31,6 +32,8 @@ pub(crate) struct ViewTemplateVisualAssets {
 pub enum ViewTemplateProjectionError {
     #[error("editor view projection requires v2 UI assets, got `{0}`")]
     NonV2AssetPath(String),
+    #[error("view v2 store cache mutex poisoned")]
+    V2StoreCachePoisoned,
     #[error(transparent)]
     V2Asset(#[from] UiV2AssetError),
     #[error(transparent)]
@@ -87,7 +90,7 @@ fn build_view_template_nodes_from_v2_asset(
 ) -> Result<Vec<ViewTemplateNodeData>, ViewTemplateProjectionError> {
     let outcome = view_v2_store_file_cache()
         .lock()
-        .expect("view v2 store cache mutex should not be poisoned")
+        .map_err(|_| ViewTemplateProjectionError::V2StoreCachePoisoned)?
         .load_store(v2_source_paths(layout_asset_path, style_imports))?;
     let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new(document_tree_id.to_string()),
@@ -124,6 +127,16 @@ fn view_template_nodes_from_surface(
     text_overrides: &BTreeMap<String, String>,
 ) -> Vec<ViewTemplateNodeData> {
     let render = extract_ui_render_tree(&surface.tree);
+    let component_owned_text_control_ids =
+        component_owned_text_control_ids(surface, &render.list.commands);
+    let component_owned_frame_by_control_id =
+        component_owned_frame_by_control_id(surface, &render.list.commands);
+    let component_owned_text_by_control_id = component_owned_text_by_control_id(
+        surface,
+        &render.list.commands,
+        &component_owned_text_control_ids,
+    );
+    let mut emitted_component_owned_control_ids = BTreeSet::new();
     let mut nodes = Vec::new();
     for command in render.list.commands {
         let Some(tree_node) = surface.tree.node(command.node_id) else {
@@ -132,6 +145,19 @@ fn view_template_nodes_from_surface(
         let Some(metadata) = tree_node.template_metadata.as_ref() else {
             continue;
         };
+        if should_skip_component_owned_non_text_command(
+            metadata,
+            &command.kind,
+            &component_owned_text_control_ids,
+        ) {
+            continue;
+        }
+        if should_skip_duplicate_component_owned_command(
+            metadata,
+            &mut emitted_component_owned_control_ids,
+        ) {
+            continue;
+        }
 
         let role = resolve_role(&metadata.component, &command.kind, metadata);
         if role == "Group" {
@@ -144,6 +170,8 @@ fn view_template_nodes_from_surface(
             .cloned()
             .or_else(|| string_attribute(metadata, "label"))
             .or_else(|| string_attribute(metadata, "text"))
+            .or_else(|| string_attribute(metadata, "placeholder"))
+            .or_else(|| component_owned_text_by_control_id.get(&control_id).cloned())
             .or(command.text.clone())
             .unwrap_or_default();
         let component_role = resolve_component_role(&metadata.component);
@@ -154,6 +182,7 @@ fn view_template_nodes_from_surface(
         let value_text = resolve_node_value_text(metadata, &text, component_role);
         let value_number = resolve_node_value_number(metadata);
         let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
+        let options = string_array_attribute(metadata, "options");
         let visual_assets = resolve_visual_assets(metadata);
         let button_style = resolve_button_style_from_values(&metadata.style_overrides);
         let popup_open = resolve_node_popup_open(metadata);
@@ -164,6 +193,13 @@ fn view_template_nodes_from_surface(
             .unwrap_or_else(|| if transition_in { "entered" } else { "exited" }.to_string());
         let transition_progress =
             resolve_transition_progress(metadata, transition_status.as_str(), transition_in);
+        let frame = component_owned_frame_for_command(
+            metadata,
+            &command.kind,
+            &control_id,
+            &command,
+            &component_owned_frame_by_control_id,
+        );
 
         nodes.push(ViewTemplateNodeData {
             node_id: tree_node.node_path.0.clone().into(),
@@ -175,6 +211,7 @@ fn view_template_nodes_from_surface(
             value_text: value_text.into(),
             value_number,
             value_percent,
+            options: model_rc(options.into_iter().map(SharedString::from).collect()),
             dispatch_kind: string_attribute(metadata, "dispatch_kind")
                 .unwrap_or_default()
                 .into(),
@@ -248,16 +285,160 @@ fn view_template_nodes_from_surface(
             icon_name: visual_assets.icon_name.into(),
             has_preview_image: visual_assets.has_preview_image,
             preview_image: visual_assets.preview_image,
-            frame: ViewTemplateFrameData {
-                x: command.frame.x,
-                y: command.frame.y,
-                width: command.frame.width,
-                height: command.frame.height,
-            },
+            frame,
         });
     }
 
     nodes
+}
+
+fn component_owned_text_control_ids(
+    surface: &UiSurface,
+    commands: &[UiRenderCommand],
+) -> BTreeSet<String> {
+    commands
+        .iter()
+        .filter(|command| matches!(command.kind, UiRenderCommandKind::Text))
+        .filter_map(|command| {
+            let metadata = surface
+                .tree
+                .node(command.node_id)?
+                .template_metadata
+                .as_ref()?;
+            component_owns_text_paint(metadata)
+                .then(|| metadata.control_id.clone())
+                .flatten()
+        })
+        .collect()
+}
+
+fn component_owned_frame_by_control_id(
+    surface: &UiSurface,
+    commands: &[UiRenderCommand],
+) -> BTreeMap<String, ViewTemplateFrameData> {
+    let mut frames = BTreeMap::new();
+    for command in commands
+        .iter()
+        .filter(|command| !matches!(command.kind, UiRenderCommandKind::Text))
+    {
+        let Some(metadata) = surface
+            .tree
+            .node(command.node_id)
+            .and_then(|node| node.template_metadata.as_ref())
+        else {
+            continue;
+        };
+        if !component_owns_text_paint(metadata) {
+            continue;
+        }
+        let Some(control_id) = metadata.control_id.as_ref() else {
+            continue;
+        };
+        let candidate = ViewTemplateFrameData {
+            x: command.frame.x,
+            y: command.frame.y,
+            width: command.frame.width,
+            height: command.frame.height,
+        };
+        let replace_existing = frames
+            .get(control_id)
+            .is_none_or(|existing| frame_area(&candidate) > frame_area(existing));
+        if replace_existing {
+            let _ = frames.insert(control_id.clone(), candidate);
+        }
+    }
+    frames
+}
+
+fn component_owned_text_by_control_id(
+    surface: &UiSurface,
+    commands: &[UiRenderCommand],
+    component_owned_text_control_ids: &BTreeSet<String>,
+) -> BTreeMap<String, String> {
+    commands
+        .iter()
+        .filter(|command| matches!(command.kind, UiRenderCommandKind::Text))
+        .filter_map(|command| {
+            let metadata = surface
+                .tree
+                .node(command.node_id)?
+                .template_metadata
+                .as_ref()?;
+            let control_id = metadata.control_id.as_ref()?;
+            if !component_owned_text_control_ids.contains(control_id) {
+                return None;
+            }
+            let text = command
+                .text
+                .clone()
+                .or_else(|| string_attribute(metadata, "label"))
+                .or_else(|| string_attribute(metadata, "text"))?;
+            (!text.trim().is_empty()).then(|| (control_id.clone(), text))
+        })
+        .collect()
+}
+
+fn should_skip_component_owned_non_text_command(
+    metadata: &UiTemplateNodeMetadata,
+    kind: &UiRenderCommandKind,
+    component_owned_text_control_ids: &BTreeSet<String>,
+) -> bool {
+    !matches!(kind, UiRenderCommandKind::Text)
+        && metadata
+            .control_id
+            .as_ref()
+            .is_some_and(|control_id| component_owned_text_control_ids.contains(control_id))
+        && component_owns_text_paint(metadata)
+}
+
+fn component_owned_frame_for_command(
+    metadata: &UiTemplateNodeMetadata,
+    kind: &UiRenderCommandKind,
+    control_id: &str,
+    command: &UiRenderCommand,
+    component_owned_frame_by_control_id: &BTreeMap<String, ViewTemplateFrameData>,
+) -> ViewTemplateFrameData {
+    if matches!(kind, UiRenderCommandKind::Text) && component_owns_text_paint(metadata) {
+        if let Some(frame) = component_owned_frame_by_control_id.get(control_id) {
+            return frame.clone();
+        }
+    }
+
+    ViewTemplateFrameData {
+        x: command.frame.x,
+        y: command.frame.y,
+        width: command.frame.width,
+        height: command.frame.height,
+    }
+}
+
+fn frame_area(frame: &ViewTemplateFrameData) -> f32 {
+    frame.width.max(0.0) * frame.height.max(0.0)
+}
+
+fn should_skip_duplicate_component_owned_command(
+    metadata: &UiTemplateNodeMetadata,
+    emitted_component_owned_control_ids: &mut BTreeSet<String>,
+) -> bool {
+    if !component_owns_text_paint(metadata) {
+        return false;
+    }
+    let Some(control_id) = metadata
+        .control_id
+        .as_ref()
+        .filter(|control_id| !control_id.is_empty())
+    else {
+        return false;
+    };
+
+    !emitted_component_owned_control_ids.insert(control_id.clone())
+}
+
+fn component_owns_text_paint(metadata: &UiTemplateNodeMetadata) -> bool {
+    matches!(
+        metadata.component.as_str(),
+        "Button" | "EditableTable" | "InputField" | "NumberField" | "Table" | "TextField"
+    )
 }
 
 pub(crate) fn resolve_visual_assets(metadata: &UiTemplateNodeMetadata) -> ViewTemplateVisualAssets {
@@ -684,6 +865,21 @@ fn string_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<Stri
         .map(str::to_string)
 }
 
+fn string_array_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Vec<String> {
+    metadata
+        .attributes
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
     metadata.attributes.get(key).and_then(|value| match value {
         Value::Float(value) => Some(*value as f32),
@@ -713,231 +909,4 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::BTreeMap;
-    use toml::Value;
-    use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
-
-    #[test]
-    fn view_template_projection_rejects_non_v2_asset_paths() {
-        let text_overrides = BTreeMap::new();
-        let error = build_view_template_nodes(
-            "view.archived.project_overview",
-            "/assets/ui/editor/project_overview.ui.toml",
-            &[],
-            UiSize::new(640.0, 480.0),
-            &text_overrides,
-        )
-        .unwrap_err();
-
-        assert!(matches!(
-            error,
-            ViewTemplateProjectionError::NonV2AssetPath(path)
-                if path == "/assets/ui/editor/project_overview.ui.toml"
-        ));
-    }
-
-    #[test]
-    fn v2_view_template_projection_uses_v2_surface_builder_without_legacy_fallback() {
-        let text_overrides = BTreeMap::from([(
-            "ProjectOverviewTitleText".to_string(),
-            "V2 Project".to_string(),
-        )]);
-
-        let nodes = build_view_template_nodes(
-            "view.v2.project_overview",
-            "/assets/ui/editor/project_overview.v2.ui.toml",
-            &[],
-            UiSize::new(320.0, 240.0),
-            &text_overrides,
-        )
-        .unwrap();
-
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "ProjectOverviewTitleText"
-                    && node.text == "V2 Project")
-        );
-        assert!(nodes.iter().any(|node| node.role == "Button"));
-        assert!(
-            view_v2_store_file_cache()
-                .lock()
-                .expect("v2 cache mutex should not be poisoned")
-                .len()
-                > 0
-        );
-    }
-
-    #[test]
-    fn v2_view_template_projection_reuses_cached_store_for_identical_inputs() {
-        let text_overrides = BTreeMap::new();
-        let cache = view_v2_store_file_cache();
-        cache
-            .lock()
-            .expect("v2 cache mutex should not be poisoned")
-            .clear();
-
-        let first = build_view_template_nodes(
-            "view.v2.project_overview.first",
-            "/assets/ui/editor/project_overview.v2.ui.toml",
-            &[],
-            UiSize::new(640.0, 480.0),
-            &text_overrides,
-        )
-        .unwrap();
-        let cache_len_after_first = cache
-            .lock()
-            .expect("v2 cache mutex should not be poisoned")
-            .len();
-
-        let second = build_view_template_nodes(
-            "view.v2.project_overview.second",
-            "/assets/ui/editor/project_overview.v2.ui.toml",
-            &[],
-            UiSize::new(640.0, 480.0),
-            &text_overrides,
-        )
-        .unwrap();
-        let cache_len_after_second = cache
-            .lock()
-            .expect("v2 cache mutex should not be poisoned")
-            .len();
-
-        assert!(
-            cache_len_after_first > 0,
-            "first v2 projection should populate the store file cache"
-        );
-        assert_eq!(cache_len_after_second, cache_len_after_first);
-        assert_eq!(first.len(), second.len());
-        assert_eq!(
-            first
-                .iter()
-                .find(|node| node.control_id == "ProjectOverviewTitleText")
-                .map(|node| node.text.clone()),
-            second
-                .iter()
-                .find(|node| node.control_id == "ProjectOverviewTitleText")
-                .map(|node| node.text.clone())
-        );
-    }
-
-    #[test]
-    fn mui_feedback_metadata_projects_roles_variants_open_state_and_progress_percent() {
-        let progress = metadata(
-            "Progress",
-            [
-                ("variant", Value::String("circular".to_string())),
-                ("value", Value::Float(68.0)),
-            ],
-        );
-        assert_eq!(resolve_component_role(&progress.component), "progress");
-        assert_eq!(resolve_component_variant(&progress), "circular");
-        assert_eq!(
-            resolve_node_value_percent(
-                &progress,
-                resolve_component_role(&progress.component),
-                resolve_node_value_number(&progress),
-            ),
-            0.68
-        );
-
-        let backdrop = metadata(
-            "Backdrop",
-            [
-                ("open", Value::Boolean(true)),
-                ("invisible", Value::Boolean(true)),
-            ],
-        );
-        assert_eq!(resolve_component_role(&backdrop.component), "backdrop");
-        assert_eq!(resolve_component_variant(&backdrop), "invisible");
-        assert!(resolve_node_popup_open(&backdrop));
-
-        let skeleton = metadata(
-            "Skeleton",
-            [
-                ("variant", Value::String("rounded".to_string())),
-                ("animation", Value::String("wave".to_string())),
-            ],
-        );
-        assert_eq!(resolve_component_role(&skeleton.component), "skeleton");
-        assert_eq!(resolve_component_variant(&skeleton), "rounded wave");
-
-        let fade = metadata(
-            "Fade",
-            [
-                ("in", Value::Boolean(true)),
-                ("transition_progress", Value::Float(0.5)),
-            ],
-        );
-        let fade_role = resolve_component_role(&fade.component);
-        assert_eq!(fade_role, "fade");
-        assert_eq!(resolve_transition_kind(&fade, fade_role), "fade");
-        assert!(resolve_transition_in(&fade, true, false));
-        assert_eq!(resolve_transition_progress(&fade, "entering", true), 0.5);
-        assert_eq!(default_transition_duration_ms("fade", true), 225);
-        assert_eq!(
-            default_transition_easing("fade", true),
-            "cubic-bezier(0.4, 0, 0.2, 1)"
-        );
-
-        let slide = metadata("Slide", []);
-        let slide_role = resolve_component_role(&slide.component);
-        assert_eq!(slide_role, "slide");
-        assert_eq!(resolve_transition_kind(&slide, slide_role), "slide");
-        assert_eq!(default_transition_duration_ms("slide", false), 195);
-        assert_eq!(
-            default_transition_easing("slide", true),
-            "cubic-bezier(0.0, 0, 0.2, 1)"
-        );
-
-        assert_eq!(resolve_component_role("Dialog"), "dialog");
-        assert_eq!(resolve_component_role("Popover"), "popover");
-        assert_eq!(resolve_component_role("Tooltip"), "tooltip");
-        assert_eq!(resolve_component_role("ContextMenu"), "context-menu");
-        assert_eq!(
-            resolve_component_role("ContextActionMenu"),
-            "context-action-menu"
-        );
-        assert_eq!(resolve_component_role("DropdownPopup"), "dropdown-popup");
-        assert_eq!(resolve_component_role("Snackbar"), "snackbar");
-        assert_eq!(resolve_component_role("Drawer"), "drawer");
-    }
-
-    #[test]
-    fn mui_text_field_metadata_projects_variant_state_tokens_for_native_painter() {
-        let text_field = metadata(
-            "TextField",
-            [
-                ("variant", Value::String("filled".to_string())),
-                ("focused", Value::Boolean(true)),
-                ("error", Value::Boolean(true)),
-                ("size", Value::String("small".to_string())),
-            ],
-        );
-
-        assert_eq!(resolve_component_role(&text_field.component), "input-field");
-        assert_eq!(
-            resolve_component_variant(&text_field),
-            "filled focused error small"
-        );
-
-        let default_text_field = metadata("TextField", []);
-        assert_eq!(resolve_component_variant(&default_text_field), "outlined");
-    }
-
-    fn metadata<const N: usize>(
-        component: &str,
-        attributes: [(&str, Value); N],
-    ) -> UiTemplateNodeMetadata {
-        UiTemplateNodeMetadata {
-            component: component.to_string(),
-            attributes: attributes
-                .into_iter()
-                .map(|(key, value)| (key.to_string(), value))
-                .collect(),
-            ..UiTemplateNodeMetadata::default()
-        }
-    }
-}
+mod tests;

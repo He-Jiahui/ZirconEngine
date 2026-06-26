@@ -146,7 +146,7 @@ button_color = "secondary"
         checkbox.style.painter_state,
         UiPainterResolvedState::Selected
     );
-    assert_eq!(checkbox.style.background_color.as_deref(), Some("#209fa8"));
+    assert_eq!(checkbox.style.background_color.as_deref(), Some("#173942"));
 
     let slider = component_surface(
         &surface.render_extract.list.commands,

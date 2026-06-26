@@ -25,7 +25,7 @@ fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let calls_for_method = Arc::clone(&calls);
 
-    super::super::super::register_bridge_host_module(
+    super::super::register_bridge_host_module(
         &exports,
         table.clone(),
         [ScriptBridgeMethodDescriptor::new(
@@ -108,7 +108,7 @@ fn bridge_host_module_registers_methods_from_package_manifest() {
             ),
     );
 
-    super::super::super::register_bridge_host_module_from_manifest(
+    super::super::register_bridge_host_module_from_manifest(
         &exports,
         table,
         &manifest,
@@ -168,11 +168,10 @@ fn bridge_host_module_rejects_manifest_method_without_binding() {
             .with_method(PluginInterfaceMethodManifest::new("sample_temperature", 9)),
     );
 
-    let error =
-        match super::super::super::script_bridge_method_descriptors_from_manifest(&manifest, []) {
-            Ok(_) => panic!("manifest method without binding should be rejected"),
-            Err(error) => error,
-        };
+    let error = match super::super::script_bridge_method_descriptors_from_manifest(&manifest, []) {
+        Ok(_) => panic!("manifest method without binding should be rejected"),
+        Err(error) => error,
+    };
 
     assert!(format!("{error}").contains("declared but has no binding"));
 }
@@ -190,7 +189,7 @@ fn bridge_host_module_reports_disabled_bridge_to_vm_callers() {
         .unwrap();
     table.set_enabled(slot, false).unwrap();
     let exports = HostExportRegistry::default();
-    super::super::super::register_bridge_host_module(
+    super::super::register_bridge_host_module(
         &exports,
         table,
         [ScriptBridgeMethodDescriptor::new(

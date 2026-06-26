@@ -1,0 +1,38 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/floating/workbench_command_palette.zui"
+version = 2
+display_name = "Workbench Command Palette"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+]
+styles = [
+  "res://ui/theme/editor_workbench_strict.v2.ui.toml",
+  "res://ui/editor/theme/editor_tokens.v2.ui.toml",
+]
+
+[components.WorkbenchCommandPalette]
+root = "palette"
+default_classes = ["workbench-floating", "workbench-command-palette"]
+
+[nodes.palette]
+component = "Panel"
+control_id = "WorkbenchCommandPalette"
+classes = ["workbench-floating", "workbench-command-palette"]
+style = { self = { background = { color = "editor.surface.1" }, foreground = { color = "editor.text.primary" }, border = { color = "editor.border", width = 1.0, radius = 8.0 } } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 520.0, preferred = 640.0, max = 760.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 320.0, max = 520.0, stretch = "Fixed" } }
+children = [{ node = "search" }, { node = "first_result" }]
+
+[nodes.search]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchCommandPaletteSearch"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.first_result]
+component = "WorkbenchListRow"
+control_id = "WorkbenchCommandPaletteFirstResult"
+props = { label = "Open command" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }

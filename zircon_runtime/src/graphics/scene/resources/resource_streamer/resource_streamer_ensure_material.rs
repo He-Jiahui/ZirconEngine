@@ -325,7 +325,6 @@ impl ResourceStreamer {
             double_sided: descriptor.double_sided,
             #[cfg(test)]
             alpha_blend,
-            #[cfg(test)]
             alpha_cutoff,
             #[cfg(test)]
             lighting_model: lighting_model.clone(),
@@ -363,6 +362,7 @@ impl ResourceStreamer {
                 alpha_blend,
                 alpha_mask,
                 alpha_cutoff_bits: alpha_cutoff.map(f32::to_bits),
+                receive_shadows: descriptor.receive_shadows,
                 shading_model_id,
                 unlit,
                 has_base_color_texture: descriptor.base_color_texture.is_some(),

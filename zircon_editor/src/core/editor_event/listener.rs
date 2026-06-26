@@ -79,7 +79,7 @@ impl EditorEventListenerFilter {
             if !self
                 .operation_path_prefixes
                 .iter()
-                .any(|prefix| operation_id.starts_with(prefix))
+                .any(|prefix| operation_id.starts_with(&normalize_operation_path_prefix(prefix)))
             {
                 return false;
             }
@@ -107,6 +107,10 @@ impl EditorEventListenerFilter {
         }
         self.include_successes
     }
+}
+
+fn normalize_operation_path_prefix(prefix: &str) -> String {
+    prefix.trim().to_ascii_lowercase()
 }
 
 fn default_filter_includes_events() -> bool {

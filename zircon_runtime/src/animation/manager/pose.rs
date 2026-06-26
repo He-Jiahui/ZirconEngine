@@ -3,7 +3,7 @@ use crate::asset::{
     AnimationSkeletonBoneAsset,
 };
 use crate::core::framework::animation::{
-    AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
+    AnimationError, AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource, AnimationResult,
 };
 use crate::core::math::{Quat, Real, Transform, Vec3};
 
@@ -18,13 +18,13 @@ pub(super) fn sample_clip_pose(
     clip: &AnimationClipAsset,
     time_seconds: Real,
     looping: bool,
-) -> Result<AnimationPoseOutput, String> {
+) -> AnimationResult<AnimationPoseOutput> {
     let sample_time = resolve_sample_time(clip.duration_seconds, time_seconds, looping);
     let mut bones = skeleton
         .bones
         .iter()
         .map(animation_pose_bone_from_skeleton)
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<AnimationResult<Vec<_>>>()?;
 
     for track in &clip.tracks {
         let Some(bone_index) = resolve_clip_track_bone_index(skeleton, track) else {
@@ -53,30 +53,29 @@ pub(super) fn sample_clip_pose(
 
 fn animation_pose_bone_from_skeleton(
     bone: &AnimationSkeletonBoneAsset,
-) -> Result<AnimationPoseBone, String> {
+) -> AnimationResult<AnimationPoseBone> {
     if !real_array_is_finite(&bone.local_translation) {
-        return Err(format!(
-            "non-finite skeleton bind translation for bone `{}`: {:?}",
-            bone.name, bone.local_translation
-        ));
+        return Err(AnimationError::NonFiniteSkeletonBind {
+            bone: bone.name.clone(),
+            field: "translation",
+        });
     }
     if !real_array_is_finite(&bone.local_rotation) {
-        return Err(format!(
-            "non-finite skeleton bind rotation for bone `{}`: {:?}",
-            bone.name, bone.local_rotation
-        ));
+        return Err(AnimationError::NonFiniteSkeletonBind {
+            bone: bone.name.clone(),
+            field: "rotation",
+        });
     }
     if !quaternion_array_is_normalizable(&bone.local_rotation) {
-        return Err(format!(
-            "zero-length skeleton bind rotation for bone `{}`: {:?}",
-            bone.name, bone.local_rotation
-        ));
+        return Err(AnimationError::ZeroLengthSkeletonBindRotation {
+            bone: bone.name.clone(),
+        });
     }
     if !real_array_is_finite(&bone.local_scale) {
-        return Err(format!(
-            "non-finite skeleton bind scale for bone `{}`: {:?}",
-            bone.name, bone.local_scale
-        ));
+        return Err(AnimationError::NonFiniteSkeletonBind {
+            bone: bone.name.clone(),
+            field: "scale",
+        });
     }
 
     Ok(AnimationPoseBone {

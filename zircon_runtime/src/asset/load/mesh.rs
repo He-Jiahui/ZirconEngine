@@ -2,19 +2,37 @@
 
 use std::path::Path;
 
+use thiserror::Error;
+
 use crate::core::math::{Vec2, Vec3};
 
 use crate::asset::formats::obj;
 use crate::asset::types::{CpuMeshPayload, MeshSource, MeshVertex};
 
-pub(crate) fn load_mesh(source: &MeshSource) -> Result<CpuMeshPayload, String> {
+pub(crate) type MeshLoadResult<T> = std::result::Result<T, MeshLoadError>;
+
+#[derive(Debug, Error)]
+pub(crate) enum MeshLoadError {
+    #[error("decode obj mesh {path}: {source}")]
+    Obj {
+        path: String,
+        #[source]
+        source: obj::ObjDecodeError,
+    },
+    #[error(
+        "unsupported mesh format `{extension}` for {path}; only .obj is supported in this milestone"
+    )]
+    UnsupportedFormat { path: String, extension: String },
+}
+
+pub(crate) fn load_mesh(source: &MeshSource) -> MeshLoadResult<CpuMeshPayload> {
     match source {
         MeshSource::BuiltinCube => Ok(generate_cube_mesh()),
         MeshSource::Path(path) => decode_mesh_file(path),
     }
 }
 
-pub(crate) fn decode_mesh_file(path: &str) -> Result<CpuMeshPayload, String> {
+pub(crate) fn decode_mesh_file(path: &str) -> MeshLoadResult<CpuMeshPayload> {
     let mesh_path = Path::new(path);
     let extension = mesh_path
         .extension()
@@ -23,10 +41,14 @@ pub(crate) fn decode_mesh_file(path: &str) -> Result<CpuMeshPayload, String> {
         .to_ascii_lowercase();
 
     match extension.as_str() {
-        "obj" => obj::decode_obj_file(path),
-        _ => Err(format!(
-            "unsupported mesh format for {path}; only .obj is supported in this milestone"
-        )),
+        "obj" => obj::decode_obj_file(path).map_err(|source| MeshLoadError::Obj {
+            path: path.to_string(),
+            source,
+        }),
+        _ => Err(MeshLoadError::UnsupportedFormat {
+            path: path.to_string(),
+            extension,
+        }),
     }
 }
 

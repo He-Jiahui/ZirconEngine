@@ -2,6 +2,7 @@
 
 pub mod autolayout;
 pub mod debug_reflector;
+pub(crate) mod document_tabs;
 pub mod event;
 pub mod fixture;
 mod floating_window;
@@ -9,6 +10,7 @@ pub mod layout;
 mod layout_preset;
 pub mod model;
 mod page_layout_template;
+pub(crate) mod page_tabs;
 pub mod preset;
 pub mod project;
 pub mod reference;

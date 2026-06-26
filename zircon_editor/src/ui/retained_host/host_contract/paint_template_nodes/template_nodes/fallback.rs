@@ -4,6 +4,7 @@ use super::super::material_primitives::{
 };
 use super::super::mui_x_primitives::push_mui_x_primitive_commands;
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_asset_placeholder_visuals::push_asset_placeholder_visual_commands;
 use super::super::template_node_images::push_template_image_command;
 use super::super::template_node_surface::push_template_surface_fallback_commands;
 use super::super::template_node_text::push_template_text_fallback_command;
@@ -41,6 +42,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         draws_mui_x_primitive || draws_text_field_surface,
     );
 
+    push_asset_placeholder_visual_commands(commands, node, rect, node_clip, order + 2, opacity);
     push_template_image_command(commands, node, rect, node_clip, order + 2, opacity);
 
     let property_row_text_painted =

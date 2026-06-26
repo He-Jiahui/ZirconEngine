@@ -1,6 +1,8 @@
 use crate::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, EditorRegion, EditorRegionRole, RegionBinding, ShellRegionId,
-    ShellSizePx, WorkbenchChromeMetrics, WorkbenchConstraintTokenName, WorkbenchShellRegionsAsset,
+    compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
+    workbench_layout_defaults, workbench_layout_tier_for_width, EditorRegion, EditorRegionRole,
+    RegionBinding, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
+    WorkbenchConstraintTokenName, WorkbenchLayoutTier, WorkbenchShellRegionsAsset,
     WorkbenchShellRegionsAssetError, WorkbenchSkeleton, WORKBENCH_SHELL_REGIONS_ASSET_ID,
     WORKBENCH_SHELL_REGIONS_ASSET_KIND, WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
 };
@@ -30,12 +32,14 @@ const WORKBENCH_SCENE_TREE_PANEL_ASSET: &str = include_str!(
 const WORKBENCH_INSPECTOR_PANEL_ASSET: &str = include_str!(
     "../../../../assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui"
 );
-const COMMAND_PALETTE_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/floating/command_palette.zui");
-const PREFERENCES_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/floating/preferences.zui");
+const COMMAND_PALETTE_ASSET: &str = include_str!(
+    "../../../../assets/ui/editor/components/workbench/floating/workbench_command_palette.zui"
+);
+const PREFERENCES_ASSET: &str = include_str!(
+    "../../../../assets/ui/editor/components/workbench/floating/workbench_preferences.zui"
+);
 const SHELL_REGIONS_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/layout/shell_regions.v2.ui.toml");
+    include_str!("../../../../assets/ui/editor/layout/shell_regions.toml");
 
 #[test]
 fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
@@ -407,7 +411,9 @@ fn floating_window_declarations_preserve_modal_and_layer_contracts() {
     assert!(!command_palette.modal);
     assert_eq!(preferences.kind, FloatingWindowKind::Preferences);
     assert!(preferences.modal);
-    assert!(preferences.content_asset.ends_with("preferences.zui"));
+    assert!(preferences
+        .content_asset
+        .ends_with("workbench_preferences.zui"));
 }
 
 #[test]
@@ -418,8 +424,8 @@ fn layout_skeleton_and_floating_assets_reference_editor_tokens_instead_of_hex_co
 
     for (asset_name, asset_source) in [
         ("workbench_skeleton.zui", WORKBENCH_SKELETON_ASSET),
-        ("command_palette.zui", COMMAND_PALETTE_ASSET),
-        ("preferences.zui", PREFERENCES_ASSET),
+        ("workbench_command_palette.zui", COMMAND_PALETTE_ASSET),
+        ("workbench_preferences.zui", PREFERENCES_ASSET),
     ] {
         assert!(
             asset_source.contains("res://ui/editor/theme/editor_tokens.v2.ui.toml"),
@@ -489,6 +495,162 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
         tokenized.region_frame(ShellRegionId::Bottom).height
             > baseline.region_frame(ShellRegionId::Bottom).height
     );
+}
+
+#[test]
+fn workbench_layout_tiers_classify_reference_capture_widths() {
+    assert_eq!(
+        workbench_layout_tier_for_width(420.0),
+        WorkbenchLayoutTier::Ultra
+    );
+    assert_eq!(
+        workbench_layout_tier_for_width(640.0),
+        WorkbenchLayoutTier::Narrow
+    );
+    assert_eq!(
+        workbench_layout_tier_for_width(900.0),
+        WorkbenchLayoutTier::Regular
+    );
+    assert_eq!(
+        workbench_layout_tier_for_width(1260.0),
+        WorkbenchLayoutTier::Wide
+    );
+}
+
+#[test]
+fn workbench_breakpoint_defaults_are_sourced_from_design_tokens() {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let defaults = workbench_layout_defaults();
+
+    assert_eq!(
+        defaults.breakpoints.ultra_max_width,
+        tokens.density.breakpoint_ultra_width
+    );
+    assert_eq!(
+        defaults.breakpoints.narrow_max_width,
+        tokens.density.breakpoint_narrow_width
+    );
+    assert_eq!(
+        defaults.breakpoints.wide_min_width,
+        tokens.density.breakpoint_wide_width
+    );
+    assert_eq!(
+        defaults.compact_side.available_width,
+        tokens.density.compact_side_width
+    );
+    assert_eq!(
+        defaults.compact_bottom.available_height,
+        tokens.density.compact_bottom_available_height
+    );
+    assert_eq!(
+        defaults.window_minimums.min_width,
+        tokens.density.minimum_window_width
+    );
+}
+
+#[test]
+fn compact_region_limits_follow_breakpoint_density_defaults() {
+    let defaults = workbench_layout_defaults();
+
+    assert_eq!(
+        compact_side_width_limit(
+            ShellRegionId::Left,
+            defaults.compact_side.ultra_available_width
+        ),
+        Some(defaults.compact_side.ultra_left_max_width)
+    );
+    assert_eq!(
+        compact_side_width_limit(ShellRegionId::Right, defaults.compact_side.available_width),
+        Some(
+            defaults
+                .compact_side
+                .right_max_width
+                .max(defaults.compact_side.side_min_width)
+        )
+    );
+    assert_eq!(
+        compact_bottom_height_limit(defaults.compact_bottom.ultra_available_height),
+        Some(
+            (defaults.compact_bottom.ultra_available_height
+                * defaults.compact_bottom.ultra_max_available_fraction)
+                .min(defaults.compact_bottom.ultra_max_height)
+                .max(defaults.compact_bottom.ultra_min_height)
+                .round()
+        )
+    );
+    assert_eq!(
+        compact_bottom_height_limit(defaults.compact_bottom.available_height),
+        Some(defaults.compact_bottom.max_height)
+    );
+}
+
+#[test]
+fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let narrow = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(640.0, 420.0),
+        &metrics,
+        None,
+    );
+    let regular = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(900.0, 620.0),
+        &metrics,
+        None,
+    );
+
+    assert_eq!(
+        narrow.region_frame(ShellRegionId::Right).width,
+        metrics.rail_width
+    );
+    assert_eq!(narrow.splitter_frame(ShellRegionId::Right).width, 0.0);
+    assert!(regular.region_frame(ShellRegionId::Right).width > metrics.rail_width);
+    assert!(regular.splitter_frame(ShellRegionId::Right).width > 0.0);
+    assert!(
+        narrow.region_frame(ShellRegionId::Document).width
+            > regular.region_frame(ShellRegionId::Document).width - 260.0
+    );
+}
+
+#[test]
+fn workbench_window_minimums_allow_reference_capture_sizes() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let narrow = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(640.0, 420.0),
+        &metrics,
+        None,
+    );
+    let regular = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(900.0, 620.0),
+        &metrics,
+        None,
+    );
+
+    assert!(narrow.window_min_width <= 640.0);
+    assert!(narrow.window_min_height <= 420.0);
+    assert!(regular.window_min_width <= 640.0);
+    assert!(regular.window_min_height <= 420.0);
 }
 
 #[test]

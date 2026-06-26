@@ -20,8 +20,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 
     WorkbenchTableRowStyle {
         background: table_row_background(node, state, marked, header, tail),
-        border: table_row_border(state),
-        border_width: table_row_border_width(state),
+        border: table_row_border(state, marked),
+        border_width: table_row_border_width(state, marked),
         separator: WORKBENCH_TABLE_SEPARATOR,
         action: table_row_action_color(state),
         state,

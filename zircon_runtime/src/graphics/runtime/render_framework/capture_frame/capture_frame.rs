@@ -3,12 +3,12 @@ use crate::core::framework::render::{CapturedFrame, RenderFrameworkError, Render
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn capture_frame(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "capture_frame");
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let frame = state
         .viewports
         .get(&viewport)

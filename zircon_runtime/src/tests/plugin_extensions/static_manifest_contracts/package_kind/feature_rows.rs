@@ -1,5 +1,5 @@
 use super::super::for_each_static_plugin_manifest;
-use super::helpers::{package_kind_value, table_array_row_count};
+use super::package_kind_fields::{package_kind_value, table_array_row_count};
 
 #[test]
 fn plugin_tomls_declare_package_kind_feature_rows_coherently() {

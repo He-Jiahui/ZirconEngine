@@ -1,7 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
+  - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -64,9 +66,12 @@ related_code:
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
+  - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -139,7 +144,7 @@ tests:
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_render_frame_extract_has_no_scene_camera_order_report
   - zircon_runtime/src/core/framework/render/camera_ordering.rs::tests::render_camera_order_report_carries_descriptor_render_type
-  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_scene_camera_ordering_metadata
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_scene_camera_ordering_metadata
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_surface_offscreen_submit_and_capture_survive_unbind_noop
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_headless_size_controls_offscreen_capture_size
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_requires_render_target_usage
@@ -182,13 +187,14 @@ tests:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_preserve_copy_and_sampled_authoring_flags
   - zircon_runtime/src/graphics/tests/render_debugger_and_history.rs::renderdoc_debug_marker_registry_covers_capture_timeline
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
+  - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked unified_sort_components --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked render_product_sprite_phase_queue_honors --jobs 1 --message-format short --color never
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_apply_target_size_preserves_descriptor_target_and_layers
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_selected_camera_descriptor_replaces_active_selection_only
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs::runtime_15_frame_extract_geometry_is_child_owner
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
@@ -224,6 +230,8 @@ Status anchor `render_plan09_volume_mask_separate_from_culling_static_passed_car
 The size is derived from the selected descriptor's explicit viewport rectangle or headless camera target when present, then falls back to the known submission target size. `RenderFrameExtract::apply_viewport_size(...)` updates both the selected descriptor payload aspect ratio and the stored target size before submission.
 
 Plan 09 CO-M4 now keeps visibility renderable layer input typed through the frame DTO. `VisibilityRenderableInput.render_layer_mask` is a `RenderLayerSet`; `RenderFrameExtract::from_snapshot(...)` clones the typed mesh snapshot layer set instead of projecting through `to_legacy_mask_lossy()`, and `render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width` locks layer 40 through the snapshot adapter. The 2026-06-23 status anchor is `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result`; its focused locked Cargo test timed out after 124 seconds with no test binary, while locked check was blocked before compilation by current `Cargo.lock` drift. The inline `frame_extract.rs` tests were moved to `frame_extract/tests.rs`, keeping the production owner below the large-file threshold.
+
+The 2026-06-24 Plan 09 frame extract geometry owner split moved mesh phase input, `GeometryExtract`, `StaticMeshBatchExtract`, static mesh batch keys, and static batching from `frame_extract.rs` into `frame_extract/geometry.rs`. The root now re-exports `GeometryExtract`, `GeometryPhaseInput`, and `StaticMeshBatchExtract` from the child owner, so existing `frame_extract::{...}` callers keep the same public path while the root stays at 682 lines and the geometry child owns 223 lines. `runtime_15_frame_extract_geometry_is_child_owner` guards the moved-owner boundary, line-budget ceiling, child mount, and documentation anchors. Status anchor: `render_plan09_frame_extract_geometry_owner_split_static_passed_cargo_deferred_active_compile_lane`; scoped static validation is recorded in Plan 09, while Cargo/WGPU/RenderDoc remain deferred because another cargo/rustc compile lane was active during validation.
 
 `RenderViewExtract::effective_view_size()` is the canonical read path for SRP and RenderGraph descriptor derivation. It clamps through the camera viewport when present and falls back to `1 x 1` only when the extract does not yet know a surface or headless target size.
 
@@ -313,6 +321,16 @@ The status anchor is
 `render_plan09_mesh_render_layer_set_snapshot_static_passed_cargo_lock_blocked`;
 scoped rustfmt/static checks passed, but the focused locked Cargo command
 stopped before compilation on current `Cargo.lock` drift.
+
+The 2026-06-25 Plan 02 virtual-geometry debug snapshot contract repair keeps
+manual `RenderMeshSnapshot` fixture construction aligned with that typed layer
+contract. `virtual_geometry_debug_snapshot_contract.rs` now converts the
+legacy scene default through `RenderLayerSet::from_legacy_mask(...)` before
+assigning `render_layer_mask`, so debug snapshot tests no longer reintroduce a
+raw `u32` mask at the DTO boundary. Status anchor:
+`render_plan02_vg_debug_snapshot_typed_layer_contract_cargo_check_passed`;
+focused `cargo check` for that integration test target passed with existing
+warning noise.
 
 The vampire example relies on this path for its authored billboard grass:
 six `Static Grass Batch ...` entities share the same grass model/material and

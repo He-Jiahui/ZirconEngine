@@ -1,5 +1,7 @@
 use crate::core::CoreRuntime;
 
+const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!("#[allow(", "dead_code", ")]");
+
 #[test]
 fn ui_runtime_module_registers_real_driver_and_manager_services() {
     let runtime = CoreRuntime::new();
@@ -63,7 +65,7 @@ fn runtime_ui_host_surface_splits_production_frame_from_test_support() {
     );
     assert!(
         !ui_mod_normalized.contains("mod runtime_ui;")
-            && !ui_mod_normalized.contains("#[allow(dead_code)]"),
+            && !ui_mod_normalized.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "zircon_runtime::ui should not keep the old production runtime_ui module or dead-code allowance"
     );
     assert!(

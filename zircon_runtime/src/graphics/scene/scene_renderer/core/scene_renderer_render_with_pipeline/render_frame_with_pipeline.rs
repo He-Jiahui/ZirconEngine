@@ -11,6 +11,8 @@ use crate::graphics::backend::ViewportSurface;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
+#[cfg(test)]
+use crate::graphics::shader::ShaderVariantCacheDisk;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::graphics::visibility::HzbOcclusionCullReport;
 use crate::graphics::CompiledRenderPipeline;
@@ -26,6 +28,16 @@ use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewpo
 use super::super::target_extent::viewport_size;
 
 impl SceneRenderer {
+    #[cfg(test)]
+    pub(crate) fn replace_shader_variant_disk_cache_for_tests(
+        &mut self,
+        cache: ShaderVariantCacheDisk,
+    ) {
+        self.core
+            .mesh_pipelines
+            .replace_shader_variant_disk_cache_for_tests(cache);
+    }
+
     #[cfg(test)]
     pub(crate) fn read_output_target_texture_rgba_for_tests(
         &self,

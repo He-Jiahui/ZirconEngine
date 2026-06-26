@@ -5,20 +5,21 @@ use crate::core::framework::{animation::AnimationParameterValue, physics::Physic
 use crate::core::math::{Quat, Real, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, ResourceMarker};
 use crate::scene::components::{JointKind, Mobility, RigidBodyType};
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError, SceneResult};
 
 pub(super) fn expect_segment_count(
     segments: &[String],
     expected: usize,
     property_path: &ComponentPropertyPath,
-) -> Result<(), String> {
+) -> SceneResult<()> {
     if segments.len() == expected {
         Ok(())
     } else {
-        Err(format!(
-            "property `{property_path}` expects {expected} segments, found {}",
-            segments.len()
-        ))
+        Err(SceneError::PropertySegmentCount {
+            property_path: property_path.to_string(),
+            expected,
+            actual: segments.len(),
+        })
     }
 }
 
@@ -26,38 +27,44 @@ pub(super) fn expect_segment(
     actual: &str,
     expected: &[&str],
     property_path: &ComponentPropertyPath,
-) -> Result<(), String> {
+) -> SceneResult<()> {
     for candidate in expected {
         if *candidate == actual {
             return Ok(());
         }
     }
 
-    Err(format!("unknown property `{property_path}`"))
+    unknown_property(property_path)
 }
 
-pub(super) fn unknown_property_error(
-    property_path: &ComponentPropertyPath,
-) -> Result<bool, String> {
-    Err(format!("unknown property `{property_path}`"))
+fn unknown_property<T>(property_path: &ComponentPropertyPath) -> SceneResult<T> {
+    Err(SceneError::UnknownProperty {
+        property_path: property_path.to_string(),
+    })
+}
+
+pub(super) fn unknown_property_error(property_path: &ComponentPropertyPath) -> SceneResult<bool> {
+    unknown_property(property_path)
 }
 
 pub(super) fn missing_component_error(
     entity: EntityId,
     property_path: &ComponentPropertyPath,
-) -> Result<bool, String> {
-    Err(format!(
-        "entity {entity} does not expose property `{property_path}`"
-    ))
+) -> SceneResult<bool> {
+    Err(SceneError::MissingPropertyComponent {
+        entity,
+        property_path: property_path.to_string(),
+    })
 }
 
 pub(super) fn property_type_error<T>(
     property_path: &ComponentPropertyPath,
     expected: &str,
-) -> Result<T, String> {
-    Err(format!(
-        "property `{property_path}` expected value of type {expected}"
-    ))
+) -> SceneResult<T> {
+    Err(SceneError::PropertyTypeMismatch {
+        property_path: property_path.to_string(),
+        expected: format!("value of type {expected}"),
+    })
 }
 
 pub(super) fn normalized_identifier(value: &str) -> String {
@@ -96,39 +103,43 @@ fn next_normalized_identifier_char(characters: &mut impl Iterator<Item = char>) 
     None
 }
 
-pub(super) fn axis_index(
-    axis: &str,
-    property_path: &ComponentPropertyPath,
-) -> Result<usize, String> {
+pub(super) fn axis_index(axis: &str, property_path: &ComponentPropertyPath) -> SceneResult<usize> {
     match axis {
         "x" | "0" => Ok(0),
         "y" | "1" => Ok(1),
         "z" | "2" => Ok(2),
-        _ => Err(format!("unknown axis in property `{property_path}`")),
+        _ => Err(SceneError::UnknownPropertyAxis {
+            property_path: property_path.to_string(),
+            axis_kind: "axis",
+        }),
     }
 }
 
 pub(super) fn quat_axis_index(
     axis: &str,
     property_path: &ComponentPropertyPath,
-) -> Result<usize, String> {
+) -> SceneResult<usize> {
     match axis {
         "x" | "0" => Ok(0),
         "y" | "1" => Ok(1),
         "z" | "2" => Ok(2),
         "w" | "3" => Ok(3),
-        _ => Err(format!(
-            "unknown quaternion axis in property `{property_path}`"
-        )),
+        _ => Err(SceneError::UnknownPropertyAxis {
+            property_path: property_path.to_string(),
+            axis_kind: "quaternion axis",
+        }),
     }
 }
 
 pub(super) fn expect_bool(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<bool, String> {
+) -> SceneResult<bool> {
     let ScenePropertyValue::Bool(value) = value else {
-        return Err(format!("property `{property_path}` expected bool"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "bool".to_string(),
+        });
     };
     Ok(value)
 }
@@ -136,9 +147,12 @@ pub(super) fn expect_bool(
 pub(super) fn expect_string(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<String, String> {
+) -> SceneResult<String> {
     let ScenePropertyValue::String(value) = value else {
-        return Err(format!("property `{property_path}` expected string"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "string".to_string(),
+        });
     };
     Ok(value)
 }
@@ -146,9 +160,12 @@ pub(super) fn expect_string(
 pub(super) fn expect_enum(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<String, String> {
+) -> SceneResult<String> {
     let ScenePropertyValue::Enum(value) = value else {
-        return Err(format!("property `{property_path}` expected enum string"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "enum string".to_string(),
+        });
     };
     Ok(value)
 }
@@ -156,12 +173,15 @@ pub(super) fn expect_enum(
 pub(super) fn expect_scalar(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<f32, String> {
+) -> SceneResult<f32> {
     let value = match value {
         ScenePropertyValue::Scalar(value) => Ok(value),
         ScenePropertyValue::Integer(value) => Ok(value as f32),
         ScenePropertyValue::Unsigned(value) => Ok(value as f32),
-        _ => Err(format!("property `{property_path}` expected scalar")),
+        _ => Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "scalar".to_string(),
+        }),
     }?;
     validate_finite_scalar(value, property_path)?;
     Ok(value)
@@ -170,28 +190,35 @@ pub(super) fn expect_scalar(
 pub(super) fn expect_u32(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<u32, String> {
+) -> SceneResult<u32> {
     match value {
         ScenePropertyValue::Unsigned(value) => Ok(value as u32),
         ScenePropertyValue::Integer(value) if value >= 0 => Ok(value as u32),
-        _ => Err(format!(
-            "property `{property_path}` expected unsigned integer"
-        )),
+        _ => Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "unsigned integer".to_string(),
+        }),
     }
 }
 
 pub(super) fn expect_i32(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<i32, String> {
+) -> SceneResult<i32> {
     match value {
         ScenePropertyValue::Integer(value) => match i32::try_from(value) {
             Ok(value) => Ok(value),
-            Err(_) => Err(format!("property `{property_path}` expected i32 integer")),
+            Err(_) => Err(SceneError::PropertyTypeMismatch {
+                property_path: property_path.to_string(),
+                expected: "i32 integer".to_string(),
+            }),
         },
         ScenePropertyValue::Unsigned(value) => match i32::try_from(value) {
             Ok(value) => Ok(value),
-            Err(_) => Err(format!("property `{property_path}` expected i32 integer")),
+            Err(_) => Err(SceneError::PropertyTypeMismatch {
+                property_path: property_path.to_string(),
+                expected: "i32 integer".to_string(),
+            }),
         },
         _ => property_type_error(property_path, "integer"),
     }
@@ -200,9 +227,12 @@ pub(super) fn expect_i32(
 pub(super) fn expect_vec3(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<Vec3, String> {
+) -> SceneResult<Vec3> {
     let ScenePropertyValue::Vec3(value) = value else {
-        return Err(format!("property `{property_path}` expected vec3"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "vec3".to_string(),
+        });
     };
     validate_finite_array(&value, property_path, "vec3")?;
     Ok(Vec3::from_array(value))
@@ -211,9 +241,12 @@ pub(super) fn expect_vec3(
 pub(super) fn expect_vec2(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<Vec2, String> {
+) -> SceneResult<Vec2> {
     let ScenePropertyValue::Vec2(value) = value else {
-        return Err(format!("property `{property_path}` expected vec2"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "vec2".to_string(),
+        });
     };
     validate_finite_array(&value, property_path, "vec2")?;
     Ok(Vec2::from_array(value))
@@ -222,9 +255,12 @@ pub(super) fn expect_vec2(
 pub(super) fn expect_vec4(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<Vec4, String> {
+) -> SceneResult<Vec4> {
     let ScenePropertyValue::Vec4(value) = value else {
-        return Err(format!("property `{property_path}` expected vec4"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "vec4".to_string(),
+        });
     };
     validate_finite_array(&value, property_path, "vec4")?;
     Ok(Vec4::from_array(value))
@@ -233,9 +269,12 @@ pub(super) fn expect_vec4(
 pub(super) fn expect_quat(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<Quat, String> {
+) -> SceneResult<Quat> {
     let ScenePropertyValue::Quaternion(value) = value else {
-        return Err(format!("property `{property_path}` expected quaternion"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "quaternion".to_string(),
+        });
     };
     validate_quat_array(value, property_path)?;
     Ok(Quat::from_array(value))
@@ -244,7 +283,7 @@ pub(super) fn expect_quat(
 pub(super) fn validate_quat_array(
     value: [Real; 4],
     property_path: &ComponentPropertyPath,
-) -> Result<(), String> {
+) -> SceneResult<()> {
     validate_finite_array(&value, property_path, "quaternion")?;
     let mut length_squared = 0.0;
     for component in value {
@@ -252,34 +291,35 @@ pub(super) fn validate_quat_array(
     }
 
     if length_squared <= Real::EPSILON {
-        return Err(format!(
-            "property `{property_path}` rejects zero-length quaternion"
-        ));
+        return Err(SceneError::ZeroLengthQuaternion {
+            property_path: property_path.to_string(),
+        });
     }
     Ok(())
 }
 
-fn validate_finite_scalar(
-    value: Real,
-    property_path: &ComponentPropertyPath,
-) -> Result<(), String> {
+fn validate_finite_scalar(value: Real, property_path: &ComponentPropertyPath) -> SceneResult<()> {
     if value.is_finite() {
         Ok(())
     } else {
-        Err(format!("property `{property_path}` expected finite scalar"))
+        Err(SceneError::NonFinitePropertyValue {
+            property_path: property_path.to_string(),
+            expected: "scalar",
+        })
     }
 }
 
 fn validate_finite_array(
     value: &[Real],
     property_path: &ComponentPropertyPath,
-    expected: &str,
-) -> Result<(), String> {
+    expected: &'static str,
+) -> SceneResult<()> {
     for component in value {
         if !component.is_finite() {
-            return Err(format!(
-                "property `{property_path}` expected finite {expected}"
-            ));
+            return Err(SceneError::NonFinitePropertyValue {
+                property_path: property_path.to_string(),
+                expected,
+            });
         }
     }
 
@@ -289,41 +329,49 @@ fn validate_finite_array(
 pub(super) fn expect_resource_id(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<ResourceId, String> {
+) -> SceneResult<ResourceId> {
     let ScenePropertyValue::Resource(value) = value else {
-        return Err(format!("property `{property_path}` expected resource id"));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "resource id".to_string(),
+        });
     };
     match ResourceId::from_str(&value) {
         Ok(resource_id) => Ok(resource_id),
-        Err(error) => Err(format!(
-            "property `{property_path}` has invalid resource id: {error}"
-        )),
+        Err(error) => Err(SceneError::InvalidPropertyResourceId {
+            property_path: property_path.to_string(),
+            source_message: error.to_string(),
+        }),
     }
 }
 
 pub(super) fn expect_animation_parameter(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
-) -> Result<AnimationParameterValue, String> {
+) -> SceneResult<AnimationParameterValue> {
     let ScenePropertyValue::AnimationParameter(value) = value else {
-        return Err(format!(
-            "property `{property_path}` expected animation parameter"
-        ));
+        return Err(SceneError::PropertyTypeMismatch {
+            property_path: property_path.to_string(),
+            expected: "animation parameter".to_string(),
+        });
     };
     Ok(value)
 }
 
-pub(super) fn parse_mobility(value: &str) -> Result<Mobility, String> {
+pub(super) fn parse_mobility(value: &str) -> SceneResult<Mobility> {
     if normalized_identifier_matches(value, "dynamic") {
         Ok(Mobility::Dynamic)
     } else if normalized_identifier_matches(value, "static") {
         Ok(Mobility::Static)
     } else {
-        Err(format!("unsupported mobility `{value}`"))
+        Err(SceneError::UnsupportedPropertyValue {
+            kind: "mobility",
+            value: value.to_string(),
+        })
     }
 }
 
-pub(super) fn parse_rigid_body_type(value: &str) -> Result<RigidBodyType, String> {
+pub(super) fn parse_rigid_body_type(value: &str) -> SceneResult<RigidBodyType> {
     if normalized_identifier_matches(value, "dynamic") {
         Ok(RigidBodyType::Dynamic)
     } else if normalized_identifier_matches(value, "static") {
@@ -331,11 +379,14 @@ pub(super) fn parse_rigid_body_type(value: &str) -> Result<RigidBodyType, String
     } else if normalized_identifier_matches(value, "kinematic") {
         Ok(RigidBodyType::Kinematic)
     } else {
-        Err(format!("unsupported rigid body type `{value}`"))
+        Err(SceneError::UnsupportedPropertyValue {
+            kind: "rigid body type",
+            value: value.to_string(),
+        })
     }
 }
 
-pub(super) fn parse_joint_kind(value: &str) -> Result<JointKind, String> {
+pub(super) fn parse_joint_kind(value: &str) -> SceneResult<JointKind> {
     if normalized_identifier_matches(value, "fixed") {
         Ok(JointKind::Fixed)
     } else if normalized_identifier_matches(value, "distance") {
@@ -352,11 +403,14 @@ pub(super) fn parse_joint_kind(value: &str) -> Result<JointKind, String> {
     {
         Ok(JointKind::Generic6Dof)
     } else {
-        Err(format!("unsupported joint kind `{value}`"))
+        Err(SceneError::UnsupportedPropertyValue {
+            kind: "joint kind",
+            value: value.to_string(),
+        })
     }
 }
 
-pub(super) fn parse_combine_rule(value: &str) -> Result<PhysicsCombineRule, String> {
+pub(super) fn parse_combine_rule(value: &str) -> SceneResult<PhysicsCombineRule> {
     if normalized_identifier_matches(value, "average") {
         Ok(PhysicsCombineRule::Average)
     } else if normalized_identifier_matches(value, "minimum") {
@@ -366,7 +420,10 @@ pub(super) fn parse_combine_rule(value: &str) -> Result<PhysicsCombineRule, Stri
     } else if normalized_identifier_matches(value, "multiply") {
         Ok(PhysicsCombineRule::Multiply)
     } else {
-        Err(format!("unsupported combine rule `{value}`"))
+        Err(SceneError::UnsupportedPropertyValue {
+            kind: "combine rule",
+            value: value.to_string(),
+        })
     }
 }
 
@@ -389,7 +446,7 @@ pub(super) fn set_animation_player_like_property<TMarker>(
     weight: Option<&mut f32>,
     looping: &mut bool,
     playing: &mut bool,
-) -> Result<bool, String>
+) -> SceneResult<bool>
 where
     TMarker: ResourceMarker,
 {

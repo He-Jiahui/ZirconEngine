@@ -2,12 +2,16 @@
 related_code:
   - zircon_runtime/src/core/resource/mod.rs
   - zircon_runtime/src/core/resource/registry.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
+  - zircon_runtime/src/core/resource/manager/lease_ops.rs
+  - zircon_runtime/src/core/resource/manager/events.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/state.rs
@@ -20,8 +24,11 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/registry.rs
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
+  - zircon_runtime/src/core/resource/manager/lease_ops.rs
+  - zircon_runtime/src/core/resource/manager/events.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
@@ -34,6 +41,9 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/engine-code-review-findings-2026-06.md
+  - docs/plans/engine-code-structure-convention.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
@@ -42,7 +52,9 @@ tests:
   - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_error_to_ready_without_reloading
   - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
   - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
+  - zircon_runtime/src/core/resource/manager/resource_manager.rs::tests::resource_manager_accessors_recover_poisoned_state_locks
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_core_error
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
 doc_type: module-detail
 ---
@@ -88,6 +100,14 @@ The Runtime 04 structural mirror is split so resource/asset source-count ownersh
 The asset facade exposes `failure_reason(handle)` on both `Assets<TAsset>` and `ProjectAssetManager`. Those methods validate the requested typed asset kind, read the current `ResourceRecord`, and return the resource failure reason without forcing payload residency or invoking importers.
 
 `AssetLoadState::from_resource(...)` keeps the projection order strict: resource or runtime error maps to `Failed`, resource or runtime reloading maps to `Reloading`, pending/loading maps to `Loading`, ready with payload maps to `Loaded`, and ready without payload maps to `NotLoaded`.
+
+## Lock Poison Recovery
+
+Runtime 15 M3 core resource manager lock poison recovery extends the E9/F2 poison-safe lock rule to this core spine owner. `ResourceManager` now owns all access to its registry, payload, runtime-slot, and subscriber locks through `lock_registry_read()`, `lock_registry_write()`, `lock_payloads_read()`, `lock_payloads_write()`, `lock_runtime_read()`, `lock_runtime_write()`, and `lock_subscribers()`. Each helper recovers poisoned locks with `poisoned.into_inner()` instead of panicking.
+
+The split manager owners consume those helpers directly: registry operations write through `lock_registry_write()`, payload operations read/write through payload helpers, lease operations use runtime/payload helpers, and event broadcast/runtime-state operations use subscriber/runtime helpers. This keeps the public `ResourceManager` API unchanged while preventing a previous panic during resource or event handling from permanently crashing later resource access.
+
+`resource_manager_accessors_recover_poisoned_state_locks` deliberately poisons subscribers, registry, payloads, and runtime slots, then verifies subscription, ready registration, payload lookup, lease acquire/release, ref count, and runtime state still work. `runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager` rejects regressions to direct lock unwrap or `lock poisoned` panic strings across the manager owner files and mirrors the Runtime 15 status anchors. Status is `runtime_15_core_resource_manager_lock_poison_recovery_static_passed_cargo_deferred`; full `module_convention_gate` and core resource Cargo sweeps remain pending.
 
 ## Validation
 

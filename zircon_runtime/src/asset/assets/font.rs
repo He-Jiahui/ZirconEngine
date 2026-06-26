@@ -3,6 +3,8 @@ use thiserror::Error;
 
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
+pub type FontAssetResult<T> = std::result::Result<T, FontAssetError>;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FontAsset {
     pub source: String,
@@ -12,15 +14,15 @@ pub struct FontAsset {
     pub render_mode: Option<UiTextRenderMode>,
 }
 
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum FontAssetError {
     #[error("failed to parse font asset document: {0}")]
-    Parse(String),
+    Parse(#[source] toml::de::Error),
 }
 
 impl FontAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, FontAssetError> {
-        toml::from_str(document).map_err(|error| FontAssetError::Parse(error.to_string()))
+    pub fn from_toml_str(document: &str) -> FontAssetResult<Self> {
+        toml::from_str(document).map_err(FontAssetError::Parse)
     }
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {

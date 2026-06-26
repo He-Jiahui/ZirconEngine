@@ -1,0 +1,16 @@
+[package]
+name = "zircon_plugin_sound_timeline_animation_dist"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Standalone native dynamic Sound timeline animation feature provider for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["dist"]
+dist = []
+
+[dependencies]
+zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }

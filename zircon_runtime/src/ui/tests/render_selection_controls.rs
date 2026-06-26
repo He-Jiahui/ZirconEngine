@@ -64,7 +64,8 @@ thumb_size = 14.0
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
-            && command.style.background_color.as_deref() == Some("#10161a")
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
@@ -91,7 +92,7 @@ thumb_size = 14.0
         command.node_id == UiNodeId::new(3)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(22.5, 54.5, 7.0, 7.0)
-            && command.style.background_color.as_deref() == Some("#43d8e2")
+            && command.style.background_color.as_deref() == Some("#2aa6b8")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(3)
@@ -103,13 +104,14 @@ thumb_size = 14.0
         command.node_id == UiNodeId::new(4)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(62.0, 85.0, 34.0, 18.0)
-            && command.style.background_color.as_deref() == Some("#209fa8")
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(4)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(80.0, 87.0, 14.0, 14.0)
-            && command.style.background_color.as_deref() == Some("#ffffff")
+            && command.style.background_color.as_deref() == Some("#e8ecee")
     }));
 }
 
@@ -145,7 +147,7 @@ checked = true
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
-            && command.style.background_color.as_deref() == Some("#209fa8")
+            && command.style.background_color.as_deref() == Some("#173942")
             && command.style.border_color.as_deref() == Some("#35c7d0")
     }));
 }

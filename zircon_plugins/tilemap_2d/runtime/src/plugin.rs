@@ -1,12 +1,25 @@
 use crate::capability::{RUNTIME_CAPABILITIES, TILEMAP_2D_RUNTIME_CAPABILITY};
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::plugin::{
+    CapabilityStatus, CapabilityStatusManifest, ComponentTypeDescriptor, ExportPackagingStrategy,
+    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
+};
 
 pub const PLUGIN_ID: &str = "tilemap_2d";
+pub const TILEMAP_2D_DIST_CRATE_NAME: &str = "zircon_plugin_tilemap_2d_dist";
+pub const TILEMAP_2D_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_tilemap_2d_runtime_entry_v3";
 pub const TILEMAP_COMPONENT_TYPE: &str = "tilemap_2d.Component.TileMap";
 pub const TILED_IMPORTER_ID: &str = "tilemap_2d.tiled";
 
+const TILEMAP_2D_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
+
 #[derive(Clone, Debug)]
 pub struct Tilemap2dRuntimePlugin {
-    descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
+    descriptor: RuntimePluginDescriptor,
 }
 
 impl Tilemap2dRuntimePlugin {
@@ -17,19 +30,25 @@ impl Tilemap2dRuntimePlugin {
     }
 }
 
-impl zircon_runtime::plugin::RuntimePlugin for Tilemap2dRuntimePlugin {
-    fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
+impl Default for Tilemap2dRuntimePlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RuntimePlugin for Tilemap2dRuntimePlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
         &self.descriptor
     }
 
-    fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
+    fn package_manifest(&self) -> PluginPackageManifest {
         runtime_package_manifest()
     }
 
     fn register(
         &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
         registry.register_module(zircon_runtime::core::ModuleDescriptor::new(
             "Tilemap2dPlugin",
             "Tilemap 2D runtime plugin",
@@ -47,35 +66,31 @@ impl zircon_runtime::plugin::RuntimePlugin for Tilemap2dRuntimePlugin {
     }
 }
 
-pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
-    zircon_runtime::plugin::RuntimePluginDescriptor::builder(
+pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
+    RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Tilemap 2D",
-        zircon_runtime::builtin::RuntimePluginId::Tilemap2d,
+        RuntimePluginId::Tilemap2d,
         "zircon_plugin_tilemap_2d_runtime",
     )
     .with_category("authoring")
-    .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
+    .with_maturity(PluginMaturity::Beta)
     .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
     ])
     .with_capability(TILEMAP_2D_RUNTIME_CAPABILITY)
-    .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(
+    .with_capability_status(CapabilityStatusManifest::new(
         TILEMAP_2D_RUNTIME_CAPABILITY,
-        zircon_runtime::plugin::CapabilityStatus::Partial,
+        CapabilityStatus::Partial,
     ))
     .build()
 }
 
-pub fn tilemap_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
-    zircon_runtime::plugin::ComponentTypeDescriptor::new(
-        TILEMAP_COMPONENT_TYPE,
-        PLUGIN_ID,
-        "Tilemap 2D",
-    )
-    .with_property("tilemap", "asset_ref", true)
-    .with_property("material", "asset_ref", false)
+pub fn tilemap_component_descriptor() -> ComponentTypeDescriptor {
+    ComponentTypeDescriptor::new(TILEMAP_COMPONENT_TYPE, PLUGIN_ID, "Tilemap 2D")
+        .with_property("tilemap", "asset_ref", true)
+        .with_property("material", "asset_ref", false)
 }
 
 pub fn tilemap_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
@@ -95,12 +110,32 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
     RUNTIME_CAPABILITIES
 }
 
-pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+pub fn runtime_package_manifest() -> PluginPackageManifest {
     let mut manifest = runtime_plugin_descriptor()
         .package_manifest()
         .with_component(tilemap_component_descriptor());
+    manifest
+        .default_packaging
+        .push(ExportPackagingStrategy::NativeDynamic);
+    manifest = manifest.with_native_module(
+        PluginModuleManifest::native("tilemap_2d.dist", TILEMAP_2D_DIST_CRATE_NAME)
+            .with_target_modes([
+                RuntimeTargetMode::ClientRuntime,
+                RuntimeTargetMode::EditorHost,
+            ])
+            .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
+    );
     for importer in tilemap_importer_descriptors() {
         manifest = manifest.with_asset_importer(importer);
     }
-    manifest
+    manifest.with_distribution(PluginDistributionManifest {
+        forms: vec!["dist".to_string()],
+        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+        abi_version: Some(NATIVE_ABI_VERSION_V3),
+        engine_compat: TILEMAP_2D_DIST_ENGINE_COMPAT.to_string(),
+        dist_crate: TILEMAP_2D_DIST_CRATE_NAME.to_string(),
+        descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+        runtime_entry: TILEMAP_2D_DIST_RUNTIME_ENTRY.to_string(),
+        ..PluginDistributionManifest::default()
+    })
 }

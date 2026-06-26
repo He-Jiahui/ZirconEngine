@@ -275,11 +275,22 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
 #[test]
 fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let globals =
-        std::fs::read_to_string(root.join("src/ui/retained_host/host_contract/globals.rs"))
-            .expect("host globals");
-    let wiring = std::fs::read_to_string(root.join("src/ui/retained_host/app/callback_wiring.rs"))
-        .expect("callback wiring");
+    let globals = [
+        "src/ui/retained_host/host_contract/globals.rs",
+        "src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs",
+    ]
+    .into_iter()
+    .map(|path| std::fs::read_to_string(root.join(path)).expect(path))
+    .collect::<Vec<_>>()
+    .join("\n");
+    let wiring = [
+        "src/ui/retained_host/app/callback_wiring.rs",
+        "src/ui/retained_host/app/callback_wiring/pane_surface/assets/controls.rs",
+    ]
+    .into_iter()
+    .map(|path| std::fs::read_to_string(root.join(path)).expect(path))
+    .collect::<Vec<_>>()
+    .join("\n");
     let controls = std::fs::read_to_string(
         root.join("assets/ui/editor/host/asset_surface_controls.v2.ui.toml"),
     )

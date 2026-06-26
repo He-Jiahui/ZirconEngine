@@ -7,9 +7,10 @@ use crate::ui::retained_host::{
     to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FloatingWindowData,
     FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
     HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
-    HostMenuChromeMenuData, HostMenuStateData, HostResizeLayerData, HostSideDockSurfaceData,
-    HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData, SceneViewportChromeData,
-    TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext, UiHostWindow,
+    HostMenuChromeMenuData, HostMenuStateData, HostPageOverflowMenuStateData, HostResizeLayerData,
+    HostSideDockSurfaceData, HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData,
+    SceneViewportChromeData, TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
+    UiHostWindow,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -339,6 +340,67 @@ fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
         clicks.borrow().as_slice(),
         [(0, 68.0, 116.0, 12.0, 12.0)],
         "host page tab pointer bridge expects tab-local click coordinates, not global shell coordinates"
+    );
+}
+
+#[test]
+fn native_host_pointer_click_routes_host_page_overflow_button_and_popup_rows() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.page_chrome.tab_frames = model_rc(vec![chrome_tab(
+        "HostPageTab0",
+        "Workbench",
+        68.0,
+        29.0,
+        116.0,
+        28.0,
+    )]);
+    presentation.host_scene_data.page_chrome.tabs = model_rc(vec![
+        tab_data("workbench", "Workbench"),
+        tab_data("assets", "Assets"),
+    ]);
+    presentation.host_scene_data.page_chrome.overflow_frame = host_frame(188.0, 29.0, 34.0, 28.0);
+    presentation
+        .host_scene_data
+        .page_chrome
+        .overflow_hidden_tab_indices = vec![1];
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>().on_host_page_pointer_clicked(
+            move |index, tab_x, tab_width, x, y| {
+                clicks.borrow_mut().push((index, tab_x, tab_width, x, y));
+            },
+        );
+    }
+
+    let overflow_result = ui.dispatch_native_primary_press_for_test(198.0, 41.0);
+
+    assert!(overflow_result.request_redraw());
+    assert_eq!(clicks.borrow().as_slice(), [(-2, 188.0, 34.0, 10.0, 12.0)]);
+
+    ui.global::<UiHostContext>()
+        .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
+            open: true,
+            hovered_page_index: -1,
+        });
+    let row_result = ui.dispatch_native_primary_press_for_test(70.0, 73.0);
+
+    assert!(row_result.request_redraw());
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [(-2, 188.0, 34.0, 10.0, 12.0), (1, 56.0, 160.0, 14.0, 7.0)],
+        "overflow popup rows should dispatch the hidden page index through the same host page callback"
+    );
+    assert!(
+        !ui.get_host_presentation()
+            .host_page_overflow_menu_state
+            .open
     );
 }
 

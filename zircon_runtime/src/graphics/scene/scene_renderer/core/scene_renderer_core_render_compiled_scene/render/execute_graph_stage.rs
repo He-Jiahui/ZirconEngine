@@ -24,7 +24,6 @@ use crate::graphics::scene::scene_renderer::overlay::{
 };
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
 use crate::graphics::scene::scene_renderer::post_process::execute_post_process_pass_graph;
-use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
@@ -83,7 +82,6 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
     mut overlay_renderer: Option<&mut ViewportOverlayRenderer>,
     prepared_overlays: Option<&PreparedOverlayBuffers>,
-    prepass: Option<&NormalPrepassPipeline>,
     deferred: Option<&DeferredSceneResources>,
     particle_renderer: Option<&ParticleRenderer>,
     sprite_renderer: Option<&SpriteRenderer>,
@@ -118,7 +116,6 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             post_process_stack,
             overlay_renderer.as_deref_mut(),
             prepared_overlays,
-            prepass,
             deferred,
             particle_renderer,
             sprite_renderer,
@@ -191,7 +188,6 @@ fn execute_graph_pass(
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
     overlay_renderer: Option<&mut ViewportOverlayRenderer>,
     prepared_overlays: Option<&PreparedOverlayBuffers>,
-    prepass: Option<&NormalPrepassPipeline>,
     deferred: Option<&DeferredSceneResources>,
     particle_renderer: Option<&ParticleRenderer>,
     sprite_renderer: Option<&SpriteRenderer>,
@@ -256,9 +252,6 @@ fn execute_graph_pass(
         } else {
             gpu.with_preview_sky_renderer(overlay_renderer)
         };
-    }
-    if let (Some(prepass), Some(mesh_draw_lists)) = (prepass, mesh_draw_lists) {
-        gpu = gpu.with_prepass_renderer(prepass, mesh_draw_lists);
     }
     if let Some(shadow_map_renderer) = shadow_map_renderer {
         gpu = if let Some(mesh_draw_lists) = mesh_draw_lists {

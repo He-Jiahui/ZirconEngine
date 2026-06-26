@@ -1,5 +1,8 @@
-use crate::ui::layouts::views::asset_browser_pane_nodes;
-use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
+use crate::ui::layouts::views::{asset_browser_pane_nodes, ViewTemplateNodeData};
+use crate::ui::workbench::snapshot::{
+    AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
+    AssetWorkspaceSnapshot,
+};
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -8,6 +11,7 @@ const ASSET_BROWSER_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/asset_browser.v2.ui.toml"
 ));
+const FRAME_EPSILON: f32 = 0.001;
 
 #[test]
 fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
@@ -114,206 +118,71 @@ fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
 
 #[test]
 fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
-    let pane = asset_browser_pane_nodes(
-        &AssetWorkspaceSnapshot {
-            view_mode: AssetViewMode::Thumbnail,
-            utility_tab: AssetUtilityTab::Metadata,
-            kind_filter: Some(ResourceKind::Material),
-            search_query: "mat".to_string(),
-            selected_folder_id: Some("res://materials".to_string()),
-            selected_asset_uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
-            ..AssetWorkspaceSnapshot::default()
-        },
-        UiSize::new(1280.0, 820.0),
-    );
-    let nodes = (0..pane.row_count())
-        .filter_map(|row| pane.row_data(row))
-        .collect::<Vec<_>>();
+    let nodes = collect_projected_nodes(AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        utility_tab: AssetUtilityTab::Metadata,
+        kind_filter: Some(ResourceKind::Material),
+        search_query: "mat".to_string(),
+        selected_folder_id: Some("res://materials".to_string()),
+        ..AssetWorkspaceSnapshot::default()
+    });
 
     assert!(
         !nodes.is_empty(),
         "asset browser projection should produce template mount nodes"
     );
 
-    let toolbar = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserToolbarPanel")
-        .expect("toolbar panel node");
-    assert_eq!(toolbar.role.to_string(), "Mount");
+    let toolbar = find_node(&nodes, "AssetBrowserToolbarPanel");
+    assert_eq!(toolbar.role.to_string(), "Panel");
+    assert_eq!(toolbar.surface_variant.to_string(), "frame_only");
     assert!(toolbar.frame.width > 0.0 && toolbar.frame.height > 0.0);
 
-    let title = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserTitleText")
-        .expect("title node");
-    let locate = nodes
-        .iter()
-        .find(|node| node.control_id == "LocateSelectedAsset")
-        .expect("locate button node");
-    let subtitle = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSubtitleText")
-        .expect("subtitle node");
-    let search = nodes
-        .iter()
-        .find(|node| node.control_id == "SearchEdited")
-        .expect("search node");
-    let import_panel = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserImportPanel")
-        .expect("import panel node");
-    let import_label = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserImportLabel")
-        .expect("import label node");
-    let import_path = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserImportPathField")
-        .expect("import path node");
-    let import_button = nodes
-        .iter()
-        .find(|node| node.control_id == "ImportModel")
-        .expect("import button node");
-    let main = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserMainPanel")
-        .expect("main panel node");
-    let sources = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSourcesPanel")
-        .expect("sources panel node");
-    let sources_title = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSourcesTitleText")
-        .expect("sources title node");
-    let sources_subtitle = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSourcesSubtitleText")
-        .expect("sources subtitle node");
-    let sources_scroll_body = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSourcesScrollBody")
-        .expect("sources scroll body node");
-    let content = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserContentPanel")
-        .expect("content panel node");
-    let details = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsPanel")
-        .expect("details panel node");
-    let details_title = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsHeaderTitleText")
-        .expect("details title node");
-    let details_header = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsHeaderPanel")
-        .expect("details header node");
-    let details_scroll_body = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsScrollBody")
-        .expect("details scroll body node");
-    let details_content = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsContentPanel")
-        .expect("details content node");
-    let details_preview = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsPreviewPanel")
-        .expect("details preview node");
-    let details_locator = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsLocatorPanel")
-        .expect("details locator node");
-    let details_diagnostics = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDetailsDiagnosticsPanel")
-        .expect("details diagnostics node");
-    let utility = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserUtilityPanel")
-        .expect("utility panel node");
-    let utility_tabs = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserUtilityTabsRow")
-        .expect("utility tabs node");
-    let utility_selection = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserSelectionLocatorText")
-        .expect("utility selection node");
-    let utility_divider = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserUtilityDivider")
-        .expect("utility divider node");
-    let utility_content = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserUtilityContentPanel")
-        .expect("utility content node");
-    let preview_panel = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserPreviewPanel")
-        .expect("preview panel node");
-    let preview_visual = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserPreviewVisualPanel")
-        .expect("preview visual node");
-    let preview_name = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserPreviewNameText")
-        .expect("preview name node");
-    let reference_left = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceLeftPanel")
-        .expect("left references node");
-    let reference_left_title = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceLeftTitleText")
-        .expect("left references title node");
-    let reference_left_body = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceLeftScrollBody")
-        .expect("left references body node");
-    let reference_left_row = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceLeftRowPanel")
-        .expect("left references row node");
-    let reference_right = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceRightPanel")
-        .expect("right references node");
-    let reference_right_title = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceRightTitleText")
-        .expect("right references title node");
-    let reference_right_row = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserReferenceRightRowPanel")
-        .expect("right references row node");
-    let meta_path_panel = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserMetaPathPanel")
-        .expect("meta path panel node");
-    let diagnostics_text = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserDiagnosticsText")
-        .expect("diagnostics text node");
-    let plugins_panel = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserPluginsPanel")
-        .expect("plugins panel node");
-    let thumb_mode = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserViewModeThumbButton")
-        .expect("thumb mode node");
-    let metadata_tab = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserMetadataTabButton")
-        .expect("metadata tab node");
-    let material_chip = nodes
-        .iter()
-        .find(|node| node.control_id == "AssetBrowserKindMaterialChip")
-        .expect("material chip node");
+    let title = find_node(&nodes, "AssetBrowserTitleText");
+    let locate = find_node(&nodes, "LocateSelectedAsset");
+    let subtitle = find_node(&nodes, "AssetBrowserSubtitleText");
+    assert_eq!(
+        nodes
+            .iter()
+            .filter(|node| node.control_id == "SearchEdited")
+            .count(),
+        1,
+        "TextField projection should not keep both component and generated text nodes"
+    );
+    let search = find_node(&nodes, "SearchEdited");
+    let import_panel = find_node(&nodes, "AssetBrowserImportPanel");
+    let import_label = find_node(&nodes, "AssetBrowserImportLabel");
+    let import_path = find_node(&nodes, "AssetBrowserImportPathField");
+    let import_button = find_node(&nodes, "ImportModel");
+    let main = find_node(&nodes, "AssetBrowserMainPanel");
+    let sources = find_node(&nodes, "AssetBrowserSourcesPanel");
+    let sources_title = find_node(&nodes, "AssetBrowserSourcesTitleText");
+    let sources_subtitle = find_node(&nodes, "AssetBrowserSourcesSubtitleText");
+    let sources_scroll_body = find_node(&nodes, "AssetBrowserSourcesScrollBody");
+    let content = find_node(&nodes, "AssetBrowserContentPanel");
+    let table_header = find_node(&nodes, "WorkbenchAssetBrowserTableHeader");
+    let table_row = find_node(&nodes, "WorkbenchAssetBrowserAssetRow01");
+    let details = find_node(&nodes, "AssetBrowserDetailsPanel");
+    let details_title = find_node(&nodes, "AssetBrowserDetailsHeaderTitleText");
+    let details_header = find_node(&nodes, "AssetBrowserDetailsHeaderPanel");
+    let details_scroll_body = find_node(&nodes, "AssetBrowserDetailsScrollBody");
+    let details_content = find_node(&nodes, "AssetBrowserDetailsContentPanel");
+    let details_preview = find_node(&nodes, "AssetBrowserDetailsPreviewPanel");
+    let details_locator = find_node(&nodes, "AssetBrowserDetailsLocatorPanel");
+    let details_diagnostics = find_node(&nodes, "AssetBrowserDetailsDiagnosticsPanel");
+    let utility = find_node(&nodes, "AssetBrowserUtilityPanel");
+    let utility_tabs = find_node(&nodes, "AssetBrowserUtilityTabsRow");
+    let utility_selection = find_node(&nodes, "AssetBrowserSelectionLocatorText");
+    let utility_divider = find_node(&nodes, "AssetBrowserUtilityDivider");
+    let utility_content = find_node(&nodes, "AssetBrowserUtilityContentPanel");
+    let meta_path_panel = find_node(&nodes, "AssetBrowserMetaPathPanel");
+    let diagnostics_text = find_node(&nodes, "AssetBrowserDiagnosticsText");
+    let list_mode = find_node(&nodes, "AssetBrowserViewModeListButton");
+    let thumb_mode = find_node(&nodes, "AssetBrowserViewModeThumbButton");
+    let preview_tab = find_node(&nodes, "AssetBrowserPreviewTabButton");
+    let references_tab = find_node(&nodes, "AssetBrowserReferencesTabButton");
+    let metadata_tab = find_node(&nodes, "AssetBrowserMetadataTabButton");
+    let plugins_tab = find_node(&nodes, "AssetBrowserPluginsTabButton");
+    let material_chip = find_node(&nodes, "AssetBrowserKindMaterialChip");
 
     assert_eq!(title.text.to_string(), "Asset Browser");
     assert_eq!(sources_title.text.to_string(), "Sources");
@@ -343,6 +212,13 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     );
     assert_eq!(search.commit_action_id.to_string(), "");
     assert_eq!(import_label.text.to_string(), "Quick Import");
+    assert_eq!(import_path.role.to_string(), "InputField");
+    assert_eq!(import_path.component_role.to_string(), "input-field");
+    assert_eq!(
+        import_path.text.to_string(),
+        "Drop or paste asset source path"
+    );
+    assert_eq!(import_path.value_text.to_string(), "");
     assert_eq!(import_button.role.to_string(), "Button");
     assert_eq!(import_button.button_variant.to_string(), "primary");
     assert_eq!(import_button.dispatch_kind.to_string(), "asset:browser");
@@ -350,10 +226,24 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         import_button.binding_id.to_string(),
         "AssetSurface/ImportModel"
     );
+    assert_eq!(
+        shared_string_model_values(&table_header.options),
+        ["Name", "Type", "Size", "Rev"],
+        "asset table headers should use declared cells instead of whitespace-split text"
+    );
+    assert_eq!(
+        shared_string_model_values(&table_row.options),
+        ["Empty Asset", "Asset", "0KB", "pending"],
+        "asset table rows should carry four explicit cells for stable retained-host table painting"
+    );
     assert_eq!(details_title.text.to_string(), "Details");
-    assert!(details_header.selected);
+    assert!(!details_header.selected);
     assert_eq!(details_preview.role.to_string(), "Panel");
-    assert_eq!(details_preview.surface_variant.to_string(), "asset-preview");
+    assert_eq!(
+        details_preview.surface_variant.to_string(),
+        "asset-placeholder"
+    );
+    assert_eq!(details_preview.border_width, 0.0);
     assert_eq!(details_locator.role.to_string(), "Panel");
     assert_eq!(details_locator.surface_variant.to_string(), "inset");
     assert_eq!(details_diagnostics.role.to_string(), "Panel");
@@ -362,28 +252,13 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         utility_selection.text.to_string(),
         "Select an asset to inspect"
     );
-    assert_eq!(preview_panel.role.to_string(), "Panel");
-    assert_eq!(preview_panel.surface_variant.to_string(), "asset-preview");
-    assert_eq!(preview_visual.role.to_string(), "Panel");
-    assert_eq!(
-        preview_visual.surface_variant.to_string(),
-        "asset-preview-visual"
-    );
-    assert_eq!(preview_name.text.to_string(), "No Asset Selected");
-    assert_eq!(reference_left_title.text.to_string(), "References");
-    assert_eq!(reference_left_body.role.to_string(), "Panel");
-    assert!(!reference_left_row.selected);
-    assert_eq!(
-        reference_left_body.surface_variant.to_string(),
-        "scroll-body"
-    );
-    assert_eq!(reference_right_title.text.to_string(), "Used By");
     assert_eq!(meta_path_panel.role.to_string(), "Panel");
     assert_eq!(meta_path_panel.surface_variant.to_string(), "inset");
     assert_eq!(diagnostics_text.text.to_string(), "No active diagnostics");
-    assert_eq!(plugins_panel.role.to_string(), "Panel");
-    assert_eq!(plugins_panel.surface_variant.to_string(), "inset");
+    assert_eq!(list_mode.text.to_string(), "List");
+    assert_eq!(list_mode.value_text.to_string(), "list");
     assert!(thumb_mode.selected);
+    assert_eq!(thumb_mode.text.to_string(), "Thumb");
     assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
     assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
@@ -395,7 +270,12 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         "AssetSurface/SetViewMode"
     );
     assert_eq!(thumb_mode.value_text.to_string(), "thumbnail");
+    assert_eq!(preview_tab.text.to_string(), "Preview");
+    assert_eq!(preview_tab.value_text.to_string(), "preview");
+    assert_eq!(references_tab.text.to_string(), "References");
+    assert_eq!(references_tab.value_text.to_string(), "references");
     assert!(metadata_tab.selected);
+    assert_eq!(metadata_tab.text.to_string(), "Metadata");
     assert_eq!(metadata_tab.surface_variant.to_string(), "inset");
     assert_eq!(metadata_tab.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
@@ -407,13 +287,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         "AssetSurface/SetUtilityTab"
     );
     assert_eq!(metadata_tab.value_text.to_string(), "metadata");
+    assert_eq!(plugins_tab.text.to_string(), "Plugins");
+    assert_eq!(plugins_tab.value_text.to_string(), "plugins");
     assert!(material_chip.selected);
-    assert!(!reference_left.selected);
-    assert!(!reference_right.selected);
-    assert!(!reference_left_row.selected);
-    assert!(!reference_right_row.selected);
     assert!(meta_path_panel.selected);
-    assert!(plugins_panel.focused == false || !plugins_panel.selected);
     assert_eq!(material_chip.surface_variant.to_string(), "inset");
     assert_eq!(material_chip.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
@@ -439,10 +316,402 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(utility_selection.frame.width > 0.0);
     assert!(utility_divider.frame.height > 0.0);
     assert!(utility_content.frame.y >= utility_tabs.frame.y + utility_tabs.frame.height);
+    assert_frame_value("utility panel height", utility.frame.height, 144.0);
+    assert_frame_value("utility tabs height", utility_tabs.frame.height, 22.0);
+    assert_frame_value(
+        "utility content y offset",
+        utility_content.frame.y - utility.frame.y,
+        28.0,
+    );
+    assert_frame_value(
+        "utility content height",
+        utility_content.frame.height,
+        116.0,
+    );
+    assert_frame_value(
+        "utility divider y offset",
+        utility_divider.frame.y - utility.frame.y,
+        26.0,
+    );
+    assert_frame_value("preview tab width", preview_tab.frame.width, 68.0);
+    assert_frame_value("references tab width", references_tab.frame.width, 92.0);
+    assert_frame_value("metadata tab width", metadata_tab.frame.width, 84.0);
+    assert_frame_value("plugins tab width", plugins_tab.frame.width, 72.0);
+    assert_frame_value(
+        "utility selection label width",
+        utility_selection.frame.width,
+        156.0,
+    );
     assert!(import_path.frame.width > 0.0 && import_path.frame.height > 0.0);
-    assert!(preview_panel.frame.width > 0.0 && preview_panel.frame.height > 0.0);
-    assert!(reference_left.frame.width > 0.0 && reference_left.frame.height > 0.0);
-    assert!(reference_right.frame.x >= reference_left.frame.x + reference_left.frame.width);
     assert!(meta_path_panel.frame.width > 0.0 && meta_path_panel.frame.height > 0.0);
-    assert!(plugins_panel.frame.width > 0.0 && plugins_panel.frame.height > 0.0);
+    assert_control_absent(&nodes, "AssetBrowserPreviewPanel");
+    assert_control_absent(&nodes, "AssetBrowserReferenceLeftPanel");
+    assert_control_absent(&nodes, "AssetBrowserReferenceRightPanel");
+    assert_control_absent(&nodes, "AssetBrowserPluginsPanel");
+}
+
+#[test]
+fn asset_browser_projection_keeps_only_preview_content_for_preview_tab() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::List,
+        utility_tab: AssetUtilityTab::Preview,
+        selected_asset_uuid: Some("asset-ui-layout".to_string()),
+        visible_assets: vec![sample_asset(
+            "asset-ui-layout",
+            "res://ui/editor/workbench_host_window.ui.toml",
+            "workbench_host_window.ui.toml",
+            ResourceKind::UiLayout,
+            true,
+        )],
+        ..AssetWorkspaceSnapshot::default()
+    };
+    let nodes = collect_projected_nodes(snapshot);
+
+    let preview_panel = find_node(&nodes, "AssetBrowserPreviewPanel");
+    let preview_visual = find_node(&nodes, "AssetBrowserPreviewVisualPanel");
+    let preview_name = find_node(&nodes, "AssetBrowserPreviewNameText");
+    let preview_locator = find_node(&nodes, "AssetBrowserPreviewLocatorText");
+    let utility_selection = find_node(&nodes, "AssetBrowserSelectionLocatorText");
+    let content_card = find_node(&nodes, "AssetBrowserContentPreviewCard");
+    let details_preview = find_node(&nodes, "AssetBrowserDetailsPreviewPanel");
+
+    assert!(preview_panel.selected);
+    assert_eq!(preview_panel.surface_variant.to_string(), "asset-preview");
+    assert_eq!(preview_panel.border_width, 1.0);
+    assert_eq!(
+        preview_visual.surface_variant.to_string(),
+        "asset-preview-visual"
+    );
+    assert_eq!(preview_visual.border_width, 1.0);
+    assert_eq!(
+        preview_name.text.to_string(),
+        "workbench_host_window.ui.toml"
+    );
+    assert_eq!(
+        preview_locator.text.to_string(),
+        "res://ui/editor/workbench_host_window.ui.toml"
+    );
+    assert_eq!(utility_selection.text, preview_locator.text);
+    assert!(content_card.selected);
+    assert_eq!(content_card.surface_variant.to_string(), "asset-preview");
+    assert!(!details_preview.selected);
+    assert_eq!(
+        details_preview.surface_variant.to_string(),
+        "asset-placeholder"
+    );
+    assert_eq!(details_preview.border_width, 0.0);
+    assert_control_absent(&nodes, "AssetBrowserMetaPathPanel");
+    assert_control_absent(&nodes, "AssetBrowserReferenceLeftPanel");
+    assert_control_absent(&nodes, "AssetBrowserReferenceRightPanel");
+    assert_control_absent(&nodes, "AssetBrowserPluginsPanel");
+}
+
+#[test]
+fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
+    let nodes = collect_projected_nodes_with_size(
+        AssetWorkspaceSnapshot {
+            view_mode: AssetViewMode::List,
+            utility_tab: AssetUtilityTab::Preview,
+            selected_asset_uuid: Some("asset-ui-layout".to_string()),
+            visible_assets: vec![sample_asset(
+                "asset-ui-layout",
+                "res://ui/editor/workbench_host_window.ui.toml",
+                "workbench_host_window.ui.toml",
+                ResourceKind::UiLayout,
+                true,
+            )],
+            selection: AssetSelectionSnapshot {
+                uuid: Some("asset-ui-layout".to_string()),
+                display_name: "workbench_host_window.ui.toml".to_string(),
+                locator: "res://ui/editor/workbench_host_window.ui.toml".to_string(),
+                kind: Some(ResourceKind::UiLayout),
+                ..AssetSelectionSnapshot::default()
+            },
+            ..AssetWorkspaceSnapshot::default()
+        },
+        UiSize::new(828.0, 497.0),
+    );
+
+    let toolbar = find_node(&nodes, "AssetBrowserToolbarPanel");
+    let toolbar_title_row = find_node(&nodes, "AssetBrowserToolbarTitleRow");
+    let toolbar_title = find_node(&nodes, "AssetBrowserTitleText");
+    let toolbar_subtitle_row = find_node(&nodes, "AssetBrowserToolbarSubtitleRow");
+    let toolbar_subtitle = find_node(&nodes, "AssetBrowserSubtitleText");
+    let search_row = find_node(&nodes, "AssetBrowserToolbarSearchRow");
+    let search_field = find_node(&nodes, "SearchEdited");
+    let locate_button = find_node(&nodes, "LocateSelectedAsset");
+    let kind_row = find_node(&nodes, "AssetBrowserToolbarKindPrimaryRow");
+    let all_chip = find_node(&nodes, "AssetBrowserKindAllChip");
+    let shader_chip = find_node(&nodes, "AssetBrowserKindShaderChip");
+    let list_button = find_node(&nodes, "AssetBrowserViewModeListButton");
+    let thumb_button = find_node(&nodes, "AssetBrowserViewModeThumbButton");
+    let import_panel = find_node(&nodes, "AssetBrowserImportPanel");
+    let import_label = find_node(&nodes, "AssetBrowserImportLabel");
+    let import_path = find_node(&nodes, "AssetBrowserImportPathField");
+    let import_button = find_node(&nodes, "ImportModel");
+    let main = find_node(&nodes, "AssetBrowserMainPanel");
+    let utility = find_node(&nodes, "AssetBrowserUtilityPanel");
+    let utility_content = find_node(&nodes, "AssetBrowserUtilityContentPanel");
+    let preview_panel = find_node(&nodes, "AssetBrowserPreviewPanel");
+    let sources_panel = find_node(&nodes, "AssetBrowserSourcesPanel");
+    let sources_row = find_node(&nodes, "AssetBrowserSourcesRowPanel");
+    let content_panel = find_node(&nodes, "AssetBrowserContentPanel");
+    let content_header = find_node(&nodes, "AssetBrowserContentHeaderRow");
+    let content_header_title = find_node(&nodes, "AssetBrowserContentHeaderTitleText");
+    let content_header_path = find_node(&nodes, "AssetBrowserContentHeaderPathText");
+    let table_panel = find_node(&nodes, "AssetBrowserAssetTablePanel");
+    let table_header = find_node(&nodes, "WorkbenchAssetBrowserTableHeader");
+    let table_row04 = find_node(&nodes, "WorkbenchAssetBrowserAssetRow04");
+    let content_preview_card = find_node(&nodes, "AssetBrowserContentPreviewCard");
+    let content_preview_name = find_node(&nodes, "AssetBrowserContentPreviewName");
+    let details_panel = find_node(&nodes, "AssetBrowserDetailsPanel");
+    let details_preview_name = find_node(&nodes, "AssetBrowserDetailsPreviewNameText");
+
+    assert_frame_value("compact toolbar height", toolbar.frame.height, 56.0);
+    assert_eq!(toolbar_title_row.frame.height, 0.0);
+    assert_eq!(toolbar_title.frame.height, 0.0);
+    assert_eq!(toolbar_subtitle_row.frame.height, 0.0);
+    assert_eq!(toolbar_subtitle.frame.height, 0.0);
+    assert_frame_value("compact search row height", search_row.frame.height, 28.0);
+    assert_frame_value("compact search row y", search_row.frame.y, toolbar.frame.y);
+    assert_frame_value(
+        "compact search field height",
+        search_field.frame.height,
+        28.0,
+    );
+    assert!(search_field.frame.width >= 120.0);
+    assert!(
+        search_field.frame.x < locate_button.frame.x
+            && locate_button.frame.x + locate_button.frame.width
+                <= toolbar.frame.x + toolbar.frame.width + FRAME_EPSILON,
+        "compact search and locate controls should share one toolbar row without overlap"
+    );
+    assert_frame_value(
+        "compact locate button height",
+        locate_button.frame.height,
+        28.0,
+    );
+    assert_frame_value(
+        "compact kind row y offset",
+        kind_row.frame.y - toolbar.frame.y,
+        32.0,
+    );
+    assert_frame_value("compact kind row height", kind_row.frame.height, 24.0);
+    assert_eq!(all_chip.frame.y, kind_row.frame.y);
+    assert_eq!(shader_chip.frame.height, 24.0);
+    assert!(shader_chip.frame.x + shader_chip.frame.width < list_button.frame.x);
+    assert_frame_value("compact list button height", list_button.frame.height, 24.0);
+    assert_frame_value(
+        "compact thumb button height",
+        thumb_button.frame.height,
+        24.0,
+    );
+    assert!(thumb_button.frame.x > list_button.frame.x);
+    assert_frame_value(
+        "compact import y offset",
+        import_panel.frame.y - toolbar.frame.y,
+        62.0,
+    );
+    assert_frame_value("compact import height", import_panel.frame.height, 32.0);
+    assert_frame_value(
+        "compact import label height",
+        import_label.frame.height,
+        14.0,
+    );
+    assert_frame_value(
+        "compact import field height",
+        import_path.frame.height,
+        28.0,
+    );
+    assert_eq!(
+        import_path.text.to_string(),
+        "Drop or paste asset source path"
+    );
+    assert_eq!(import_path.value_text.to_string(), "");
+    assert_frame_value(
+        "compact import button height",
+        import_button.frame.height,
+        26.0,
+    );
+    assert!(
+        import_label.frame.x < import_path.frame.x
+            && import_path.frame.x + import_path.frame.width < import_button.frame.x,
+        "compact import row should keep label, path, and action in one horizontal strip"
+    );
+    assert_frame_value(
+        "compact main panel y",
+        main.frame.y,
+        import_panel.frame.y + import_panel.frame.height + 6.0,
+    );
+    assert!(
+        main.frame.y + main.frame.height + 6.0 <= utility.frame.y,
+        "main panel should leave a stable gap before the compact utility drawer"
+    );
+    assert!(
+        utility.frame.y + utility.frame.height <= 497.0,
+        "compact utility drawer must stay inside the viewport"
+    );
+    assert_eq!(utility.frame.height, 28.0);
+    assert_eq!(utility_content.frame.y, utility.frame.y + 28.0);
+    assert_eq!(utility_content.frame.height, 0.0);
+    assert_eq!(preview_panel.frame.height, 0.0);
+    assert_all_nodes_collapsed(
+        &nodes,
+        &[
+            "AssetBrowserPreviewPanel",
+            "AssetBrowserPreviewVisualPanel",
+            "AssetBrowserPreviewNameText",
+            "AssetBrowserPreviewLocatorText",
+            "AssetBrowserPreviewKindText",
+            "AssetBrowserPreviewIdentityText",
+            "AssetBrowserPreviewAdapterText",
+            "AssetBrowserPreviewMetaPathText",
+            "AssetBrowserPreviewDiagnosticsText",
+        ],
+    );
+    assert_eq!(sources_panel.frame.width, 0.0);
+    assert_eq!(sources_panel.frame.height, 0.0);
+    assert_eq!(sources_row.frame.width, 0.0);
+    assert_eq!(details_panel.frame.width, 0.0);
+    assert_eq!(details_panel.frame.height, 0.0);
+    assert!(content_preview_card.selected);
+    assert_eq!(
+        content_preview_name.text.to_string(),
+        "workbench_host_window.ui.toml"
+    );
+    assert!(
+        content_panel.frame.x <= main.frame.x + 1.0 && content_panel.frame.width > 740.0,
+        "short compact viewport should give the primary asset list the sources and details columns"
+    );
+    assert_frame_value(
+        "compact content header height",
+        content_header.frame.height,
+        20.0,
+    );
+    assert_frame_value(
+        "compact table y offset",
+        table_header.frame.y - content_header.frame.y,
+        24.0,
+    );
+    assert!(content_header_title.frame.width > 0.0);
+    assert!(content_header_path.frame.width >= 96.0);
+    assert!(
+        content_header_title.frame.x >= content_header.frame.x + 8.0
+            && content_header_path.frame.x + content_header_path.frame.width
+                <= content_header.frame.x + content_header.frame.width - 8.0,
+        "compact content header text should stay padded inside the content surface"
+    );
+    assert_frame_value(
+        "compact table panel closes on last visible row",
+        table_panel.frame.y + table_panel.frame.height
+            - (table_row04.frame.y + table_row04.frame.height),
+        0.0,
+    );
+    assert_eq!(
+        visible_node_count(&nodes, "AssetBrowserContentPanel"),
+        1,
+        "compact content panel should not leave a second visible projected container"
+    );
+    assert_eq!(
+        visible_node_count(&nodes, "AssetBrowserAssetTablePanel"),
+        1,
+        "compact table panel should not leave a second visible projected container"
+    );
+    assert!(table_row04.frame.height <= 30.0);
+    assert!(content_preview_card.frame.y >= table_row04.frame.y + table_row04.frame.height + 8.0);
+    assert!(
+        content_preview_card.frame.y + content_preview_card.frame.height
+            <= content_panel.frame.y + content_panel.frame.height + FRAME_EPSILON
+    );
+    assert_eq!(details_preview_name.frame.width, 0.0);
+}
+
+fn assert_frame_value(label: &str, actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() < FRAME_EPSILON,
+        "{label} drifted: expected {expected}, got {actual}"
+    );
+}
+
+fn visible_node_count(nodes: &[ViewTemplateNodeData], control_id: &str) -> usize {
+    nodes
+        .iter()
+        .filter(|node| {
+            node.control_id == control_id
+                && node.frame.width > FRAME_EPSILON
+                && node.frame.height > FRAME_EPSILON
+        })
+        .count()
+}
+
+fn assert_all_nodes_collapsed(nodes: &[ViewTemplateNodeData], control_ids: &[&str]) {
+    for control_id in control_ids {
+        let visible = visible_node_count(nodes, control_id);
+        assert_eq!(
+            visible, 0,
+            "all `{control_id}` projections should collapse in compact short viewport"
+        );
+    }
+}
+
+fn collect_projected_nodes(snapshot: AssetWorkspaceSnapshot) -> Vec<ViewTemplateNodeData> {
+    collect_projected_nodes_with_size(snapshot, UiSize::new(1280.0, 820.0))
+}
+
+fn collect_projected_nodes_with_size(
+    snapshot: AssetWorkspaceSnapshot,
+    size: UiSize,
+) -> Vec<ViewTemplateNodeData> {
+    let pane = asset_browser_pane_nodes(&snapshot, size);
+    (0..pane.row_count())
+        .filter_map(|row| pane.row_data(row))
+        .collect()
+}
+
+fn find_node<'a>(nodes: &'a [ViewTemplateNodeData], control_id: &str) -> &'a ViewTemplateNodeData {
+    nodes
+        .iter()
+        .find(|node| node.control_id == control_id)
+        .unwrap_or_else(|| panic!("expected projected node `{control_id}`"))
+}
+
+fn assert_control_absent(nodes: &[ViewTemplateNodeData], control_id: &str) {
+    assert!(
+        nodes.iter().all(|node| node.control_id != control_id),
+        "projected utility tab should not include inactive `{control_id}`"
+    );
+}
+
+fn sample_asset(
+    uuid: &str,
+    locator: &str,
+    display_name: &str,
+    kind: ResourceKind,
+    selected: bool,
+) -> AssetItemSnapshot {
+    AssetItemSnapshot {
+        uuid: uuid.to_string(),
+        locator: locator.to_string(),
+        display_name: display_name.to_string(),
+        file_name: display_name.to_string(),
+        extension: String::new(),
+        kind,
+        preview_artifact_path: String::new(),
+        dirty: false,
+        diagnostics: Vec::new(),
+        selected,
+        resource_state: None,
+        resource_revision: Some(42),
+    }
+}
+
+fn shared_string_model_values(
+    model: &crate::ui::retained_host::primitives::ModelRc<
+        crate::ui::retained_host::primitives::SharedString,
+    >,
+) -> Vec<String> {
+    (0..model.row_count())
+        .filter_map(|row| model.row_data(row))
+        .map(|value| value.to_string())
+        .collect()
 }

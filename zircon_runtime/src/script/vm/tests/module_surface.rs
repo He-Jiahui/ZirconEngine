@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn builtin_host_modules_register_gameplay_capabilities() {
     let exports = HostExportRegistry::default();
-    super::super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
+    super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
 
     let gameplay = exports.module("zr.zircon.gameplay").unwrap();
     assert!(gameplay

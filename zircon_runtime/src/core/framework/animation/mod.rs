@@ -1,6 +1,7 @@
 //! Animation framework contracts for sequence, graph, state-machine, parameter, and pose evaluation.
 
 mod avatar_mask;
+mod error;
 mod event;
 mod gpu_skinning;
 mod graph_blend_mode;
@@ -22,6 +23,7 @@ mod track_path;
 mod track_path_error;
 
 pub use avatar_mask::AnimationAvatarMask;
+pub use error::{AnimationError, AnimationResult};
 pub use event::AnimationEventRecord;
 pub use gpu_skinning::{AnimationGpuSkinningReadiness, AnimationSkinningBackend};
 pub use graph_blend_mode::AnimationGraphBlendMode;

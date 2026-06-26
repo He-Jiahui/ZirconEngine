@@ -123,6 +123,14 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "OpenAssetBrowser")
         .expect("open browser button node");
+    assert_eq!(
+        nodes
+            .iter()
+            .filter(|node| node.control_id == "SearchEdited")
+            .count(),
+        1,
+        "TextField projection should not keep both component and generated text nodes"
+    );
     let search = nodes
         .iter()
         .find(|node| node.control_id == "SearchEdited")

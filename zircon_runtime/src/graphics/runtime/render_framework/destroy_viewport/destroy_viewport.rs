@@ -3,11 +3,11 @@ use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle}
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn destroy_viewport(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let removed = state.viewports.remove(&viewport);
     if removed.is_none() {
         return Err(RenderFrameworkError::UnknownViewport {

@@ -4,6 +4,7 @@ use super::super::data::FrameRect;
 use super::super::paint_frame::HostRgbaFrame;
 
 mod clip_rect;
+mod ellipsis;
 mod entry;
 mod glyphs;
 mod layout;

@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/camera_controller/mod.rs
-  - zircon_runtime/src/core/framework/camera_controller/common.rs
+  - zircon_runtime/src/core/framework/camera_controller/controller_output.rs
   - zircon_runtime/src/core/framework/camera_controller/free/mod.rs
   - zircon_runtime/src/core/framework/camera_controller/free/controller.rs
   - zircon_runtime/src/core/framework/camera_controller/free/input.rs
@@ -29,7 +29,7 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/camera_controller/common.rs
+  - zircon_runtime/src/core/framework/camera_controller/controller_output.rs
   - zircon_runtime/src/core/framework/camera_controller/free/controller.rs
   - zircon_runtime/src/core/framework/camera_controller/free/input.rs
   - zircon_runtime/src/core/framework/camera_controller/free/settings.rs
@@ -56,10 +56,12 @@ plan_sources:
   - user: 2026-05-25 continue Runtime Picking / Gizmos / Camera / Remote Bevy completion plan
   - .codex/plans/runtime-picking-gizmos-camera-remote-bevy-completion-plan.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - zircon_runtime/src/tests/camera_controller.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_editor/src/tests/editing/viewport.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_camera_controller_output_uses_owner_name
   - cargo test -p zircon_runtime --lib camera_controller --locked --color never --jobs 1
   - cargo test -p zircon_editor --lib viewport_perspective_camera_navigation_uses_runtime_orbit_controller --locked --color never --jobs 1
 doc_type: module-detail
@@ -101,7 +103,7 @@ The framework module does not own window focus, raw device events, editor select
 
 The module is folder-backed to keep root wiring structural:
 
-- `common.rs` defines output deltas and cursor grab intent.
+- `controller_output.rs` defines output deltas and cursor grab intent.
 - `free/*` defines free-camera settings, state, input, and update behavior.
 - `pan/*` defines 2D pan/zoom settings, state, input, and update behavior.
 - `orbit/*` defines orbit actions, settings, state, input, and update behavior.
@@ -141,3 +143,9 @@ Orthographic pan and zoom remain editor-local in this slice because they depend 
 `zircon_runtime/src/dynamic_api/camera_controller.rs` includes a module-local smoke test proving the old dynamic runtime controller still moves the active scene camera closer to its orbit target through the public `OrbitCameraController`.
 
 `zircon_editor/src/tests/editing/viewport.rs` includes a source guard that freezes the editor perspective navigation cutover: `scene_viewport_controller_navigation.rs` must call the runtime `OrbitCameraInput` constructors and must not restore the old local yaw/pitch or perspective pan constants.
+
+## Runtime 15 Naming Cutover
+
+Fresh 2026-06-25 Runtime 15 M2 camera controller output module naming hard cutover evidence (`Runtime 15 M2 camera controller output module naming hard cutover` / `runtime_15_camera_controller_output_naming_hard_cutover_static_passed_cargo_deferred`): `core/framework/camera_controller/common.rs` has been removed and the shared controller result owner now lives at `core/framework/camera_controller/controller_output.rs`. `camera_controller/mod.rs` mounts only `mod controller_output;` and re-exports `CameraControllerOutput`, `CursorGrabIntent`, and `CursorGrabMode` from that owner, so the public camera controller surface is unchanged while the R2.3 banned `common` module name is retired.
+
+The guard `naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_camera_controller_output_uses_owner_name` pins the missing old file, the new owner and module-entry shape, and the Runtime 15/status/docs anchors. Static validation covers rustfmt, old-path/source scans, docs/status anchor scans, whitespace and line-budget scans, and scoped diff hygiene; Cargo remains deferred during the implementation slice and is not claimed as passing here.

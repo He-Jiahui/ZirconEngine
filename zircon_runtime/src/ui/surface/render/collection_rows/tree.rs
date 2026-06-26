@@ -29,7 +29,7 @@ pub(super) fn tree_row_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let mut commands = Vec::new();
-    if let Some(background) = background(state) {
+    if let Some(background) = background(metadata, state) {
         commands.push(quad_command(
             node_id,
             frame,
@@ -140,11 +140,11 @@ pub(super) fn tree_row_commands(
     commands
 }
 
-fn background(state: &RowRenderState) -> Option<&'static str> {
+fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> Option<&'a str> {
     if state.unavailable() {
         None
     } else if state.marked() {
-        Some(SURFACE_SELECTED)
+        Some(color_attribute(metadata, "background_color").unwrap_or(SURFACE_SELECTED))
     } else if state.pressed() {
         Some(SURFACE_PRESSED)
     } else if state.hot() {

@@ -43,6 +43,7 @@ workbench_error = "#ec6f62"
 workbench_info = "#63b3ff"
 workbench_field = "#11161a"
 workbench_field_hot = "#151b1f"
+workbench_progress_fill = "#414b54"
 workbench_field_component = "#101417"
 workbench_field_component_border = "#252d33"
 workbench_field_component_focused = "#11191c"
@@ -55,15 +56,15 @@ workbench_segmented = "#1d2327"
 workbench_selection_label = "#828c93"
 workbench_selection_mark = "#141a1e"
 workbench_selection_mark_border = "#424e56"
-workbench_checkbox_checked = "#209fa8"
+workbench_checkbox_checked = "#173942"
 workbench_radio_checked = "#1b272d"
 workbench_radio_checked_border = "#4c5b63"
 workbench_toggle_track = "#0f1417"
 workbench_toggle_track_border = "#354047"
 workbench_toggle_thumb = "#7c878e"
-workbench_toggle_checked_track = "#35c7d0"
-workbench_toggle_checked_border = "#31bfc9"
-workbench_toggle_checked_thumb = "#ffffff"
+workbench_toggle_checked_track = "#173942"
+workbench_toggle_checked_border = "#2aa6b8"
+workbench_toggle_checked_thumb = "#e8ecee"
 workbench_warning_surface = "#3b2d13"
 workbench_error_surface = "#3a1715"
 workbench_success_surface = "#17311f"
@@ -328,7 +329,7 @@ border_width = 1.0
 selector = ".workbench-slider:hovered"
 [stylesheets.rules.set.self]
 background_color = "$workbench_field_hot"
-foreground_color = "$workbench_accent"
+foreground_color = "$workbench_text"
 border_color = "$workbench_border"
 border_width = 1.0
 
@@ -459,8 +460,8 @@ border_width = 1.0
 selector = ".workbench-slider:pressed"
 [stylesheets.rules.set.self]
 background_color = "$workbench_active"
-foreground_color = "$workbench_accent"
-border_color = "$workbench_accent"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
 border_width = 1.0
 
 [[stylesheets.rules]]
@@ -1250,10 +1251,18 @@ radius = 999.0
 selector = ".workbench-slider"
 [stylesheets.rules.set.self]
 background_color = "$workbench_field"
-foreground_color = "$workbench_accent"
+foreground_color = "$workbench_text_muted"
 border_color = "$workbench_border"
 border_width = 1.0
 radius = 5.0
+
+[[stylesheets.rules]]
+selector = ".workbench-progress-bar"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_progress_fill"
+border_width = 0.0
+radius = 2.0
 
 [[stylesheets.rules]]
 selector = ".workbench-segmented-control"
@@ -1276,8 +1285,8 @@ radius = 5.0
 [[stylesheets.rules]]
 selector = ".workbench-primary-button"
 [stylesheets.rules.set.self]
-background_color = "$workbench_accent"
-foreground_color = "$workbench_shell"
+background_color = "$workbench_accent_dim"
+foreground_color = "$workbench_text"
 border_color = "$workbench_accent"
 border_width = 1.0
 radius = 5.0

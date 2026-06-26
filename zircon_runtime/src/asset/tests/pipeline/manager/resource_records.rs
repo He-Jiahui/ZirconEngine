@@ -1,0 +1,79 @@
+use super::*;
+
+#[test]
+fn resource_server_reports_resource_records_for_project_assets() {
+    let root = unique_temp_project_root("asset_manager_resource_status");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+
+    let status = manager
+        .resource_status("res://models/triangle.obj")
+        .expect("model resource status");
+    assert_eq!(status.kind, ResourceKind::Model);
+    assert_eq!(status.state, ResourceState::Ready);
+    assert_eq!(status.revision, 1);
+    assert!(status
+        .artifact_locator
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
+    assert!(status.diagnostics.is_empty());
+
+    let mesh_status = manager
+        .resource_status("res://models/triangle.obj#Mesh0/Primitive0")
+        .expect("model mesh subasset resource status");
+    assert_eq!(status.dependency_ids, vec![mesh_status.id]);
+    assert_eq!(mesh_status.kind, ResourceKind::Mesh);
+    assert_eq!(mesh_status.state, ResourceState::Ready);
+    assert_eq!(
+        mesh_status.primary_locator.to_string(),
+        "res://models/triangle.obj#Mesh0/Primitive0"
+    );
+    assert!(mesh_status
+        .artifact_locator
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
+    assert!(mesh_status.dependency_ids.is_empty());
+    assert!(mesh_status.diagnostics.is_empty());
+    assert_eq!(
+        manager.resolve_resource_id("res://models/triangle.obj"),
+        Some(status.id.to_string())
+    );
+    assert_eq!(
+        manager.resource_revision("res://models/triangle.obj"),
+        Some(status.revision)
+    );
+
+    let resources = manager.list_resources();
+    assert!(
+        resources
+            .iter()
+            .any(|record| record.primary_locator.to_string() == "builtin://shader/pbr.wgsl"),
+        "builtin resources should be visible through ResourceManager"
+    );
+    assert!(
+        resources
+            .iter()
+            .any(|record| record.primary_locator.to_string() == "res://models/triangle.obj"),
+        "project resources should be visible through ResourceManager"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}

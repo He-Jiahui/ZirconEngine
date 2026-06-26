@@ -1166,8 +1166,9 @@ fn maybe_write_workbench_preview_png(bytes: &[u8]) {
     let path = std::env::var_os(WORKBENCH_PREVIEW_CAPTURE_PATH_ENV)
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            PathBuf::from("target")
-                .join("editor-workbench-visual-check")
+            PathBuf::from("docs")
+                .join("tests")
+                .join("editor")
                 .join("editor-workbench-native-1672x941.png")
         });
     if let Some(parent) = path.parent() {

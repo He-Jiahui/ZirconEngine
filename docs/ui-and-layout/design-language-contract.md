@@ -7,8 +7,8 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui
   - zircon_editor/src/ui/workbench/floating_window.rs
   - zircon_editor/tests/integration_contracts/floating_window_design_parity.rs
 implementation_files:
@@ -18,8 +18,8 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui
+  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
   - docs/plans/zircon_editor/editor_layout/06-floating-windows-and-design-parity.md

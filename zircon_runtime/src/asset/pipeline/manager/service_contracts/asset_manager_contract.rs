@@ -46,11 +46,7 @@ impl AssetManagerContract for ProjectAssetManager {
 
     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {
         let mut project = ProjectManager::open(root_path).map_err(asset_error)?;
-        let installed_importers = self
-            .asset_importers
-            .read()
-            .expect("asset importer registry lock poisoned")
-            .clone();
+        let installed_importers = self.importer_registry_read().clone();
         project
             .register_asset_importers_from_registry(&installed_importers)
             .map_err(asset_error)?;
@@ -110,19 +106,13 @@ impl AssetManagerContract for ProjectAssetManager {
 
     fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange> {
         let (sender, receiver) = unbounded();
-        self.change_subscribers
-            .lock()
-            .expect("asset subscribers lock poisoned")
-            .push(sender);
+        self.lock_change_subscribers().push(sender);
         receiver
     }
 
     fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError> {
         let (sender, receiver) = unbounded();
-        self.watch_error_subscribers
-            .lock()
-            .expect("asset watch error subscribers lock poisoned")
-            .push(sender);
+        self.lock_watch_error_subscribers().push(sender);
         receiver
     }
 

@@ -6,7 +6,8 @@ use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 use super::super::data::{
-    HostDragStateData, HostMenuStateData, HostResizeStateData, HostTextInputFocusData,
+    HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData, HostResizeStateData,
+    HostTextInputFocusData,
 };
 use super::state::{HostContractGlobal, HostContractState};
 
@@ -27,6 +28,10 @@ impl<'a> HostContractGlobal for UiHostContext<'a> {
 impl UiHostContext<'_> {
     pub(crate) fn set_menu_state(&self, value: HostMenuStateData) {
         self.state.borrow_mut().menu_state = value;
+    }
+
+    pub(crate) fn set_host_page_overflow_menu_state(&self, value: HostPageOverflowMenuStateData) {
+        self.state.borrow_mut().host_page_overflow_menu_state = value;
     }
 
     pub(crate) fn get_drag_state(&self) -> HostDragStateData {

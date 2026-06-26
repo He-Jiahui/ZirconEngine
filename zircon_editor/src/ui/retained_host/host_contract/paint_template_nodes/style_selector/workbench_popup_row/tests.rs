@@ -11,7 +11,7 @@ fn popup_row_selector_projects_full_semantic_state() {
     });
     assert_eq!(open.state, UiPainterResolvedState::Open);
     assert_eq!(open.background, Some(PALETTE.surface_hover));
-    assert_eq!(open.text, PALETTE.focus_ring);
+    assert_eq!(open.text, PALETTE.text);
 
     let dragging = select_workbench_popup_row_style(WorkbenchPopupRowState {
         dragging: true,
@@ -19,7 +19,7 @@ fn popup_row_selector_projects_full_semantic_state() {
     });
     assert_eq!(dragging.state, UiPainterResolvedState::Dragging);
     assert_eq!(dragging.background, Some(PALETTE.surface_hover));
-    assert_eq!(dragging.adornment, PALETTE.focus_ring);
+    assert_eq!(dragging.adornment, PALETTE.text);
 
     let drop_hovered = select_workbench_popup_row_style(WorkbenchPopupRowState {
         drop_hovered: true,

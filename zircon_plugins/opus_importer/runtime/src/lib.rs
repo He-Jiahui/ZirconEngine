@@ -6,10 +6,11 @@ pub use capability::{
     OPUS_IMPORTER_PRIORITY, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
-    asset_importer_descriptor, asset_importer_descriptors, module_descriptor, package_manifest,
-    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
-    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    OpusImporterRuntimePlugin,
+    asset_importer_descriptor, asset_importer_descriptors, dist_module_manifest, module_descriptor,
+    package_manifest, plugin_registration, runtime_capabilities, runtime_module_manifest,
+    runtime_plugin, runtime_plugin_descriptor, runtime_selection, supported_platforms,
+    supported_targets, OpusImporterRuntimePlugin, OPUS_IMPORTER_DIST_CRATE_NAME,
+    OPUS_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub(crate) const MISSING_BACKEND_DIAGNOSTIC: &str =
@@ -19,6 +20,7 @@ pub(crate) const MISSING_BACKEND_DIAGNOSTIC: &str =
 mod tests {
     use super::*;
     use zircon_runtime::asset::{AssetImportContext, AssetImporterRegistry, AssetKind, AssetUri};
+    use zircon_runtime::plugin::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_opus_native_dynamic_importer() {
@@ -55,7 +57,7 @@ mod tests {
         assert!(manifest
             .default_packaging
             .contains(&ExportPackagingStrategy::LibraryEmbed));
-        assert!(!manifest
+        assert!(manifest
             .default_packaging
             .contains(&ExportPackagingStrategy::NativeDynamic));
         assert_eq!(manifest.asset_importers.len(), 1);
@@ -77,6 +79,50 @@ mod tests {
         let selection = runtime_selection();
         assert_eq!(selection.packaging, ExportPackagingStrategy::LibraryEmbed);
         assert_eq!(selection.runtime_crate.as_deref(), Some(RUNTIME_CRATE_NAME));
+    }
+
+    #[test]
+    fn package_manifest_declares_opus_importer_dist_contract() {
+        let manifest = package_manifest();
+        let distribution = manifest
+            .distribution
+            .as_ref()
+            .expect("opus importer package exposes dist metadata");
+
+        assert!(manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic));
+        assert_eq!(distribution.forms, vec!["dist"]);
+        assert_eq!(
+            distribution.default_packaging,
+            vec![ExportPackagingStrategy::NativeDynamic]
+        );
+        assert_eq!(distribution.abi_version, Some(3));
+        assert_eq!(distribution.dist_crate, OPUS_IMPORTER_DIST_CRATE_NAME);
+        assert_eq!(distribution.runtime_entry, OPUS_IMPORTER_DIST_RUNTIME_ENTRY);
+
+        let dist_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "opus_importer.dist")
+            .expect("opus importer package includes native dist module");
+        assert_eq!(
+            dist_module.kind,
+            zircon_runtime::plugin::PluginModuleKind::Native
+        );
+        assert_eq!(dist_module.crate_name, OPUS_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+        assert!(dist_module
+            .capabilities
+            .contains(&OPUS_IMPORTER_CAPABILITY.to_string()));
+        assert!(!dist_module
+            .capabilities
+            .contains(&NATIVE_IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

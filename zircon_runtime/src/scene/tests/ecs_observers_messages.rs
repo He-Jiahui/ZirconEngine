@@ -61,6 +61,8 @@ fn observer_source() -> &'static str {
     concat!(
         include_str!("../ecs/observer/mod.rs"),
         "\n",
+        include_str!("../ecs/observer/callback_registry.rs"),
+        "\n",
         include_str!("../ecs/observer/callbacks.rs"),
         "\n",
         include_str!("../ecs/observer/entry.rs"),
@@ -68,8 +70,6 @@ fn observer_source() -> &'static str {
         include_str!("../ecs/observer/id.rs"),
         "\n",
         include_str!("../ecs/observer/store.rs"),
-        "\n",
-        include_str!("../ecs/observer/utils.rs"),
     )
 }
 

@@ -1,5 +1,7 @@
+use std::sync::MutexGuard;
+
 use crate::core::framework::state::{
-    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+    NextState, OnEnter, OnExit, OnTransition, State, StateRegistry, StateSpec, StateTransitionEvent,
 };
 
 use super::CoreHandle;
@@ -9,13 +11,7 @@ impl CoreHandle {
     where
         T: StateSpec + Default,
     {
-        let dispatch = {
-            self.inner
-                .states
-                .lock()
-                .unwrap()
-                .init_state::<T>(T::default())
-        };
+        let dispatch = self.lock_states().init_state::<T>(T::default());
         if let Some(dispatch) = dispatch {
             let event = dispatch.event().clone();
             dispatch.run();
@@ -30,50 +26,41 @@ impl CoreHandle {
     }
 
     pub fn insert_state<T: StateSpec>(&self, state: T) -> StateTransitionEvent<T> {
-        let dispatch = self.inner.states.lock().unwrap().insert_state(state);
+        let dispatch = self.lock_states().insert_state(state);
         let event = dispatch.event().clone();
         dispatch.run();
         event
     }
 
     pub fn state<T: StateSpec>(&self) -> Option<State<T>> {
-        self.inner.states.lock().unwrap().state::<T>()
+        self.lock_states().state::<T>()
     }
 
     pub fn next_state<T: StateSpec>(&self) -> NextState<T> {
-        self.inner.states.lock().unwrap().next_state::<T>()
+        self.lock_states().next_state::<T>()
     }
 
     pub fn set_next_state<T: StateSpec>(&self, state: T) {
-        self.inner.states.lock().unwrap().set_next_state(state);
+        self.lock_states().set_next_state(state);
     }
 
     pub fn set_next_state_if_neq<T: StateSpec>(&self, state: T) {
-        self.inner
-            .states
-            .lock()
-            .unwrap()
-            .set_next_state_if_neq(state);
+        self.lock_states().set_next_state_if_neq(state);
     }
 
     pub fn reset_next_state<T: StateSpec>(&self) {
-        self.inner.states.lock().unwrap().reset_next_state::<T>();
+        self.lock_states().reset_next_state::<T>();
     }
 
     pub fn apply_state_transition<T: StateSpec>(&self) -> Option<StateTransitionEvent<T>> {
-        let dispatch = self
-            .inner
-            .states
-            .lock()
-            .unwrap()
-            .apply_state_transition::<T>()?;
+        let dispatch = self.lock_states().apply_state_transition::<T>()?;
         let event = dispatch.event().clone();
         dispatch.run();
         Some(event)
     }
 
     pub fn state_transition_events<T: StateSpec>(&self) -> Vec<StateTransitionEvent<T>> {
-        self.inner.states.lock().unwrap().transition_events::<T>()
+        self.lock_states().transition_events::<T>()
     }
 
     pub fn register_on_enter<T, F>(&self, label: OnEnter<T>, hook: F)
@@ -81,11 +68,7 @@ impl CoreHandle {
         T: StateSpec,
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
-        self.inner
-            .states
-            .lock()
-            .unwrap()
-            .register_on_enter(label, hook);
+        self.lock_states().register_on_enter(label, hook);
     }
 
     pub fn register_on_exit<T, F>(&self, label: OnExit<T>, hook: F)
@@ -93,11 +76,7 @@ impl CoreHandle {
         T: StateSpec,
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
-        self.inner
-            .states
-            .lock()
-            .unwrap()
-            .register_on_exit(label, hook);
+        self.lock_states().register_on_exit(label, hook);
     }
 
     pub fn register_on_transition<T, F>(&self, label: OnTransition<T>, hook: F)
@@ -105,10 +84,66 @@ impl CoreHandle {
         T: StateSpec,
         F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
     {
+        self.lock_states().register_on_transition(label, hook);
+    }
+
+    fn lock_states(&self) -> MutexGuard<'_, StateRegistry> {
         self.inner
             .states
             .lock()
-            .unwrap()
-            .register_on_transition(label, hook);
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{self, AssertUnwindSafe};
+
+    use crate::core::framework::state::NextState;
+    use crate::core::CoreRuntime;
+
+    #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+    enum StateFixture {
+        #[default]
+        Boot,
+        Running,
+    }
+
+    #[test]
+    fn core_handle_state_accessors_recover_poisoned_state_registry_lock() {
+        let runtime = CoreRuntime::new();
+        let handle = runtime.handle();
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.states.lock().unwrap();
+            panic!("poison core handle state registry");
+        }));
+
+        let init_event = handle.init_state::<StateFixture>();
+        assert_eq!(init_event.entered, Some(StateFixture::Boot));
+        assert_eq!(
+            handle.state::<StateFixture>().unwrap().into_inner(),
+            StateFixture::Boot
+        );
+
+        handle.set_next_state(StateFixture::Running);
+        assert_eq!(
+            handle.next_state::<StateFixture>(),
+            NextState::Pending(StateFixture::Running)
+        );
+
+        let transition = handle.apply_state_transition::<StateFixture>().unwrap();
+        assert_eq!(transition.exited, Some(StateFixture::Boot));
+        assert_eq!(transition.entered, Some(StateFixture::Running));
+        assert_eq!(
+            handle.state::<StateFixture>().unwrap().into_inner(),
+            StateFixture::Running
+        );
+
+        let events = handle.state_transition_events::<StateFixture>();
+        assert_eq!(events.len(), 2);
+
+        handle.reset_next_state::<StateFixture>();
+        assert_eq!(handle.next_state::<StateFixture>(), NextState::Unchanged);
     }
 }

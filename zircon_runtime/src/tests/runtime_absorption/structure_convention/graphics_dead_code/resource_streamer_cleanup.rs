@@ -9,6 +9,9 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
     let resource_streamer_accessors = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
     );
+    let material_capture = read_runtime_src(
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
+    );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -52,8 +55,13 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
     assert_contains_all(
         "resource streamer capture seed accessor is test-only",
         &resource_streamer_accessors,
+        &["#[cfg(test)]", "mod material_capture;"],
+    );
+    assert_contains_all(
+        "resource streamer material capture accessors are child-owned",
+        &material_capture,
         &[
-            "use super::super::MaterialCaptureSeed;",
+            "use super::super::super::MaterialCaptureSeed;",
             "pub(crate) fn material_capture_seed(",
             "pub(crate) fn sample_texture_rgba(",
             "fn sample_texture_asset_rgba(",
@@ -86,6 +94,9 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
     let resource_streamer_accessors = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
     );
+    let material_capture = read_runtime_src(
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
+    );
     let resource_streamer_ensure = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs",
     );
@@ -113,6 +124,43 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
             "pub(crate) fn material_prepared_state(",
         ],
     );
+    assert_contains_all(
+        "resource streamer accessors delegates material capture helpers to child owner",
+        &resource_streamer_accessors,
+        &["#[cfg(test)]", "mod material_capture;"],
+    );
+    for moved_helper in [
+        "pub(crate) fn material_capture_seed(",
+        "pub(crate) fn sample_texture_rgba(",
+        "fn shading_model_id_for_lighting_model(",
+        "fn sample_texture_asset_rgba(",
+        "fn wrap01(",
+    ] {
+        assert!(
+            !resource_streamer_accessors.contains(moved_helper),
+            "resource_streamer_accessors.rs should delegate `{moved_helper}` to material_capture.rs"
+        );
+        assert!(
+            material_capture.contains(moved_helper),
+            "material_capture.rs should own `{moved_helper}`"
+        );
+    }
+    for (path, source) in [
+        (
+            "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
+            resource_streamer_accessors.as_str(),
+        ),
+        (
+            "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
+            material_capture.as_str(),
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 owner budget after the material capture split; got {line_count}"
+        );
+    }
     assert_contains_all(
         "production material readiness accessor remains live",
         &resource_streamer_accessors,
@@ -147,6 +195,7 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
             &[
                 "Runtime 15 F12 resource streamer diagnostics accessor cleanup",
                 "runtime_15_resource_streamer_diagnostics_accessor_cleanup_static_passed_cargo_lock_blocked",
+                "runtime_15_resource_streamer_material_capture_child_owner_static_passed_cargo_deferred_implementation_cadence",
                 "runtime_15_resource_streamer_diagnostics_accessor_cleanup",
             ],
         );

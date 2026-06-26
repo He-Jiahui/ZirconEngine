@@ -20,12 +20,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_thumb_outline_color(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
-    fill: [u8; 4],
+    _fill: [u8; 4],
 ) -> [u8; 4] {
     if is_unavailable_slider_state(state) {
         PALETTE.border_disabled
     } else {
-        resolved_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(fill)
+        resolved_style_color(node.button_style.element.border_color.as_ref())
+            .unwrap_or(PALETTE.border)
     }
 }
 

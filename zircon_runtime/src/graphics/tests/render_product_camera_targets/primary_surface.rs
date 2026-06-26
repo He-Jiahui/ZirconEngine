@@ -11,7 +11,7 @@ use super::mesh::colored_mesh_on_layer;
 
 use crate::core::framework::render::{
     CameraRenderType, CapturedFrame, RenderCameraClear, RenderCameraTargetKind,
-    RenderCaptureSource, RenderLayerSet, RenderViewportRect,
+    RenderCaptureSource, RenderFramework, RenderLayerSet, RenderViewportRect,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 

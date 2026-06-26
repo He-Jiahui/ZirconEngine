@@ -2,15 +2,23 @@ use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind, DiagnosticOnlyAs
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, ProjectPluginSelection,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    ExportPackagingStrategy, ExportTargetPlatform, PluginDistributionManifest,
+    PluginModuleManifest, PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport,
 };
 
 use crate::{
     MISSING_BACKEND_DIAGNOSTIC, MODULE_NAME, NATIVE_IMPORTER_CAPABILITY, OPUS_IMPORTER_CAPABILITY,
     OPUS_IMPORTER_ID, OPUS_IMPORTER_PRIORITY, PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
+
+pub const OPUS_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_opus_importer_dist";
+pub const OPUS_IMPORTER_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_opus_importer_runtime_entry_v3";
+
+const OPUS_IMPORTER_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct OpusImporterRuntimePlugin {
@@ -115,6 +123,12 @@ pub fn runtime_module_manifest() -> PluginModuleManifest {
         .with_capabilities(runtime_capabilities().iter().copied())
 }
 
+pub fn dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native("opus_importer.dist", OPUS_IMPORTER_DIST_CRATE_NAME)
+        .with_target_modes(supported_targets())
+        .with_capabilities(runtime_capabilities().iter().copied())
+}
+
 pub fn runtime_selection() -> ProjectPluginSelection {
     RuntimePlugin::project_selection(&runtime_plugin())
 }
@@ -125,6 +139,20 @@ pub fn plugin_registration() -> RuntimePluginRegistrationReport {
 
 fn package_manifest_from_descriptor(descriptor: &RuntimePluginDescriptor) -> PluginPackageManifest {
     let mut manifest = descriptor.package_manifest();
+    manifest
+        .default_packaging
+        .push(ExportPackagingStrategy::NativeDynamic);
+    manifest = manifest.with_native_module(dist_module_manifest());
+    manifest = manifest.with_distribution(PluginDistributionManifest {
+        forms: vec!["dist".to_string()],
+        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+        abi_version: Some(NATIVE_ABI_VERSION_V3),
+        engine_compat: OPUS_IMPORTER_DIST_ENGINE_COMPAT.to_string(),
+        dist_crate: OPUS_IMPORTER_DIST_CRATE_NAME.to_string(),
+        descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+        runtime_entry: OPUS_IMPORTER_DIST_RUNTIME_ENTRY.to_string(),
+        ..PluginDistributionManifest::default()
+    });
     for importer in asset_importer_descriptors() {
         manifest = manifest.with_asset_importer(importer);
     }

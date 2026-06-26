@@ -1,4 +1,5 @@
 use super::fixture::RuntimeSourceControlFixture;
+use zircon_runtime::core::framework::sound::{SoundMixRenderManager, SoundSourceManager};
 
 #[test]
 fn source_pause_resume_and_toggle_update_playing_status() {

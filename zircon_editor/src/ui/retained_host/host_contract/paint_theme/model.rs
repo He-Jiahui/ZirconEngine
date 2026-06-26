@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract) struct HostMaterialPalette {
     pub shell_background: [u8; 4],
     pub surface: [u8; 4],
@@ -9,6 +10,8 @@ pub(in crate::ui::retained_host::host_contract) struct HostMaterialPalette {
     pub accent: [u8; 4],
     pub accent_soft: [u8; 4],
     pub border: [u8; 4],
+    pub separator_strong: [u8; 4],
+    pub separator_soft: [u8; 4],
     pub text: [u8; 4],
     pub text_muted: [u8; 4],
     pub text_disabled: [u8; 4],

@@ -10,7 +10,7 @@ use super::super::{
     },
     RuntimeDynamicSession, RuntimeDynamicSessionProfile,
 };
-use super::helpers::*;
+use super::vampire_runtime_support::*;
 
 #[test]
 fn headless_session_capture_records_frame_extract_diagnostics() {

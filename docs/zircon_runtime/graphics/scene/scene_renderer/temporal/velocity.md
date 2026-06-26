@@ -174,7 +174,7 @@ tests:
   - cargo fmt --package zircon_runtime -- --check
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - cargo test -p zircon_runtime particle_velocity_vertices --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never
   - cargo test -p zircon_runtime render_product_particle_velocity --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never
   - rustfmt --edition 2021 --check on TP-M1-S11 particle stable identity files

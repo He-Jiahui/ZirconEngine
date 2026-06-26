@@ -1,8 +1,10 @@
 mod brightness;
+mod command;
 mod model;
 mod palette;
 mod selection;
 mod states;
+mod tab_like;
 #[cfg(test)]
 mod tests;
 
@@ -14,3 +16,4 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palett
     PRIMARY_SURFACE,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_button_style;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use tab_like::is_tab_like_workbench_button;

@@ -765,6 +765,25 @@ mod tests {
             play_mode_active: false,
         });
         let selection = menu(&menu_bar, "Selection");
+        let create_cube = item(selection, "Create Cube");
+        assert!(create_cube.action.is_none());
+        assert_eq!(
+            create_cube.binding.path().control_id,
+            "scene.node.create_cube"
+        );
+        assert_eq!(
+            create_cube
+                .operation_path
+                .as_ref()
+                .map(|operation| operation.as_str()),
+            Some("scene.node.create_cube")
+        );
+        assert!(matches!(
+            create_cube.binding.payload(),
+            EditorUiBindingPayload::EditorOperation { operation_id, .. }
+                if operation_id == "scene.node.create_cube"
+        ));
+
         let delete = item(selection, "Delete Selection");
 
         assert!(delete.action.is_none());

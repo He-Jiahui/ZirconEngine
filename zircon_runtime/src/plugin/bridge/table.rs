@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::bridge::{BridgeError, PluginInterface};
 use crate::plugin::extension_registry::PluginModuleId;
@@ -249,7 +249,7 @@ impl BridgeEntry {
     }
 
     pub fn provider_installed(&self) -> bool {
-        self.provider.lock().unwrap().is_some()
+        self.lock_provider().is_some()
     }
 
     pub fn diagnostics(&self) -> BridgeDiagnosticsSnapshot {
@@ -278,9 +278,7 @@ impl BridgeEntry {
         }
 
         let provider = self
-            .provider
-            .lock()
-            .unwrap()
+            .lock_provider()
             .as_ref()
             .cloned()
             .ok_or(BridgeError::NotEnabled)?;
@@ -312,7 +310,7 @@ impl BridgeEntry {
 
     fn deactivate(&self) {
         self.set_enabled(false);
-        *self.provider.lock().unwrap() = None;
+        *self.lock_provider() = None;
     }
 
     fn replace_provider<T>(&self, provider: Arc<T>)
@@ -323,15 +321,21 @@ impl BridgeEntry {
     }
 
     fn replace_erased_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
-        *self.provider.lock().unwrap() = Some(provider);
+        *self.lock_provider() = Some(provider);
         if self.generation() % 2 == 0 {
             self.generation.fetch_add(2, Ordering::AcqRel);
         }
     }
 
     fn restore_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
-        *self.provider.lock().unwrap() = Some(provider);
+        *self.lock_provider() = Some(provider);
         self.set_enabled(true);
+    }
+
+    fn lock_provider(&self) -> MutexGuard<'_, Option<Arc<dyn Any + Send + Sync>>> {
+        self.provider
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     fn snapshot_state(&self) -> BridgeEntrySnapshotState {
@@ -705,5 +709,73 @@ impl FrozenBridgeTable {
             affected_slots,
             snapshots,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use super::*;
+
+    trait PoisonBridge: Send + Sync {
+        fn sample(&self) -> i32;
+    }
+
+    impl PluginInterface for dyn PoisonBridge {
+        const INTERFACE_ID: &'static str = "test.poison.bridge.v1";
+    }
+
+    struct PoisonBridgeProvider {
+        value: i32,
+    }
+
+    impl PoisonBridge for PoisonBridgeProvider {
+        fn sample(&self) -> i32 {
+            self.value
+        }
+    }
+
+    #[test]
+    fn bridge_entry_provider_accessors_recover_poisoned_provider_lock() {
+        let entry = BridgeEntry::new(
+            <dyn PoisonBridge as PluginInterface>::INTERFACE_ID.to_string(),
+            erased_provider(7),
+            PluginModuleId::from_raw(7),
+        );
+
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = entry.provider.lock().unwrap();
+            panic!("poison bridge entry provider lock");
+        }));
+
+        assert!(entry.provider_installed());
+        assert_eq!(entry.status(), BridgeInterfaceStatus::Enabled);
+        let (_, provider) = entry
+            .provider::<dyn PoisonBridge>()
+            .expect("provider should recover after poison");
+        assert_eq!(provider.sample(), 7);
+
+        entry.deactivate();
+        assert!(!entry.provider_installed());
+        assert_eq!(entry.status(), BridgeInterfaceStatus::Disabled);
+
+        entry.restore_provider(erased_provider(11));
+        let (_, provider) = entry
+            .provider::<dyn PoisonBridge>()
+            .expect("restored provider should recover after poison");
+        assert_eq!(provider.sample(), 11);
+
+        let replacement: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value: 13 });
+        entry.replace_provider(replacement);
+        let (_, provider) = entry
+            .provider::<dyn PoisonBridge>()
+            .expect("replaced provider should recover after poison");
+        assert_eq!(provider.sample(), 13);
+    }
+
+    fn erased_provider(value: i32) -> Arc<dyn Any + Send + Sync> {
+        let provider: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value });
+        Arc::new(provider)
     }
 }

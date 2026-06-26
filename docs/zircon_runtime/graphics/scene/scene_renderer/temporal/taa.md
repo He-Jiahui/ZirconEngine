@@ -124,8 +124,8 @@ tests:
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::without_history_resources_disables_taa_and_restores_scene_color_input
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::without_history_resources_keeps_scene_velocity_for_motion_blur
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
-  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
+  - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_resolve_executor_requires_graph_resources_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_clear_executor_requires_graph_resources_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping

@@ -1,4 +1,5 @@
 use super::super::state::{button_interaction_state, is_button_disabled};
+use super::super::surface_roles::is_asset_preview_surface;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_style_color::{
     resolved_style_color, typed_button_tone_color,
@@ -29,6 +30,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn border_
     if let Some(color) = resolved_style_color(node.button_style.element.border_color.as_ref()) {
         return color;
     }
+    if asset_preview_uses_muted_interaction_border(node) {
+        return PALETTE.border;
+    }
     if matches!(
         button_interaction_state(node),
         ButtonInteractionState::Pressed | ButtonInteractionState::Focused
@@ -49,4 +53,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn border_
     } else {
         PALETTE.border
     }
+}
+
+fn asset_preview_uses_muted_interaction_border(node: &TemplatePaneNodeData) -> bool {
+    is_asset_preview_surface(node)
+        && (node.selected
+            || node.checked
+            || matches!(
+                button_interaction_state(node),
+                ButtonInteractionState::Hover
+                    | ButtonInteractionState::Pressed
+                    | ButtonInteractionState::Focused
+            ))
 }

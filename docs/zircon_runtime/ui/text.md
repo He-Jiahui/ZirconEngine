@@ -13,6 +13,10 @@ related_code:
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/surface/render/text_fields.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
   - zircon_runtime/src/ui/tests/text_pipeline.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -30,6 +34,10 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/surface/render/text_fields.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
   - zircon_runtime/src/ui/tests/text_pipeline.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -51,6 +59,10 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin --message-format short --color never (2026-06-13: passed with existing warnings only)
   - cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin ui::tests::text_layout::render_extract_injects_preedit_span_without_document_value_mutation --message-format short --color never -- --exact --nocapture (2026-06-13: timed out after 1204s during Windows lib-test compile/link; no Rust diagnostics, no zircon_runtime-*.exe test binary, matching cargo/rustc processes stopped)
   - cargo test -p zircon_runtime --lib runtime_input_manager --locked --jobs 1 --target-dir target/codex-editor-ui-runtime --message-format short --color never (2026-06-12: rebuild blocked by unrelated unresolved import crate::core::frame_clock in zircon_runtime/src/core/runtime/state/runtime_inner.rs)
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs::sdf_atlas_plan_deduplicates_glyph_slots_across_batches
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs::sdf_draw_plan_creates_one_textured_quad_per_glyph
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_sdf_atlas_tests.rs::runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_sdf_render.rs::runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs::runtime_text_doc_records_three_layer_stack_and_cross_reference
 doc_type: module-detail
 ---
@@ -107,3 +119,7 @@ The existing `layout_engine` still handles grapheme cluster wrapping, rich text 
 ## Raster Path Policy
 
 `UiGlyphRasterPolicy` captures the SDF-versus-bitmap routing decision without introducing a new rasterizer dependency. Static small UI text defaults to bitmap, large text defaults to SDF, and explicitly scalable text prefers SDF. This keeps the future fontsdf/bitmap atlas choice local to the text subsystem while existing `UiResolvedTextLayout` and render extraction remain unchanged.
+
+The 2026-06-24 Screen-space UI SDF atlas test owner split keeps render-side SDF glyph slot planning, atlas sizing, cache retention/eviction, and glyph-run slot mapping in `graphics/scene/scene_renderer/ui/sdf_atlas.rs` and moves the atlas plan/cache tests into `graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs`. Guard `runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split` and status anchor `render_plan14_sdf_atlas_test_owner_split_static_passed_cargo_deferred_active_compile_lane` lock this boundary; the slice has scoped static evidence only while Cargo/WGPU/RenderDoc remain deferred behind active compile lanes.
+
+The 2026-06-24 Screen-space UI SDF render test owner split keeps the render-side SDF atlas/pipeline/vertex production path in `graphics/scene/scene_renderer/ui/sdf_render.rs` and moves the draw-plan/prepare-report tests into `graphics/scene/scene_renderer/ui/sdf_render/tests.rs`. Guard `runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split` and status anchor `render_plan14_sdf_render_test_owner_split_static_passed_cargo_deferred_active_compile_lane` lock this boundary; the slice has scoped static evidence only while Cargo/WGPU/RenderDoc remain deferred behind active compile lanes.

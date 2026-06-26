@@ -9,12 +9,12 @@ use super::super::register_pipeline_asset::compile_pipeline_for_validation;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn set_quality_profile(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     profile: RenderQualityProfile,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = server.lock_operation();
-    let mut state = server.lock_state();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let capabilities = state.stats.capabilities.clone();
     let active_pipeline = state
         .viewports

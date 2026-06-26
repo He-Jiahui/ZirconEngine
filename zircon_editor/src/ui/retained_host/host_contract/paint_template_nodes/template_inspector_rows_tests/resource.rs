@@ -3,6 +3,7 @@ use super::super::super::template_inspector_row_geometry::{
     chevron_rect, field_rect, INSPECTOR_COUNT_WIDTH, INSPECTOR_LABEL_WIDTH,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::push_inspector_row_commands;
 use super::super::style::{
     resource_chevron_size, resource_count_color, resource_field_background, resource_field_border,
     resource_glyph_color, resource_label_color, resource_value_color, RESOURCE_FIELD_BACKGROUND,
@@ -73,4 +74,46 @@ fn resource_row_style_uses_declared_value_and_chevron_fields() {
     assert_eq!(chevron.width, 15.0);
     assert_eq!(chevron.height, 15.0);
     assert!((chevron.x - (field.x + field.width - 20.0)).abs() < 0.001);
+}
+
+#[test]
+fn resource_rows_paint_shell_asset_pixels_for_leading_icon_and_chevron() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 8.0,
+        width: 304.0,
+        height: 28.0,
+    };
+
+    for node in [
+        inspector_node("WorkbenchMeshRow", "Mesh", "Box_01"),
+        inspector_node("WorkbenchMaterialRow", "Materials", "M_Metal"),
+    ] {
+        let mut commands = Vec::new();
+        assert!(push_inspector_row_commands(
+            &mut commands,
+            &node,
+            &rect,
+            &rect,
+            0,
+            1.0,
+        ));
+
+        let assets = commands
+            .iter()
+            .filter_map(|command| command.image_pixels.as_ref())
+            .collect::<Vec<_>>();
+        assert!(
+            assets.len() >= 2,
+            "{} should render a leading resource icon and dropdown asset",
+            node.control_id
+        );
+        assert!(
+            assets
+                .iter()
+                .all(|image| !image.resource_key.starts_with("missing-icon:")),
+            "{} should not use missing-icon pixels",
+            node.control_id
+        );
+    }
 }

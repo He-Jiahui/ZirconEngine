@@ -11,7 +11,9 @@ use zircon_plugin_editor_support::{
 };
 use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
 };
 
 use crate::{
@@ -24,6 +26,14 @@ use crate::{
     EXPORT_REPORT_TEMPLATE_DOCUMENTS, EXPORT_TEMPLATE_ID, EXPORT_VIEW_ID,
     NATIVE_DYNAMIC_REPORT_CAPABILITY, PLUGIN_ID,
 };
+
+pub const EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME: &str =
+    "zircon_plugin_editor_build_export_desktop_dist";
+pub const EDITOR_BUILD_EXPORT_DESKTOP_DIST_EDITOR_ENTRY: &str =
+    "zircon_plugin_editor_build_export_desktop_editor_entry_v3";
+const EDITOR_BUILD_EXPORT_DESKTOP_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct EditorBuildExportDesktopPlugin {
@@ -114,7 +124,28 @@ fn base_package_manifest() -> PluginPackageManifest {
         .with_default_packaging([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
         ])
+        .with_native_module(editor_build_export_desktop_dist_module_manifest())
+        .with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: EDITOR_BUILD_EXPORT_DESKTOP_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            editor_entry: EDITOR_BUILD_EXPORT_DESKTOP_DIST_EDITOR_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
+}
+
+pub fn editor_build_export_desktop_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native(
+        "editor_build_export_desktop.dist",
+        EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME,
+    )
+    .with_target_modes([RuntimeTargetMode::EditorHost])
+    .with_capabilities(EDITOR_CAPABILITIES.iter().copied())
 }
 
 fn register_export_operations(

@@ -10,7 +10,8 @@ fn query_many_cached_iter_uses_borrowed_cache_index_membership() {
     let many_text = read_source(&query_root.join("query_many_iter.rs"));
     let read_only_cached_text =
         read_source(&query_root.join("query_state").join("read_only_cached.rs"));
-    let helpers_text = read_source(&query_root.join("query_state").join("helpers.rs"));
+    let many_item_array_text =
+        read_source(&query_root.join("query_state").join("many_item_array.rs"));
 
     assert!(
         many_text.contains("pub struct QueryManyCachedIter<'world, 'state"),
@@ -47,8 +48,8 @@ fn query_many_cached_iter_uses_borrowed_cache_index_membership() {
         "query_state/read_only_cached.rs must not pre-collect cached many entities before iterator construction"
     );
     assert!(
-        !helpers_text.contains("fn cached_many_entities"),
-        "query_state/helpers.rs must not keep the old cached_many_entities allocation helper"
+        !many_item_array_text.contains("fn cached_many_entities"),
+        "query_state/many_item_array.rs must not keep the old cached_many_entities allocation helper"
     );
 
     let cached_many_iterator = many_text

@@ -13,11 +13,11 @@ use super::camera_history_key::camera_history_key_for_extract;
 use super::viewport_record_state::ViewportRecordState;
 
 pub(super) fn resolve_viewport_record_state(
-    server: &WgpuRenderFramework,
+    framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &RenderFrameExtract,
 ) -> Result<ViewportRecordState, RenderFrameworkError> {
-    let state = server.lock_state();
+    let state = framework.lock_state();
     let camera_history_key = camera_history_key_for_extract(extract);
     let (
         size,

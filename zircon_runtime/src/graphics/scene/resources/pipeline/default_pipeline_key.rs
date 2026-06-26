@@ -12,6 +12,7 @@ pub(crate) fn default_pipeline_key() -> PipelineKey {
         alpha_blend: false,
         alpha_mask: false,
         alpha_cutoff_bits: None,
+        receive_shadows: true,
         shading_model_id: SHADING_MODEL_ID_STANDARD_PBR,
         unlit: false,
         has_base_color_texture: false,

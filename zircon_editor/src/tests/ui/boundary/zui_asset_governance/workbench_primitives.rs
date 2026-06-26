@@ -594,7 +594,7 @@ const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
         file_name: "workbench/shell/workbench_top_toolbar.zui",
         component_name: "WorkbenchTopToolbar",
         root_node: "top_toolbar",
-        root_component: "HorizontalGroup",
+        root_component: "VerticalGroup",
         root_control_id: "WorkbenchWindowTopToolbar",
         root_classes: &["workbench-topbar"],
         required_widget_imports: &[
@@ -604,6 +604,7 @@ const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
         ],
         required_mounted_components: &["WorkbenchButton", "WorkbenchIconButton", "WorkbenchTab"],
         required_control_ids: &[
+            "WorkbenchToolbarCommandRow",
             "WorkbenchToolbarFileGroup",
             "WorkbenchModuleTabs",
             "WorkbenchModuleCommands",
@@ -631,7 +632,7 @@ const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
             "WorkbenchTreeRow",
         ],
         required_control_ids: &[
-            "WorkbenchSceneTabs",
+            "LeftDrawerHeaderRoot",
             "WorkbenchSceneSearchField",
             "WorkbenchSceneFilter",
             "WorkbenchSceneTree",
@@ -680,7 +681,7 @@ const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
             "WorkbenchTab",
         ],
         required_control_ids: &[
-            "WorkbenchInspectorTabs",
+            "RightDrawerHeaderRoot",
             "WorkbenchInspectorTransform",
             "WorkbenchInspectorMesh",
             "WorkbenchAddComponent",

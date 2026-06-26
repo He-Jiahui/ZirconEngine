@@ -1,4 +1,5 @@
 use super::fixture::RuntimeSourceControlFixture;
+use zircon_runtime::core::framework::sound::{SoundMixRenderManager, SoundSourceManager};
 
 #[test]
 fn source_mute_toggle_and_speed_update_runtime_status() {

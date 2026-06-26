@@ -73,6 +73,22 @@ fn apply_presentation_carries_componentized_workbench_window_nodes_separately() 
         !selected_table_row.checked,
         "selected visual state must not depend on checked state only"
     );
+    let inactive_module_tab = find_workbench_window_node(&presentation, "WorkbenchModuleScene")
+        .expect("workbench module tab should be present");
+    assert_eq!(inactive_module_tab.text.as_str(), "Scene");
+    assert_eq!(
+        inactive_module_tab.value_text.as_str(),
+        "",
+        "toggle state must not leak into module tab display text"
+    );
+    let active_module_tab = find_workbench_window_node(&presentation, "WorkbenchModuleEffect")
+        .expect("selected workbench module tab should be present");
+    assert_eq!(active_module_tab.text.as_str(), "Effect");
+    assert_eq!(
+        active_module_tab.value_text.as_str(),
+        "",
+        "selected toggle state must not render as boolean label text"
+    );
 }
 
 #[test]

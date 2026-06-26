@@ -10,6 +10,7 @@ related_code:
   - zircon_runtime/src/core/framework/state/on_transition.rs
   - zircon_runtime/src/core/framework/state/registry.rs
   - zircon_runtime/src/core/framework/state/machine.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/handle/states.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/prelude.rs
@@ -24,6 +25,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/state/on_transition.rs
   - zircon_runtime/src/core/framework/state/registry.rs
   - zircon_runtime/src/core/framework/state/machine.rs
+  - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/handle/states.rs
 plan_sources:
   - user: 2026-05-08 continue ZirconEngine Bevy completion roadmap M3 State
@@ -32,6 +34,9 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
 tests:
   - zircon_runtime/src/tests/state.rs
+  - zircon_runtime/src/core/runtime/handle/states.rs::tests::core_handle_state_accessors_recover_poisoned_state_registry_lock
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs::runtime_15_core_runtime_state_module_uses_owner_name
   - zircon_runtime/src/tests/prelude.rs
   - zircon_app/src/tests/prelude.rs
   - .github/workflows/ci.yml
@@ -61,7 +66,19 @@ The 2026-06-12 runtime 02 M2.2 migration moved the former `core/state/` root dir
 
 The state registry lives inside `CoreRuntimeInner`, protected by the same runtime ownership path as config, events, scheduler, and runtime extension hooks. This keeps runtime state authority in `zircon_runtime::core::runtime` and prevents `zircon_app`, `zircon_editor`, or `zircon_runtime::scene::ecs` from becoming competing owners.
 
+### Runtime 15 M2 core runtime state module naming hard cutover
+
+`runtime_15_core_runtime_state_module_naming_hard_cutover_static_passed_cargo_deferred`
+
+Runtime 15 M2 applies R2.3 naming discipline to the runtime state owner: the old `core/runtime/state/runtime_inner.rs` file is removed, and `core/runtime/state/core_runtime_state.rs` now owns the `CoreRuntimeInner` storage struct. `core/runtime/state/mod.rs` declares only `mod core_runtime_state;` for this owner and re-exports `CoreRuntimeInner` from that module, so no banned-name compatibility module or old-path alias remains.
+
+`runtime_15_core_runtime_state_module_uses_owner_name` keeps the source layout, registration structure fixture, this document, Runtime 15 plan rows, runtime index, review findings, module convention docs, and status-output expectations synchronized under the same status anchor. Cargo remains deferred by the Runtime 15 implementation cadence while external Cargo/Rust lanes are active; this slice closes only the core runtime state file-name debt, not the full banned-name sweep.
+
 The implementation stores one typed state machine per `TypeId`. Each machine keeps current state, queued next state, transition event history, and registered hooks. Hooks are cloned into a dispatch bundle while the registry is locked, then invoked after the lock is released. This avoids registry re-entrancy deadlocks when hooks later inspect runtime state or enqueue follow-up transitions.
+
+### Runtime 15 M3 core handle states lock poison recovery
+
+Runtime 15 M3 extends the E9/F2 poison-safe lock rule to this registry access surface. `core/runtime/handle/states.rs` now uses a private `lock_states()` helper before touching `StateRegistry`, so state initialization, insertion, current/next reads, pending transition writes, transition application, event history reads, and hook registration recover a poisoned runtime state mutex instead of panicking. `core_handle_state_accessors_recover_poisoned_state_registry_lock` deliberately poisons the state registry lock and verifies init, set/apply transition, state reads, event history, and reset behavior still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry` keeps this document, Runtime 15 status rows, and plan mirrors synchronized under `runtime_15_core_handle_states_lock_poison_recovery_static_passed_cargo_deferred`.
 
 ## Transition Semantics
 

@@ -10,12 +10,14 @@ plugin manifest and generic editor extension descriptors.
 - Editor capability: `editor.extension.tilemap_2d_authoring`
 - Runtime crate: `zircon_plugin_tilemap_2d_runtime`
 - Editor crate: `zircon_plugin_tilemap_2d_editor`
+- Dist crate: `zircon_plugin_tilemap_2d_dist`
 - Runtime asset kinds: `tilemap_2d.tileset`, `tilemap_2d.tilemap`
 
 The runtime side contributes tilemap component/importer metadata and runtime
-package manifest projection. The editor side registers the tilemap authoring
-view, tilemap asset editor, asset creation templates, component drawer, Tiled
-importer, menu-backed operations, and payload schema ids.
+package manifest projection, including the NativeDynamic dist contract. The
+editor side registers the tilemap authoring view, tilemap asset editor, asset
+creation templates, component drawer, Tiled importer, menu-backed operations,
+and payload schema ids.
 
 Supported projections are `orthogonal`, `isometric_diamond`,
 `isometric_staggered`, and `hexagonal_staggered`. Default import extensions are

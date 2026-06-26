@@ -7,11 +7,24 @@ use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::{
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
+};
 
 use crate::{
     ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID,
     TIMELINE_SEQUENCE_DRAWER_ID, TIMELINE_SEQUENCE_TEMPLATE_ID, TIMELINE_SEQUENCE_VIEW_ID,
 };
+
+pub const TIMELINE_SEQUENCE_DIST_CRATE_NAME: &str = "zircon_plugin_timeline_sequence_dist";
+pub const TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY: &str =
+    "zircon_plugin_timeline_sequence_editor_entry_v3";
+const TIMELINE_SEQUENCE_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct TimelineSequenceEditorPlugin {
@@ -67,7 +80,7 @@ pub fn editor_plugin() -> TimelineSequenceEditorPlugin {
     TimelineSequenceEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+pub fn package_manifest() -> PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
@@ -82,15 +95,42 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     )
 }
 
-fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Timeline Sequence")
+fn base_package_manifest() -> PluginPackageManifest {
+    PluginPackageManifest::new(PLUGIN_ID, "Timeline Sequence")
         .with_category("authoring")
-        .with_supported_targets([zircon_runtime::builtin::RuntimeTargetMode::EditorHost])
+        .with_supported_targets([RuntimeTargetMode::EditorHost])
+        .with_supported_platforms([
+            ExportTargetPlatform::Windows,
+            ExportTargetPlatform::Linux,
+            ExportTargetPlatform::Macos,
+        ])
         .with_capabilities(EDITOR_CAPABILITIES.iter().copied())
+        .with_default_packaging([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
+        ])
         .with_dependency(
             zircon_runtime::plugin::PluginDependencyManifest::new("animation", true)
                 .with_capability(ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY),
         )
+        .with_native_module(timeline_sequence_dist_module_manifest())
+        .with_distribution(PluginDistributionManifest {
+            forms: vec!["dist".to_string()],
+            default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+            abi_version: Some(NATIVE_ABI_VERSION_V3),
+            engine_compat: TIMELINE_SEQUENCE_DIST_ENGINE_COMPAT.to_string(),
+            dist_crate: TIMELINE_SEQUENCE_DIST_CRATE_NAME.to_string(),
+            descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
+            editor_entry: TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY.to_string(),
+            ..PluginDistributionManifest::default()
+        })
+}
+
+pub fn timeline_sequence_dist_module_manifest() -> PluginModuleManifest {
+    PluginModuleManifest::native("timeline_sequence.dist", TIMELINE_SEQUENCE_DIST_CRATE_NAME)
+        .with_target_modes([RuntimeTargetMode::EditorHost])
+        .with_capabilities([CAPABILITY])
 }
 
 fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {

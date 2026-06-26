@@ -5,7 +5,7 @@ use super::{read_repo, read_runtime_src};
 fn runtime_15_offscreen_target_texture_owner_cleanup() {
     let offscreen_target = read_runtime_src("graphics/backend/render_backend/offscreen_target.rs");
     let offscreen_construct =
-        read_runtime_src("graphics/backend/render_backend/offscreen_target_new/construct.rs");
+        read_runtime_src("graphics/backend/render_backend/offscreen_target_construct/construct.rs");
     let frame_graph_binder = read_runtime_src(
         "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs",
     );

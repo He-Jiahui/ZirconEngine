@@ -90,3 +90,14 @@ fn stepper_workbench_field_honors_declared_layout_offset() {
     assert_eq!(pixel_at(&bytes, 128, 66, 20), STEPPER_DIVIDER);
     assert_eq!(pixel_at(&bytes, 128, 14, 24), [0, 0, 0, 255]);
 }
+
+#[test]
+fn search_workbench_field_paints_left_icon_before_placeholder_text() {
+    let mut search = positioned_field_node("SearchEdited", "", 12.0, 10.0, 184.0, 28.0);
+    search.text = "Search".into();
+    let bytes = paint_template_nodes_for_test(220, 48, model_rc(vec![search]));
+
+    assert_ne!(pixel_at(&bytes, 220, 28, 25), [0, 0, 0, 255]);
+    assert_ne!(pixel_at(&bytes, 220, 28, 25), FIELD_SURFACE);
+    assert!(changed_pixel_count(&bytes, 220, 40, 17, 48, 15) > 0);
+}

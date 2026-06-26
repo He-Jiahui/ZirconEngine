@@ -1,6 +1,6 @@
 use super::super::model::WorkbenchIconButtonContext;
-use super::super::palette::{WORKBENCH_ICON_PANEL_RADIUS, WORKBENCH_ICON_RAIL_RADIUS};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_radius(
     node: &TemplatePaneNodeData,
@@ -12,14 +12,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_ra
     }
     if context == WorkbenchIconButtonContext::Panel
         && node.corner_radius.is_finite()
-        && node.corner_radius > WORKBENCH_ICON_PANEL_RADIUS
+        && node.corner_radius > METRICS.radius_control
     {
         return node.corner_radius;
     }
     match context {
-        WorkbenchIconButtonContext::Rail => WORKBENCH_ICON_RAIL_RADIUS,
+        WorkbenchIconButtonContext::Rail => METRICS.radius_control,
         WorkbenchIconButtonContext::Toolbar | WorkbenchIconButtonContext::Panel => {
-            WORKBENCH_ICON_PANEL_RADIUS
+            METRICS.radius_control
         }
     }
 }

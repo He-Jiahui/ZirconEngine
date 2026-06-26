@@ -4,7 +4,7 @@ use super::super::super::template_list_row_glyphs::{
 };
 
 #[test]
-fn list_row_adornment_kind_prefers_disabled_then_selected_then_chevron() {
+fn list_row_adornment_kind_prefers_disabled_then_checked_then_navigation() {
     assert_eq!(
         list_row_adornment_kind(&TemplatePaneNodeData {
             disabled: true,
@@ -27,6 +27,13 @@ fn list_row_adornment_kind_prefers_disabled_then_selected_then_chevron() {
     assert_eq!(
         list_row_adornment_kind(&TemplatePaneNodeData {
             selected: true,
+            ..TemplatePaneNodeData::default()
+        }),
+        ListRowAdornmentKind::Chevron
+    );
+    assert_eq!(
+        list_row_adornment_kind(&TemplatePaneNodeData {
+            checked: true,
             ..TemplatePaneNodeData::default()
         }),
         ListRowAdornmentKind::Check

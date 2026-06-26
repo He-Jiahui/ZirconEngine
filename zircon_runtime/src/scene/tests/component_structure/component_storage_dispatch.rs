@@ -127,8 +127,8 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
         manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
     )
     .unwrap();
-    let utils_source = std::fs::read_to_string(
-        manifest_root.join("src/scene/ecs/storage/component_storage/utils.rs"),
+    let component_results_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/component_results.rs"),
     )
     .unwrap();
     let remove_entity_start = store_source
@@ -158,11 +158,11 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
     assert!(remove_entity_body.contains("sort_component_ids_if_needed(&mut removed);"));
     assert!(component_ids_body.contains("sort_component_ids_if_needed(&mut component_ids);"));
     assert!(
-        utils_source.contains("fn sort_component_ids_if_needed(")
-            && utils_source.contains("component_ids: &mut [ComponentId]")
+        component_results_source.contains("fn sort_component_ids_if_needed(")
+            && component_results_source.contains("component_ids: &mut [ComponentId]")
     );
-    assert!(utils_source.contains("if component_ids.len() > 1"));
-    assert!(utils_source.contains("component_ids.sort_unstable();"));
+    assert!(component_results_source.contains("if component_ids.len() > 1"));
+    assert!(component_results_source.contains("component_ids.sort_unstable();"));
     assert!(!store_source.contains("let mut removed = Vec::new();"));
     assert!(!store_source.contains("let mut component_ids = Vec::new();"));
     assert!(!remove_entity_body.contains("removed.sort_unstable();"));

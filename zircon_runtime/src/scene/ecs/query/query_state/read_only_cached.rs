@@ -9,7 +9,7 @@ use crate::scene::EntityId;
 use crate::scene::World;
 
 use super::super::{cached_query_iter::cached_query_component_locations, single_from_iter};
-use super::helpers::collect_many_query_items;
+use super::many_item_array::collect_many_query_items;
 use super::QueryState;
 
 impl<D, F> QueryState<D, F>

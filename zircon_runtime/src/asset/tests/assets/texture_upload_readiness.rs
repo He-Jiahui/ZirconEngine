@@ -1,5 +1,5 @@
 mod boundaries;
-mod common;
+mod container_fixtures;
 mod containers;
 mod dds;
 mod ktx;

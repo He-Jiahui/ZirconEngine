@@ -14,6 +14,30 @@ fn workbench_button_matches_button_nodes_without_icon_or_tab_nodes() {
         "Button",
         "outlined",
     )));
+    assert!(is_workbench_button(&button_node(
+        "OpenAssetBrowser",
+        "Asset Browser",
+        "secondary",
+    )));
+    assert!(is_workbench_button(&button_node(
+        "PageTab0", "Effect", "ghost",
+    )));
+    assert!(is_workbench_button(&button_node("DockTab1", "Effect", "")));
+    assert!(is_workbench_button(&button_node(
+        "AssetBrowserKindAllChip",
+        "All",
+        "",
+    )));
+    assert!(is_workbench_button(&button_node(
+        "WorkbenchModuleEffect",
+        "Effect",
+        "tab",
+    )));
+    assert!(is_workbench_button(&button_node(
+        "WorkbenchModuleCompile",
+        "Compile",
+        "filled",
+    )));
     assert!(!is_workbench_button(&button_node(
         "WorkbenchDrawerTabComponents",
         "UI Components",

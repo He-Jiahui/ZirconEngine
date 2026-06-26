@@ -1,6 +1,6 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
-use super::metrics::BUTTON_ICON_SIZE;
+use super::metrics::button_icon_size;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segments(
     commands: &mut Vec<HostPaintCommand>,
@@ -26,8 +26,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
 }
 
 fn scaled_rect(origin: &FrameRect, x: f32, y: f32, width: f32, height: f32) -> FrameRect {
-    let scale_x = origin.width / BUTTON_ICON_SIZE;
-    let scale_y = origin.height / BUTTON_ICON_SIZE;
+    let icon_size = button_icon_size();
+    let scale_x = origin.width / icon_size;
+    let scale_y = origin.height / icon_size;
     FrameRect {
         x: origin.x + x * scale_x,
         y: origin.y + y * scale_y,

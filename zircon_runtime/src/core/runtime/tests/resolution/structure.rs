@@ -13,7 +13,11 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         include_str!("../../handle/registration/descriptor_entries_three.rs"),
         include_str!("../../handle/registration/duplicates.rs"),
         include_str!("../../handle/registration/entry.rs"),
-        include_str!("../../handle/registration/service_lists.rs"),
+        include_str!("../../handle/registration/service_lists/mod.rs"),
+        include_str!("../../handle/registration/service_lists/multi.rs"),
+        include_str!("../../handle/registration/service_lists/shutdown.rs"),
+        include_str!("../../handle/registration/service_lists/specialized.rs"),
+        include_str!("../../handle/registration/service_lists/types.rs"),
         include_str!("../../handle/registration/validation.rs"),
     ]
     .join("\n");

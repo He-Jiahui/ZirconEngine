@@ -4,8 +4,8 @@ use super::{
     RenderCameraTargetWritebackReport, RenderCapabilityClass, RenderCapabilityKind,
     RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderGraphExecutionCoverageReport,
     RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderQualityProfile,
-    TaaQualityPreset,
 };
+use crate::core::framework::render::TaaQualityPreset;
 
 #[test]
 fn history_copy_report_counts_copied_slots_from_slot_flags() {

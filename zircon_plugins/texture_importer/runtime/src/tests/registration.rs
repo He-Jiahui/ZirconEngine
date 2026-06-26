@@ -1,4 +1,7 @@
-use crate::{package_manifest, plugin_registration, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY};
+use crate::{
+    package_manifest, plugin_registration, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
+    TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,
+};
 
 #[test]
 fn package_declares_texture_importers() {
@@ -12,6 +15,46 @@ fn package_declares_texture_importers() {
         .asset_importers
         .iter()
         .any(|importer| importer.source_extensions.contains(&"ktx2".to_string())));
+}
+
+#[test]
+fn package_manifest_declares_texture_importer_dist_contract() {
+    let manifest = package_manifest();
+
+    assert!(manifest
+        .default_packaging
+        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    let distribution = manifest.distribution.as_ref().expect("dist metadata");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
+    assert_eq!(distribution.dist_crate, TEXTURE_IMPORTER_DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(
+        distribution.runtime_entry,
+        TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY
+    );
+    let dist_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "texture_importer.dist")
+        .expect("dist native module");
+    assert_eq!(dist_module.crate_name, TEXTURE_IMPORTER_DIST_CRATE_NAME);
+    assert_eq!(
+        dist_module.kind,
+        zircon_runtime::plugin::PluginModuleKind::Native
+    );
+    assert!(manifest
+        .asset_importers
+        .iter()
+        .any(|importer| importer.id == "texture_importer.container"));
 }
 
 #[test]

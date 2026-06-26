@@ -198,6 +198,7 @@ pub(super) fn to_host_contract_pane(
             } else {
                 host_window::AssetBrowserPaneViewData::default()
             },
+            pane_size,
         ),
         project_overview,
         runtime_diagnostics,

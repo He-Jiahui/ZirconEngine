@@ -1,9 +1,12 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/image.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_texture_from_asset_tests.rs
   - zircon_plugins/rendering/plugin.toml
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTextureSystem.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTextureFeedback.cpp
@@ -497,6 +500,7 @@ SVT 帧间流水(帧 N):
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
+| 2026-06-24 | TX-M1/TX-M2 GpuTextureResource from_asset tests owner split | render_plan13_gpu_texture_from_asset_tests_owner_split_static_passed_cargo_deferred_active_compile_lane | GpuTextureResource from_asset tests owner split 已把 `graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs` 的 rgba8 format/mip upload、material view、usage mapping 与 sampler descriptor tests/fixtures 移入 `graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs`；父 owner 从 827 行降到 621 行，只保留 WGPU texture upload、compressed format mapping、usage/sampler helpers 与 `#[cfg(test)] mod tests;` 挂载。新增 `runtime_15_gpu_texture_from_asset_tests_are_child_owner` 锁定 moved tests 不回流、父/子 800 行预算和 docs/status 锚点。 | scoped rustfmt、static owner scan、line-count scan、docs-anchor scan、touched-file whitespace scan 和 scoped `git diff --check` 已通过；line-count 当前为 parent 621、tests 205、guard 106。Cargo/WGPU/RenderDoc 因 active compile lane 暂缓，不计通过。 | Cargo lane 空闲后补跑 gpu_texture focused tests、texture upload readiness filters 与 texture product/resource submit coverage。 |
 | 2026-06-23 | Render index 当前状态总览拆分 | TX-M1 部分完成,TX-M2~M4 未启动 | 从 docs/plans/zircon_runtime/render/index.md 的第 9 节迁入本计划；本行保留 13 Texture Pipeline 的当前事实，render 总索引不再维护计划级明细。 | 文档重组；本次未改生产代码，render/index.md 只保留状态路由说明。 | 仍未完成：mip/normal pipeline、array/cubemap assets、sparse virtual texture；验收缺口：需要 importer metadata、mip/normal compute、cubemap/array ABI、SVT feedback/readback |
 | 2026-06-15 | TX-M1 metadata and color-space authority | 部分完成: 上传/就绪追踪存在,权威元数据未完成 | `gpu_texture` 上传和 `texture_slot_summary` 可用,KTX importer 有基础;但 sRGB/linear 仍缺 asset metadata contract。 | 本文件 `现状与差距` 记录 texture upload/KTX 基础和色彩空间后缀猜测问题;计划 07 已独立定稿 postprocess HDR/intermediate format。 | 建立 texture asset metadata、色彩空间校验和 material/shader sampling contract。 |
 | 2026-06-15 | TX-M2 mip generation and normal pipeline | 未启动: 仍依赖源数据自带 mip | 当前无 runtime/import mip generation,normal map 压缩、重建和 Toksvig/specular AA 烘焙也未落地。 | 本文件 `现状与差距` 明确 mip 全靠源数据自带、normal map 无压缩与重建约定;计划 19 也把 specular AA 列为未覆盖。 | 实现 mip compute/import pipeline、normal map 标记、roughness adjustment 与验证图。 |

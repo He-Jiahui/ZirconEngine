@@ -1,10 +1,23 @@
 //! CPU texture loading and built-in patterns.
 
 use image::{DynamicImage, GenericImageView};
+use thiserror::Error;
 
 use crate::asset::types::{CpuTexturePayload, TextureSource};
 
-pub(crate) fn load_texture(source: &TextureSource) -> Result<CpuTexturePayload, String> {
+pub(crate) type TextureLoadResult<T> = std::result::Result<T, TextureLoadError>;
+
+#[derive(Debug, Error)]
+pub(crate) enum TextureLoadError {
+    #[error("open image {path}: {source}")]
+    OpenImage {
+        path: String,
+        #[source]
+        source: image::ImageError,
+    },
+}
+
+pub(crate) fn load_texture(source: &TextureSource) -> TextureLoadResult<CpuTexturePayload> {
     match source {
         TextureSource::BuiltinChecker => Ok(generate_checker_texture()),
         TextureSource::BuiltinGrid => Ok(generate_grid_texture()),
@@ -12,9 +25,12 @@ pub(crate) fn load_texture(source: &TextureSource) -> Result<CpuTexturePayload, 
     }
 }
 
-pub(crate) fn decode_image_file(path: &str) -> Result<CpuTexturePayload, String> {
-    let image = image::open(std::path::Path::new(path))
-        .map_err(|error| format!("open image {path}: {error}"))?;
+pub(crate) fn decode_image_file(path: &str) -> TextureLoadResult<CpuTexturePayload> {
+    let image =
+        image::open(std::path::Path::new(path)).map_err(|source| TextureLoadError::OpenImage {
+            path: path.to_string(),
+            source,
+        })?;
     Ok(image_to_payload(
         TextureSource::Path(path.to_string()),
         image,

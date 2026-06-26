@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_
     if is_unavailable_selection_state(state) {
         PALETTE.text_disabled
     } else if checked {
-        declared_style_foreground(node).unwrap_or(PALETTE.text)
+        PALETTE.text
     } else {
         declared_style_foreground(node).unwrap_or(PALETTE.text_muted)
     }

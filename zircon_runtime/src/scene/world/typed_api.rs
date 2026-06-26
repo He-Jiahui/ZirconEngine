@@ -383,7 +383,7 @@ impl World {
         &mut self,
         entity: EntityId,
         component_type_id: &str,
-    ) -> Result<(), String> {
+    ) -> SceneResult<()> {
         let component_id = self
             .component_registry
             .dynamic_component_id(component_type_id);
@@ -391,16 +391,13 @@ impl World {
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
         let tick = self.mutation_change_tick();
-        let old = match self.component_storage.insert_at_tick(
+        let old = self.component_storage.insert_at_tick(
             component_id,
             crate::scene::ecs::StorageType::SparseSet,
             internal,
             DynamicComponentPresence,
             tick,
-        ) {
-            Ok(old) => old,
-            Err(error) => return Err(error.to_string()),
-        };
+        )?;
         if old.is_none() {
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
@@ -412,7 +409,7 @@ impl World {
         &mut self,
         entity: EntityId,
         component_type_id: &str,
-    ) -> Result<(), String> {
+    ) -> SceneResult<()> {
         let Some(component_id) = self
             .component_registry
             .registered_dynamic_component_id(component_type_id)
@@ -422,13 +419,9 @@ impl World {
         let Some(internal) = self.internal_entity(entity) else {
             return Ok(());
         };
-        let removed = match self
+        let removed = self
             .component_storage
-            .remove::<DynamicComponentPresence>(component_id, internal)
-        {
-            Ok(removed) => removed,
-            Err(error) => return Err(error.to_string()),
-        };
+            .remove::<DynamicComponentPresence>(component_id, internal)?;
         if removed.is_some() {
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();

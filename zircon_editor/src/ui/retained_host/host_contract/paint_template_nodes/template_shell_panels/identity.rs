@@ -41,6 +41,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn shell_p
         "WorkbenchInspectorTransform" | "WorkbenchInspectorMesh" => {
             Some(ShellPanelKind::InspectorSection)
         }
+        _ if is_workbench_content_panel_id(node.control_id.as_str()) => {
+            Some(ShellPanelKind::ContentPanel)
+        }
         _ => None,
     }
+}
+
+fn is_workbench_content_panel_id(control_id: &str) -> bool {
+    control_id.starts_with("Workbench")
+        && matches!(
+            content_panel_suffix(control_id),
+            Some("LeftPanel" | "CenterPanel" | "RightPanel")
+        )
+}
+
+fn content_panel_suffix(control_id: &str) -> Option<&'static str> {
+    ["LeftPanel", "CenterPanel", "RightPanel"]
+        .into_iter()
+        .find(|suffix| control_id.ends_with(suffix))
 }

@@ -1,5 +1,5 @@
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError, SceneResult};
 
 use super::super::World;
 
@@ -8,7 +8,7 @@ impl World {
         &self,
         entity: EntityId,
         property_path: &ComponentPropertyPath,
-    ) -> Result<ScenePropertyValue, String> {
+    ) -> SceneResult<ScenePropertyValue> {
         self.property_impl(entity, property_path)
     }
 
@@ -16,7 +16,7 @@ impl World {
         &self,
         entity: EntityId,
         property_path: &ComponentPropertyPath,
-    ) -> Result<ScenePropertyValue, String> {
+    ) -> SceneResult<ScenePropertyValue> {
         let target_component = property_path.component();
         let target_segments = property_path.property_segments();
 
@@ -28,8 +28,9 @@ impl World {
             return Ok(value);
         }
 
-        Err(format!(
-            "property `{property_path}` is not available on entity {entity}"
-        ))
+        Err(SceneError::PropertyUnavailable {
+            entity,
+            property_path: property_path.to_string(),
+        })
     }
 }

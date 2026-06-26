@@ -1,7 +1,7 @@
 use super::super::resolved_state_for_node;
 use super::helpers::{declared_color, is_unavailable_status_state};
 use super::model::{WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle};
-use super::palette::{WORKBENCH_STATUS_MARK_ON_LIGHT, WORKBENCH_STATUS_NO_ERRORS_FILL};
+use super::palette::WORKBENCH_STATUS_NO_ERRORS_FILL;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
@@ -15,7 +15,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     WorkbenchStatusSignalStyle {
         icon_fill: status_signal_icon_fill(node, kind, state),
         text: status_signal_text_color(node, kind, state),
-        mark: status_signal_mark_color(node, state),
         state,
     }
 }
@@ -36,14 +35,6 @@ fn status_signal_icon_fill(
         WorkbenchStatusSignalKind::Success => WORKBENCH_STATUS_NO_ERRORS_FILL,
         WorkbenchStatusSignalKind::Warning => PALETTE.warning,
         WorkbenchStatusSignalKind::Info => PALETTE.info,
-    }
-}
-
-fn status_signal_mark_color(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if is_unavailable_status_state(state) {
-        PALETTE.text_disabled
-    } else {
-        declared_color(node.icon_color).unwrap_or(WORKBENCH_STATUS_MARK_ON_LIGHT)
     }
 }
 
