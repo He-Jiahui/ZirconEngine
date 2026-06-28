@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn model_render_primitives_use_referenced_mesh_asset_payload_when_available() {
         let mesh_reference = asset_reference("res://models/hero.gltf#Mesh0/Primitive0");
-        let model = model_with_primitive(legacy_primitive(1.0, Some(mesh_reference.clone())));
+        let model = model_with_primitive(embedded_primitive(1.0, Some(mesh_reference.clone())));
         let mesh_asset = mesh_asset("res://models/hero.gltf#Mesh0/Primitive0", 10.0);
 
         let selected = model_primitives_preferring_mesh_assets(&model, |reference| {
@@ -77,16 +77,16 @@ mod tests {
     }
 
     #[test]
-    fn model_render_primitives_keep_legacy_payload_when_mesh_reference_unresolved() {
-        let legacy = legacy_primitive(
+    fn model_render_primitives_keep_embedded_payload_when_mesh_reference_unresolved() {
+        let embedded = embedded_primitive(
             1.0,
             Some(asset_reference("res://models/hero.gltf#Mesh0/Primitive0")),
         );
-        let model = model_with_primitive(legacy.clone());
+        let model = model_with_primitive(embedded.clone());
 
         let selected = model_primitives_preferring_mesh_assets(&model, |_| None);
 
-        assert_eq!(selected, vec![legacy]);
+        assert_eq!(selected, vec![embedded]);
     }
 
     fn model_with_primitive(primitive: ModelPrimitiveAsset) -> ModelAsset {
@@ -96,7 +96,7 @@ mod tests {
         }
     }
 
-    fn legacy_primitive(x: f32, mesh: Option<AssetReference>) -> ModelPrimitiveAsset {
+    fn embedded_primitive(x: f32, mesh: Option<AssetReference>) -> ModelPrimitiveAsset {
         ModelPrimitiveAsset {
             vertices: vec![
                 vertex([x, 0.0, 0.0]),

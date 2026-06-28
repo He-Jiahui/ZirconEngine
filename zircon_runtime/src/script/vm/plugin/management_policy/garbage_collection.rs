@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::{VmPluginManagementPolicyError, VmPluginManagementPolicyResult};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VmPluginGarbageCollectionMode {
@@ -29,14 +31,14 @@ impl VmPluginGarbageCollectionPolicy {
         }
     }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> VmPluginManagementPolicyResult<()> {
         if matches!(self.mode, VmPluginGarbageCollectionMode::Disabled)
             && self.interval_frames.is_some()
         {
-            return Err("disabled garbage collection cannot set interval_frames".to_string());
+            return Err(VmPluginManagementPolicyError::GarbageCollectionDisabledWithInterval);
         }
         if self.interval_frames == Some(0) {
-            return Err("garbage collection interval_frames must be greater than zero".to_string());
+            return Err(VmPluginManagementPolicyError::GarbageCollectionIntervalFramesZero);
         }
         Ok(())
     }

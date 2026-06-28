@@ -32,7 +32,8 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSubassetSnapshot, AssetUtilityTab, AssetWorkspaceSnapshot, EditorChromeSnapshot,
+    AssetSubassetSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+    EditorChromeSnapshot,
 };
 use crate::ui::workbench::startup::{
     EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation,
@@ -827,6 +828,9 @@ fn atlas_workbench_content_panel(
     TemplatePaneNodeData {
         control_id: control_id.into(),
         role: "VerticalGroup".into(),
+        surface_variant: "content-panel".into(),
+        border_width: 1.0,
+        corner_radius: 4.0,
         frame: TemplateNodeFrameData {
             x,
             y,
@@ -1245,7 +1249,7 @@ fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
         title: "Asset Browser".to_string(),
         serializable_payload: serde_json::json!({
             "source": "m3-gui-screenshot",
-            "selected": "res://ui/editor/workbench_host_window.ui.toml"
+            "selected": "res://ui/editor/workbench_page_chrome.zui"
         }),
         dirty: false,
         host: ViewHost::ExclusivePage(page_id.clone()),
@@ -1319,8 +1323,10 @@ fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
     let nodes = &pane.asset_browser.nodes;
     let content = find_template_node(nodes, "AssetBrowserContentPanel");
     let table = find_template_node(nodes, "AssetBrowserAssetTablePanel");
-    let row04 = find_template_node(nodes, "WorkbenchAssetBrowserAssetRow04");
-    let preview = find_template_node(nodes, "AssetBrowserContentPreviewCard");
+    let grid = find_template_node(nodes, "AssetBrowserThumbGridPanel");
+    let first_thumb = find_template_node(nodes, "AssetBrowserThumbCard01");
+    let second_thumb = find_template_node(nodes, "AssetBrowserThumbCard02");
+    let seventh_thumb = find_template_node(nodes, "AssetBrowserThumbCard07");
 
     assert_eq!(
         visible_template_node_count(nodes, "AssetBrowserContentPanel"),
@@ -1329,24 +1335,29 @@ fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
     );
     assert_eq!(
         visible_template_node_count(nodes, "AssetBrowserAssetTablePanel"),
-        1,
-        "asset browser compact table panel should not leave a second visible projected container"
+        0,
+        "thumbnail asset browser compact view should hide the list table panel"
     );
     assert!(
-        table.frame.y + table.frame.height <= row04.frame.y + row04.frame.height + 1.0,
-        "asset browser table should close on the last visible row"
+        table.frame.height == 0.0,
+        "thumbnail asset browser table frame should collapse"
     );
     assert!(
-        preview.frame.y >= row04.frame.y + row04.frame.height + 8.0,
-        "asset browser compact preview should sit below the visible rows"
+        grid.frame.width > content.frame.width * 0.75 && grid.frame.height >= 86.0,
+        "thumbnail asset browser compact view should expose an adaptive content grid"
     );
     assert!(
-        preview.frame.y + preview.frame.height <= content.frame.y + content.frame.height + 1.0,
-        "asset browser compact preview should stay inside content panel"
+        first_thumb.frame.width >= 104.0 && second_thumb.frame.x > first_thumb.frame.x,
+        "thumbnail asset cards should lay out horizontally from available content width"
     );
     assert!(
-        preview.selected && preview.surface_variant.as_str() == "asset-preview",
-        "asset browser compact preview should use selected preview styling"
+        seventh_thumb.frame.y > first_thumb.frame.y,
+        "thumbnail asset browser should use recovered summary space for a second asset row"
+    );
+    assert_eq!(
+        visible_template_node_count(nodes, "AssetBrowserContentPreviewCard"),
+        0,
+        "thumbnail asset browser compact view should keep selection feedback inside the tile grid"
     );
 }
 
@@ -1772,6 +1783,7 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
         library_root: "zircon_runtime/assets".to_string(),
         default_scene_uri: "res://scenes/editor_preview.zscene".to_string(),
         catalog_revision: 42,
+        view_mode: AssetViewMode::Thumbnail,
         utility_tab: AssetUtilityTab::Preview,
         search_query: "workbench".to_string(),
         folder_tree: m3_asset_folders(),
@@ -1779,17 +1791,17 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
         visible_assets: vec![
             asset_item(
                 "asset-ui-layout",
-                "res://ui/editor/workbench_host_window.ui.toml",
-                "workbench_host_window.ui.toml",
-                "ui.toml",
+                "res://ui/editor/workbench_page_chrome.zui",
+                "workbench_page_chrome.zui",
+                "zui",
                 ResourceKind::UiLayout,
                 true,
             ),
             asset_item(
                 "asset-theme-base",
-                "res://ui/theme/editor_base.ui.toml",
-                "editor_base.ui.toml",
-                "ui.toml",
+                "res://ui/theme/editor_base.zui",
+                "editor_base.zui",
+                "zui",
                 ResourceKind::UiStyle,
                 false,
             ),
@@ -1825,34 +1837,50 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
                 ResourceKind::Scene,
                 false,
             ),
+            asset_item(
+                "asset-shader-unlit",
+                "res://shaders/ui/unlit.zshader",
+                "unlit.zshader",
+                "zshader",
+                ResourceKind::Shader,
+                false,
+            ),
+            asset_item(
+                "asset-player-prefab",
+                "res://prefabs/player_start.prefab",
+                "player_start.prefab",
+                "prefab",
+                ResourceKind::Prefab,
+                false,
+            ),
         ],
         selected_folder_id: Some("folder-ui".to_string()),
         selected_asset_uuid: Some("asset-ui-layout".to_string()),
         selection: AssetSelectionSnapshot {
             uuid: Some("asset-ui-layout".to_string()),
-            display_name: "workbench_host_window.ui.toml".to_string(),
-            locator: "res://ui/editor/workbench_host_window.ui.toml".to_string(),
+            display_name: "workbench_page_chrome.zui".to_string(),
+            locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
             kind: Some(ResourceKind::UiLayout),
             preview_artifact_path: "docs/tests/editor/editor-window-m3-workbench-900x620.png"
                 .to_string(),
-            meta_path: "zircon_editor/assets/ui/editor/workbench_host_window.ui.toml".to_string(),
+            meta_path: "zircon_editor/assets/ui/editor/workbench_page_chrome.zui".to_string(),
             adapter_key: "runtime-ui-template".to_string(),
             package_id: Some("zircon.editor.ui".to_string()),
             asset_unit: "single".to_string(),
             included_files: vec![
-                "zircon_editor/assets/ui/editor/workbench_host_window.ui.toml".to_string(),
-                "zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml".to_string(),
-                "zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml".to_string(),
+                "zircon_editor/assets/ui/editor/workbench_page_chrome.zui".to_string(),
+                "zircon_editor/assets/ui/editor/asset_browser.zui".to_string(),
+                "zircon_editor/assets/ui/editor/theme/editor_tokens.zui".to_string(),
             ],
             subassets: vec![
                 asset_subasset(
                     "subasset-content-table",
-                    "res://ui/editor/asset_browser.v2.ui.toml#AssetBrowserAssetTablePanel",
+                    "res://ui/editor/asset_browser.zui#AssetBrowserAssetTablePanel",
                     ResourceKind::UiWidget,
                 ),
                 asset_subasset(
                     "subasset-preview-card",
-                    "res://ui/editor/asset_browser.v2.ui.toml#AssetBrowserContentPreviewCard",
+                    "res://ui/editor/asset_browser.zui#AssetBrowserContentPreviewCard",
                     ResourceKind::UiWidget,
                 ),
             ],
@@ -1865,27 +1893,27 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
             references: vec![
                 asset_reference(
                     "ref-editor-base",
-                    "res://ui/theme/editor_base.v2.ui.toml",
-                    "editor_base.v2.ui.toml",
+                    "res://ui/theme/editor_base.zui",
+                    "editor_base.zui",
                     ResourceKind::UiStyle,
                 ),
                 asset_reference(
                     "ref-editor-material",
-                    "res://ui/theme/editor_material.v2.ui.toml",
-                    "editor_material.v2.ui.toml",
+                    "res://ui/theme/editor_material.zui",
+                    "editor_material.zui",
                     ResourceKind::UiStyle,
                 ),
             ],
             used_by: vec![
                 asset_reference(
                     "used-asset-browser",
-                    "res://ui/editor/asset_browser.v2.ui.toml",
+                    "res://ui/editor/asset_browser.zui",
                     "Asset Browser",
                     ResourceKind::UiLayout,
                 ),
                 asset_reference(
                     "used-workbench-shell",
-                    "res://ui/editor/host/workbench_shell.v2.ui.toml",
+                    "res://ui/editor/host/workbench_shell.zui",
                     "Workbench Shell",
                     ResourceKind::UiLayout,
                 ),

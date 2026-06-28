@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
@@ -39,9 +40,28 @@ impl SceneRenderer {
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models(
+            asset_manager,
+            icon_source,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            Vec::new(),
+        )
+    }
+
+    pub(crate) fn new_with_icon_source_and_plugin_render_features_and_shading_models(
+        asset_manager: Arc<ProjectAssetManager>,
+        icon_source: Arc<dyn ViewportIconSource>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
+        let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let core = SceneRendererCore::new_with_icon_source(
             asset_manager.clone(),
@@ -53,12 +73,13 @@ impl SceneRenderer {
             &render_features,
             runtime_prepare_collectors,
         );
-        let streamer = ResourceStreamer::new(
+        let streamer = ResourceStreamer::new_with_plugin_shading_models(
             asset_manager,
             &backend.device,
             &backend.queue,
             &core.texture_bind_group_layout,
-        );
+            plugin_shading_models,
+        )?;
 
         Ok(Self {
             backend,

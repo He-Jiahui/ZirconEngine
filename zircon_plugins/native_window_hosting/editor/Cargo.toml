@@ -6,6 +6,6 @@ license.workspace = true
 description = "Native window hosting editor plugin package for Zircon."
 
 [dependencies]
-zircon_editor = { path = "../../../zircon_editor" }
+zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

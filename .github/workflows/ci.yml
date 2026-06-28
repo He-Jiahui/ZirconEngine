@@ -60,6 +60,20 @@ jobs:
       - name: Run plugin workspace tests
         run: cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
+  plugin-standalone-validate:
+    name: Plugin standalone validate all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate standalone plugin manifests
+        run: python -m tools.zircon_export plugin validate --all --repo-root . --json
+
   plugin-standalone-dist:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
     runs-on: ubuntu-latest

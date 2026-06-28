@@ -315,9 +315,9 @@ mod tests {
             vec!["ambient-occlusion".to_string()],
         );
         let unexpected = RenderGraphComputeDispatchRecord::new(
-            "legacy-compute",
-            "legacy.executor",
-            "legacy-pipeline",
+            "unexpected-compute",
+            "unexpected.executor",
+            "unexpected-pipeline",
             [4, 4, 1],
             [1, 1, 1],
             Vec::new(),
@@ -394,8 +394,8 @@ mod tests {
             &[],
         );
         record.audit_compute_workload(
-            "legacy-compute",
-            "legacy.executor",
+            "unexpected-compute",
+            "unexpected.executor",
             None,
             dispatch_context(),
             &[unexpected],

@@ -18,6 +18,7 @@ related_code:
   - zircon_runtime/src/asset/pack/reader.rs
   - zircon_runtime/src/asset/pack/trim.rs
   - zircon_runtime/src/bin/zircon_export_pack/pack.rs
+  - zircon_runtime/src/bin/zircon_export_pack/error.rs
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/mod.rs
@@ -44,6 +45,7 @@ implementation_files:
   - zircon_runtime/src/asset/pack/reader.rs
   - zircon_runtime/src/asset/pack/trim.rs
   - zircon_runtime/src/bin/zircon_export_pack/pack.rs
+  - zircon_runtime/src/bin/zircon_export_pack/error.rs
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/tests/pack.rs
@@ -386,6 +388,15 @@ the prebuilt packer wrote `assets.delta.zrpd` and reported `fatal=false`, `delta
 `delta_asset_count=2`, `delta_chunk_count=2`, and `delta_reused_assets=keep.bin`. An earlier smoke
 without `--packer` timed out while waiting on `cargo run`; the base pack had already been produced,
 and the follow-up prebuilt-packer run completed the target delta path.
+
+2026-06-27 Runtime 15 F5 export CLI typed errors: `zircon_export_pack/error.rs` now owns
+`ExportPackError` / `ExportPackResult` for the packer binary. Pack argument usage, asset manifest
+read/decode, pack/report file IO, previous/full/delta ZRPK/ZRPD read-write-verify failures, delta
+apply mismatch, and deterministic comparison failures stay typed until the CLI `main.rs` display
+boundary. `manifest.rs::pack_inputs(...)` is non-fallible because source materialization failures are
+reported in the Pack JSON report as fatal preflight diagnostics; that report schema remains a string
+diagnostic surface. `review_f5_export_cli_uses_typed_errors_before_cli_boundary` locks the no
+`Result<_, String>` rollback for the packer owner; Cargo remains deferred under active compile lanes.
 
 2026-06-15 M5-T2 runtime install receipt validation: `ZrPackDeltaInstaller` now writes and reads a
 persistent install receipt after a delta has been staged and promoted. `rustfmt --edition 2021` was

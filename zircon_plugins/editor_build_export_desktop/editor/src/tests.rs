@@ -7,7 +7,7 @@ mod tests {
 
     use zircon_runtime::builtin::RuntimeTargetMode;
     use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
-    use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+    use zircon_runtime::ui::v2::UiZuiAssetLoader;
     use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
     use super::*;
@@ -287,7 +287,7 @@ mod tests {
 
     fn assert_view_template_asset(document: &str, expected_id: &str) {
         let path = plugin_asset_path(document);
-        let asset = UiV2AssetLoader::load_toml_file(&path)
+        let asset = UiZuiAssetLoader::load_zui_file(&path)
             .unwrap_or_else(|error| panic!("{} should parse: {error}", path.display()));
 
         assert_eq!(asset.asset.kind, UiV2AssetKind::View);
@@ -310,7 +310,7 @@ mod tests {
             report.template_document
         );
         let path = plugin_asset_path(report.template_document);
-        let asset = UiV2AssetLoader::load_toml_file(&path)
+        let asset = UiZuiAssetLoader::load_zui_file(&path)
             .unwrap_or_else(|error| panic!("{} should parse: {error}", path.display()));
 
         for control_id in report.template_control_ids {

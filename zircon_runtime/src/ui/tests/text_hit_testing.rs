@@ -1,4 +1,5 @@
-use crate::ui::text::{hit_test_text_layout, layout_text};
+use crate::graphics::text::layout::measured_grapheme_widths;
+use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
     surface::{UiResolvedStyle, UiTextAlign, UiTextWrap},
@@ -9,10 +10,16 @@ fn text_hit_test_uses_grapheme_midpoints() {
     let style = fixed_text_style();
     let text = "a\u{0301}b";
     let layout = layout_text(text, &style, UiFrame::new(10.0, 0.0, 80.0, 20.0), None);
+    let line = &layout.lines[0];
+    let widths = measured_grapheme_widths(&line.text, &style);
 
-    let before = hit_test_text_layout(&layout, UiPoint::new(10.2, 4.0));
-    let after_cluster = hit_test_text_layout(&layout, UiPoint::new(12.6, 4.0));
-    let after_text = hit_test_text_layout(&layout, UiPoint::new(18.0, 4.0));
+    let before = hit_test_text_layout(&layout, UiPoint::new(line.frame.x + widths[0] * 0.25, 4.0));
+    let after_cluster =
+        hit_test_text_layout(&layout, UiPoint::new(line.frame.x + widths[0] * 0.75, 4.0));
+    let after_text = hit_test_text_layout(
+        &layout,
+        UiPoint::new(line.frame.x + line.measured_width + 1.0, 4.0),
+    );
 
     assert_eq!(before.line_index, Some(0));
     assert_eq!(before.source_offset, 0);
@@ -42,16 +49,41 @@ fn text_hit_test_respects_aligned_line_frame() {
     let mut style = fixed_text_style();
     style.text_align = UiTextAlign::Right;
     let layout = layout_text("abc", &style, UiFrame::new(0.0, 0.0, 100.0, 20.0), None);
+    let line = &layout.lines[0];
 
-    assert_eq!(layout.lines[0].frame.x, 85.0);
+    assert!((line.frame.right() - 100.0).abs() <= 0.01);
     assert_eq!(
-        hit_test_text_layout(&layout, UiPoint::new(84.0, 4.0)).source_offset,
+        hit_test_text_layout(&layout, UiPoint::new(line.frame.x - 1.0, 4.0)).source_offset,
         0
     );
     assert_eq!(
-        hit_test_text_layout(&layout, UiPoint::new(100.0, 4.0)).source_offset,
+        hit_test_text_layout(&layout, UiPoint::new(line.frame.right() + 1.0, 4.0)).source_offset,
         3
     );
+}
+
+#[test]
+fn text_hit_test_soft_hyphen_break_suffix_maps_to_source_hyphen() {
+    let mut style = fixed_text_style();
+    style.wrap = UiTextWrap::Word;
+    let text = "pre\u{00ad}fix";
+    let frame_width = measure_text_size("pre-", &style).width + 0.1;
+    let layout = layout_text(
+        text,
+        &style,
+        UiFrame::new(0.0, 0.0, frame_width, 48.0),
+        None,
+    );
+    let first_line = &layout.lines[0];
+
+    let after_break_suffix = hit_test_text_layout(
+        &layout,
+        UiPoint::new(first_line.frame.x + first_line.measured_width + 1.0, 4.0),
+    );
+
+    assert_eq!(first_line.text, "pre-");
+    assert_eq!(after_break_suffix.line_index, Some(0));
+    assert_eq!(after_break_suffix.source_offset, "pre\u{00ad}".len());
 }
 
 fn fixed_text_style() -> UiResolvedStyle {

@@ -12,6 +12,7 @@ const SHADOW_TEMPLATE_TOKEN: &str = "zr_template_shadow.wgsl";
 const SHADOW_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_shadow_alpha.wgsl";
 const VELOCITY_TEMPLATE_TOKEN: &str = "zr_template_velocity.wgsl";
 const VELOCITY_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_velocity_alpha.wgsl";
+const TAA_REACTIVE_MASK_TEMPLATE_TOKEN: &str = "zr_template_taa_reactive_mask.wgsl";
 
 const FORWARD_TEMPLATE: &str = include_str!("../wgsl/zr_template_forward.wgsl");
 const GBUFFER_TEMPLATE: &str = include_str!("../wgsl/zr_template_gbuffer.wgsl");
@@ -21,6 +22,7 @@ const SHADOW_TEMPLATE: &str = include_str!("../wgsl/zr_template_shadow.wgsl");
 const SHADOW_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_shadow_alpha.wgsl");
 const VELOCITY_TEMPLATE: &str = include_str!("../wgsl/zr_template_velocity.wgsl");
 const VELOCITY_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_velocity_alpha.wgsl");
+const TAA_REACTIVE_MASK_TEMPLATE: &str = include_str!("../wgsl/zr_template_taa_reactive_mask.wgsl");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderPassTemplate {
@@ -83,6 +85,16 @@ pub(crate) fn pass_template_for(
             requires_material_surface: alpha_test,
             requires_shading_include: false,
             uses_previous_position: true,
+        },
+        ShaderPassType::TaaReactiveMask => ShaderPassTemplate {
+            include: ShaderTemplateInclude::new(
+                TAA_REACTIVE_MASK_TEMPLATE_TOKEN,
+                TAA_REACTIVE_MASK_TEMPLATE,
+            ),
+            support_includes: Vec::new(),
+            requires_material_surface: true,
+            requires_shading_include: false,
+            uses_previous_position: false,
         },
     }
 }

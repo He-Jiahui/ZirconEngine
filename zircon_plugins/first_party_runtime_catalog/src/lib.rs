@@ -338,6 +338,12 @@ mod tests {
             "\"missing_plugin_toml\": 0",
             "\"manifest_schema_violations\": 0",
             "\"generated_manifest_header_violations\": 0",
+            "\"m3_t2_runtime_registration_builder_status\": \"runtime-registration-builder-clean\"",
+            "\"runtime_registration_builder_violation_count\": 0",
+            "\"runtime_registration_builder_roots\": [",
+            "\"animation\"",
+            "\"physics\"",
+            "\"net\"",
         ] {
             assert!(
                 stdout.contains(expected_anchor),
@@ -375,6 +381,9 @@ mod tests {
             "\"lib_capability_literal_sites\": 0",
             "\"sdk_builder_mirror_violations\": 0",
             "\"m4_t2_builder_mirror_gate_status\": \"sdk-builder-mirror-clean\"",
+            "\"editor_runtime_mirror_root_count\": 3",
+            "\"editor_runtime_mirror_violations\": 0",
+            "\"d9_editor_runtime_mirror_gate_status\": \"editor-runtime-mirror-clean\"",
         ] {
             assert!(
                 stdout.contains(expected_anchor),
@@ -437,8 +446,12 @@ mod tests {
             "\"sample_expected_count\": 1",
             "\"sample_conforming_count\": 1",
             "\"sample_violation_count\": 0",
+            "\"sample_workspace_dependency_status\": \"sample-workspace-deps-clean\"",
+            "\"core_workspace_dependency_status\": \"core-workspace-deps-clean\"",
+            "\"core_workspace_dependency_count\": 117",
+            "\"core_workspace_dependency_violation_count\": 0",
             "\"plugin_sdk_examples\"",
-            "\"m2_gate_status\": \"sample-clean-migration-debt-present\"",
+            "\"m2_gate_status\": \"sample-clean-migration-debt-clear\"",
             "\"migration_debt_count\"",
         ] {
             assert!(

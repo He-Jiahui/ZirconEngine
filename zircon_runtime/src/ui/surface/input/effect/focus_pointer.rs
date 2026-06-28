@@ -5,23 +5,25 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
-use super::super::require_valid_input_owner;
+use super::super::{
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+};
 
 pub(super) fn apply_focus_pointer_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::SetFocus { target, reason } => {
             let (change_reason, visible) = focus_effect_reasons(*reason);
             surface
                 .focus_node_with_reason(*target, change_reason, visible)
-                .map_err(|error| format!("focus rejected: {error}"))?;
+                .map_err(|source| UiSurfaceInputEffectError::FocusRejected { source })?;
             Ok(Some(*target))
         }
         UiDispatchEffect::ClearFocus { target, reason } => {
             if surface.focus.focused != Some(*target) {
-                return Err("focus owner mismatch".to_string());
+                return Err(UiSurfaceInputEffectError::FocusOwnerMismatch);
             }
             surface.clear_focus_with_reason(clear_focus_effect_reason(*reason));
             if surface.input.input_method_owner == Some(*target) {
@@ -46,7 +48,7 @@ pub(super) fn apply_focus_pointer_effect(
             target, pointer_id, ..
         } => {
             if !pointer_capture_release_matches(surface, *pointer_id, *target) {
-                return Err("pointer capture belongs to a different or unknown pointer".to_string());
+                return Err(UiSurfaceInputEffectError::PointerCaptureOwnerMismatch);
             }
             if surface
                 .input
@@ -59,7 +61,7 @@ pub(super) fn apply_focus_pointer_effect(
                 }
                 Ok(None)
             } else {
-                Err("pointer capture belongs to a different or unknown pointer".to_string())
+                Err(UiSurfaceInputEffectError::PointerCaptureOwnerMismatch)
             }
         }
         UiDispatchEffect::LockPointer { target, policy } => {
@@ -74,7 +76,7 @@ pub(super) fn apply_focus_pointer_effect(
                 surface.input.pointer_lock_policy = None;
                 Ok(Some(*target))
             } else {
-                Err("pointer lock owner mismatch".to_string())
+                Err(UiSurfaceInputEffectError::PointerLockOwnerMismatch)
             }
         }
         UiDispatchEffect::UseHighPrecisionPointer { target, enabled } => {
@@ -83,17 +85,19 @@ pub(super) fn apply_focus_pointer_effect(
                 if surface.focus.captured != Some(*target)
                     || !surface.input.has_pointer_capture_for_owner(*target)
                 {
-                    return Err("high precision requires pointer capture".to_string());
+                    return Err(UiSurfaceInputEffectError::HighPrecisionRequiresPointerCapture);
                 }
                 surface.input.high_precision_owner = Some(*target);
             } else if surface.input.high_precision_owner == Some(*target) {
                 surface.input.high_precision_owner = None;
             } else {
-                return Err("high precision owner mismatch".to_string());
+                return Err(UiSurfaceInputEffectError::HighPrecisionOwnerMismatch);
             }
             Ok(Some(*target))
         }
-        _ => Err("expected focus or pointer ownership effect".to_string()),
+        _ => Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "focus or pointer ownership",
+        }),
     }
 }
 

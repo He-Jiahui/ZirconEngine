@@ -4,9 +4,9 @@ use super::*;
 fn ui_v2_file_cache_reuses_compiled_store_and_resolves_transitive_styles() {
     let temp_dir = v2_cache_temp_dir("res_alias_imports");
     let assets_root = temp_dir.join("assets");
-    let layout_path = assets_root.join("ui/editor/layout.v2.ui.toml");
-    let base_style_path = assets_root.join("ui/theme/base.v2.ui.toml");
-    let material_style_path = assets_root.join("ui/theme/material.v2.ui.toml");
+    let layout_path = assets_root.join("ui/editor/layout.zui");
+    let base_style_path = assets_root.join("ui/theme/base.zui");
+    let material_style_path = assets_root.join("ui/theme/material.zui");
     std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(base_style_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -18,7 +18,7 @@ id = "ui.editor.layout"
 version = 2
 
 [imports]
-styles = ["res://ui/theme/base.v2.ui.toml"]
+styles = ["res://ui/theme/base.zui"]
 
 [root]
 node = "root"
@@ -40,7 +40,7 @@ id = "ui.theme.base"
 version = 2
 
 [imports]
-styles = ["res://ui/theme/material.v2.ui.toml"]
+styles = ["res://ui/theme/material.zui"]
 
 [tokens]
 base_color = "$material_color"
@@ -75,11 +75,8 @@ material_color = "#abcdef"
     assert!(!first.cache_hit);
     assert!(second.cache_hit);
     assert_eq!(second.root_asset_id, "ui.editor.layout");
-    assert!(second.store.get("res://ui/theme/base.v2.ui.toml").is_some());
-    assert!(second
-        .store
-        .get("res://ui/theme/material.v2.ui.toml")
-        .is_some());
+    assert!(second.store.get("res://ui/theme/base.zui").is_some());
+    assert!(second.store.get("res://ui/theme/material.zui").is_some());
     assert!(Arc::ptr_eq(&first.compiled, &second.compiled));
     assert_eq!(cache.len(), 1);
 
@@ -107,8 +104,8 @@ fn ui_v2_file_cache_uses_persistent_cache_across_cache_instances() {
     let temp_dir = v2_cache_temp_dir("persistent_cache_roundtrip");
     let assets_root = temp_dir.join("assets");
     let cache_root = temp_dir.join("cache");
-    let layout_path = assets_root.join("ui/editor/layout.v2.ui.toml");
-    let style_path = assets_root.join("ui/theme/persistent.v2.ui.toml");
+    let layout_path = assets_root.join("ui/editor/layout.zui");
+    let style_path = assets_root.join("ui/theme/persistent.zui");
     std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(style_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -120,7 +117,7 @@ id = "ui.editor.persistent_layout"
 version = 2
 
 [imports]
-styles = ["res://ui/theme/persistent.v2.ui.toml"]
+styles = ["res://ui/theme/persistent.zui"]
 
 [root]
 node = "root"
@@ -161,10 +158,7 @@ set = { self = { foreground_color = "#123456" } }
     assert!(second.cache_hit);
     assert!(second.persistent_cache_hit);
     assert_eq!(second.root_asset_id, "ui.editor.persistent_layout");
-    assert!(second
-        .store
-        .get("res://ui/theme/persistent.v2.ui.toml")
-        .is_some());
+    assert!(second.store.get("res://ui/theme/persistent.zui").is_some());
     let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new("runtime.ui.v2.persistent_cache"),
         second.root_document.as_ref(),
@@ -188,8 +182,8 @@ fn ui_v2_file_cache_rebuilds_when_persistent_cache_dependency_changes() {
     let temp_dir = v2_cache_temp_dir("persistent_cache_invalidates");
     let assets_root = temp_dir.join("assets");
     let cache_root = temp_dir.join("cache");
-    let layout_path = assets_root.join("ui/editor/layout.v2.ui.toml");
-    let style_path = assets_root.join("ui/theme/persistent.v2.ui.toml");
+    let layout_path = assets_root.join("ui/editor/layout.zui");
+    let style_path = assets_root.join("ui/theme/persistent.zui");
     std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(style_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -201,7 +195,7 @@ id = "ui.editor.persistent_layout"
 version = 2
 
 [imports]
-styles = ["res://ui/theme/persistent.v2.ui.toml"]
+styles = ["res://ui/theme/persistent.zui"]
 
 [root]
 node = "root"
@@ -246,7 +240,7 @@ props = { text = "Persistent" }
 fn ui_v2_file_cache_resolves_builtin_asset_id_widget_imports() {
     let temp_dir = v2_cache_temp_dir("asset_id_widget_imports");
     let assets_root = temp_dir.join("assets");
-    let window_path = assets_root.join("ui/editor/windows/workbench_window.v2.ui.toml");
+    let window_path = assets_root.join("ui/editor/windows/workbench_window.zui");
     let component_path = assets_root.join("ui/editor/host/activity_drawer_window.zui");
     std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(component_path.parent().unwrap()).unwrap();
@@ -315,7 +309,7 @@ control_id = "ActivityDrawerWindowRoot"
 fn ui_v2_file_cache_resolves_res_imports_from_package_root_when_source_has_assets_folder() {
     let temp_dir = v2_cache_temp_dir("nested_assets_resource_imports");
     let assets_root = temp_dir.join("assets");
-    let window_path = assets_root.join("ui/editor/windows/workbench_window.v2.ui.toml");
+    let window_path = assets_root.join("ui/editor/windows/workbench_window.zui");
     let workspace_path =
         assets_root.join("ui/editor/components/workbench/modules/core/assets/workspace.zui");
     let primitive_path =
@@ -399,14 +393,14 @@ control_id = "ButtonRoot"
 fn ui_v2_file_cache_applies_zui_profile_for_uppercase_extension() {
     let temp_dir = v2_cache_temp_dir("uppercase_zui_profile");
     let assets_root = temp_dir.join("assets");
-    let component_path = assets_root.join("ui/editor/Invalid.ZUI");
-    std::fs::create_dir_all(component_path.parent().unwrap()).unwrap();
+    let view_path = assets_root.join("ui/editor/Workbench.ZUI");
+    std::fs::create_dir_all(view_path.parent().unwrap()).unwrap();
     std::fs::write(
-        &component_path,
+        &view_path,
         r##"
 [asset]
 kind = "view"
-id = "editor.invalid.uppercase_zui"
+id = "editor.workbench.uppercase_zui"
 version = 2
 
 [root]
@@ -414,17 +408,23 @@ node = "root"
 
 [nodes.root]
 component = "Container"
+control_id = "UppercaseZuiRoot"
 "##,
     )
     .unwrap();
     let mut cache = UiV2PrototypeStoreFileCache::new();
 
-    let error = cache.load_store(vec![component_path]).unwrap_err();
+    let outcome = cache.load_store(vec![view_path]).unwrap();
 
-    assert!(matches!(
-        error,
-        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
-    ));
+    assert_eq!(outcome.root_asset_id, "editor.workbench.uppercase_zui");
+    assert!(outcome.store.get("res://ui/editor/Workbench.ZUI").is_some());
+    let root = outcome
+        .compiled
+        .arena
+        .root
+        .and_then(|handle| outcome.compiled.arena.node(handle))
+        .expect("compiled .zui root");
+    assert_eq!(root.control_id.as_deref(), Some("UppercaseZuiRoot"));
 
     let _ = std::fs::remove_dir_all(temp_dir);
 }
@@ -433,8 +433,8 @@ component = "Container"
 fn ui_v2_file_cache_prefers_zui_asset_id_over_legacy_v2_document() {
     let temp_dir = v2_cache_temp_dir("asset_id_prefers_zui");
     let assets_root = temp_dir.join("assets");
-    let window_path = assets_root.join("ui/editor/window.v2.ui.toml");
-    let legacy_component_path = assets_root.join("ui/legacy/shared_component.v2.ui.toml");
+    let window_path = assets_root.join("ui/editor/window.zui");
+    let legacy_component_path = assets_root.join("ui/legacy/shared_component.zui");
     let zui_component_path = assets_root.join("ui/components/shared_component.zui");
     std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(legacy_component_path.parent().unwrap()).unwrap();
@@ -505,7 +505,7 @@ props = { text = "Zui" }
         .is_some());
     assert!(outcome
         .store
-        .get("res://ui/legacy/shared_component.v2.ui.toml")
+        .get("res://ui/legacy/shared_component.zui")
         .is_none());
     let root = outcome
         .compiled

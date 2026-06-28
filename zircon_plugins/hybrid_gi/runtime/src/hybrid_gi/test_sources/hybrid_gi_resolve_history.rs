@@ -501,7 +501,7 @@ fn hybrid_gi_resolve_scene_driven_exact_runtime_truth_keeps_history_when_only_pr
     );
     assert!(
         changed_history_red_boost > stable_history_red_boost - 0.04,
-        "expected scene-driven exact runtime truth to preserve nearly the same warm history even when only the legacy probe id changes, instead of treating authored probe identity as temporal truth; stable_history_red_boost={stable_history_red_boost:.2}, changed_history_red_boost={changed_history_red_boost:.2}"
+        "expected scene-driven exact runtime truth to preserve nearly the same warm history even when only the extract probe id changes, instead of treating authored probe identity as temporal truth; stable_history_red_boost={stable_history_red_boost:.2}, changed_history_red_boost={changed_history_red_boost:.2}"
     );
     assert!(
         changed_with_history_red + 0.04 > changed_without_history_red,

@@ -9,6 +9,6 @@ pub(in crate::ui::retained_host::host_contract) fn draw_workbench_presentation_c
     if workbench::draws_componentized_workbench_window(presentation) {
         workbench::draw_componentized_workbench_window(frame, presentation);
     } else {
-        workbench::draw_legacy_workbench_window(frame, presentation);
+        workbench::draw_host_workbench_window(frame, presentation);
     }
 }

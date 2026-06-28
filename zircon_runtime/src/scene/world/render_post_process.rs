@@ -39,7 +39,7 @@ impl World {
             })
             .filter(|(_, volume)| volume.active)
         {
-            let volume_mask = RenderLayerSet::from_legacy_mask(
+            let volume_mask = RenderLayerSet::from_scene_schema_v1_mask(
                 self.render_layer_mask(*entity)
                     .unwrap_or(default_render_layer_mask()),
             );

@@ -51,9 +51,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn render_shadow_atlas_group1_bindings_avoid_legacy_shadow_and_light_grid_slots() {
-        let legacy_forward = [0, 1, 2, 20, 21, 22];
-        let legacy_deferred = [0, 1, 2, 3, 4, 5, 6, 7, 20, 21, 22];
+    fn render_shadow_atlas_group1_bindings_avoid_existing_shadow_and_light_grid_slots() {
+        let existing_forward = [0, 1, 2, 20, 21, 22];
+        let existing_deferred = [0, 1, 2, 3, 4, 5, 6, 7, 20, 21, 22];
         let shadow_atlas = [
             SHADOW_ATLAS_BINDING,
             SHADOW_ATLAS_SAMPLER_BINDING,
@@ -62,8 +62,8 @@ mod tests {
         ];
 
         for binding in shadow_atlas {
-            assert!(!legacy_forward.contains(&binding));
-            assert!(!legacy_deferred.contains(&binding));
+            assert!(!existing_forward.contains(&binding));
+            assert!(!existing_deferred.contains(&binding));
         }
     }
 

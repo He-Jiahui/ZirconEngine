@@ -1,7 +1,9 @@
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::toolbar_layout::apply_compact_toolbar_layout;
+use super::summary_layout::apply_compact_content_preview_summary_layout;
+use super::thumbnail_layout::{apply_compact_thumbnail_grid_layout, has_thumbnail_grid};
 
 const COMPACT_LAYOUT_HEIGHT_THRESHOLD: f32 = 760.0;
 const COMPACT_PANEL_GAP: f32 = 6.0;
@@ -18,7 +20,7 @@ const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
 const COMPACT_TABLE_HEADER_HEIGHT: f32 = 24.0;
 const COMPACT_TABLE_MIN_ROW_HEIGHT: f32 = 22.0;
 const COMPACT_TABLE_MAX_ROW_HEIGHT: f32 = 30.0;
-const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 56.0;
+const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_HEADER_HEIGHT: f32 = 42.0;
 const COMPACT_DETAILS_DIVIDER_HEIGHT: f32 = 1.0;
 const COMPACT_DETAILS_PREVIEW_HEIGHT: f32 = 96.0;
@@ -27,7 +29,12 @@ const COMPACT_DETAILS_IDENTITY_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_METADATA_HEIGHT: f32 = 52.0;
 const COMPACT_DETAILS_DIAGNOSTICS_HEIGHT: f32 = 54.0;
 
-pub(super) fn apply_asset_browser_compact_layout(nodes: &mut [ViewTemplateNodeData], size: UiSize) {
+pub(super) fn apply_asset_browser_compact_layout(
+    nodes: &mut [ViewTemplateNodeData],
+    size: UiSize,
+    view_mode: AssetViewMode,
+    toolbar_main_y: Option<f32>,
+) {
     if size.height >= COMPACT_LAYOUT_HEIGHT_THRESHOLD {
         return;
     }
@@ -53,9 +60,7 @@ pub(super) fn apply_asset_browser_compact_layout(nodes: &mut [ViewTemplateNodeDa
         viewport_height,
     );
 
-    let main_y = apply_compact_toolbar_layout(nodes, viewport_width)
-        .map(|layout| layout.main_y)
-        .unwrap_or(main.y);
+    let main_y = toolbar_main_y.unwrap_or(main.y);
 
     let compact_utility_height = compact_asset_browser_utility_height_for_viewport(viewport_height);
     let utility_y = (viewport_height - compact_utility_height)
@@ -91,6 +96,7 @@ pub(super) fn apply_asset_browser_compact_layout(nodes: &mut [ViewTemplateNodeDa
         main_height,
         collapse_sources,
         collapse_details,
+        view_mode,
     );
     apply_compact_utility_panel_layout(
         nodes,
@@ -107,6 +113,7 @@ fn apply_compact_main_panel_layout(
     main_height: f32,
     collapse_sources: bool,
     collapse_details: bool,
+    view_mode: AssetViewMode,
 ) {
     let sources_frame = node_frame(nodes, "AssetBrowserSourcesPanel");
     if let Some(sources) = sources_frame.as_ref() {
@@ -157,7 +164,14 @@ fn apply_compact_main_panel_layout(
             content_width,
             content_height,
         );
-        apply_compact_content_panel_layout(nodes, content_x, main_y, content_width, content_height);
+        apply_compact_content_panel_layout(
+            nodes,
+            content_x,
+            main_y,
+            content_width,
+            content_height,
+            view_mode,
+        );
     }
 
     if let Some(details) = details_frame {
@@ -205,9 +219,15 @@ fn apply_compact_content_panel_layout(
     y: f32,
     width: f32,
     height: f32,
+    view_mode: AssetViewMode,
 ) {
     let header_height = COMPACT_CONTENT_HEADER_HEIGHT;
-    let preview_height = COMPACT_PREVIEW_CARD_HEIGHT.min((height * 0.28).max(42.0));
+    let has_thumbnail_view = view_mode == AssetViewMode::Thumbnail && has_thumbnail_grid(nodes);
+    let preview_height = if has_thumbnail_view {
+        0.0
+    } else {
+        COMPACT_PREVIEW_CARD_HEIGHT.min((height * 0.28).max(42.0))
+    };
     let table_height = compact_table_stack_height(
         height - header_height - preview_height - COMPACT_HEADER_TABLE_GAP - COMPACT_CONTENT_GAP,
     );
@@ -231,43 +251,31 @@ fn apply_compact_content_panel_layout(
         width,
         table_height,
     );
-    apply_compact_table_layout(nodes, x, table_y, width, table_height);
-    set_node_frame(
-        nodes,
-        "AssetBrowserContentPreviewCard",
-        x,
-        preview_y,
-        width,
-        preview_height,
-    );
-    set_node_frame(
-        nodes,
-        "AssetBrowserContentPreviewVisual",
-        x + 8.0,
-        preview_y + 6.0,
-        64.0,
-        (preview_height - 12.0).max(28.0),
-    );
-    set_node_frame(
-        nodes,
-        "AssetBrowserContentPreviewName",
-        x + 82.0,
-        preview_y + 8.0,
-        (width - 92.0).max(32.0),
-        14.0,
-    );
-    set_node_frame(
-        nodes,
-        "AssetBrowserContentPreviewMeta",
-        x + 82.0,
-        preview_y + 26.0,
-        (width - 92.0).max(32.0),
-        12.0,
-    );
+    if has_thumbnail_view {
+        collapse_compact_table_nodes(nodes, x, table_y);
+        let grid_height = (height - header_height - COMPACT_HEADER_TABLE_GAP).max(0.0);
+        apply_compact_thumbnail_grid_layout(nodes, x, table_y, width, grid_height);
+    } else {
+        apply_compact_table_layout(nodes, x, table_y, width, table_height);
+        apply_compact_content_preview_summary_layout(nodes, x, preview_y, width, preview_height);
+    }
     collapse_duplicate_compact_container_nodes(
         nodes,
         &["AssetBrowserContentPanel", "AssetBrowserAssetTablePanel"],
     );
+}
+
+fn collapse_compact_table_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
+    for control_id in [
+        "AssetBrowserAssetTablePanel",
+        "WorkbenchAssetBrowserTableHeader",
+        "WorkbenchAssetBrowserAssetRow01",
+        "WorkbenchAssetBrowserAssetRow02",
+        "WorkbenchAssetBrowserAssetRow03",
+        "WorkbenchAssetBrowserAssetRow04",
+    ] {
+        set_node_frame(nodes, control_id, x, y, 0.0, 0.0);
+    }
 }
 
 fn apply_compact_content_header_layout(

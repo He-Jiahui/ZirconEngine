@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/tests.rs
   - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
@@ -65,6 +66,7 @@ related_code:
   - zircon_hub/tests/ui_workspace_split_contract.rs
 implementation_files:
   - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/tests.rs
   - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
@@ -135,6 +137,10 @@ This document owns the React/MUI actionable page surface for the local Hub v1 im
 ## Scope Rules
 
 `HubRuntimeSession` remains the single action router. React pages call the one frontend dispatcher in `web/src/tauri/hubApi.ts`, which sends `{ actionId, targetId?, payload? }` to `hub_action`; Rust parses that request in `action_request.rs` and routes it through `src/tauri_app/runtime_state.rs`.
+
+Runtime 15 M3 support Hub runtime-state tests child-owner split (`runtime_15_support_hub_runtime_state_tests_child_owner_split_static_passed_cargo_deferred`) keeps `zircon_hub/src/tauri_app/runtime_state.rs` focused on the action router, snapshot input, settings persistence, Source Engine selection/registration, and project-scoped refresh owner while `zircon_hub/src/tauri_app/runtime_state/tests.rs` owns startup/load/settings/persist/status behavior coverage. Guard `runtime_15_support_hub_runtime_state_tests_are_child_owner` prevents those test fixtures from flowing back into the parent and locks the runtime-state tests child-owner split docs/status anchors.
+
+Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split (`runtime_15_support_hub_view_model_quick_actions_tests_child_owner_split_static_passed_cargo_deferred`) keeps `zircon_hub/src/tauri_app/view_model.rs` focused on Hub DTO projection orchestration while `zircon_hub/src/tauri_app/view_model/quick_actions.rs` owns dashboard quick-action title/detail/enabled projection and `zircon_hub/src/tauri_app/view_model/tests.rs` owns view-model behavior coverage. Guard `runtime_15_support_hub_view_model_quick_actions_tests_are_child_owners` prevents quick-action owner logic or view-model test fixtures from flowing back into the parent and locks the view-model quick-actions/tests child-owner split docs/status anchors.
 
 Selected-project workflows resolve through Rust state rather than page-local fallback rules. Project workflow and management pages send the selected project with `projectTargetPayload(project)` or `quickActionProjectTargetPayload(project)`, so build, package, install, open-editor, pin, unpin, remove, request-delete, cancel-delete, and confirm-delete carry `{ projectId, projectPath }` when a selected project is visible. Rust target resolution prefers `projectPath`, then the stable project id, then legacy `targetId` compatibility.
 

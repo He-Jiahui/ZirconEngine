@@ -1,10 +1,10 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use toml::Value;
-use zircon_runtime::ui::v2::UiV2AssetLoader;
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
-const MATERIAL_THEME_V2: &str = "res://ui/theme/editor_material.v2.ui.toml";
+const MATERIAL_THEME_V2: &str = "res://ui/theme/editor_material.zui";
 
 #[test]
 fn global_material_surface_assets_follow_responsive_contracts() {
@@ -84,15 +84,15 @@ fn global_material_surface_assets_follow_responsive_contracts() {
 fn material_import_graph_uses_normalized_res_paths() {
     let mut graph = BTreeMap::new();
     graph.insert(
-        "editor/welcome.v2.ui.toml".to_string(),
-        vec!["res://ui/theme/editor_base.v2.ui.toml".to_string()],
+        "editor/welcome.zui".to_string(),
+        vec!["res://ui/theme/editor_base.zui".to_string()],
     );
     graph.insert(
-        "theme/editor_base.v2.ui.toml".to_string(),
+        "theme/editor_base.zui".to_string(),
         vec![MATERIAL_THEME_V2.to_string()],
     );
 
-    assert!(imports_material_theme("editor/welcome.v2.ui.toml", &graph));
+    assert!(imports_material_theme("editor/welcome.zui", &graph));
 }
 
 #[test]
@@ -104,35 +104,27 @@ fn runtime_v2_fixture_assets_parse_from_runtime_crate_assets() {
         .join("zircon_runtime/assets/ui/runtime/fixtures");
 
     for (file_name, asset_id, root_node) in [
+        ("hud_overlay.zui", "runtime.ui.hud_overlay", "hud_root"),
+        ("pause_menu.zui", "runtime.ui.pause_menu", "pause_root"),
         (
-            "hud_overlay.v2.ui.toml",
-            "runtime.ui.hud_overlay",
-            "hud_root",
-        ),
-        (
-            "pause_menu.v2.ui.toml",
-            "runtime.ui.pause_menu",
-            "pause_root",
-        ),
-        (
-            "settings_dialog.v2.ui.toml",
+            "settings_dialog.zui",
             "runtime.ui.settings_dialog",
             "settings_root",
         ),
         (
-            "inventory_list.v2.ui.toml",
+            "inventory_list.zui",
             "runtime.ui.inventory_list",
             "inventory_root",
         ),
         (
-            "quest_log_dialog.v2.ui.toml",
+            "quest_log_dialog.zui",
             "runtime.ui.quest_log_dialog",
             "quest_root",
         ),
     ] {
         let path = runtime_fixture_root.join(file_name);
-        let document = UiV2AssetLoader::load_toml_file(&path)
-            .unwrap_or_else(|error| panic!("{} parses as runtime ui v2: {error}", path.display()));
+        let document = UiZuiAssetLoader::load_zui_file(&path)
+            .unwrap_or_else(|error| panic!("{} parses as runtime .zui: {error}", path.display()));
 
         assert_eq!(document.asset.kind, UiV2AssetKind::View);
         assert_eq!(document.asset.version, 2);
@@ -577,12 +569,12 @@ fn is_collection_heavy(relative: &str, document: &Value) -> bool {
     let name = normalize_location(relative);
     if matches!(
         name.as_str(),
-        "editor/console.v2.ui.toml"
-            | "editor/welcome.v2.ui.toml"
-            | "editor/host/console_body.v2.ui.toml"
-            | "editor/host/module_plugins_body.v2.ui.toml"
-            | "editor/host/performance_timeline_body.v2.ui.toml"
-            | "editor/host/runtime_diagnostics_body.v2.ui.toml"
+        "editor/console.zui"
+            | "editor/welcome.zui"
+            | "editor/host/console_body.zui"
+            | "editor/host/module_plugins_body.zui"
+            | "editor/host/performance_timeline_body.zui"
+            | "editor/host/runtime_diagnostics_body.zui"
     ) {
         return true;
     }

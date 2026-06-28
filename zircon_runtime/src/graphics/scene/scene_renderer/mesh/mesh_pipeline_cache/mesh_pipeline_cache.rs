@@ -99,24 +99,24 @@ impl MeshPipelineCache {
         self.pipeline_variant_registry.reset_miss_report();
     }
 
-    pub(crate) const fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
+    pub(crate) fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
         self.pipeline_variant_registry.miss_report()
     }
 
-    pub(crate) fn record_shader_variant_disk_hit(&mut self) {
-        self.pipeline_variant_registry.record_disk_hit();
+    pub(crate) fn record_shader_variant_disk_hit(&mut self, key: &ShaderVariantKey) {
+        self.pipeline_variant_registry.record_disk_hit(key);
     }
 
-    pub(crate) fn record_shader_variant_disk_write(&mut self) {
-        self.pipeline_variant_registry.record_disk_write();
+    pub(crate) fn record_shader_variant_disk_write(&mut self, key: &ShaderVariantKey) {
+        self.pipeline_variant_registry.record_disk_write(key);
     }
 
-    pub(crate) fn record_shader_variant_disk_error(&mut self) {
-        self.pipeline_variant_registry.record_disk_error();
+    pub(crate) fn record_shader_variant_disk_error(&mut self, key: &ShaderVariantKey) {
+        self.pipeline_variant_registry.record_disk_error(key);
     }
 
-    pub(crate) fn record_shader_variant_compile_miss(&mut self) {
-        self.pipeline_variant_registry.record_compile_miss();
+    pub(crate) fn record_shader_variant_compile_miss(&mut self, key: &ShaderVariantKey) {
+        self.pipeline_variant_registry.record_compile_miss(key);
     }
 
     #[cfg(test)]

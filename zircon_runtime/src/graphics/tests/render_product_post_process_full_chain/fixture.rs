@@ -94,7 +94,9 @@ pub(super) fn full_chain_product_extract(
                     crate::core::framework::render::RenderDirectionalLightSnapshot {
                         node_id: 937_200,
                         light_id: 937_200,
-                        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                            DEFAULT_RENDER_LAYER_MASK,
+                        ),
                         direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                         color: Vec3::ONE,
                         intensity: 1.4,
@@ -225,7 +227,7 @@ fn full_chain_mesh(node_id: u64, transform: Transform, material: ResourceId) -> 
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 
@@ -322,7 +324,7 @@ fn full_chain_particle_sprites() -> Vec<RenderParticleSpriteSnapshot> {
             color,
             intensity: 1.0,
             depth_test: true,
-            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
             material: None,
             texture: None,
         },

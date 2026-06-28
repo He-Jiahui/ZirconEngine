@@ -114,7 +114,7 @@ pub(crate) fn mesh_pipeline_depth_prepass_template_source_for_geometry(
     mesh_pipeline_material_template_source_for_geometry_and_pass(
         key,
         geometry_source,
-        ShaderPassType::GBuffer,
+        ShaderPassType::DepthPrepass,
     )
 }
 
@@ -277,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn mesh_pipeline_depth_prepass_template_source_writes_normal_target() {
+    fn mesh_pipeline_depth_prepass_template_source_uses_depth_only_template() {
         let mut key = default_pipeline_key();
         key.alpha_mask = true;
         key.alpha_cutoff_bits = Some(0.5f32.to_bits());
@@ -290,13 +290,18 @@ mod tests {
             Err(error) => panic!("depth prepass template source assembly failed: {error:?}"),
         };
 
-        assert!(source.wgsl_source.contains("zr_template_gbuffer.wgsl"));
+        assert!(source
+            .wgsl_source
+            .contains("// include: zr_template_depth_alpha.wgsl"));
         assert!(source.wgsl_source.contains("zr_geometry_skinned.wgsl"));
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_main("));
         assert!(source.wgsl_source.contains("fn zr_material_surface("));
-        assert!(source.wgsl_source.contains("surface.normal_ws * 0.5"));
         assert!(source.wgsl_source.contains("zr_surface_fails_alpha_clip"));
+        assert!(!source.wgsl_source.contains("surface.normal_ws * 0.5"));
+        assert!(!source
+            .wgsl_source
+            .contains("// include: zr_template_gbuffer.wgsl"));
         assert!(!source
             .wgsl_source
             .contains("// include: zr_light_grid.wgsl"));

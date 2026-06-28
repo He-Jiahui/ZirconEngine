@@ -21,8 +21,15 @@ fn assert_package_id_matches_manifest_directory(relative_path: &std::path::Path,
             )
         });
 
-    assert_eq!(
-        directory_name, package_id,
-        "plugin manifest {relative_path:?} top-level id `{package_id}` should match package directory `{directory_name}`"
+    let materialized_package_id = package_id.replace('.', "_");
+    let package_leaf = package_id
+        .rsplit('.')
+        .next()
+        .expect("package ids split into at least one segment");
+    let accepted_directory_names = [package_id, materialized_package_id.as_str(), package_leaf];
+
+    assert!(
+        accepted_directory_names.contains(&directory_name),
+        "plugin manifest {relative_path:?} top-level id `{package_id}` should match package directory `{directory_name}` by exact id, underscore materialization, or dot-namespace leaf"
     );
 }

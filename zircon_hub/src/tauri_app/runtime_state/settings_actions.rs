@@ -166,7 +166,7 @@ impl HubRuntimeSession {
                 let text = HubTextBundle::new(self.settings_draft.language);
                 self.task_status = TaskStatus::success(
                     text.status_label("Folder selected"),
-                    HubMessage::legacy(path.to_string_lossy().into_owned()),
+                    HubMessage::raw_text(path.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Settings, field.label(text));
             }
@@ -182,7 +182,7 @@ impl HubRuntimeSession {
                 .with_operation(TaskOperationKind::Settings, field.label(text));
             }
             Err(error) => {
-                self.record_settings_folder_failure(HubMessage::legacy(error.to_string()))
+                self.record_settings_folder_failure(HubMessage::raw_text(error.to_string()))
             }
         }
         Ok(())

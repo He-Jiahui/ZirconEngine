@@ -59,7 +59,10 @@ pub(crate) fn derive_animation_assets_from_model_source(
         derive_skeleton_asset(&skin, &parent_indices, &skeleton_locator, base_name)?;
     write_animation_asset_bytes(
         &assets_root.join(&skeleton_relative_path),
-        derived_skeleton.asset.to_bytes()?,
+        derived_skeleton
+            .asset
+            .to_bytes()
+            .map_err(|error| error.to_string())?,
     )?;
 
     let mut generated = vec![skeleton_locator.clone()];
@@ -73,7 +76,7 @@ pub(crate) fn derive_animation_assets_from_model_source(
             derive_clip_asset(&animation, &buffers, &derived_skeleton, &skeleton_locator)?;
         write_animation_asset_bytes(
             &assets_root.join(&clip_relative_path),
-            clip_asset.to_bytes()?,
+            clip_asset.to_bytes().map_err(|error| error.to_string())?,
         )?;
         generated.push(clip_locator);
     }

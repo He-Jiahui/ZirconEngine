@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
   - zircon_editor/assets/icons/zircon_editor_shell/toolbar
@@ -23,7 +23,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
@@ -57,7 +57,7 @@ status: implemented-focused-passed-build-screenshot-passed
 
 `toolbar_layout.rs` owns the responsive visibility rules. At compact and regular widths it keeps the primary authoring modules readable, hides secondary module tabs and secondary command groups, and exposes `WorkbenchModuleMore` as the overflow entry. `componentized_window.rs` only wires this owner after layout recomputation.
 
-`workbench_window.v2.ui.toml` keeps the top toolbar region and static popup defaults aligned to the 72 px toolbar bottom. `window_menu_state.rs` still computes live menu frames from trigger frames, toolbar bottom, popup constraints, and root bounds, so Main, Run Mode, Layout, and Module More menus follow the final arranged toolbar instead of depending on hand-authored open-state coordinates.
+`workbench_window.zui` keeps the top toolbar region and static popup defaults aligned to the 72 px toolbar bottom. `window_menu_state.rs` still computes live menu frames from trigger frames, toolbar bottom, popup constraints, and root bounds, so Main, Run Mode, Layout, and Module More menus follow the final arranged toolbar instead of depending on hand-authored open-state coordinates.
 
 ## Compact Behavior
 

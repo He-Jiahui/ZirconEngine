@@ -101,6 +101,38 @@ fn runtime_15_diagnostics_use_frame_trait_without_world_wrapper() {
         "world performance diagnostics should call EcsFramePerformanceDiagnostics directly"
     );
 
+    let f14_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F14 |"))
+        .expect("F14 review findings top row");
+    assert!(
+        f14_row.contains(
+            "f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred"
+        ),
+        "F14 top row should record the provider/diagnostics closed-status sync anchor"
+    );
+    assert!(
+        f14_row.ends_with("| Runtime 15 / review closed |"),
+        "F14 top row should end with the closed Runtime 15 review status"
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 F13/F14 provider diagnostics top-row closed status sync",
+                "f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred",
+            ],
+        );
+    }
+
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),
@@ -133,7 +165,7 @@ fn runtime_15_diagnostics_guard_is_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
     );
 
     assert_contains_all(

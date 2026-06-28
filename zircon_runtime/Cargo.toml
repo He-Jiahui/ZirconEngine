@@ -105,6 +105,9 @@ toml.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.20", optional = true }
 tracing-tracy = { version = "0.11.4", optional = true }
+ttf-parser = "0.25.1"
+unicode-linebreak = "0.1.5"
+unicode-script = "0.5.8"
 unicode-segmentation = "1.13.2"
 uuid.workspace = true
 wgpu.workspace = true

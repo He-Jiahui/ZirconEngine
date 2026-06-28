@@ -41,11 +41,11 @@ fn workbench_shell_contract_is_rust_owned_and_asset_projected() {
 fn workbench_shell_assets_replace_deleted_shell_sources() {
     for (relative, markers) in [
         (
-            "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+            "assets/ui/editor/host/workbench_shell.zui",
             &[
                 "UiHostWindowRoot",
                 "WorkbenchBody",
-                "editor_workbench_strict.v2.ui.toml",
+                "editor_workbench_strict.zui",
                 "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
                 "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton",
                 "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
@@ -54,19 +54,19 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
             ] as &[_],
         ),
         (
-            "assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
+            "assets/ui/editor/workbench_menu_chrome.zui",
             &["WorkbenchMenuBarRoot", "MenuSlot0"],
         ),
         (
-            "assets/ui/editor/workbench_menu_popup.v2.ui.toml",
+            "assets/ui/editor/workbench_menu_popup.zui",
             &["WorkbenchMenuPopupRoot", "WorkbenchMenuPopupPanel"],
         ),
         (
-            "assets/ui/editor/workbench_activity_rail.v2.ui.toml",
+            "assets/ui/editor/workbench_activity_rail.zui",
             &["ActivityRailPanel", "ActivityRailButton0"],
         ),
         (
-            "assets/ui/editor/workbench_status_bar.v2.ui.toml",
+            "assets/ui/editor/workbench_status_bar.zui",
             &["WorkbenchStatusBarRoot", "StatusViewportLabel"],
         ),
     ] {
@@ -76,7 +76,7 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
         }
     }
 
-    let shell = source("assets/ui/editor/host/workbench_shell.v2.ui.toml");
+    let shell = source("assets/ui/editor/host/workbench_shell.zui");
     for forbidden in [
         "WorkbenchShellReferenceImage",
         "ui/editor/reference/workbench.png",

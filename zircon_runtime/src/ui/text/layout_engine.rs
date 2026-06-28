@@ -1,12 +1,14 @@
+use crate::graphics::text::layout::{
+    line_break_chunks, line_metrics, measure_line_width,
+    measure_text_size as measure_backend_text_size, measured_grapheme_widths, TextLineMetrics,
+};
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextDirection,
-    UiTextOverflow, UiTextRange, UiTextRunKind, UiTextWrap,
+    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextAlign,
+    UiTextDirection, UiTextOverflow, UiTextRange, UiTextRunKind, UiTextWrap,
 };
 
-use super::grapheme::{
-    grapheme_count, grapheme_indices, grapheme_prefix, leading_grapheme_continuation_len,
-};
+use super::grapheme::{grapheme_count, grapheme_indices, leading_grapheme_continuation_len};
 use super::rich_text::{parse_source_runs, UiTextSourceRun};
 
 mod visual_order;
@@ -16,18 +18,18 @@ struct CandidateLine {
     text: String,
     source_range: UiTextRange,
     runs: Vec<UiResolvedTextRun>,
+    pending_break_suffix: Option<PendingBreakSuffix>,
+}
+
+#[derive(Clone, Debug)]
+struct PendingBreakSuffix {
+    kind: UiTextRunKind,
+    text: &'static str,
+    source_range: UiTextRange,
 }
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
-    let font_size = style.font_size.max(1.0);
-    let line_height = style.line_height.max(font_size);
-    let char_advance = text_advance(font_size);
-    let width = text
-        .lines()
-        .map(|line| measure_width(line, char_advance))
-        .fold(0.0_f32, f32::max);
-    let line_count = text.lines().count().max(1) as f32;
-    UiSize::new(width, line_height * line_count)
+    measure_backend_text_size(text, style)
 }
 
 pub(crate) fn layout_text(
@@ -37,12 +39,12 @@ pub(crate) fn layout_text(
     clip_frame: Option<UiFrame>,
 ) -> UiResolvedTextLayout {
     let font_size = style.font_size.max(1.0);
-    let line_height = style.line_height.max(font_size);
-    let char_advance = text_advance(font_size);
+    let metrics: TextLineMetrics = line_metrics(style);
+    let line_height = metrics.line_height;
     let direction = resolve_direction(text, style.text_direction);
     let source_runs = parse_source_runs(text, style.rich_text);
-    let max_width = frame.width.max(char_advance);
-    let mut lines = wrap_source_runs(&source_runs, style.wrap, max_width, char_advance);
+    let max_width = frame.width.max(text_advance(font_size));
+    let mut lines = wrap_source_runs(&source_runs, style.wrap, max_width, style);
     let clip = clip_frame.unwrap_or(frame);
     let line_capacity = (frame.height.max(line_height) / line_height)
         .floor()
@@ -51,7 +53,7 @@ pub(crate) fn layout_text(
     if matches!(style.text_overflow, UiTextOverflow::Ellipsis) && overflow_clipped {
         lines.truncate(line_capacity);
         if let Some(last) = lines.last_mut() {
-            ellipsize_line(last, max_width, char_advance);
+            ellipsize_line(last, max_width, style);
         }
     }
     for line in &mut lines {
@@ -61,10 +63,11 @@ pub(crate) fn layout_text(
     let mut resolved_lines = Vec::new();
     for (index, line) in lines.iter().enumerate() {
         let y = frame.y + index as f32 * line_height;
-        let measured_width = measure_width(&line.text, char_advance);
+        let measured_width = measure_line_width(&line.text, style);
+        let glyph_advances = measured_grapheme_widths(&line.text, style);
         let line_width = measured_width.min(frame.width.max(0.0));
         let line_frame = UiFrame::new(
-            aligned_x(frame, line_width, style.text_align),
+            aligned_x(frame, line_width, style.text_align, direction),
             y,
             line_width,
             line_height,
@@ -79,7 +82,8 @@ pub(crate) fn layout_text(
                     end: line.text.len(),
                 },
                 measured_width,
-                baseline: font_size * 0.8,
+                glyph_advances,
+                baseline: metrics.baseline,
                 direction,
                 runs: line.runs.clone(),
                 ellipsized: line.text.ends_with('…'),
@@ -117,14 +121,14 @@ fn wrap_source_runs(
     runs: &[UiTextSourceRun],
     wrap: UiTextWrap,
     max_width: f32,
-    char_advance: f32,
+    style: &UiResolvedStyle,
 ) -> Vec<CandidateLine> {
-    let max_chars = (max_width / char_advance).floor().max(1.0) as usize;
     let mut lines = Vec::new();
     let mut current = CandidateLine {
         text: String::new(),
         source_range: UiTextRange::default(),
         runs: Vec::new(),
+        pending_break_suffix: None,
     };
 
     for run in runs {
@@ -143,7 +147,8 @@ fn wrap_source_runs(
                     run.kind,
                     &segment.text,
                     segment.range,
-                    max_chars,
+                    max_width,
+                    style,
                 ),
                 UiTextWrap::Glyph => append_glyph_wrapped_segment(
                     &mut lines,
@@ -151,7 +156,8 @@ fn wrap_source_runs(
                     run.kind,
                     &segment.text,
                     segment.range,
-                    max_chars,
+                    max_width,
+                    style,
                 ),
             }
         }
@@ -162,6 +168,7 @@ fn wrap_source_runs(
             text: String::new(),
             source_range: UiTextRange::default(),
             runs: Vec::new(),
+            pending_break_suffix: None,
         });
     }
     lines
@@ -215,66 +222,61 @@ fn append_word_wrapped_segment(
     kind: UiTextRunKind,
     text: &str,
     range: UiTextRange,
-    max_chars: usize,
+    max_width: f32,
+    style: &UiResolvedStyle,
 ) {
-    let mut byte_start = 0;
-    for word in text.split_inclusive(' ') {
-        let mut word_text = word;
-        let mut word_start = range.start + byte_start;
+    for chunk in line_break_chunks(text, style) {
+        let mut word_text = chunk.text;
+        let mut word_source_range = UiTextRange {
+            start: range.start + chunk.source_range.start,
+            end: range.start + chunk.source_range.end,
+        };
         if current.text.is_empty() {
-            (word_text, word_start) = trim_leading_wrap_spaces(word_text, word_start);
+            (word_text, word_source_range.start) =
+                trim_leading_wrap_spaces(word_text, word_source_range.start);
         }
-        let continuation_len = append_leading_grapheme_continuation(
-            current,
-            kind,
-            word_text,
-            UiTextRange {
-                start: word_start,
-                end: word_start + word_text.len(),
-            },
-        );
+        let continuation_len =
+            append_leading_grapheme_continuation(current, kind, word_text, word_source_range);
         if continuation_len > 0 {
             word_text = &word_text[continuation_len..];
-            word_start += continuation_len;
+            word_source_range.start += continuation_len;
         }
-        let word_len = grapheme_count(word_text);
         if word_text.is_empty() {
-            byte_start += word.len();
             continue;
         }
-        if !current.text.is_empty() && grapheme_count(&current.text) + word_len > max_chars {
+        if !current.text.is_empty() && !appended_text_fits(current, word_text, max_width, style) {
             trim_word_break_trailing_spaces(current);
-            push_current_line(lines, current);
-            (word_text, word_start) = trim_leading_wrap_spaces(word_text, word_start);
+            push_wrapped_line(lines, current);
+            (word_text, word_source_range.start) =
+                trim_leading_wrap_spaces(word_text, word_source_range.start);
             if word_text.is_empty() {
-                byte_start += word.len();
                 continue;
             }
         }
-        if word_len > max_chars {
+        if chunk.allow_glyph_fallback
+            && !line_text_fits(word_text, max_width, style)
+            && grapheme_count(word_text) > 1
+        {
             append_glyph_wrapped_segment(
                 lines,
                 current,
                 kind,
                 word_text,
-                UiTextRange {
-                    start: word_start,
-                    end: word_start + word_text.len(),
-                },
-                max_chars,
+                word_source_range,
+                max_width,
+                style,
             );
         } else {
-            append_segment(
-                current,
+            append_segment(current, kind, word_text, word_source_range);
+            current.pending_break_suffix = chunk.break_suffix.map(|suffix| PendingBreakSuffix {
                 kind,
-                word_text,
-                UiTextRange {
-                    start: word_start,
-                    end: word_start + word_text.len(),
+                text: suffix.text,
+                source_range: UiTextRange {
+                    start: range.start + suffix.source_range.start,
+                    end: range.start + suffix.source_range.end,
                 },
-            );
+            });
         }
-        byte_start += word.len();
     }
 }
 
@@ -284,13 +286,14 @@ fn append_glyph_wrapped_segment(
     kind: UiTextRunKind,
     text: &str,
     range: UiTextRange,
-    max_chars: usize,
+    max_width: f32,
+    style: &UiResolvedStyle,
 ) {
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
     for (offset, grapheme) in grapheme_indices(&text[continuation_len..]) {
         let offset = continuation_len + offset;
-        if grapheme_count(&current.text) >= max_chars {
-            push_current_line(lines, current);
+        if !current.text.is_empty() && !appended_text_fits(current, grapheme, max_width, style) {
+            push_wrapped_line(lines, current);
         }
         append_segment(
             current,
@@ -357,15 +360,29 @@ fn append_segment(
 
 fn push_current_line(lines: &mut Vec<CandidateLine>, current: &mut CandidateLine) {
     if !current.text.is_empty() || !lines.is_empty() {
+        current.pending_break_suffix = None;
         lines.push(std::mem::replace(
             current,
             CandidateLine {
                 text: String::new(),
                 source_range: UiTextRange::default(),
                 runs: Vec::new(),
+                pending_break_suffix: None,
             },
         ));
     }
+}
+
+fn push_wrapped_line(lines: &mut Vec<CandidateLine>, current: &mut CandidateLine) {
+    append_pending_break_suffix(current);
+    push_current_line(lines, current);
+}
+
+fn append_pending_break_suffix(current: &mut CandidateLine) {
+    let Some(suffix) = current.pending_break_suffix.take() else {
+        return;
+    };
+    append_segment(current, suffix.kind, suffix.text, suffix.source_range);
 }
 
 fn trim_leading_wrap_spaces(text: &str, source_start: usize) -> (&str, usize) {
@@ -396,36 +413,22 @@ fn trim_word_break_trailing_spaces(line: &mut CandidateLine) {
         .unwrap_or(line.source_range.start);
 }
 
-fn ellipsize_line(line: &mut CandidateLine, max_width: f32, char_advance: f32) {
+fn ellipsize_line(line: &mut CandidateLine, max_width: f32, style: &UiResolvedStyle) {
     let ellipsis = "…";
-    let max_chars = (max_width / char_advance).floor().max(1.0) as usize;
-    let keep_chars = max_chars.saturating_sub(1);
     let mut text = String::new();
     let mut runs = Vec::new();
-    let mut remaining = keep_chars;
-    for run in &line.runs {
-        let mut consumed = 0;
-        if remaining > 0 {
-            let fragment = grapheme_prefix(&run.text, remaining);
-            if !fragment.is_empty() {
-                consumed = fragment.len();
-                push_ellipsis_fragment(&mut text, &mut runs, run, 0, consumed);
-                remaining = remaining.saturating_sub(grapheme_count(fragment));
-            }
-        }
 
-        if remaining == 0 {
-            if consumed == 0 {
-                let continuation_len = leading_grapheme_continuation_len(&text, &run.text);
-                if continuation_len > 0 {
-                    consumed = continuation_len;
-                    push_ellipsis_fragment(&mut text, &mut runs, run, 0, consumed);
-                }
+    'runs: for run in &line.runs {
+        for (byte_index, grapheme) in grapheme_indices(&run.text) {
+            let end = byte_index + grapheme.len();
+            let continues_cluster = leading_grapheme_continuation_len(&text, grapheme) > 0;
+            if continues_cluster
+                || ellipsis_candidate_fits(&text, grapheme, ellipsis, max_width, style)
+            {
+                push_ellipsis_fragment(&mut text, &mut runs, run, byte_index, end);
+                continue;
             }
-
-            if consumed < run.text.len() {
-                break;
-            }
+            break 'runs;
         }
     }
 
@@ -464,7 +467,7 @@ fn push_ellipsis_fragment(
     runs.push(UiResolvedTextRun {
         kind: run.kind,
         text: fragment.to_string(),
-        source_range: source_subrange(run.source_range, start, end),
+        source_range: source_subrange(run.source_range, run.text.len(), start, end),
         visual_range: UiTextRange {
             start: visual_start,
             end: text.len(),
@@ -473,8 +476,16 @@ fn push_ellipsis_fragment(
     });
 }
 
-fn source_subrange(source_range: UiTextRange, start: usize, end: usize) -> UiTextRange {
+fn source_subrange(
+    source_range: UiTextRange,
+    visual_len: usize,
+    start: usize,
+    end: usize,
+) -> UiTextRange {
     if source_range.start == source_range.end {
+        return source_range;
+    }
+    if source_range.end.saturating_sub(source_range.start) != visual_len {
         return source_range;
     }
     UiTextRange {
@@ -483,39 +494,82 @@ fn source_subrange(source_range: UiTextRange, start: usize, end: usize) -> UiTex
     }
 }
 
-fn measure_width(text: &str, char_advance: f32) -> f32 {
-    grapheme_count(text) as f32 * char_advance
+fn appended_text_fits(
+    current: &CandidateLine,
+    text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+) -> bool {
+    let mut candidate = String::with_capacity(current.text.len() + text.len());
+    candidate.push_str(&current.text);
+    candidate.push_str(text);
+    line_text_fits(&candidate, max_width, style)
+}
+
+fn line_text_fits(text: &str, max_width: f32, style: &UiResolvedStyle) -> bool {
+    measure_line_width(text, style) <= max_width + 0.01
+}
+
+fn ellipsis_candidate_fits(
+    current: &str,
+    fragment: &str,
+    ellipsis: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+) -> bool {
+    let mut candidate = String::with_capacity(current.len() + fragment.len() + ellipsis.len());
+    candidate.push_str(current);
+    candidate.push_str(fragment);
+    candidate.push_str(ellipsis);
+    line_text_fits(&candidate, max_width, style)
 }
 
 pub(super) fn text_advance(font_size: f32) -> f32 {
-    (font_size * 0.5).max(1.0)
+    (font_size.max(1.0) * 0.56).max(1.0)
 }
 
 fn aligned_x(
     frame: UiFrame,
     line_width: f32,
-    align: zircon_runtime_interface::ui::surface::UiTextAlign,
+    align: UiTextAlign,
+    direction: UiTextDirection,
 ) -> f32 {
     match align {
-        zircon_runtime_interface::ui::surface::UiTextAlign::Left => frame.x,
-        zircon_runtime_interface::ui::surface::UiTextAlign::Center => {
-            frame.x + (frame.width - line_width) * 0.5
-        }
-        zircon_runtime_interface::ui::surface::UiTextAlign::Right => frame.right() - line_width,
+        UiTextAlign::Left => frame.x,
+        UiTextAlign::Center => frame.x + (frame.width - line_width) * 0.5,
+        UiTextAlign::Right => frame.right() - line_width,
+        UiTextAlign::Start if is_rtl_direction(direction) => frame.right() - line_width,
+        UiTextAlign::Start => frame.x,
+        UiTextAlign::End if is_rtl_direction(direction) => frame.x,
+        UiTextAlign::End => frame.right() - line_width,
     }
 }
 
+fn is_rtl_direction(direction: UiTextDirection) -> bool {
+    matches!(direction, UiTextDirection::RightToLeft)
+}
+
 fn resolve_direction(text: &str, requested: UiTextDirection) -> UiTextDirection {
-    if !matches!(requested, UiTextDirection::Auto) {
-        return requested;
+    match requested {
+        UiTextDirection::LeftToRight | UiTextDirection::RightToLeft => requested,
+        UiTextDirection::Auto | UiTextDirection::Mixed => {
+            first_strong_direction(text).unwrap_or(UiTextDirection::LeftToRight)
+        }
     }
-    let has_ltr = text.chars().any(is_ltr_char);
-    let has_rtl = text.chars().any(is_rtl_char);
-    match (has_ltr, has_rtl) {
-        (true, true) => UiTextDirection::Mixed,
-        (false, true) => UiTextDirection::RightToLeft,
-        _ => UiTextDirection::LeftToRight,
-    }
+}
+
+// UAX#9 P2/P3 paragraph direction: use the first strong character until full
+// bidi level resolution replaces this low-fidelity visual-order scaffold.
+fn first_strong_direction(text: &str) -> Option<UiTextDirection> {
+    text.chars().find_map(|ch| {
+        if is_rtl_char(ch) {
+            Some(UiTextDirection::RightToLeft)
+        } else if is_ltr_char(ch) {
+            Some(UiTextDirection::LeftToRight)
+        } else {
+            None
+        }
+    })
 }
 
 fn is_ltr_char(ch: char) -> bool {

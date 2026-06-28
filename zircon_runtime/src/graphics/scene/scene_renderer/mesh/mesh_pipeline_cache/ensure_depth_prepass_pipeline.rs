@@ -22,7 +22,7 @@ impl MeshPipelineCache {
         ) {
             Ok(source) => source,
             Err(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(shader_variant_key);
                 return None;
             }
         };
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn depth_prepass_mesh_shader_key_includes_shader_variant_identity_and_source_hash() {
         let variant_key =
-            default_pipeline_key().shader_variant_key(ShaderPassType::GBuffer, "wgpu-runtime");
+            default_pipeline_key().shader_variant_key(ShaderPassType::DepthPrepass, "wgpu-runtime");
         let source = match mesh_pipeline_depth_prepass_template_source_for_geometry(
             &default_pipeline_key(),
             variant_key.geometry_source,

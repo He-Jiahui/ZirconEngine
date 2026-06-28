@@ -6,7 +6,7 @@ use crate::input::{
     GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea,
     ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText,
     InputButton, InputEvent, InputFrameSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase,
-    WindowStatusEvent, WindowTheme,
+    WindowStatusEvent, WindowTheme, PIXEL_SCROLL_LINE_DELTA_SCALE,
 };
 
 mod frame_state;

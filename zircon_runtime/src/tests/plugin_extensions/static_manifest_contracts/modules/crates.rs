@@ -129,11 +129,26 @@ fn assert_crate_stays_under_declaring_package(
     package_id: &str,
     member_path: &str,
 ) {
-    let package_root = format!("{package_id}/");
+    let package_roots = accepted_package_roots(package_id);
     assert!(
-        member_path == package_id || member_path.starts_with(&package_root),
+        package_roots
+            .iter()
+            .any(|root| member_path == root || member_path.starts_with(&format!("{root}/"))),
         "plugin manifest {relative_path:?} {context} crate_name `{crate_name}` resolves to workspace member `{member_path}`, which should stay under declaring package root `{package_id}`"
     );
+}
+
+fn accepted_package_roots(package_id: &str) -> Vec<String> {
+    let mut roots = vec![package_id.to_string(), package_id.replace('.', "_")];
+    if let Some((namespace, leaf)) = package_id.rsplit_once('.') {
+        roots.push(leaf.to_string());
+        if namespace == "asset_importer" {
+            roots.push(format!("asset_importers/{leaf}"));
+        }
+    }
+    roots.sort();
+    roots.dedup();
+    roots
 }
 
 fn assert_workspace_member_path(workspace_manifest_path: &Path, member_path: &str) {

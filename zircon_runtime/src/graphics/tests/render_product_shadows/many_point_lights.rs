@@ -286,7 +286,7 @@ fn product_point_light(index: u64) -> RenderPointLightSnapshot {
     RenderPointLightSnapshot {
         node_id: 2_000 + index,
         light_id: 20_000 + index,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(column * 0.5 - 1.75, row * 0.25 - 0.875, 0.0),
         color: Vec3::new(1.0, 0.9, 0.7),
         intensity: 2.0,
@@ -301,7 +301,7 @@ fn visible_product_point_light(index: u64) -> RenderPointLightSnapshot {
     RenderPointLightSnapshot {
         node_id: 30_000 + index,
         light_id: 30_000 + index,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(column * 0.22 - 0.77, row * 0.16 - 0.56, 2.15),
         color: Vec3::new(1.0, 0.86, 0.62),
         intensity: 0.08,
@@ -449,7 +449,7 @@ fn hundred_point_light_density_light(
     RenderPointLightSnapshot {
         node_id: 40_000 + index,
         light_id: 40_000 + index,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position,
         color: Vec3::new(1.0, 0.84, 0.62),
         intensity: 0.04,
@@ -475,7 +475,7 @@ fn many_point_light_product_mesh(material: ResourceId) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 

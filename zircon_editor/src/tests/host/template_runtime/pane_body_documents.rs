@@ -51,7 +51,7 @@ fn editor_component_showcase_path() -> std::path::PathBuf {
         .join("assets")
         .join("ui")
         .join("editor")
-        .join("component_showcase.v2.ui.toml")
+        .join("component_showcase.zui")
 }
 
 fn runtime_v2_fixture_path(file_name: &str) -> std::path::PathBuf {
@@ -419,7 +419,7 @@ fn component_showcase_authored_props_are_declared_by_runtime_catalog() {
 
     assert!(
         mismatches.is_empty(),
-        "component_showcase.v2.ui.toml has props missing from the runtime component catalog:\n{}",
+        "component_showcase.zui has props missing from the runtime component catalog:\n{}",
         mismatches.join("\n")
     );
 }
@@ -652,12 +652,12 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
 #[test]
 fn runtime_v2_fixture_buttons_project_interactive_metadata() {
     assert_runtime_v2_button_metadata(
-        "pause_menu.v2.ui.toml",
+        "pause_menu.zui",
         "test.runtime.pause_menu",
         &["ResumeButton", "SettingsButton", "QuitButton"],
     );
     assert_runtime_v2_button_metadata(
-        "settings_dialog.v2.ui.toml",
+        "settings_dialog.zui",
         "test.runtime.settings_dialog",
         &[
             "AudioVolume",
@@ -667,12 +667,12 @@ fn runtime_v2_fixture_buttons_project_interactive_metadata() {
         ],
     );
     assert_runtime_v2_button_metadata(
-        "inventory_list.v2.ui.toml",
+        "inventory_list.zui",
         "test.runtime.inventory_list",
         &["InventoryRow00", "InventoryRow11"],
     );
     assert_runtime_v2_button_metadata(
-        "quest_log_dialog.v2.ui.toml",
+        "quest_log_dialog.zui",
         "test.runtime.quest_log_dialog",
         &["TrackQuestButton", "CloseQuestLogButton"],
     );
@@ -681,7 +681,7 @@ fn runtime_v2_fixture_buttons_project_interactive_metadata() {
     ui_runtime
         .register_document_file(
             "test.runtime.quest_log_routes",
-            runtime_v2_fixture_path("quest_log_dialog.v2.ui.toml"),
+            runtime_v2_fixture_path("quest_log_dialog.zui"),
         )
         .unwrap();
     let surface = ui_runtime
@@ -880,7 +880,7 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
 
 #[test]
 fn performance_timeline_body_exposes_capture_export_and_summary_sections() {
-    let source = fs::read_to_string(pane_body_path("performance_timeline_body.v2.ui.toml"))
+    let source = fs::read_to_string(pane_body_path("performance_timeline_body.zui"))
         .expect("performance timeline pane body asset should be readable");
     let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
         .expect("performance timeline pane body asset should parse");
@@ -920,7 +920,7 @@ fn performance_timeline_body_exposes_capture_export_and_summary_sections() {
 
 #[test]
 fn runtime_diagnostics_body_exposes_ui_debug_reflector_section() {
-    let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.v2.ui.toml"))
+    let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.zui"))
         .expect("runtime diagnostics pane body asset should be readable");
     let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
         .expect("runtime diagnostics pane body asset should parse");
@@ -949,27 +949,27 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
 
     let cases = [
         (
-            "hierarchy_body.v2.ui.toml",
+            "hierarchy_body.zui",
             "editor.host.pane.hierarchy.body",
             "hierarchy_tree_slot",
         ),
         (
-            "animation_sequence_body.v2.ui.toml",
+            "animation_sequence_body.zui",
             "editor.host.pane.animation_sequence.body",
             "animation_timeline_slot",
         ),
         (
-            "animation_graph_body.v2.ui.toml",
+            "animation_graph_body.zui",
             "editor.host.pane.animation_graph.body",
             "animation_graph_canvas_slot",
         ),
         (
-            "module_plugins_body.v2.ui.toml",
+            "module_plugins_body.zui",
             "editor.host.pane.module_plugins.body",
             "module_plugin_list_slot",
         ),
         (
-            "build_export_desktop_body.v2.ui.toml",
+            "build_export_desktop_body.zui",
             "editor.host.pane.build_export.body",
             "build_export_targets_slot",
         ),

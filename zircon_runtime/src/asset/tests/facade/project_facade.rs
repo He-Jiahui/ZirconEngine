@@ -89,7 +89,7 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
 fn project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind() {
     let manager = ProjectAssetManager::default();
     let resource_manager = manager.resource_manager();
-    let ui_record = record("res://ui/panel.v2.ui.toml", ResourceKind::UiLayout);
+    let ui_record = record("res://ui/panel.zui", ResourceKind::UiLayout);
     let ui_locator = ui_record.primary_locator.clone();
     let ui_id = ui_record.id;
     resource_manager.register_ready(ui_record, ui_v2_view_asset());

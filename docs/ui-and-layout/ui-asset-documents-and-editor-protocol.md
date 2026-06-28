@@ -137,8 +137,8 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
 implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
@@ -269,8 +269,8 @@ implementation_files:
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs
 plan_sources:
@@ -394,7 +394,7 @@ doc_type: module-detail
 
 这份文档记录当前 shared UI 资产协议的三个硬结论：
 
-- 生产序列化权威已经切到 tree-shaped `.ui.toml`
+- 生产序列化权威已经切到 tree-shaped `.zui`
 - formal loader 通过 production schema migrator 接受当前 tree、旧 schema tree、历史 flat node-table 和 legacy template fixture，并统一产出当前 tree authority
 - editor/runtime 继续共用同一条 `UiAssetLoader -> UiDocumentCompiler -> UiTemplateSurfaceBuilder` 链路
 
@@ -416,7 +416,7 @@ doc_type: module-detail
 - 每条父子边的 `mount/slot` 元数据跟随 `children[]` 保存
 - `components.*.root` 也直接内嵌子树，而不是再回指某个全局节点表 id
 
-这意味着 `.ui.toml` 的 diff、迁移和 source roundtrip 已经围绕“真实树结构”展开，而不是继续把持久化权威建立在一张平面节点注册表上。
+这意味着 `.zui` 的 diff、迁移和 source roundtrip 已经围绕“真实树结构”展开，而不是继续把持久化权威建立在一张平面节点注册表上。
 
 ## Stable `node_id` Remains Mandatory
 
@@ -486,8 +486,8 @@ flat node-table 和 historical source-template fixture 迁移已经从 `zircon_r
 
 这次被正式迁成 tree authority 的受管资产包括两类：
 
-- editor/project 资产：`zircon_editor/assets/ui/**/*.ui.toml`
-- runtime builtin fixture：`zircon_runtime/assets/ui/runtime/fixtures/*.ui.toml`
+- editor/project 资产：`zircon_editor/assets/ui/**/*.zui`
+- runtime builtin fixture：`zircon_runtime/assets/ui/runtime/fixtures/*.zui`
 
 其中 runtime fixture 还额外完成了“加载入口不能放在 `src/` 下”的目录规范收口，详见 [`Runtime UI Graphics Integration`](../assets-and-rendering/runtime-ui-graphics-integration.md)。
 

@@ -1,13 +1,13 @@
+use crate::graphics::text::layout::measured_grapheme_widths;
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
-        UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextCaretAffinity,
-        UiTextDirection,
+        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
+        UiTextCaretAffinity, UiTextDirection,
     },
 };
 
 use super::grapheme::{grapheme_count, grapheme_indices};
-use super::layout_engine::text_advance;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextHitTest {
@@ -34,8 +34,8 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
         };
     };
     let line = &layout.lines[line_index];
-    let advance = text_advance(layout.font_size);
-    let grapheme_index = visual_grapheme_index_for_x(line, point.x, advance);
+    let style = style_for_layout(layout, line);
+    let grapheme_index = visual_grapheme_index_for_x(line, point.x, &style);
 
     UiTextHitTest {
         line_index: Some(line_index),
@@ -65,7 +65,7 @@ fn text_line_index_for_y(layout: &UiResolvedTextLayout, y: f32) -> Option<usize>
 fn visual_grapheme_index_for_x(
     line: &UiResolvedTextLine,
     point_x: f32,
-    char_advance: f32,
+    style: &UiResolvedStyle,
 ) -> usize {
     let grapheme_count = grapheme_count(&line.text);
     if grapheme_count == 0 {
@@ -79,9 +79,26 @@ fn visual_grapheme_index_for_x(
         }
     };
     let measured_x = relative_x.clamp(0.0, line.measured_width.max(0.0));
-    ((measured_x / char_advance) + 0.5)
-        .floor()
-        .clamp(0.0, grapheme_count as f32) as usize
+    let mut cursor_x = 0.0_f32;
+    for (index, width) in measured_grapheme_widths(&line.text, style)
+        .into_iter()
+        .enumerate()
+    {
+        if measured_x <= cursor_x + width * 0.5 {
+            return index;
+        }
+        cursor_x += width;
+    }
+    grapheme_count
+}
+
+fn style_for_layout(layout: &UiResolvedTextLayout, line: &UiResolvedTextLine) -> UiResolvedStyle {
+    UiResolvedStyle {
+        font_size: layout.font_size,
+        line_height: layout.line_height,
+        text_direction: line.direction,
+        ..UiResolvedStyle::default()
+    }
 }
 
 fn line_source_offset_for_grapheme_index(line: &UiResolvedTextLine, index: usize) -> usize {
@@ -109,6 +126,10 @@ fn run_source_offset_for_grapheme_index(
     consumed: &mut usize,
     target_index: usize,
 ) -> Option<usize> {
+    if run.source_range.end.saturating_sub(run.source_range.start) != run.text.len() {
+        return non_isomorphic_run_source_offset_for_grapheme_index(run, consumed, target_index);
+    }
+
     for (byte_index, grapheme) in grapheme_indices(&run.text) {
         if *consumed == target_index {
             return Some(run.source_range.start + byte_index);
@@ -118,6 +139,22 @@ fn run_source_offset_for_grapheme_index(
         if *consumed == target_index {
             return Some(end);
         }
+    }
+    None
+}
+
+fn non_isomorphic_run_source_offset_for_grapheme_index(
+    run: &UiResolvedTextRun,
+    consumed: &mut usize,
+    target_index: usize,
+) -> Option<usize> {
+    let run_graphemes = grapheme_count(&run.text);
+    if *consumed == target_index {
+        return Some(run.source_range.start);
+    }
+    *consumed += run_graphemes;
+    if *consumed >= target_index {
+        return Some(run.source_range.end);
     }
     None
 }

@@ -3,12 +3,15 @@ related_code:
   - zircon_runtime/src/core/resource/mod.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/core/resource/manager/registry_export.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/lease_ops.rs
   - zircon_runtime/src/core/resource/manager/events.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
@@ -25,12 +28,15 @@ implementation_files:
   - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/core/resource/manager/registry_export.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/lease_ops.rs
   - zircon_runtime/src/core/resource/manager/events.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/state.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
@@ -53,6 +59,10 @@ tests:
   - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
   - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
   - zircon_runtime/src/core/resource/manager/resource_manager.rs::tests::resource_manager_accessors_recover_poisoned_state_locks
+  - zircon_runtime/src/core/resource/manager/registry_export.rs::tests::resource_manager_exports_ready_records_for_kind_with_live_revisions
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs::shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs::shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs::runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_core_error
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
@@ -94,6 +104,16 @@ F6 core resource registry typed errors closes the remaining `Result<_, String>` 
 The rename path resolves the source locator and record before mutating locator indexes, so the missing-record error path does not remove the original locator mapping as a side effect. `registry_rename_reports_missing_locator_with_core_error` covers the missing locator branch, while `review_f6_core_resource_registry_rename_uses_core_error` locks the source signature and documentation anchors. Status is recorded as `core_resource_registry_typed_errors_coremin_check_passed`; broader Runtime 02 core/root/generated/export_build_plan/app/editor/plugin gates remain pending.
 
 The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+
+## Live Ready Record Export
+
+Live ResourceManager shader registry export for Plan 08 is exposed through `ResourceManager::ready_records_for_kind(kind)`. The helper remains resource-generic: it clones records from the authoritative registry, filters to the requested `ResourceKind`, requires `ResourceState::Ready`, drops zero revisions, and sorts by locator/id before returning `ResourceRecord` values for external handoff.
+
+The shader prewarm side consumes this through `shader_resource_records_from_manager(&manager)`, then feeds those records into `ShaderPrewarmResourceRegistryOverlay::from_records(...)` so `.zmeta` shader scans can use live `ResourceRecord.revision` for `ShaderVariantKey.material_revision`. Status is `render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred`; `resource_manager_exports_ready_records_for_kind_with_live_revisions`, `shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions`, and `runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired` lock the API, prewarm overlay handoff, docs anchors, and 800-line owner budgets.
+
+The prewarm overlay now mirrors this Ready-state gate even when records come from caller-provided or auto-exported shader resource registries rather than a live manager helper. `ShaderPrewarmResourceRegistryOverlay::from_records(...)` ignores non-`ResourceState::Ready` shader records before recording revisions, matching the build-tool `_is_usable_shader_record(...)` rule of `kind=Shader`, `state=Ready`, and positive `revision`. Status is `render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred`; `shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only`, `test_validate_registry_export_contract_rejects_non_ready_report_source_record`, `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`, and `runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired` lock the Rust overlay and Python contract.
+
+This closes only the live `ResourceManager` revision export seam. Full automatic project/plugin shader, shading-model, and geometry-source registry export, real Naga/WGPU prewarm compile, RenderDoc/product capture, and runtime pure-depth DepthPrepass migration remain separate Plan 08 follow-up work.
 
 ## Facade Projection
 

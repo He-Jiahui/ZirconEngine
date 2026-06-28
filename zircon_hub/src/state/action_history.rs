@@ -115,7 +115,7 @@ mod tests {
                     action: HubActionKind::OpenEditor,
                     status: HubActionStatus::Success,
                     target: format!("target {index}"),
-                    detail: HubMessage::legacy("opened"),
+                    detail: HubMessage::raw_text("opened"),
                     log_excerpt: HubMessage::empty(),
                     recovery: None,
                     process_id: Some(index as u32),

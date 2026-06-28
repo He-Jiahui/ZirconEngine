@@ -30,7 +30,7 @@ pub use frame_hit_test::{
     hit_test_surface_frame_with_query,
 };
 pub(crate) use input::text_input_constraints_for_node;
-pub use input::UiSurfaceInputState;
+pub use input::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult, UiSurfaceInputState};
 pub(crate) use interaction_gate::{ui_surface_effective_disabled, ui_surface_node_disabled};
 pub use node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport};
 pub use property_mutation::{

@@ -283,7 +283,7 @@ pub(super) surface: Option<ViewportSurface>,
 - [x] Implement `bind_viewport_surface()` to validate viewport existence and store surface state on the `ViewportRecord`.
 - [x] Implement `unbind_viewport_surface()` to clear viewport surface state.
 - [x] Implement `present_frame_extract()` validation so a missing bound surface returns `UnsupportedCapability`; preserve the already-landed WGPU present path instead of replacing it with a Milestone 2 placeholder.
-- [x] Modify `zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs` to delegate bind/unbind into `viewport_surface` modules and present into the existing `submit_frame_extract` present path.
+- [x] Modify `zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs` to delegate bind/unbind into `viewport_surface` modules and present into the existing `submit_frame_extract` present path.
 - [x] Add unit tests in `zircon_runtime/src/graphics/tests/surface_targets.rs` for default unsupported behavior, unknown viewport handling, missing-surface present diagnostics, and offscreen `capture_frame()` unaffected after unbind.
 
 **Testing Stage:**

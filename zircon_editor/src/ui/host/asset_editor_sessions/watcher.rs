@@ -49,7 +49,7 @@ impl UiAssetWorkspaceWatcher {
 
     fn asset_id_for_path(&self, path: &Path) -> Option<String> {
         let file_name = path.file_name()?.to_string_lossy();
-        if !file_name.ends_with(".ui.toml") {
+        if !file_name.ends_with(".zui") {
             return None;
         }
         let relative = path.strip_prefix(&self.assets_root).ok()?;

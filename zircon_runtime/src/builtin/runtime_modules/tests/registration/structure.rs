@@ -61,6 +61,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!extension_inputs_source.contains("super::super::extensions"));
     assert!(!extension_inputs_source.contains("runtime_modules::extensions"));
     assert!(extension_inputs_source.contains("collect_render_features"));
+    assert!(extension_inputs_source.contains("collect_shading_models"));
     assert!(extension_inputs_source.contains("collect_render_pass_executors"));
     assert!(extension_inputs_source.contains("collect_runtime_prepare_collectors"));
     assert!(extension_inputs_source.contains("collect_hybrid_gi_runtime_providers"));
@@ -200,6 +201,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!registration_inputs_source.contains("RuntimeExtensionRegistry"));
     assert!(!registration_inputs_source.contains("asset_importers_from_extension_registries"));
     assert!(!registration_inputs_source.contains("collect_render_features"));
+    assert!(!registration_inputs_source.contains("collect_shading_models"));
     assert!(!registration_inputs_source.contains("collect_render_pass_executors"));
     assert!(!registration_inputs_source.contains("collect_runtime_prepare_collectors"));
     assert!(!registration_inputs_source.contains("collect_hybrid_gi_runtime_providers"));

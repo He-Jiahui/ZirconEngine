@@ -43,7 +43,7 @@ fn shadow(tier: ShadowResolutionTier) -> LightShadowSettings {
 }
 
 fn default_light_layer_mask() -> RenderLayerSet {
-    RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK)
+    RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK)
 }
 
 fn shadow_with_quality(

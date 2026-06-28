@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn resource_capability_scan_ignores_unqualified_descriptors() {
         let render_features = vec![RenderFeatureDescriptor::new(
-            "legacy-virtual-geometry-without-resource-capability",
+            "fallback-virtual-geometry-without-resource-capability",
             Vec::new(),
             Vec::new(),
             Vec::new(),

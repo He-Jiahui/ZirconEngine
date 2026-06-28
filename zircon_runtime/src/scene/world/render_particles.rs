@@ -256,7 +256,7 @@ fn particle_sprite(
         color,
         intensity: f32_field(value, "intensity").unwrap_or(1.0).max(0.0),
         depth_test: true,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(render_layer_mask),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(render_layer_mask),
         material: None,
         texture: None,
     })
@@ -376,7 +376,7 @@ fn push_world_hud_bar_quad(
         color,
         intensity,
         depth_test: false,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(render_layer_mask),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(render_layer_mask),
         material: None,
         texture: None,
     });
@@ -507,7 +507,7 @@ mod tests {
         assert_eq!(stable_sprite_keys(&sprites), vec![1, 2]);
         assert!(sprites
             .iter()
-            .all(|sprite| sprite.render_layer_mask.to_legacy_mask_lossy() == 1 << 4));
+            .all(|sprite| sprite.render_layer_mask.to_scene_schema_v1_mask_lossy() == 1 << 4));
     }
 
     #[test]
@@ -560,7 +560,10 @@ mod tests {
         .expect("valid authored particle sprite");
 
         assert!(sprite.depth_test);
-        assert_eq!(sprite.render_layer_mask.to_legacy_mask_lossy(), 1 << 5);
+        assert_eq!(
+            sprite.render_layer_mask.to_scene_schema_v1_mask_lossy(),
+            1 << 5
+        );
     }
 
     #[test]

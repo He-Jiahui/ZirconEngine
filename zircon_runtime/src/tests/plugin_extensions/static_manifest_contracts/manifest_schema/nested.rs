@@ -5,8 +5,9 @@ use super::assertions::{
 };
 use super::field_sets::{
     KNOWN_ASSET_IMPORTER_FIELDS, KNOWN_CAPABILITY_STATUS_FIELDS, KNOWN_DEPENDENCY_FIELDS,
-    KNOWN_EVENT_CATALOG_FIELDS, KNOWN_EVENT_FIELDS, KNOWN_INTERFACE_FIELDS, KNOWN_MODULE_FIELDS,
-    KNOWN_OPTION_FIELDS, KNOWN_UI_COMPONENT_FIELDS,
+    KNOWN_EVENT_CATALOG_FIELDS, KNOWN_EVENT_FIELDS, KNOWN_GEOMETRY_SOURCE_FIELDS,
+    KNOWN_INTERFACE_FIELDS, KNOWN_MODULE_FIELDS, KNOWN_OPTION_FIELDS, KNOWN_SHADING_MODEL_FIELDS,
+    KNOWN_UI_COMPONENT_FIELDS,
 };
 
 #[test]
@@ -74,6 +75,20 @@ fn plugin_tomls_declare_known_nested_fields() {
             "ui_components",
             "ui component",
             &KNOWN_UI_COMPONENT_FIELDS,
+        );
+        assert_known_row_fields(
+            table,
+            relative_path,
+            "geometry_sources",
+            "geometry source",
+            &KNOWN_GEOMETRY_SOURCE_FIELDS,
+        );
+        assert_known_row_fields(
+            table,
+            relative_path,
+            "shading_models",
+            "shading model",
+            &KNOWN_SHADING_MODEL_FIELDS,
         );
 
         for catalog in optional_table_array(table, relative_path, "top-level", "event_catalogs")

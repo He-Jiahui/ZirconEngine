@@ -1,3 +1,4 @@
+mod construct;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod depth_sampling_mode;
 mod execute_bloom;
 mod execute_blur;
@@ -21,7 +22,6 @@ mod execute_screen_space_reflection_specular_occlusion;
 mod execute_smaa;
 mod execute_ssao;
 mod execute_upscale;
-mod new;
 mod render_region;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod shader_sources;
 

@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/gpu_completion.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/prepare_input.rs
@@ -273,7 +273,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/gpu_completion.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/prepare_input.rs

@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::layout_engine::{
-    layout_text as heuristic_layout_text, measure_text_size as heuristic_measure_text_size,
+    layout_text as shared_layout_text, measure_text_size as shared_measure_text_size,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -38,7 +38,7 @@ pub(crate) trait UiTextShaper {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiTextBackendIntent {
-    Heuristic,
+    SharedTextService,
     NativeGlyphon,
     SdfAtlas,
 }
@@ -98,37 +98,25 @@ const fn backend_intent_for_render_mode(render_mode: UiTextRenderMode) -> UiText
 
 const fn active_layout_backend_for_intent(intent: UiTextBackendIntent) -> UiTextBackendIntent {
     match intent {
-        UiTextBackendIntent::Heuristic => UiTextBackendIntent::Heuristic,
-        UiTextBackendIntent::NativeGlyphon | UiTextBackendIntent::SdfAtlas => {
-            UiTextBackendIntent::Heuristic
-        }
+        UiTextBackendIntent::SharedTextService
+        | UiTextBackendIntent::NativeGlyphon
+        | UiTextBackendIntent::SdfAtlas => UiTextBackendIntent::SharedTextService,
     }
 }
 
 const fn fallback_reason_for_backend(
-    intended_backend: UiTextBackendIntent,
-    active_backend: UiTextBackendIntent,
+    _intended_backend: UiTextBackendIntent,
+    _active_backend: UiTextBackendIntent,
 ) -> Option<&'static str> {
-    match (intended_backend, active_backend) {
-        (UiTextBackendIntent::Heuristic, UiTextBackendIntent::Heuristic)
-        | (UiTextBackendIntent::NativeGlyphon, UiTextBackendIntent::NativeGlyphon)
-        | (UiTextBackendIntent::SdfAtlas, UiTextBackendIntent::SdfAtlas) => None,
-        (UiTextBackendIntent::NativeGlyphon, _) => {
-            Some("glyphon native text backend is not connected to layout yet")
-        }
-        (UiTextBackendIntent::SdfAtlas, _) => {
-            Some("SDF atlas text backend is not connected to layout yet")
-        }
-        (UiTextBackendIntent::Heuristic, _) => None,
-    }
+    None
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct UiHeuristicTextShaper;
+pub(crate) struct UiSharedTextShaper;
 
-impl UiTextShaper for UiHeuristicTextShaper {
+impl UiTextShaper for UiSharedTextShaper {
     fn shape_text(&self, request: &UiTextShapeRequest<'_>) -> UiResolvedTextLayout {
-        heuristic_layout_text(
+        shared_layout_text(
             request.text,
             request.style,
             request.frame,
@@ -137,19 +125,19 @@ impl UiTextShaper for UiHeuristicTextShaper {
     }
 
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize {
-        heuristic_measure_text_size(text, style)
+        shared_measure_text_size(text, style)
     }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct UiTextShaperStack {
-    heuristic: UiHeuristicTextShaper,
+    shared: UiSharedTextShaper,
 }
 
 impl UiTextShaperStack {
     pub(crate) const fn new() -> Self {
         Self {
-            heuristic: UiHeuristicTextShaper,
+            shared: UiSharedTextShaper,
         }
     }
 
@@ -163,32 +151,24 @@ impl UiTextShaper for UiTextShaperStack {
         let selection = self.selection_for_style(request.style);
 
         debug_assert_eq!(selection.requested_mode, request.style.text_render_mode);
-        debug_assert_eq!(
-            selection.fallback_reason.is_some(),
-            selection.intended_backend != selection.active_backend
-        );
+        debug_assert!(selection.fallback_reason.is_none());
 
         match selection.active_backend {
-            UiTextBackendIntent::Heuristic => self.heuristic.shape_text(request),
-            UiTextBackendIntent::NativeGlyphon | UiTextBackendIntent::SdfAtlas => {
-                self.heuristic.shape_text(request)
-            }
+            UiTextBackendIntent::SharedTextService
+            | UiTextBackendIntent::NativeGlyphon
+            | UiTextBackendIntent::SdfAtlas => self.shared.shape_text(request),
         }
     }
 
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize {
         let selection = self.selection_for_style(style);
 
-        debug_assert_eq!(
-            selection.fallback_reason.is_some(),
-            selection.intended_backend != selection.active_backend
-        );
+        debug_assert!(selection.fallback_reason.is_none());
 
         match selection.active_backend {
-            UiTextBackendIntent::Heuristic => self.heuristic.measure_text(text, style),
-            UiTextBackendIntent::NativeGlyphon | UiTextBackendIntent::SdfAtlas => {
-                self.heuristic.measure_text(text, style)
-            }
+            UiTextBackendIntent::SharedTextService
+            | UiTextBackendIntent::NativeGlyphon
+            | UiTextBackendIntent::SdfAtlas => self.shared.measure_text(text, style),
         }
     }
 }

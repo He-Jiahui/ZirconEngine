@@ -37,7 +37,7 @@ impl PageLayoutTemplate {
     pub fn scene() -> Self {
         workbench_page(
             "scene",
-            "res://ui/editor/host/editor_main_frame.v2.ui.toml",
+            "res://ui/editor/host/editor_main_frame.zui",
             LayoutPresetName::Authoring,
             pinned_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -47,7 +47,7 @@ impl PageLayoutTemplate {
     pub fn game() -> Self {
         workbench_page(
             "game",
-            "res://ui/editor/host/editor_main_frame.v2.ui.toml",
+            "res://ui/editor/host/editor_main_frame.zui",
             LayoutPresetName::Focus,
             collapsed_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -81,19 +81,19 @@ impl PageLayoutTemplate {
                 binding(
                     EditorRegion::Center,
                     EditorRegionRole::CenterDocument,
-                    "res://ui/editor/host/inspector_body.v2.ui.toml",
+                    "res://ui/editor/host/inspector_body.zui",
                     None,
                 ),
                 binding(
                     EditorRegion::RightTop,
                     EditorRegionRole::HierarchyStructure,
-                    "res://ui/editor/host/hierarchy_body.v2.ui.toml",
+                    "res://ui/editor/host/hierarchy_body.zui",
                     Some("--right-drawer-width"),
                 ),
                 binding(
                     EditorRegion::RightBottom,
                     EditorRegionRole::DetailInspector,
-                    "res://ui/editor/host/inspector_body.v2.ui.toml",
+                    "res://ui/editor/host/inspector_body.zui",
                     Some("--right-drawer-width"),
                 ),
             ],
@@ -136,7 +136,7 @@ impl PageLayoutTemplate {
     pub fn animation_timeline() -> Self {
         workbench_page(
             "animation_timeline",
-            "res://ui/editor/host/animation_sequence_body.v2.ui.toml",
+            "res://ui/editor/host/animation_sequence_body.zui",
             LayoutPresetName::Debug,
             bottom_debug_drawers(),
             horizontal_split(),
@@ -146,7 +146,7 @@ impl PageLayoutTemplate {
     pub fn animation_graph() -> Self {
         workbench_page(
             "animation_graph",
-            "res://ui/editor/host/animation_graph_body.v2.ui.toml",
+            "res://ui/editor/host/animation_graph_body.zui",
             LayoutPresetName::Review,
             right_review_drawers(),
             horizontal_split(),
@@ -166,7 +166,7 @@ impl PageLayoutTemplate {
     pub fn console() -> Self {
         workbench_page(
             "console",
-            "res://ui/editor/host/console_body.v2.ui.toml",
+            "res://ui/editor/host/console_body.zui",
             LayoutPresetName::Debug,
             bottom_debug_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -211,13 +211,13 @@ fn standard_region_fills(center_asset: &'static str) -> Vec<RegionBinding> {
         binding(
             EditorRegion::LeftTop,
             EditorRegionRole::PlacementTools,
-            "res://ui/editor/host/asset_surface_controls.v2.ui.toml",
+            "res://ui/editor/host/asset_surface_controls.zui",
             Some("--left-drawer-width"),
         ),
         binding(
             EditorRegion::LeftBottom,
             EditorRegionRole::ProjectTree,
-            "res://ui/editor/asset_browser.v2.ui.toml",
+            "res://ui/editor/asset_browser.zui",
             Some("--left-drawer-width"),
         ),
         binding(
@@ -229,19 +229,19 @@ fn standard_region_fills(center_asset: &'static str) -> Vec<RegionBinding> {
         binding(
             EditorRegion::RightTop,
             EditorRegionRole::HierarchyStructure,
-            "res://ui/editor/host/hierarchy_body.v2.ui.toml",
+            "res://ui/editor/host/hierarchy_body.zui",
             Some("--right-drawer-width"),
         ),
         binding(
             EditorRegion::RightBottom,
             EditorRegionRole::DetailInspector,
-            "res://ui/editor/host/inspector_body.v2.ui.toml",
+            "res://ui/editor/host/inspector_body.zui",
             Some("--right-drawer-width"),
         ),
         binding(
             EditorRegion::Bottom,
             EditorRegionRole::ConsoleDiagnosticsTimeline,
-            "res://ui/editor/host/console_body.v2.ui.toml",
+            "res://ui/editor/host/console_body.zui",
             Some("--bottom-output-height"),
         ),
     ]

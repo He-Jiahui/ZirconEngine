@@ -1,53 +1,51 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
-use crate::capability::{PHYSICS_AUTHORING_CAPABILITY, PLUGIN_ID};
+use crate::capability::{EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{PHYSICS_AUTHORING_VIEW_ID, PHYSICS_DRAWER_ID, PHYSICS_TEMPLATE_ID};
 
-#[derive(Clone, Debug)]
-pub struct PhysicsEditorPlugin {
-    descriptor: zircon_editor::EditorPluginDescriptor,
-}
-
-impl PhysicsEditorPlugin {
-    pub fn new() -> Self {
-        Self {
-            descriptor: editor_plugin_descriptor(),
-        }
+authoring_plugin! {
+    pub struct PhysicsEditorPlugin {
+        package_id: PLUGIN_ID,
+        display_name: "Physics",
+        crate_name: "zircon_plugin_physics_editor",
+        category: "runtime",
+        description: "Physics editor authoring extensions.",
+        maturity: zircon_runtime::plugin::PluginMaturity::Experimental,
+        mirrors_runtime_manifest: zircon_plugin_physics_runtime::package_manifest(),
+        capabilities: EDITOR_CAPABILITIES,
+        register_extensions: register_physics_authoring_extensions,
     }
 }
 
-impl zircon_editor::EditorPlugin for PhysicsEditorPlugin {
-    fn descriptor(&self) -> &zircon_editor::EditorPluginDescriptor {
-        &self.descriptor
-    }
+pub fn editor_plugin_declaration() -> EditorPluginDeclaration {
+    editor_plugin().declaration().clone()
+}
 
-    fn register_editor_extensions(
-        &self,
-        registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
-    ) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
-        register_authoring_extensions(
-            registry,
-            EditorAuthoringExtensions {
-                drawer_id: PHYSICS_DRAWER_ID,
-                drawer_display_name: "Physics Tools",
-                template_id: PHYSICS_TEMPLATE_ID,
-                template_document: "plugins://physics/editor/authoring.zui",
-                surfaces: &[EditorAuthoringSurface::new(
-                    PHYSICS_AUTHORING_VIEW_ID,
-                    "Physics",
-                    "World",
-                    "Plugins/Physics",
-                )],
-            },
-        )
-    }
+fn register_physics_authoring_extensions(
+    registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
+) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
+    register_authoring_extensions(
+        registry,
+        EditorAuthoringExtensions {
+            drawer_id: PHYSICS_DRAWER_ID,
+            drawer_display_name: "Physics Tools",
+            template_id: PHYSICS_TEMPLATE_ID,
+            template_document: "plugins://physics/editor/authoring.zui",
+            surfaces: &[EditorAuthoringSurface::new(
+                PHYSICS_AUTHORING_VIEW_ID,
+                "Physics",
+                "World",
+                "Plugins/Physics",
+            )],
+        },
+    )
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {
-    zircon_editor::EditorPluginDescriptor::new(PLUGIN_ID, "Physics", "zircon_plugin_physics_editor")
-        .with_capability(PHYSICS_AUTHORING_CAPABILITY)
+    editor_plugin_declaration().descriptor().clone()
 }
 
 pub fn editor_plugin() -> PhysicsEditorPlugin {
@@ -55,21 +53,16 @@ pub fn editor_plugin() -> PhysicsEditorPlugin {
 }
 
 pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    zircon_editor::EditorPlugin::package_manifest(
-        &editor_plugin(),
-        zircon_plugin_physics_runtime::package_manifest(),
-    )
+    editor_plugin().declaration().package_manifest()
 }
 
 pub fn editor_capabilities() -> Vec<String> {
-    zircon_editor::EditorPlugin::editor_capabilities(&editor_plugin()).to_vec()
+    editor_plugin().declaration().capabilities().to_vec()
 }
 
 pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
-    zircon_editor::EditorPluginRegistrationReport::from_plugin(
-        &editor_plugin(),
-        zircon_plugin_physics_runtime::package_manifest(),
-    )
+    let plugin = editor_plugin();
+    plugin.declaration().registration_report(&plugin)
 }
 
 pub fn editor_host_contract_marker() -> &'static str {

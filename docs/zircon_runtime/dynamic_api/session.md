@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
@@ -48,6 +49,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/dynamic_api.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
@@ -89,6 +91,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
@@ -131,6 +134,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/dynamic_api.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
@@ -286,6 +290,8 @@ The session module is intentionally private to `zircon_runtime`. Its job is to a
 
 - `session.rs` keeps the Rust-ABI session owner functions, session registry, and `RuntimeDynamicSession` lifecycle/orchestration. The exported C ABI entry points live in `exports.rs` wrappers.
 - `session/events.rs` owns dynamic session event dispatch and input adaptation: pointer, mouse, touch, keyboard, IME, file-drag, window, gamepad, and accessibility events are translated into `core::framework::input` DTOs or camera/menu preview actions there. `session.rs` keeps only the private Rust-ABI `handle_event(...)` owner entry and delegates through `with_session(...)`.
+
+Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`: dynamic preview scroll now uses `zircon_runtime/src/core/framework/input/mouse_wheel.rs` through `MouseWheelEvent::vertical_line_delta()` when it needs the scalar camera orbit delta. `naming_boundary/runtime_15_m2/input.rs::runtime_15_input_mouse_wheel_line_delta_uses_current_names` keeps `session/events.rs`, the input framework owner, and this document aligned without retaining old helper aliases.
 - `session/diagnostics.rs` owns the `ProfileControlCommand::RuntimeDiagnosticsSnapshot` projection. It reuses the existing `profile_control` JSON ABI entry, collects `DiagnosticStore` series through `collect_runtime_diagnostics(...)`, and adds the last dynamic scene-asset reload frame report as neutral `RuntimeSceneAssetReloadDiagnostics` counts.
 - `session/project.rs` adapts the optional ABI project-manifest byte slice into a runtime project root, loads `zircon-project.toml`, discovers startup ZrVM packages, and loads the manifest default scene through the existing scene/project asset path.
 - `session/extract.rs` owns the dynamic-session frame extract facade: viewport resize, scene `RenderFrameExtract` cache lookup/construction, UI side-path extract selection, and the runtime-side extract diagnostic hook.
@@ -454,6 +460,10 @@ Standalone keyboard events originate in `zircon_app::entry::runtime_entry_app::c
 When `current_ui_extract` sees a valid `gameplay.menu_state`, the menu overlay has priority over the gameplay HUD extract. This is intentional: Start and Game Over are modal runtime states, while the world HUD bars remain scene data. Left mouse release over the overlay button writes only the command string (`"start_game"` or `"retry_game"`) and leaves lifecycle ownership in the project script.
 
 Dynamic API error statuses now carry the concrete session creation failure string across the ABI diagnostics slice instead of collapsing every startup error to `runtime dynamic API error`. That diagnostic payload is intentionally leaked for process lifetime because `ZrStatus` exposes only a borrowed `ZrByteSlice`; owned byte buffers remain reserved for APIs that include an explicit free callback. `RuntimeDynamicSession::new` also initializes the `runtime-dynamic` diagnostic log before project startup so frame/FPS diagnostics and startup failure context share the same runtime-owned diagnostic channel.
+
+Runtime 15 F5 dynamic API session typed errors records `runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred`: `dynamic_api/session/error.rs` now owns `RuntimeDynamicSessionError` / `RuntimeDynamicSessionResult` and `RuntimeProjectError` / `RuntimeProjectResult`. Session construction, project root parsing, project asset/default scene/navmesh/script loading, scene hook registration, level ticking, render bridge submit/present/bind, and accessibility encode failures stay typed until `dynamic_api/session/status.rs::error_status(...)` converts them into the C ABI `ZrStatus` message. `review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary` locks `dynamic_api/session/error.rs`, `RuntimeDynamicSessionError::RenderBridgeStep`, `RuntimeProjectError::LoadDefaultScene`, the ABI status boundary, and the status-output anchors.
+
+2026-06-27 editor layout validation exposed one remaining typed-error mismatch in the same boundary: `CoreRuntime::install_scene_runtime_hooks(...)` returns `RuntimeExtensionRegistryError`, so dynamic session startup now maps that step to `RuntimeDynamicSessionError::RuntimeExtensionRegistryStep` instead of incorrectly using `CoreStep`. Per-hook registration still uses the existing scene hook registration error path.
 
 `examples/vampire` is the current acceptance fixture for this project-entry path. Its manifest declares `res://scenes/main.scene.toml`, a `scripts/vampire_game` ZrVM package, project-local model/material/shader/navmesh/terrain assets, and plugin selections for rendering, animation, navigation, glTF importing, texture importing, and ZrVM language runtime. The fixture now includes generated jungle terrain/foliage models, a real project texture at `res://textures/jungle_ground_albedo.png`, a real `TerrainAsset` at `res://terrain/jungle_clearing.terrain.toml` with a ready `.zmeta`, a multi-polygon baked jungle navmesh with authored height variation, a richer `default_pbr` shader that samples material maps and folds in shadow/reflection/detail-normal terms, a ground-light floor that prevents terrain from collapsing to black under fog, script-authored dynamic attack particles, and menu state components for Start/Game Over. The scene camera is authored in current EV100 exposure space (`exposure_ev100 = 9.2`); legacy near-zero multiplier-style values overexpose the PP-M3 resolve path and are not valid acceptance evidence for current captures. The scene's `Baked Jungle Terrain` entity intentionally carries both the visible mesh and the terrain component so the sample is terrain-backed instead of a decorative prop-only floor. Asset tests keep those pieces importable through the same project scan path used by the standalone runtime.
 

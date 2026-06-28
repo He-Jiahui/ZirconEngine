@@ -20,6 +20,7 @@ from .cook_assets import default_cooked_asset_manifest, run_cook_assets
 from .pipeline_report import run_report
 from .platform_bundle import run_platform_bundle
 from .plugin_build import parse_plugin_build_args, run_plugin_build
+from .plugin_validate import parse_plugin_validate_args, run_plugin_validate
 from .pipeline_stages import (
     LIBRARY_EMBED_EXECUTION_STAGES,
     pipeline_stages_after_validate as selected_pipeline_stages_after_validate,
@@ -69,6 +70,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     argv_list = list(argv) if argv is not None else sys.argv[1:]
     if len(argv_list) >= 2 and argv_list[0] == "plugin" and argv_list[1] == "build":
         return run_plugin_build(parse_plugin_build_args(argv_list[2:]))
+    if (
+        len(argv_list) >= 2
+        and argv_list[0] == "plugin"
+        and argv_list[1] == "validate"
+    ):
+        return run_plugin_validate(parse_plugin_validate_args(argv_list[2:]))
     args = parse_args(argv_list)
     if args.resume_from or not args.stage_explicit:
         return run_pipeline(args, args.resume_from or "validate")

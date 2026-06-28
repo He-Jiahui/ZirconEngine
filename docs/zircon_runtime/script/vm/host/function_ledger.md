@@ -9,6 +9,9 @@ related_code:
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/error.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/run.rs
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/src/script/vm/capability_set.rs
   - zircon_runtime/src/script/vm/handles.rs
@@ -24,6 +27,10 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/error.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/run.rs
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/src/script/vm/capability_set.rs
   - zircon_runtime/src/script/vm/handles.rs
@@ -49,8 +56,8 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_script_call_table_calls_dense_id_without_name_lookup
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs::runtime_15_script_host_value_descriptors_do_not_suppress_dead_code
-  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 18, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
-  - python direct script_binding_boundary_audit (2026-06-21 Markdown renderer split: script_binding_boundary.py = 351, script_binding_markdown.py = 106, expected_source_file_count = 18, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 19, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
+  - python direct script_binding_boundary_audit (2026-06-21 Markdown renderer split: script_binding_boundary.py = 352, script_binding_markdown.py = 106, expected_source_file_count = 19, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
   - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 48/48 passed)
   - "pending: cargo test -p zircon_runtime --lib script --locked -- --nocapture"
 doc_type: module-detail
@@ -61,6 +68,15 @@ doc_type: module-detail
 Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 52 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
 
 `HostExportRegistry::register_module(...)` is the runtime enforcement point. It validates module names, declared module capabilities, function arity, required function capabilities, callback/descriptor parity, type descriptors, and call-time capability grants. `builtin_host_module_descriptors()` plus `zircon_host_reflection_docs` are the machine-renderable source for the fixed built-in ledger.
+
+Runtime 15 F5 host reflection docs CLI typed errors
+(`runtime_15_host_reflection_docs_cli_typed_errors_static_passed_cargo_deferred`) keeps the
+`zircon_host_reflection_docs` writer command from becoming an ad hoc string-error shell.
+`HostReflectionDocsError::CollectBuiltInHostModules` preserves the VM registration source when the
+fixed built-in ledger cannot be collected, and `HostReflectionDocsError::WriteHostInterfaceDocs`
+preserves the output path plus writer IO source when Markdown cannot be emitted. The command root
+only calls `run::run(...)` and prints the typed error at the process boundary; the ledger and
+descriptor generation behavior remain unchanged.
 
 `HostExportRegistry::script_call_table()` snapshots those validated module descriptors and callbacks into dense `ScriptCallSite` rows. The real `zr_vm` backend resolves each native host callback against that table during module registration, so runtime host calls dispatch by pre-resolved call site instead of performing module/function name lookup on every call. The plugin bridge performance baseline also scans `ScriptCallTable::call(...)` and the real backend callback builder so this hot path cannot drift back to `by_name`, `resolve(...)`, or `HostExportRegistry::call_with_capabilities(...)`. That source-structure guard passed independently on 2026-06-14; Cargo lib-test execution is still waiting on unrelated render call-arity compile errors.
 
@@ -165,6 +181,8 @@ Runtime 15 F12 script host value descriptor dead-code cleanup keeps this math le
 
 `gameplay_host.rs` owns only the `zr.zircon.gameplay` module descriptor and the 39 `HostExportFunction::new(...)` registration anchors. The callback implementations are folder-backed domain owners: `input.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `script_bindings.rs`, and `values.rs`.
 
+Runtime 15 F5 gameplay host typed errors keeps the VM-visible function ledger unchanged while adding `script/vm/gameplay_host/error.rs` as the local typed-error owner. `GameplayHostError` / `GameplayHostResult` preserve `SceneError`, `NavigationError`, JSON serialization failures, and missing-entity categories inside gameplay host mutation/navigation paths; `ScriptHostError` string diagnostics remain only at the host-call boundary. Status: `runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred`; guard: `review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary`.
+
 `runtime_13_gameplay_host_owner_split_keeps_domain_files` keeps that layout executable. It requires each gameplay host owner file to exist, keeps each source owner under the 400-line budget, checks representative registration anchors remain in `gameplay_host.rs`, and keeps shared value parsing/resource/error helpers in `values.rs`.
 
 ## Dynamic Bridge Module
@@ -203,4 +221,4 @@ M2 aligns script-held entity ids with the ECS stable-id invalidation rule. `scri
 
 `script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi` keeps the access-path judgement executable. It scans the current `zircon_runtime/src/script` Rust files for native ECS ABI symbols such as `ZrHostEcsApiV1` and locks the `zr.zircon.gameplay` / `ScriptRuntimeCallContext` anchors as the script-facing gameplay facade.
 
-`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit, while `script_binding_markdown.py` owns the Markdown renderer. Current evidence reports `script_binding_boundary.py = 351`, `script_binding_markdown.py = 106`, `expected_source_file_count = 18`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 48/48 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.
+`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit, while `script_binding_markdown.py` owns the Markdown renderer. Current evidence reports `script_binding_boundary.py = 352`, `script_binding_markdown.py = 106`, `expected_source_file_count = 19`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 48/48 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.

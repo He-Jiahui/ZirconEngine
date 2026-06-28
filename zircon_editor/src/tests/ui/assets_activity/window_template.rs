@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn asset_window_source() -> String {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/windows/asset_window.v2.ui.toml");
-    fs::read_to_string(path).expect("asset_window.v2.ui.toml should be readable")
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/ui/editor/windows/asset_window.zui");
+    fs::read_to_string(path).expect("asset_window.zui should be readable")
 }
 
 #[test]

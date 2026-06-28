@@ -11,6 +11,7 @@ mod plugin_module_manifest;
 mod plugin_option_manifest;
 mod plugin_package_kind;
 mod plugin_package_manifest;
+mod plugin_shader_permutation_manifest;
 
 pub use plugin_dependency_manifest::PluginDependencyManifest;
 pub use plugin_distribution_manifest::PluginDistributionManifest;
@@ -23,3 +24,6 @@ pub use plugin_module_manifest::PluginModuleManifest;
 pub use plugin_option_manifest::PluginOptionManifest;
 pub use plugin_package_kind::PluginPackageKind;
 pub use plugin_package_manifest::PluginPackageManifest;
+pub use plugin_shader_permutation_manifest::{
+    PluginShaderPermutationIdManifest, PluginShaderPermutationManifest,
+};

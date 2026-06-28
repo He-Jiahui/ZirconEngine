@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessStackDescriptor,
     RenderBloomSettings, RenderCameraTargetResolutionReport, RenderColorGradingSettings,
-    RenderFrameExtract, RenderFrameworkError, RenderHybridGiPayloadSource,
+    RenderFrameExtract, RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource,
     RenderPostProcessEffectStackSettings, RenderViewportHandle, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPayloadSource,
 };
@@ -31,8 +31,36 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
+    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    build_frame_submission_context_from_source(framework, viewport, extract, ui_extract)
+    build_frame_submission_context_from_source(
+        framework,
+        viewport,
+        extract,
+        ui_extract,
+        source_payloads,
+    )
+}
+
+#[derive(Clone, Copy)]
+pub(in crate::graphics::runtime::render_framework::submit_frame_extract) struct FrameSubmissionSourcePayloads<
+    'a,
+> {
+    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) virtual_geometry:
+        Option<&'a RenderVirtualGeometryExtract>,
+    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) hybrid_global_illumination:
+        Option<&'a RenderHybridGiExtract>,
+}
+
+impl<'a> FrameSubmissionSourcePayloads<'a> {
+    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn from_extract(
+        extract: &'a RenderFrameExtract,
+    ) -> Self {
+        Self {
+            virtual_geometry: extract.geometry.virtual_geometry.as_ref(),
+            hybrid_global_illumination: extract.lighting.hybrid_global_illumination.as_ref(),
+        }
+    }
 }
 
 fn build_frame_submission_context_from_source(
@@ -40,6 +68,7 @@ fn build_frame_submission_context_from_source(
     viewport: RenderViewportHandle,
     extract_source: &mut Arc<RenderFrameExtract>,
     ui_extract: Option<&UiRenderExtract>,
+    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
     let mut viewport_state =
         resolve_viewport_record_state(framework, viewport, extract_source.as_ref())?;
@@ -122,8 +151,12 @@ fn build_frame_submission_context_from_source(
         .then_some(resolved_post_process.color_grading)
         .unwrap_or_else(RenderColorGradingSettings::default);
     let effective_effect_stack = resolved_post_process.effect_stack;
+    let source_payloads = source_payloads
+        .unwrap_or_else(|| FrameSubmissionSourcePayloads::from_extract(sized_extract));
+    let source_virtual_geometry = source_payloads.virtual_geometry;
+    let source_hybrid_gi = source_payloads.hybrid_global_illumination;
     let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
-        sized_extract.geometry.virtual_geometry.clone(),
+        source_virtual_geometry.cloned(),
         sized_extract.geometry.virtual_geometry_debug,
     );
     let authored_virtual_geometry_present = authored_virtual_geometry_extract.is_some();
@@ -144,16 +177,13 @@ fn build_frame_submission_context_from_source(
             .map(|output| output.extract().clone())
     });
     let authored_hybrid_gi_present = sized_extract.lighting.hybrid_global_illumination.is_some();
+    let authored_hybrid_gi_present = authored_hybrid_gi_present || source_hybrid_gi.is_some();
+    let effective_hybrid_gi_extract = hybrid_gi_enabled
+        .then(|| source_hybrid_gi.cloned())
+        .flatten();
     let source_anti_alias = sized_extract.view.anti_alias;
     let source_msaa_samples = sized_extract.view.camera.msaa_samples;
     let effective_extract = Arc::make_mut(extract_source);
-    apply_effective_advanced_features(
-        effective_extract,
-        hybrid_gi_enabled,
-        virtual_geometry_enabled
-            .then(|| effective_virtual_geometry_extract.clone())
-            .flatten(),
-    );
     apply_effective_post_process_settings(
         effective_extract,
         effective_bloom,
@@ -170,15 +200,20 @@ fn build_frame_submission_context_from_source(
         .map(|output| output.bvh_visualization_instances().to_vec())
         .unwrap_or_default();
     let visibility_context =
-        VisibilityContext::from_extract_with_history_static_index_and_task_pool(
+        VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads(
             effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
             Some(&framework.compute_task_pool),
+            effective_hybrid_gi_extract.as_ref(),
+            virtual_geometry_enabled
+                .then_some(effective_virtual_geometry_extract.as_ref())
+                .flatten(),
         );
-    let history_validation_key = FrameHistoryValidationKey::from_extract(
+    let history_validation_key = FrameHistoryValidationKey::from_extract_with_hybrid_gi(
         effective_extract,
         compiled_feature_names(&compiled_pipeline),
+        effective_hybrid_gi_extract.as_ref(),
     );
     let history_invalidation_reason = frame_history_invalidation_reason(
         framework,
@@ -272,16 +307,9 @@ fn build_frame_submission_context_from_source(
         .particles
         .anonymous_stream_ambiguity_sprite_count();
     let scene_camera_order_report = effective_extract.view.scene_camera_order_report.clone();
-    let hybrid_gi_extract_for_context = hybrid_gi_enabled
-        .then(|| {
-            effective_extract
-                .lighting
-                .hybrid_global_illumination
-                .clone()
-        })
-        .flatten();
+    let hybrid_gi_extract_for_context = effective_hybrid_gi_extract;
     let virtual_geometry_extract_for_context = virtual_geometry_enabled
-        .then(|| effective_virtual_geometry_extract.clone())
+        .then_some(effective_virtual_geometry_extract)
         .flatten();
     let source_extract = Arc::clone(extract_source);
 
@@ -436,17 +464,6 @@ fn virtual_geometry_payload_source_for_extract(
         return RenderVirtualGeometryPayloadSource::AutomaticFallback;
     }
     RenderVirtualGeometryPayloadSource::None
-}
-
-fn apply_effective_advanced_features(
-    extract: &mut RenderFrameExtract,
-    hybrid_gi_enabled: bool,
-    virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
-) {
-    if !hybrid_gi_enabled {
-        extract.lighting.hybrid_global_illumination = None;
-    }
-    extract.geometry.virtual_geometry = virtual_geometry_extract;
 }
 
 fn apply_effective_view_and_graph_settings(

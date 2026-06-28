@@ -1525,6 +1525,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
                 source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
                 visual_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
                 measured_width: 40.0,
+                glyph_advances: vec![],
                 baseline: 12.0,
                 direction: crate::ui::surface::UiTextDirection::LeftToRight,
                 runs: vec![crate::ui::surface::UiResolvedTextRun {

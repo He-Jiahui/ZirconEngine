@@ -4,8 +4,14 @@ use super::ExpectedStatusOutputSlice;
 mod asset_budget_tests;
 #[path = "m3/foundation_guards.rs"]
 mod foundation_guards;
+#[path = "m3/lock_poison_status.rs"]
+mod lock_poison_status;
+#[path = "m3/module_convention_status.rs"]
+mod module_convention_status;
 #[path = "m3/production_guard_support.rs"]
 mod production_guard_support;
+#[path = "m3/review_status_sync.rs"]
+mod review_status_sync;
 #[path = "m3/scene_script_tests.rs"]
 mod scene_script_tests;
 #[path = "m3/status_support.rs"]
@@ -17,6 +23,12 @@ mod ui_tests_second;
 
 pub(super) const FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
     foundation_guards::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
+    lock_poison_status::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] = module_convention_status::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
+    review_status_sync::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const UI_TESTS_FIRST_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
     ui_tests_first::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const ASSET_BUDGET_TESTS_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =

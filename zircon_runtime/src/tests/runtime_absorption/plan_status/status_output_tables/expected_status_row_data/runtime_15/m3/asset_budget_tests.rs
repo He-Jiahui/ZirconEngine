@@ -195,6 +195,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 no oversized test files global gate",
+        &[
+            "runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/global_budget.rs",
+            "TEST_FILE_LINE_BUDGET",
+            "runtime_15_no_oversized_test_files",
+        ],
+    ),
+    (
         "Runtime 15 M3 asset test-budget guard child-owner split",
         &[
             "runtime_15_asset_test_budget_guard_child_owner_split_static_passed_cargo_deferred",

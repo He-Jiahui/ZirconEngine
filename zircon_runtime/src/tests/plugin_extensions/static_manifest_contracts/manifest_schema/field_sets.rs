@@ -1,4 +1,4 @@
-pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 28] = [
+pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 32] = [
     "asset_importers",
     "asset_roots",
     "capabilities",
@@ -10,8 +10,10 @@ pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 28] = [
     "dependencies",
     "description",
     "display_name",
+    "distribution",
     "event_catalogs",
     "feature_extensions",
+    "geometry_sources",
     "id",
     "maturity",
     "modules",
@@ -23,6 +25,8 @@ pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 28] = [
     "package_prefix",
     "provides_interfaces",
     "sdk_api_version",
+    "shader_permutation",
+    "shading_models",
     "supported_platforms",
     "supported_targets",
     "ui_components",
@@ -56,9 +60,16 @@ pub(super) const KNOWN_DEPENDENCY_FIELDS: [&str; 4] =
     ["capability", "id", "interfaces", "required"];
 pub(super) const KNOWN_EVENT_CATALOG_FIELDS: [&str; 3] = ["events", "namespace", "version"];
 pub(super) const KNOWN_EVENT_FIELDS: [&str; 3] = ["display_name", "id", "payload_schema"];
-pub(super) const KNOWN_INTERFACE_FIELDS: [&str; 1] = ["id"];
-pub(super) const KNOWN_MODULE_FIELDS: [&str; 5] =
-    ["capabilities", "crate_name", "kind", "name", "target_modes"];
+pub(super) const KNOWN_INTERFACE_FIELDS: [&str; 2] = ["id", "methods"];
+pub(super) const KNOWN_MODULE_FIELDS: [&str; 7] = [
+    "capabilities",
+    "crate_name",
+    "kind",
+    "name",
+    "system_anchors",
+    "system_sets",
+    "target_modes",
+];
 pub(super) const KNOWN_OPTION_FIELDS: [&str; 6] = [
     "default_value",
     "display_name",
@@ -68,18 +79,36 @@ pub(super) const KNOWN_OPTION_FIELDS: [&str; 6] = [
     "value_type",
 ];
 
-pub(super) const KNOWN_OPTIONAL_FEATURE_FIELDS: [&str; 8] = [
+pub(super) const KNOWN_OPTIONAL_FEATURE_FIELDS: [&str; 10] = [
     "capabilities",
     "default_packaging",
     "dependencies",
+    "distribution",
     "display_name",
     "enabled_by_default",
     "id",
     "modules",
     "owner_plugin_id",
+    "provider_package_id",
 ];
 
 pub(super) const KNOWN_OPTIONAL_FEATURE_DEPENDENCY_FIELDS: [&str; 3] =
     ["capability", "plugin_id", "primary"];
+pub(super) const KNOWN_GEOMETRY_SOURCE_FIELDS: [&str; 6] = [
+    "id",
+    "required_bindings",
+    "shader_defines",
+    "token",
+    "vertex_attributes",
+    "wgsl_include",
+];
+pub(super) const KNOWN_SHADING_MODEL_FIELDS: [&str; 6] = [
+    "deferred_include",
+    "forward_include",
+    "gbuffer_encode_include",
+    "id",
+    "required_channels",
+    "token",
+];
 pub(super) const KNOWN_UI_COMPONENT_FIELDS: [&str; 3] =
     ["component_id", "plugin_id", "ui_document"];

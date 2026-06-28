@@ -216,10 +216,48 @@ pub struct UiShapedGlyph {
     pub source_range: UiTextRange,
     pub visual_frame: UiFrame,
     pub advance: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_id: Option<UiRenderResourceKey>,
+    #[serde(default, skip_serializing_if = "UiShapedGlyphClusterFlags::is_default")]
+    pub cluster_flags: UiShapedGlyphClusterFlags,
+    #[serde(default, skip_serializing_if = "UiShapedGlyphRotation::is_none")]
+    pub rotation: UiShapedGlyphRotation,
     #[serde(default)]
     pub atlas_resource: Option<UiRenderResourceKey>,
     #[serde(default)]
     pub uv_rect: Option<UiResourceUvRect>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiShapedGlyphClusterFlags {
+    pub cluster_start: bool,
+    pub rtl: bool,
+    pub whitespace: bool,
+    pub space: bool,
+    pub tab: bool,
+    pub mandatory_break: bool,
+    pub soft_break: bool,
+    pub virtual_glyph: bool,
+}
+
+impl UiShapedGlyphClusterFlags {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiShapedGlyphRotation {
+    #[default]
+    None,
+    Cw90,
+}
+
+impl UiShapedGlyphRotation {
+    pub fn is_none(&self) -> bool {
+        matches!(self, Self::None)
+    }
 }
 
 impl UiShapedGlyph {
@@ -234,9 +272,27 @@ impl UiShapedGlyph {
             source_range,
             visual_frame,
             advance,
+            font_id: None,
+            cluster_flags: UiShapedGlyphClusterFlags::default(),
+            rotation: UiShapedGlyphRotation::None,
             atlas_resource: None,
             uv_rect: None,
         }
+    }
+
+    pub fn with_font_id(mut self, font_id: UiRenderResourceKey) -> Self {
+        self.font_id = Some(font_id);
+        self
+    }
+
+    pub fn with_cluster_flags(mut self, cluster_flags: UiShapedGlyphClusterFlags) -> Self {
+        self.cluster_flags = cluster_flags;
+        self
+    }
+
+    pub fn with_rotation(mut self, rotation: UiShapedGlyphRotation) -> Self {
+        self.rotation = rotation;
+        self
     }
 
     pub fn with_atlas(
@@ -290,25 +346,70 @@ fn shaped_glyphs_for_line(line: &super::UiResolvedTextLine) -> Vec<UiShapedGlyph
         return Vec::new();
     }
 
-    let advance = line.frame.width.max(0.0) / graphemes.len() as f32;
+    let advances = glyph_advances_for_line(line, graphemes.len());
+    let mut cursor_x = line.frame.x;
     graphemes
         .iter()
-        .enumerate()
-        .map(|(index, (visual_start, grapheme))| {
+        .zip(advances)
+        .map(|((visual_start, grapheme), advance)| {
             let visual_end = *visual_start + grapheme.len();
+            let visual_frame =
+                UiFrame::new(cursor_x, line.frame.y, advance.max(0.0), line.frame.height);
+            cursor_x += advance.max(0.0);
             UiShapedGlyph::new(
                 synthetic_glyph_id(grapheme),
                 source_range_for_visual_span(line, *visual_start, visual_end),
-                UiFrame::new(
-                    line.frame.x + advance * index as f32,
-                    line.frame.y,
-                    advance.max(0.0),
-                    line.frame.height,
-                ),
+                visual_frame,
                 advance,
             )
+            .with_cluster_flags(cluster_flags_for_grapheme(grapheme, line.direction))
         })
         .collect()
+}
+
+fn glyph_advances_for_line(line: &super::UiResolvedTextLine, grapheme_count: usize) -> Vec<f32> {
+    if line.glyph_advances.len() == grapheme_count {
+        let advances = line
+            .glyph_advances
+            .iter()
+            .map(|advance| sanitized_advance(*advance))
+            .collect::<Vec<_>>();
+        if advances.iter().any(|advance| *advance > 0.0) {
+            return advances;
+        }
+    }
+
+    let fallback_width = if line.measured_width.is_finite() && line.measured_width > 0.0 {
+        line.measured_width
+    } else {
+        line.frame.width.max(0.0)
+    };
+    let fallback_advance = fallback_width / grapheme_count.max(1) as f32;
+    vec![fallback_advance; grapheme_count]
+}
+
+fn sanitized_advance(advance: f32) -> f32 {
+    if advance.is_finite() {
+        advance.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn cluster_flags_for_grapheme(
+    grapheme: &str,
+    direction: UiTextDirection,
+) -> UiShapedGlyphClusterFlags {
+    UiShapedGlyphClusterFlags {
+        cluster_start: true,
+        rtl: matches!(direction, UiTextDirection::RightToLeft),
+        whitespace: grapheme.chars().any(char::is_whitespace),
+        space: grapheme.chars().any(|ch| matches!(ch, ' ' | '\u{00a0}')),
+        tab: grapheme.contains('\t'),
+        mandatory_break: grapheme.chars().any(|ch| matches!(ch, '\n' | '\r')),
+        soft_break: false,
+        virtual_glyph: false,
+    }
 }
 
 fn source_range_for_visual_span(
@@ -396,8 +497,20 @@ fn text_run_frame(line: &UiShapedTextLine, visual_range: UiTextRange) -> UiFrame
 fn line_visual_x(line: &UiShapedTextLine, visual_offset: usize) -> f32 {
     let text = line.text.as_str();
     let offset = grapheme_floor(text, visual_offset.min(text.len()));
-    let total_units = text.graphemes(true).count().max(1) as f32;
-    let before_units = text[..offset].graphemes(true).count() as f32;
+    let total_units = text.graphemes(true).count();
+    let before_units = text[..offset].graphemes(true).count();
+    if line.glyphs.len() == total_units {
+        return line.frame.x
+            + line
+                .glyphs
+                .iter()
+                .take(before_units)
+                .map(|glyph| sanitized_advance(glyph.advance))
+                .sum::<f32>();
+    }
+
+    let total_units = total_units.max(1) as f32;
+    let before_units = before_units as f32;
     line.frame.x + (line.frame.width.max(0.0) * before_units / total_units)
 }
 

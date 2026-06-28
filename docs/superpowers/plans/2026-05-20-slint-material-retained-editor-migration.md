@@ -16,7 +16,7 @@
 - `docs/ui-and-layout/slint-material-retained-editor-migration.md`: M0 source inventory, export mapping, retained owner, milestone placement, and intentional divergence.
 - `docs/ui-and-layout/index.md`: UI/Layout index link for the new mapping doc.
 - `.codex/sessions/20260520-slint-material-retained-editor-migration.md`: live cross-session coordination note while active.
-- `zircon_editor/assets/ui/theme/editor_material.v2.ui.toml`: M1 Slint Material foundation token landing zone.
+- `zircon_editor/assets/ui/theme/editor_material.zui`: M1 Slint Material foundation token landing zone.
 - `zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs`: M0/M1/M2 static boundary tests for source coverage, docs coverage, token coverage, metadata coverage, and no direct Editor Slint dependency.
 - `zircon_editor/src/tests/ui/boundary/mod.rs`: test module registration only.
 - `zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs`: retained host metadata carrier for state-layer/ripple facts.
@@ -57,7 +57,7 @@
 
 ## Milestone 1: Foundation Token Convergence
 
-**Goal:** Add Slint Material foundation token names and values to `editor_material.v2.ui.toml` while preserving existing compact Editor selectors.
+**Goal:** Add Slint Material foundation token names and values to `editor_material.zui` while preserving existing compact Editor selectors.
 
 **In-scope behaviors:** palette/scheme role tokens, metric ladder, icon sizes, padding/spacing/radius ladder, typography scale, animation timing/easing names, state-layer opacities, disabled opacity, modal background, shadow/elevation roles, and source-trace docs/tests.
 
@@ -65,7 +65,7 @@
 
 **Implementation slices:**
 
-- [x] Extend `[tokens]` in `zircon_editor/assets/ui/theme/editor_material.v2.ui.toml` with Slint Material palette roles prefixed `slint_material_*` and stable aliases where existing `material_color_*` roles already exist.
+- [x] Extend `[tokens]` in `zircon_editor/assets/ui/theme/editor_material.zui` with Slint Material palette roles prefixed `slint_material_*` and stable aliases where existing `material_color_*` roles already exist.
 - [x] Add metric ladder tokens such as `slint_material_size_32`, `slint_material_padding_16`, `slint_material_spacing_8`, and `slint_material_border_radius_28`.
 - [x] Add typography tokens for `display_*`, `headline_*`, `title_*`, `label_*`, and `body_*` font sizes and weights.
 - [x] Add animation tokens for emphasized, standard, ripple, and opacity durations/easing names.
@@ -77,11 +77,11 @@
 
 - [x] Run `rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs`.
 - [x] Run `cargo metadata --locked --no-deps --format-version 1`.
-- [x] Run focused `git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/ui-and-layout/index.md zircon_editor/assets/ui/theme/editor_material.v2.ui.toml zircon_editor/src/tests/ui/boundary/mod.rs zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs .codex/sessions/20260520-slint-material-retained-editor-migration.md`.
+- [x] Run focused `git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/ui-and-layout/index.md zircon_editor/assets/ui/theme/editor_material.zui zircon_editor/src/tests/ui/boundary/mod.rs zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs .codex/sessions/20260520-slint-material-retained-editor-migration.md`.
 
 **Lightweight checks:** TOML parsing is covered by the boundary test source and can be executed during the milestone testing stage; no full workspace build is required for the token-only slice.
 
-**Exit evidence:** M1 exits when source-derived token groups are present in `editor_material.v2.ui.toml`, exact values are documented and statically checked, and no direct Slint dependency appears in `zircon_editor/Cargo.toml`.
+**Exit evidence:** M1 exits when source-derived token groups are present in `editor_material.zui`, exact values are documented and statically checked, and no direct Slint dependency appears in `zircon_editor/Cargo.toml`.
 
 ## Milestone 2: State Layer, Ripple, And Elevation Behavior
 
@@ -101,7 +101,7 @@
 - [x] Run `rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs`.
 - [x] Run `cargo metadata --locked --no-deps --format-version 1`.
 - [x] Run focused `cargo check -p zircon_runtime --lib --locked --jobs 1`; passed with one existing dead-code warning for `World::entity_ids_matching_query_archetypes`.
-- [x] Run focused `git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/zircon_editor/ui/retained_host/host_contract/data/template_nodes.md docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md zircon_editor/assets/ui/theme/editor_material.v2.ui.toml zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs .codex/sessions/20260520-slint-material-retained-editor-migration.md`; no whitespace errors, only CRLF normalization warnings.
+- [x] Run focused `git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/zircon_editor/ui/retained_host/host_contract/data/template_nodes.md docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md zircon_editor/assets/ui/theme/editor_material.zui zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs .codex/sessions/20260520-slint-material-retained-editor-migration.md`; no whitespace errors, only CRLF normalization warnings.
 - [ ] `cargo check -p zircon_editor --lib --locked --jobs 1` is blocked outside this slice by `zircon_runtime/src/core/framework/render/material/validation_error.rs` adding `RenderMaterialValidationError::MissingRequiredProperty` without the matching arm in `zircon_editor/src/ui/material_editor/projection.rs`.
 - [ ] `cargo test -p zircon_runtime --lib material_button_style --locked --jobs 1` is blocked outside this slice before reaching the focused tests by `zircon_runtime/src/graphics/tests/renderer_data_asset.rs` using `BTreeMap<AssetReference, ...>` while the currently dirty `zircon_runtime_interface::resource::AssetReference` lacks `Ord`.
 

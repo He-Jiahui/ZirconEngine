@@ -21,7 +21,7 @@ fn ui_asset_authoring_preview_and_binding_contracts_are_rust_owned() {
         "src/ui/retained_host/host_contract/data/ui_asset/preview.rs",
         "src/ui/retained_host/host_contract/data/ui_asset/inspector/binding.rs",
     ]);
-    let asset = source("assets/ui/editor/ui_asset_editor.v2.ui.toml");
+    let asset = source("assets/ui/editor/ui_asset_editor.zui");
 
     for required in [
         "pub(crate) struct UiAssetPreviewMockData",

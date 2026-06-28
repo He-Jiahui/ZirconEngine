@@ -8,7 +8,7 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
         .join("ui")
         .join("editor")
         .join("host")
-        .join("workbench_shell.v2.ui.toml");
+        .join("workbench_shell.zui");
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     runtime

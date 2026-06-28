@@ -80,7 +80,7 @@ impl InputManagerFacade for DefaultInputManager {
                     .push(MouseWheelEvent::lines(0.0, *delta));
             }
             InputEvent::MouseWheel(wheel) => {
-                state.wheel_accumulator += wheel.legacy_vertical_delta();
+                state.wheel_accumulator += wheel.vertical_line_delta();
                 state.mouse_wheel_accumulator[0] += wheel.x;
                 state.mouse_wheel_accumulator[1] += wheel.y;
                 state.mouse_wheel_unit = wheel.unit;

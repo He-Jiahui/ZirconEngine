@@ -3,11 +3,21 @@ related_code:
   - tools/audit_plugin_structure.py
   - tools/plugin_structure_audits/__init__.py
   - tools/plugin_structure_audits/manifest_schema.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
   - tools/plugin_structure_audits/registration.py
   - tools/plugin_structure_audits/capability.py
   - tools/plugin_structure_audits/dependency_boundary.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/**/plugin.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
@@ -246,11 +256,21 @@ implementation_files:
   - tools/audit_plugin_structure.py
   - tools/plugin_structure_audits/__init__.py
   - tools/plugin_structure_audits/manifest_schema.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
   - tools/plugin_structure_audits/registration.py
   - tools/plugin_structure_audits/capability.py
   - tools/plugin_structure_audits/dependency_boundary.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
@@ -467,6 +487,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - python tools/audit_plugin_structure.py --json: classified-and-clear, missing_plugin_toml=0, manifest_schema_violations=0, expected_manifest_count=37
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 5/5 on 2026-06-28 after manifest schema enum closed-set guard
   - python tools/audit_plugin_structure.py --json: sample_conformance_status=sample-clean, sample_expected_count=1, sample_violation_count=0, migration_debt_count=35, migration_debt_details_truncated=true on 2026-06-22
   - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py: passed 2026-06-22
   - python -m py_compile tools/audit_plugin_structure.py tools/plugin_structure_audits/__init__.py tools/plugin_structure_audits/manifest_schema.py tools/plugin_structure_audits/skeleton.py tools/plugin_structure_audits/registration.py: passed 2026-06-23
@@ -727,6 +748,19 @@ tests:
   - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-25 after plugin_sdk_examples CI matrix rollout
   - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=37, standalone_distribution_conformance.dist_build_matrix_count=37, standalone_distribution_conformance.dist_capable_plugins includes plugin_sdk_examples, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0 on 2026-06-25 after plugin_sdk_examples editor-only dist rollout
   - plugin.toml distribution scan across zircon_plugins roots: count=0 on 2026-06-25 after plugin_sdk_examples editor-only dist rollout
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 1 passed, 0 failed on 2026-06-27 after sound optional feature dist wrapper rollout
+  - python tools\audit_plugin_structure.py --json: skeleton_conformance.migration_debt_count=0, plugin_skeleton_gate.migration_debt_count=0, standalone_distribution_conformance.dist_capable_plugin_count=37, standalone_distribution_conformance.dist_build_matrix_count=37, standalone_distribution_conformance.dist_dependency_boundary_violations=0, standalone_distribution_conformance.distribution_section_violations=0, manifest_schema_violations=0, missing_plugin_toml=0 on 2026-06-27 after sound optional feature dist wrapper rollout
+  - sound optional feature plugin.toml scan: both `sound.timeline_animation_track` and `sound.ray_traced_convolution_reverb` declare `native_dynamic` default packaging and matching native module rows on 2026-06-27
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 8/8 on 2026-06-28 after optional feature module schema guard
+  - python tools\audit_plugin_structure.py --json: manifest_schema_violations=0, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0 on 2026-06-28 after optional feature module schema guard
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 11/11 on 2026-06-28 after optional feature field schema guard
+  - python tools\audit_plugin_structure.py --json: manifest_schema_violations=0, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0 on 2026-06-28 after optional feature field schema guard
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 15/15 on 2026-06-28 after optional feature dependency schema guard
+  - python tools\audit_plugin_structure.py --json: manifest_schema_violations=0, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0 on 2026-06-28 after optional feature dependency schema guard
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 19/19 on 2026-06-28 after optional feature distribution schema guard
+  - python tools\audit_plugin_structure.py --json: manifest_schema_violations=0, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0 on 2026-06-28 after optional feature distribution schema guard
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema: passed 21/21 on 2026-06-28 after optional feature provider package id schema guard
+  - python tools\audit_plugin_structure.py --json: manifest_schema_violations=0, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0 on 2026-06-28 after optional feature provider package id schema guard
 doc_type: module-detail
 ---
 
@@ -734,9 +768,13 @@ doc_type: module-detail
 
 `tools/audit_plugin_structure.py` is the Plugins 12 structure-audit entry point. It mirrors the runtime audit pattern with a plugin-focused audit package under `tools/plugin_structure_audits/`.
 
-The first landed audit is `plugin_manifest_schema_uniform`. It derives expected plugin roots from `zircon_plugins/Cargo.toml`, skips workspace support crates that are not plugins (`editor_support`, `first_party_runtime_catalog`, and `plugin_sdk`), folds `features/*` members back to their parent plugin, and treats `asset_importers/<kind>/runtime` as separate importer plugin roots. The current expected manifest set is 37 roots.
+The first landed audit is `plugin_manifest_schema_uniform`. It derives expected plugin roots from `zircon_plugins/Cargo.toml`, skips workspace support crates that are not plugins (`editor_support`, `first_party_runtime_catalog`, and `plugin_sdk`), folds `features/*` members back to their parent plugin, and treats `asset_importers/<kind>/runtime` as separate importer plugin roots. The current expected manifest set is 37 roots. The current manifest schema gate checks required root/module fields, optional feature core fields, optional feature provider package id shape, optional feature dependency row fields, optional feature distribution fields, and generated headers for generated manifests; rejects unsupported root `supported_targets` / `supported_platforms`, root `maturity`, optional feature `default_packaging`, optional feature distribution `forms` / `default_packaging`, root or optional feature module `kind`, and root or optional feature module `target_modes` values.
 
-Plugins 12 M2/T2 adds `skeleton_conformance`. It uses the same expected plugin root set, checks the first blessed sample root `plugin_sdk_examples`, and classifies non-sample violations as migration debt instead of failing the M2 sample gate. The 2026-06-23 M5/T1 importer capability-owner slice removed 10 importer runtime roots from that debt list, the follow-up runtime-only skeleton owner slice removed `ai`, `solari`, `zr_vm_language`, `asset_importers/audio`, and `asset_importers/texture`, the editor-only skeleton owner slice removed `native_window_hosting`, `runtime_diagnostics`, and `ui_asset_authoring`, the authoring runtime/editor skeleton owner slice removed `prefab_tools`, `terrain`, and `tilemap_2d`, the particles/physics/texture skeleton owner slice removed `particles`, `physics`, and `texture`, the editor_build_export_desktop skeleton owner slice removed `editor_build_export_desktop`, the sound skeleton owner slice removed `sound`, the timeline_sequence skeleton owner slice removed `timeline_sequence`, and final owner rollout removed `animation`, `animation_graph`, `hybrid_gi`, `material_editor`, `navigation`, `net`, `rendering`, and `virtual_geometry`; current `plugin_skeleton_gate.m2_gate_status` is `sample-clean-migration-debt-clear`, `migration_debt_count` is 0, and `migration_debt_roots` is empty. Plugins 13 dependency-boundary audit currently reports thirty-seven dist-capable plugins, including the latest editor-only `editor_build_export_desktop` and `plugin_sdk_examples` rollouts, with `dist_build_matrix_count = 37`, `dist_dependency_boundary_violations = 0`, and `distribution_section_violations = 0`; a direct `plugin.toml` distribution scan also reports `count=0`. The `[distribution]` section check still requires `engine_compat`, `dist_crate`, and `descriptor_symbol`, but runtime/editor entry validation now accepts at least one of `runtime_entry` or `editor_entry` so editor-only dist plugins remain first-class without fake runtime exports.
+The 2026-06-28 D-S7 static plugin manifest generation/parity review sync (`ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred`) records the current closed M1 manifest state for the runtime review mirror. `plugin_manifest_schema_uniform` now reports `expected_manifest_count = 37`, `manifest_count = 37`, `generated_manifest_count = 36`, `hand_written_native_manifest_count = 1`, `manifest_schema_violations = 0`, `generated_manifest_header_violations = 0`, and `m1_gate_status = classified-and-clear`. The generated 36 are all non-native static plugin roots with `# @generated from Rust descriptor package_manifest(); do not edit by hand.`; `native_dynamic_fixture` is the single hand-written manifest source. `plugins_12_static_plugin_manifest_is_generated`, `plugins_12_manifest_schema_uniform_audit_report_is_clean`, and `plugins_12_feature_enabled_runtime_descriptor_manifest_parity` are the code guards that prevent D-S7 from returning to a dead-copy state.
+
+Plugins 12 M2/T2 adds `skeleton_conformance`. It uses the same expected plugin root set, checks the first blessed sample root `plugin_sdk_examples`, and classifies non-sample violations as migration debt instead of failing the M2 sample gate. The 2026-06-28 D7 core workspace dependency inheritance guard (`d7_core_workspace_dependency_inheritance_guard_static_passed_cargo_deferred`) extends the same audit with global core dependency fields: `core_workspace_dependency_status = core-workspace-deps-clean`, `core_workspace_dependency_count = 117`, and `core_workspace_dependency_violation_count = 0`. These fields require every plugin member dependency on `zircon_runtime`, `zircon_editor`, or `zircon_runtime_interface` to use `workspace = true`; `zircon_plugins/Cargo.lock` is synchronized with the offline workspace resolution and `cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --offline` passes. Plugin-to-plugin path dependencies remain a separate migration track.
+
+The 2026-06-23 M5/T1 importer capability-owner slice removed 10 importer runtime roots from the skeleton debt list, the follow-up runtime-only skeleton owner slice removed `ai`, `solari`, `zr_vm_language`, `asset_importers/audio`, and `asset_importers/texture`, the editor-only skeleton owner slice removed `native_window_hosting`, `runtime_diagnostics`, and `ui_asset_authoring`, the authoring runtime/editor skeleton owner slice removed `prefab_tools`, `terrain`, and `tilemap_2d`, the particles/physics/texture skeleton owner slice removed `particles`, `physics`, and `texture`, the editor_build_export_desktop skeleton owner slice removed `editor_build_export_desktop`, the sound skeleton owner slice removed `sound`, the timeline_sequence skeleton owner slice removed `timeline_sequence`, and final owner rollout removed `animation`, `animation_graph`, `hybrid_gi`, `material_editor`, `navigation`, `net`, `rendering`, and `virtual_geometry`; current `plugin_skeleton_gate.m2_gate_status` is `sample-clean-migration-debt-clear`, `migration_debt_count` is 0, and `migration_debt_roots` is empty. Plugins 13 dependency-boundary audit currently reports thirty-seven dist-capable plugin roots, including the latest editor-only `editor_build_export_desktop` and `plugin_sdk_examples` rollouts, with `dist_build_matrix_count = 37`, `dist_dependency_boundary_violations = 0`, and `distribution_section_violations = 0`; a direct `plugin.toml` distribution scan also reports `count=0`. The 2026-06-27 Sound optional-feature dist wrapper slice intentionally keeps `sound.timeline_animation_track` and `sound.ray_traced_convolution_reverb` as feature extensions under the `sound` owner instead of adding nested plugin roots, so the root count remains 37 while the feature manifests gain `native_dynamic` packaging and native module rows. The `[distribution]` section check still requires `engine_compat`, `dist_crate`, and `descriptor_symbol`, but runtime/editor entry validation now accepts at least one of `runtime_entry` or `editor_entry` so editor-only dist plugins remain first-class without fake runtime exports.
 
 Plugins 12 M3/T1 adds `registration_conformance` for both importer tracks. The first slice covered the `asset_importers/*` family; the follow-up extends the same scan to root-level split importer packages. It scans runtime source files outside tests for public `pub fn register(...)` free functions and for `runtime/src/registration.rs` owner files.
 
@@ -761,16 +799,19 @@ The audit reports:
 - `capability_conformance.m4_runtime_capability_gate_status`
 - `capability_conformance.sdk_builder_mirror_violations`
 - `capability_conformance.m4_t2_builder_mirror_gate_status`
+- `capability_conformance.editor_runtime_mirror_root_count`
+- `capability_conformance.editor_runtime_mirror_violations`
+- `capability_conformance.d9_editor_runtime_mirror_gate_status`
 - `standalone_distribution_conformance.dist_capable_plugin_count`
 - `standalone_distribution_conformance.dist_capable_plugins`
 - `standalone_distribution_conformance.dist_build_matrix_count`
 - `standalone_distribution_conformance.dist_dependency_boundary_violations`
 
-The capability audit is no longer a placeholder. Plugins 12 M4/T1 made the first 15 trait-backed first-party runtime roots clean for runtime package capability single-source ownership, and M4/T2 added the SDK builder/editor mirror guard. The audit now accepts `runtime_capabilities()` when it is implemented in `plugin.rs` and re-exported from `lib.rs`, so the M4 guard stays authoritative while M5 moves behavior out of crate roots. M1/T4 still only claims `missing_plugin_toml = 0` and `manifest_schema_violations = 0`; M2/T2 only claims that the blessed sample is clean; after the 2026-06-23 M5/T1 owner rollouts, migration debt roots are empty and the audit reports `missing_capability_owner_files = 0` plus `missing_runtime_capability_exports = 0`.
+The capability audit is no longer a placeholder. Plugins 12 M4/T1 made the first 15 trait-backed first-party runtime roots clean for runtime package capability single-source ownership, and M4/T2 added the SDK builder/editor mirror guard. The 2026-06-28 D1 capability single-source review/status sync mirrors those results into Runtime 15 with guard `review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror` and status `d1_capability_single_source_review_synced_static_passed_cargo_deferred`; the locked audit anchors are `plugins_12_runtime_capability_single_source_guard_passed`, `plugins_12_capability_single_source_conformance`, `m4_runtime_capability_gate_status = runtime-capability-single-source-clean`, `capability_source_mismatches = 0`, `m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`, and `sdk_builder_mirror_violations = 0`. The 2026-06-28 D9 editor/runtime mirror consumer guard extends SDK capability mirror to real consumers: animation, physics, and net editor plugins must use `EditorPluginDeclaration::mirrors_runtime_manifest`, tests must assert `mirrored_runtime_package_id()`, and the audit reports `editor_runtime_mirror_violations = 0` plus `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`; status `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` and guard `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration` lock the cross-document contract. The audit now accepts `runtime_capabilities()` when it is implemented in `plugin.rs` and re-exported from `lib.rs`, so the M4 guard stays authoritative while M5 moves behavior out of crate roots. M1/T4 still only claims `missing_plugin_toml = 0` and `manifest_schema_violations = 0`; M2/T2 only claims that the blessed sample is clean; after the 2026-06-23 M5/T1 owner rollouts, migration debt roots are empty and the audit reports `missing_capability_owner_files = 0` plus `missing_runtime_capability_exports = 0`.
 
 `skeleton_conformance.migration_debt_details` is intentionally capped to the first 64 detail rows and paired with `migration_debt_detail_count` plus `migration_debt_details_truncated`. Counts and root names remain complete, while the JSON stays usable for command-line validation.
 
-The first-party runtime catalog carries a separate feature-enabled descriptor/static manifest parity guard for linked runtime providers. That guard catches category, maturity, target, platform, capability, default packaging, and runtime-module drift between Rust descriptors and generated static manifests. The newer `capability_conformance` audit is the source-owner guard for the first landed runtime capability scopes; it is not yet a full plugin-wide completion claim while skeleton debt remains.
+The first-party runtime catalog carries a separate feature-enabled descriptor/static manifest parity guard for linked runtime providers. That guard catches category, maturity, target, platform, capability, default packaging, and runtime-module drift between Rust descriptors and generated static manifests. The newer `capability_conformance` audit is the source-owner guard for the D1 audited first-party runtime roots and SDK builder mirror; it is not a broader editor/runtime capability rollout claim beyond the explicitly audited roots and D9 mirror consumers.
 
 The current M3/T1 registration gates are clean for the importer scopes covered so far: `asset_importers/{data,model,shader}/runtime/src/plugin.rs` are the family trait-backed entries, split importers now use `runtime/src/plugin.rs` entries, importer free-function registration sites are zero, and there are no non-test `runtime/src/registration.rs` owner files in either importer track. The M5/T1 importer capability-owner slice additionally moved those 10 importer roots to `runtime/src/capability.rs`, the runtime-only skeleton owner slice brought `asset_importers/{audio,texture}` into `plugin.rs` / `capability.rs` form, the editor-only skeleton owner slice split three editor crate roots into `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs`, the authoring runtime/editor skeleton owner slice split `prefab_tools`, `terrain`, and `tilemap_2d` into runtime `plugin.rs` / `tests.rs` plus editor `authoring.rs` / `plugin.rs` / `tests.rs` owners, the particles/physics/texture skeleton owner slice split `particles`, `physics`, and `texture` into runtime/editor owner files, the editor_build_export_desktop skeleton owner slice split its editor crate into `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs`, the sound skeleton owner slice split main sound plus two feature crates into runtime/editor `capability.rs` / `plugin.rs` / `tests.rs` owners, the timeline_sequence skeleton owner slice split its editor crate into `capability.rs` / `extension_ids.rs` / `plugin.rs` / `tests.rs` owners, and final owner rollout split the remaining `animation`, `animation_graph`, `hybrid_gi`, `material_editor`, `navigation`, `net`, `rendering`, and `virtual_geometry` roots. Skeleton debt is now 0. This closes skeleton migration debt; full dist-capable expansion remains tracked by Plugins 13.
 

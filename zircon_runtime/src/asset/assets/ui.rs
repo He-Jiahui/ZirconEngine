@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, HashSet};
 
-use crate::core::resource::{AssetReference, ResourceLocator};
+use crate::core::resource::{AssetReference, ResourceLocator, ResourceLocatorError};
 use crate::ui::template::{collect_document_resource_dependencies, UiAssetLoader};
 use crate::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::ui::style::UiThemeDocument;
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
-use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
+use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2AssetKind};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -77,10 +77,15 @@ pub struct UiV2StyleAsset {
     pub document: UiV2AssetDocument,
 }
 
+pub type UiAssetDocumentResult<T> = std::result::Result<T, UiAssetDocumentError>;
+pub type UiThemeAssetDocumentResult<T> = std::result::Result<T, UiThemeAssetDocumentError>;
+pub type UiIconAssetDocumentResult<T> = std::result::Result<T, UiIconAssetDocumentError>;
+pub type UiV2AssetDocumentResult<T> = std::result::Result<T, UiV2AssetDocumentError>;
+
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiAssetDocumentError {
     #[error("failed to parse ui asset document: {0}")]
-    Parse(String),
+    Parse(#[from] UiAssetError),
     #[error("expected ui asset kind {expected:?} but document was {actual:?}")]
     UnexpectedKind {
         expected: UiAssetKind,
@@ -88,33 +93,47 @@ pub enum UiAssetDocumentError {
     },
 }
 
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum UiThemeAssetDocumentError {
     #[error("failed to parse ui theme asset document: {0}")]
-    Parse(String),
+    Parse(#[source] toml::de::Error),
 }
 
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum UiIconAssetDocumentError {
     #[error("failed to parse ui icon asset document: {0}")]
-    Parse(String),
-    #[error("ui icon asset is invalid: {0}")]
-    Invalid(String),
+    Parse(#[source] toml::de::Error),
+    #[error("ui icon default_size must be a positive finite value")]
+    InvalidDefaultSize,
+    #[error("ui icon semantic_id must not be empty")]
+    EmptySemanticId,
+    #[error("inline svg source must not be empty")]
+    EmptyInlineSvgSource,
+    #[error("external icon source uri must not be empty")]
+    EmptyExternalSourceUri,
+    #[error("source uri `{uri}` is not a valid resource locator: {source}")]
+    InvalidSourceUri {
+        uri: String,
+        #[source]
+        source: ResourceLocatorError,
+    },
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiV2AssetDocumentError {
     #[error("failed to parse ui v2 asset document: {0}")]
-    Parse(String),
+    Parse(#[from] UiV2AssetError),
     #[error("expected ui v2 asset kind {expected:?} but document was {actual:?}")]
     UnexpectedKind {
         expected: UiV2AssetKind,
         actual: UiV2AssetKind,
     },
+    #[error("ui v2 component documents must use `.zui`, not `.v2.ui.toml`")]
+    ComponentRequiresZui,
 }
 
 impl UiLayoutAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiAssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiAssetDocumentResult<Self> {
         parse_typed(document, UiAssetKind::Layout).map(|document| Self { document })
     }
 
@@ -124,7 +143,7 @@ impl UiLayoutAsset {
 }
 
 impl UiWidgetAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiAssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiAssetDocumentResult<Self> {
         parse_typed(document, UiAssetKind::Widget).map(|document| Self { document })
     }
 
@@ -134,7 +153,7 @@ impl UiWidgetAsset {
 }
 
 impl UiStyleAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiAssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiAssetDocumentResult<Self> {
         parse_typed(document, UiAssetKind::Style).map(|document| Self { document })
     }
 
@@ -144,10 +163,10 @@ impl UiStyleAsset {
 }
 
 impl UiThemeAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiThemeAssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiThemeAssetDocumentResult<Self> {
         toml::from_str::<UiThemeDocument>(document)
             .map(|document| Self { document })
-            .map_err(|error| UiThemeAssetDocumentError::Parse(error.to_string()))
+            .map_err(UiThemeAssetDocumentError::Parse)
     }
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
@@ -156,9 +175,8 @@ impl UiThemeAsset {
 }
 
 impl UiIconAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiIconAssetDocumentError> {
-        let asset = toml::from_str::<Self>(document)
-            .map_err(|error| UiIconAssetDocumentError::Parse(error.to_string()))?;
+    pub fn from_toml_str(document: &str) -> UiIconAssetDocumentResult<Self> {
+        let asset = toml::from_str::<Self>(document).map_err(UiIconAssetDocumentError::Parse)?;
         asset.validate()?;
         Ok(asset)
     }
@@ -182,35 +200,28 @@ impl UiIconAsset {
         references
     }
 
-    fn validate(&self) -> Result<(), UiIconAssetDocumentError> {
+    fn validate(&self) -> UiIconAssetDocumentResult<()> {
         if !self.default_size.is_finite() || self.default_size <= 0.0 {
-            return Err(UiIconAssetDocumentError::Invalid(
-                "default_size must be a positive finite value".to_string(),
-            ));
+            return Err(UiIconAssetDocumentError::InvalidDefaultSize);
         }
         if self.semantic_id.trim().is_empty() {
-            return Err(UiIconAssetDocumentError::Invalid(
-                "semantic_id must not be empty".to_string(),
-            ));
+            return Err(UiIconAssetDocumentError::EmptySemanticId);
         }
         match self.source.kind {
             UiIconSourceKind::Svg => match self.source.text.as_deref() {
                 Some(text) if !text.trim().is_empty() => Ok(()),
-                _ => Err(UiIconAssetDocumentError::Invalid(
-                    "inline svg source must not be empty".to_string(),
-                )),
+                _ => Err(UiIconAssetDocumentError::EmptyInlineSvgSource),
             },
             UiIconSourceKind::SvgAsset | UiIconSourceKind::Bitmap => {
                 let Some(uri) = self.source.uri.as_deref() else {
-                    return Err(UiIconAssetDocumentError::Invalid(
-                        "external icon source uri must not be empty".to_string(),
-                    ));
+                    return Err(UiIconAssetDocumentError::EmptyExternalSourceUri);
                 };
-                if ResourceLocator::parse(uri).is_err() {
-                    return Err(UiIconAssetDocumentError::Invalid(format!(
-                        "source uri is not a valid resource locator: {uri}"
-                    )));
-                }
+                ResourceLocator::parse(uri).map_err(|source| {
+                    UiIconAssetDocumentError::InvalidSourceUri {
+                        uri: uri.to_string(),
+                        source,
+                    }
+                })?;
                 Ok(())
             }
         }
@@ -218,7 +229,7 @@ impl UiIconAsset {
 }
 
 impl UiV2ViewAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiV2AssetDocumentResult<Self> {
         parse_v2_typed(document, UiV2AssetKind::View).map(|document| Self { document })
     }
 
@@ -228,14 +239,20 @@ impl UiV2ViewAsset {
 }
 
 impl UiV2ComponentAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiV2AssetDocumentResult<Self> {
         parse_v2_typed(document, UiV2AssetKind::Component).map(|document| Self { document })
     }
 
-    pub fn from_zui_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
-        UiZuiAssetLoader::load_zui_str(document)
-            .map(|document| Self { document })
-            .map_err(|error| UiV2AssetDocumentError::Parse(error.to_string()))
+    pub fn from_zui_str(document: &str) -> UiV2AssetDocumentResult<Self> {
+        let document =
+            UiZuiAssetLoader::load_zui_str(document).map_err(UiV2AssetDocumentError::Parse)?;
+        if document.asset.kind != UiV2AssetKind::Component {
+            return Err(UiV2AssetDocumentError::UnexpectedKind {
+                expected: UiV2AssetKind::Component,
+                actual: document.asset.kind,
+            });
+        }
+        Ok(Self { document })
     }
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
@@ -244,7 +261,7 @@ impl UiV2ComponentAsset {
 }
 
 impl UiV2StyleAsset {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
+    pub fn from_toml_str(document: &str) -> UiV2AssetDocumentResult<Self> {
         parse_v2_typed(document, UiV2AssetKind::Style).map(|document| Self { document })
     }
 
@@ -320,12 +337,8 @@ fn push_reference(
     }
 }
 
-fn parse_typed(
-    document: &str,
-    expected: UiAssetKind,
-) -> Result<UiAssetDocument, UiAssetDocumentError> {
-    let parsed = UiAssetLoader::load_toml_str(document)
-        .map_err(|error| UiAssetDocumentError::Parse(error.to_string()))?;
+fn parse_typed(document: &str, expected: UiAssetKind) -> UiAssetDocumentResult<UiAssetDocument> {
+    let parsed = UiAssetLoader::load_toml_str(document)?;
     if parsed.asset.kind != expected {
         return Err(UiAssetDocumentError::UnexpectedKind {
             expected,
@@ -338,9 +351,8 @@ fn parse_typed(
 fn parse_v2_typed(
     document: &str,
     expected: UiV2AssetKind,
-) -> Result<UiV2AssetDocument, UiV2AssetDocumentError> {
-    let parsed = UiV2AssetLoader::load_toml_str(document)
-        .map_err(|error| UiV2AssetDocumentError::Parse(error.to_string()))?;
+) -> UiV2AssetDocumentResult<UiV2AssetDocument> {
+    let parsed = UiV2AssetLoader::load_toml_str(document)?;
     let matches_style_import =
         expected == UiV2AssetKind::Style && parsed.asset.kind == UiV2AssetKind::ThemeTokens;
     if parsed.asset.kind != expected && !matches_style_import {

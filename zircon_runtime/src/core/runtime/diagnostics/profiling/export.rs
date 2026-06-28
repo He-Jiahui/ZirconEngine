@@ -1,7 +1,9 @@
 use std::fs;
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use thiserror::Error;
 use zircon_runtime_interface::{
     CounterHotspotReport, HotspotReport, ProfileSnapshot, UiHotspotReport,
     PROFILE_COUNTER_HOTSPOTS_FILE, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
@@ -9,6 +11,32 @@ use zircon_runtime_interface::{
 };
 
 use super::{analyze_counter_hotspots, analyze_hotspots, analyze_ui_hotspots};
+
+pub type ProfileExportResult<T> = std::result::Result<T, ProfileExportError>;
+
+#[derive(Debug, Error)]
+pub enum ProfileExportError {
+    #[error("profiling feature is disabled")]
+    FeatureDisabled,
+    #[error("create profile export directory `{path}` failed: {source}")]
+    CreateExportDirectory {
+        path: String,
+        #[source]
+        source: io::Error,
+    },
+    #[error("serialize profile export JSON `{file}` failed: {source}")]
+    JsonSerialize {
+        file: &'static str,
+        #[source]
+        source: serde_json::Error,
+    },
+    #[error("write profile export file `{path}` failed: {source}")]
+    WriteFile {
+        path: String,
+        #[source]
+        source: io::Error,
+    },
+}
 
 #[derive(Clone, Debug)]
 pub struct ProfileExportReport {
@@ -23,13 +51,18 @@ pub struct ProfileExportReport {
 pub fn export_snapshot(
     snapshot: &ProfileSnapshot,
     include_perfetto: bool,
-) -> Result<ProfileExportReport, String> {
+) -> ProfileExportResult<ProfileExportReport> {
     let hotspots = analyze_hotspots(snapshot);
     let counter_hotspots = analyze_counter_hotspots(snapshot);
     let ui_hotspots = analyze_ui_hotspots(snapshot);
     let export_dir =
         PathBuf::from(&snapshot.output_root).join(sanitize_session_id(&snapshot.session_id));
-    fs::create_dir_all(&export_dir).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&export_dir).map_err(|source| {
+        ProfileExportError::CreateExportDirectory {
+            path: path_string(&export_dir),
+            source,
+        }
+    })?;
 
     let mut files = Vec::new();
     write_json(&export_dir, PROFILE_TIMELINE_NATIVE_FILE, snapshot)?;
@@ -52,11 +85,15 @@ pub fn export_snapshot(
     files.push(PROFILE_COUNTER_HOTSPOTS_FILE.to_string());
     write_json(&export_dir, PROFILE_UI_HOTSPOTS_FILE, &ui_hotspots)?;
     files.push(PROFILE_UI_HOTSPOTS_FILE.to_string());
+    let summary_path = export_dir.join(PROFILE_SUMMARY_FILE);
     fs::write(
-        export_dir.join(PROFILE_SUMMARY_FILE),
+        &summary_path,
         summary_markdown(snapshot, &hotspots, &counter_hotspots, &ui_hotspots),
     )
-    .map_err(|error| error.to_string())?;
+    .map_err(|source| ProfileExportError::WriteFile {
+        path: path_string(&summary_path),
+        source,
+    })?;
     files.push(PROFILE_SUMMARY_FILE.to_string());
 
     Ok(ProfileExportReport {
@@ -69,9 +106,18 @@ pub fn export_snapshot(
     })
 }
 
-fn write_json<T: Serialize>(dir: &std::path::Path, name: &str, value: &T) -> Result<(), String> {
-    let bytes = serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?;
-    fs::write(dir.join(name), bytes).map_err(|error| error.to_string())
+fn write_json<T: Serialize>(dir: &Path, name: &'static str, value: &T) -> ProfileExportResult<()> {
+    let bytes = serde_json::to_vec_pretty(value)
+        .map_err(|source| ProfileExportError::JsonSerialize { file: name, source })?;
+    let path = dir.join(name);
+    fs::write(&path, bytes).map_err(|source| ProfileExportError::WriteFile {
+        path: path_string(&path),
+        source,
+    })
+}
+
+fn path_string(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
 }
 
 fn sanitize_session_id(session_id: &str) -> String {
@@ -399,6 +445,34 @@ mod tests {
             .exists());
 
         let _ = std::fs::remove_dir_all(output_root);
+    }
+
+    #[test]
+    fn export_snapshot_reports_typed_directory_error_source() {
+        let output_root = std::env::temp_dir().join(format!(
+            "zircon-profile-export-file-parent-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&output_root);
+        let _ = std::fs::remove_file(&output_root);
+        std::fs::write(&output_root, b"not a directory").expect("write profile export blocker");
+        let snapshot = ProfileSnapshot {
+            session_id: "typed-error".to_string(),
+            output_root: output_root.to_string_lossy().into_owned(),
+            ..ProfileSnapshot::default()
+        };
+
+        let error = super::export_snapshot(&snapshot, false).unwrap_err();
+
+        assert!(matches!(
+            error,
+            super::ProfileExportError::CreateExportDirectory { .. }
+        ));
+        assert!(error
+            .to_string()
+            .contains("create profile export directory"));
+
+        let _ = std::fs::remove_file(output_root);
     }
 
     #[test]

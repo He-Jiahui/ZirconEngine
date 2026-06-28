@@ -119,7 +119,10 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
         "pub(super) fn source_extract(&self) -> Arc<RenderFrameExtract>",
         "&self.source_extract.geometry.meshes",
         "&self.source_extract.lighting.directional_lights",
-        "apply_effective_advanced_features(",
+        "FrameSubmissionSourcePayloads",
+        "source_payloads: Option<FrameSubmissionSourcePayloads<'_>>",
+        "VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads",
+        "FrameHistoryValidationKey::from_extract_with_hybrid_gi",
         "apply_effective_post_process_settings(",
     ] {
         assert!(
@@ -161,6 +164,10 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
         !camera_loop_submission_body.contains("with_selected_camera_descriptor"),
         "camera_loop_submissions should enumerate descriptors instead of cloning RenderFrameExtract"
     );
+    assert!(
+        !camera_loop_submission_body.contains("resolve_camera_sequence(extract.view.cameras.clone())"),
+        "camera_loop_submissions should borrow RenderViewExtract.cameras before cloning only the final descriptor sequence"
+    );
     let submit_camera_loop_body = camera_loop
         .split("pub(super) fn submit_camera_loop(")
         .nth(1)
@@ -181,14 +188,26 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
     for required_camera_loop_anchor in [
         "struct CameraLoopSubmission {",
         "camera: CameraRenderDescriptor,",
+        "resolve_camera_sequence_borrowed(&extract.view.cameras)",
         ".map(CameraLoopSubmission::from)",
         "stream_camera_loop_extract_submissions(",
         "let mut source_extract = Arc::new(extract);",
-        "CameraLoopExtractSourceState::capture(&extract)",
+        "Some(CameraLoopExtractSourceState::capture(source))",
+        "for (submission_index, submission) in submissions.into_iter().enumerate()",
+        "if submission_index > 0",
+        "view_target_size: Option<crate::core::math::UVec2>",
+        "extract.view.target_size = self.view_target_size",
+        "post_process: CameraLoopPostProcessSourceState",
+        "CameraLoopPostProcessSourceState::capture(&extract.post_process)",
+        "self.post_process.restore_to(&mut extract.post_process)",
+        "virtual_geometry: extract.geometry.virtual_geometry.take()",
+        "hybrid_global_illumination: extract.lighting.hybrid_global_illumination.take()",
+        "fn source_payloads(&self) -> FrameSubmissionSourcePayloads<'_>",
+        "FrameSubmissionSourcePayloads {",
         "Arc::make_mut(&mut source_extract)",
         "source_state.restore_for_submission(extract)",
         "extract.select_camera_descriptor(submission.camera)",
-        "submit_selected_camera(&mut source_extract, selected_ui, submission.output_policy)",
+        "submit_selected_camera(\n            &mut source_extract,",
         ".map(|submission| submission.camera.target.clone())",
     ] {
         assert!(
@@ -196,15 +215,51 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
             "Runtime 07 F3 camera-loop descriptor sharing should retain anchor `{required_camera_loop_anchor}`"
         );
     }
+    for forbidden_camera_loop_view_restore in [
+        "view: RenderViewExtract",
+        "view: extract.view.clone()",
+        "extract.view = self.view.clone()",
+    ] {
+        assert!(
+            !camera_loop.contains(forbidden_camera_loop_view_restore),
+            "CameraLoopExtractSourceState should not restore full RenderViewExtract clone `{forbidden_camera_loop_view_restore}`"
+        );
+    }
+    for forbidden_camera_loop_post_process_restore in [
+        "post_process: PostProcessExtract",
+        "post_process: extract.post_process.clone()",
+        "post_process: frame.extract.post_process.clone()",
+        "extract.post_process = self.post_process.clone()",
+    ] {
+        assert!(
+            !camera_loop.contains(forbidden_camera_loop_post_process_restore),
+            "CameraLoopSourceState should not restore full PostProcessExtract clone `{forbidden_camera_loop_post_process_restore}`"
+        );
+    }
+    for forbidden_camera_loop_feature_payload_restore in [
+        "extract.geometry.virtual_geometry = self.virtual_geometry.clone()",
+        "extract.lighting.hybrid_global_illumination = self.hybrid_global_illumination.clone()",
+        "virtual_geometry: extract.geometry.virtual_geometry.clone()",
+        "hybrid_global_illumination: extract.lighting.hybrid_global_illumination.clone()",
+        "virtual_geometry: frame.extract.geometry.virtual_geometry.clone()",
+        "hybrid_global_illumination: frame.extract.lighting.hybrid_global_illumination.clone()",
+    ] {
+        assert!(
+            !camera_loop.contains(forbidden_camera_loop_feature_payload_restore),
+            "CameraLoopSourceState should not restore feature payloads through unconditional clone `{forbidden_camera_loop_feature_payload_restore}`"
+        );
+    }
 
     for required_frame_loop_anchor in [
         "pub(super) fn submit_camera_loop_frame(",
-        "stream_camera_loop_frame_submissions(frame, submissions",
-        "CameraLoopFrameSourceState::capture(&frame)",
+        "stream_camera_loop_frame_submissions(",
+        "CameraLoopFrameSourceState::capture(&mut frame)",
+        "for (submission_index, submission) in submissions.into_iter().enumerate()",
+        "if submission_index > 0",
         "source_state.restore_for_submission(&mut frame);",
         "select_frame_camera_for_submission(&mut frame, submission.camera);",
         "terminal_ui.take()",
-        "submit_selected_frame(&mut frame, submission.output_policy)?",
+        "submit_selected_frame(\n            &mut frame,",
         "fn select_frame_camera_for_submission(",
         "fn restore_for_submission(&self, frame: &mut ViewportRenderFrame)",
     ] {
@@ -217,8 +272,10 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
         "submit_camera_loop_frame(",
         "submit_selected_runtime_frame",
         "frame: &mut ViewportRenderFrame,",
+        "source_payloads: Option<FrameSubmissionSourcePayloads<'_>>",
         "build_frame_submission_context_from_runtime_frame_extract(",
         "&mut frame.extract",
+        "source_payloads,",
         "attach_prepared_sidebands_to_runtime_frame(frame, prepared);",
         "render_frame_with_pipeline(",
         "&*frame,",
@@ -352,7 +409,12 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
     for status_anchor in [
         "Runtime 07 render submit source-extract sharing",
         "Runtime 07 render camera-loop descriptor submissions",
+        "Runtime 07 render camera-loop borrowed sequence resolution",
         "Runtime 07 render camera-loop frame terminal move",
+        "Runtime 07 render camera-loop post-process source restore narrowing",
+        "Runtime 07 render camera-loop VG/HGI conditional source restore",
+        "Runtime 07 render camera-loop single-child source-state capture skip",
+        "Runtime 07 render camera-loop source payload slot ownership",
         "Runtime 07 render submit feedback sideband owned merge",
         "Runtime 07 render prepared sideband frame owner move",
         "Runtime 07 render direct runtime-frame streaming camera loop",
@@ -362,6 +424,12 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
         "Runtime 07 render VG debug overlay frame override",
         "render_submit_source_extract_shared_coremin_check_passed_partial",
         "render_camera_loop_descriptor_submissions_coremin_check_passed_partial",
+        "render_camera_loop_borrowed_sequence_resolution_static_passed_cargo_deferred",
+        "render_camera_loop_source_view_restore_narrowed_static_passed_cargo_deferred",
+        "render_camera_loop_post_process_restore_narrowed_static_passed_cargo_deferred",
+        "render_camera_loop_vg_hgi_conditional_restore_static_passed_cargo_deferred",
+        "render_camera_loop_single_child_source_state_capture_skipped_static_passed_cargo_deferred",
+        "render_camera_loop_source_payload_slot_owned_static_passed_cargo_deferred",
         "render_camera_loop_frame_terminal_move_coremin_check_passed_partial",
         "render_submit_feedback_sidebands_owned_merge_coremin_check_passed_partial",
         "render_prepared_sideband_frame_owner_move_coremin_check_passed_partial",
@@ -374,6 +442,12 @@ fn runtime_07_submit_context_shares_large_extract_payloads() {
         "ViewportRenderFrame::from_shared_extract",
         "stream_camera_loop_extract_submissions",
         "CameraLoopExtractSourceState",
+        "CameraLoopPostProcessSourceState",
+        "FrameSubmissionSourcePayloads",
+        "VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads",
+        "FrameHistoryValidationKey::from_extract_with_hybrid_gi",
+        "resolve_camera_sequence_borrowed",
+        "view_target_size: Option<UVec2>",
         "build_frame_submission_context_from_runtime_frame_extract",
         "runtime_overlay_override",
         "runtime_07_submit_context_shares_large_extract_payloads",

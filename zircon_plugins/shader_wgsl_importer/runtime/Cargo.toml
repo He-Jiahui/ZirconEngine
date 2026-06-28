@@ -7,4 +7,5 @@ description = "WGSL shader importer runtime plugin package for Zircon."
 
 [dependencies]
 naga = { version = "29.0.1", features = ["wgsl-in"] }
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
+zircon_runtime = { workspace = true }

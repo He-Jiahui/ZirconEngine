@@ -56,6 +56,13 @@ pub(super) fn is_zmeta(path: &Path) -> bool {
         .is_some_and(|value| value.ends_with(".zmeta"))
 }
 
+pub(super) fn has_sidecar_zmeta(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
+        return false;
+    };
+    path.with_file_name(format!("{file_name}.zmeta")).exists()
+}
+
 pub(super) fn has_extension(path: &Path, extension: &str) -> bool {
     path.extension()
         .and_then(|value| value.to_str())

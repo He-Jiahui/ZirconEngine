@@ -1,7 +1,7 @@
 use super::support::{
-    open_v2_preview_session, UI_ASSET_EDITOR_RUNTIME_DIALOG_V2_TOML,
-    UI_ASSET_EDITOR_RUNTIME_HUD_V2_TOML, UI_ASSET_EDITOR_RUNTIME_INVENTORY_V2_TOML,
-    UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_V2_TOML, UI_ASSET_EDITOR_RUNTIME_SETTINGS_V2_TOML,
+    open_v2_preview_session, UI_ASSET_EDITOR_RUNTIME_DIALOG_ZUI, UI_ASSET_EDITOR_RUNTIME_HUD_ZUI,
+    UI_ASSET_EDITOR_RUNTIME_INVENTORY_ZUI, UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_ZUI,
+    UI_ASSET_EDITOR_RUNTIME_SETTINGS_ZUI,
 };
 
 fn assert_runtime_preview_session(
@@ -28,8 +28,8 @@ fn assert_runtime_preview_session(
 #[test]
 fn ui_asset_editor_runtime_hud_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/fixtures/hud_overlay.v2.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_HUD_V2_TOML,
+        "res://ui/runtime/fixtures/hud_overlay.zui",
+        UI_ASSET_EDITOR_RUNTIME_HUD_ZUI,
         "hud_root [Overlay]",
         "HealthPanel",
     );
@@ -38,8 +38,8 @@ fn ui_asset_editor_runtime_hud_asset_opens_as_shared_runtime_preview_session() {
 #[test]
 fn ui_asset_editor_runtime_pause_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/fixtures/pause_menu.v2.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_DIALOG_V2_TOML,
+        "res://ui/runtime/fixtures/pause_menu.zui",
+        UI_ASSET_EDITOR_RUNTIME_DIALOG_ZUI,
         "pause_root [Overlay]",
         "PauseDialog",
     );
@@ -48,8 +48,8 @@ fn ui_asset_editor_runtime_pause_dialog_asset_opens_as_shared_runtime_preview_se
 #[test]
 fn ui_asset_editor_runtime_settings_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/fixtures/settings_dialog.v2.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_SETTINGS_V2_TOML,
+        "res://ui/runtime/fixtures/settings_dialog.zui",
+        UI_ASSET_EDITOR_RUNTIME_SETTINGS_ZUI,
         "settings_root [Overlay]",
         "SettingsDialog",
     );
@@ -58,8 +58,8 @@ fn ui_asset_editor_runtime_settings_dialog_asset_opens_as_shared_runtime_preview
 #[test]
 fn ui_asset_editor_runtime_inventory_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/fixtures/inventory_list.v2.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_INVENTORY_V2_TOML,
+        "res://ui/runtime/fixtures/inventory_list.zui",
+        UI_ASSET_EDITOR_RUNTIME_INVENTORY_ZUI,
         "inventory_root [Overlay]",
         "InventoryPanel",
     );
@@ -68,8 +68,8 @@ fn ui_asset_editor_runtime_inventory_dialog_asset_opens_as_shared_runtime_previe
 #[test]
 fn ui_asset_editor_runtime_quest_log_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/fixtures/quest_log_dialog.v2.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_V2_TOML,
+        "res://ui/runtime/fixtures/quest_log_dialog.zui",
+        UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_ZUI,
         "quest_root [Overlay]",
         "QuestLogDialog",
     );

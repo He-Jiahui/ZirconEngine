@@ -24,7 +24,7 @@ impl MeshPipelineCache {
         ) {
             Ok(source) => source,
             Err(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(shader_variant_key);
                 return None;
             }
         };
@@ -98,7 +98,7 @@ impl MeshPipelineCache {
         ) {
             Ok(source) => source,
             Err(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(shader_variant_key);
                 return None;
             }
         };
@@ -155,8 +155,8 @@ mod tests {
 
     #[test]
     fn taa_reactive_mask_shader_key_includes_shader_variant_identity_and_source_hash() {
-        let variant_key =
-            default_pipeline_key().shader_variant_key(ShaderPassType::Forward, "wgpu-runtime");
+        let variant_key = default_pipeline_key()
+            .shader_variant_key(ShaderPassType::TaaReactiveMask, "wgpu-runtime");
         let source = match mesh_pipeline_taa_reactive_mask_template_source_for_geometry(
             &default_pipeline_key(),
             variant_key.geometry_source,
@@ -168,6 +168,7 @@ mod tests {
 
         assert!(key.starts_with(TAA_REACTIVE_MASK_MESH_SHADER_KEY_PREFIX));
         assert!(key.contains(&variant_key.canonical_string()));
+        assert!(key.contains("|pass=taa_reactive_mask|"));
         assert!(key.contains(&source.source_hash));
     }
 }

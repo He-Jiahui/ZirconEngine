@@ -64,7 +64,7 @@ fn ui_v2_asset_direct_references_include_imports_and_resources() {
             "res://fonts/inter.font.toml",
             "res://fonts/system.ttf",
             "res://ui/common/button.v2.ui.toml",
-            "res://ui/theme/editor_material.v2.ui.toml",
+            "res://ui/theme/editor_material.zui",
         ]
     );
 }

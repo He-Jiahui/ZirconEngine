@@ -168,7 +168,7 @@ fn static_cache_virtual_geometry_visibility_mesh() -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }
 

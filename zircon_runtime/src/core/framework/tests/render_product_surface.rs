@@ -416,7 +416,7 @@ fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
     assert!(!layers.intersects(&RenderLayerSet::layer(4)));
     assert!(!RenderLayerSet::none().intersects(&RenderLayerSet::none()));
     assert_eq!(
-        RenderLayerSet::from_legacy_mask(0b1010).to_legacy_mask_lossy(),
+        RenderLayerSet::from_scene_schema_v1_mask(0b1010).to_scene_schema_v1_mask_lossy(),
         0b1010
     );
 
@@ -438,8 +438,8 @@ fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
     assert_eq!(camera.camera.aspect_ratio, 2.0);
     assert!(camera.camera.hdr);
     assert_eq!(camera.camera.msaa_samples, 4);
-    assert!(camera.culling_mask.intersects_legacy_mask(0b1000));
-    assert!(!camera.culling_mask.intersects_legacy_mask(0b0010));
+    assert!(camera.culling_mask.intersects_scene_schema_v1_mask(0b1000));
+    assert!(!camera.culling_mask.intersects_scene_schema_v1_mask(0b0010));
 
     camera.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
     assert_eq!(

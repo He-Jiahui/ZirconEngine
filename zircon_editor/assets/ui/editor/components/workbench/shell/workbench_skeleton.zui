@@ -13,8 +13,8 @@ widgets = [
   "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
 ]
 styles = [
-  "res://ui/theme/editor_workbench_strict.v2.ui.toml",
-  "res://ui/editor/theme/editor_tokens.v2.ui.toml",
+  "res://ui/theme/editor_workbench_strict.zui",
+  "res://ui/editor/theme/editor_tokens.zui",
 ]
 
 [components.WorkbenchSkeleton]

@@ -16,12 +16,8 @@ pub enum AssetImporterRegistryError {
     DuplicateImporterId(String),
     #[error("duplicate importer matcher {matcher} at priority {priority}")]
     DuplicateMatcher { matcher: String, priority: i32 },
-    #[error(
-        "asset importer {0} cannot register source-template .ui.toml; UI assets must use .zui"
-    )]
-    UiTomlSourceImporter(String),
-    #[error("asset importer {0} cannot register source-template .v2.ui.toml; UI components must use .zui")]
-    V2UiTomlSourceImporter(String),
+    #[error("asset importer {importer_id} cannot register deprecated UI document suffix {suffix}; UI documents must use .zui")]
+    DeprecatedUiDocumentSuffixImporter { importer_id: String, suffix: String },
     #[error("asset importer {0} must declare at least one source extension or full suffix")]
     MissingMatcher(String),
 }
@@ -74,12 +70,6 @@ impl AssetImporterRegistry {
     ) -> Result<Arc<dyn AssetImporterHandler>, AssetImportError> {
         if let Some(importer) = self.best_full_suffix_match(source_path) {
             return Ok(importer);
-        }
-        if lower_file_name(source_path).ends_with(".v2.ui.toml") {
-            return Err(AssetImportError::UnsupportedFormat(
-                "UI v2 source-template suffix `.v2.ui.toml` has no registered importer; use `.zui`"
-                    .to_string(),
-            ));
         }
         if let Some(suffix) = unknown_typed_toml_suffix(source_path) {
             return Err(AssetImportError::UnsupportedFormat(format!(
@@ -240,57 +230,20 @@ fn validate_descriptor(
             descriptor.id.clone(),
         ));
     }
-    if descriptor
+    if let Some(suffix) = descriptor
         .full_suffixes
         .iter()
-        .any(|suffix| normalize_full_suffix(suffix) == ".ui.toml")
-        && !ui_toml_source_importer_allowed_for_tests(descriptor)
+        .map(|suffix| normalize_full_suffix(suffix))
+        .find(|suffix| matches!(suffix.as_str(), ".ui.toml" | ".v2.ui.toml"))
     {
-        return Err(AssetImporterRegistryError::UiTomlSourceImporter(
-            descriptor.id.clone(),
-        ));
-    }
-    if descriptor
-        .full_suffixes
-        .iter()
-        .any(|suffix| normalize_full_suffix(suffix) == ".v2.ui.toml")
-        && !v2_ui_toml_source_importer_allowed_for_tests(descriptor)
-    {
-        return Err(AssetImporterRegistryError::V2UiTomlSourceImporter(
-            descriptor.id.clone(),
-        ));
+        return Err(
+            AssetImporterRegistryError::DeprecatedUiDocumentSuffixImporter {
+                importer_id: descriptor.id.clone(),
+                suffix,
+            },
+        );
     }
     Ok(())
-}
-
-#[cfg(test)]
-fn ui_toml_source_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
-    descriptor.id == "ui_document_importer.typed_toml"
-        && descriptor.plugin_id == "ui_document_importer"
-        && descriptor
-            .required_capabilities
-            .iter()
-            .any(|capability| capability == "runtime.asset.importer.ui_document")
-}
-
-#[cfg(test)]
-fn v2_ui_toml_source_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
-    descriptor.id == "ui_document_importer.v2_typed_toml"
-        && descriptor.plugin_id == "ui_document_importer"
-        && descriptor
-            .required_capabilities
-            .iter()
-            .any(|capability| capability == "runtime.asset.importer.ui_document.v2")
-}
-
-#[cfg(not(test))]
-fn ui_toml_source_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
-    false
-}
-
-#[cfg(not(test))]
-fn v2_ui_toml_source_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
-    false
 }
 
 fn matcher_keys(descriptor: &AssetImporterDescriptor) -> impl Iterator<Item = String> + '_ {

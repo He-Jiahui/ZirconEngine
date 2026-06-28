@@ -53,6 +53,18 @@ plan_sources:
 - sprite 渲染器与图集管理(`atlas.rs`)可用,prepared_batches 有批组织;但无文本场景渲染器(文本仅 UI 内部)、无九宫、无 tilemap、无 y-sort。
 - UI 的文本/排版能力(SDF bake 计划)在 UI 模块内,场景 2D 不能直接复用,需要把 shaping/atlas 下沉为共享服务。
 
+## 与编辑器 UI 链路的关系(遵 editor_layout/21 提交契约)
+
+本计划的 UI/2D 渲染侧(`graphics/scene/scene_renderer/ui/**`:`render.rs`/`sdf_atlas.rs`/`sdf_render.rs`)是编辑器 UI **提交与上屏的引擎实现**,须满足 `docs/plans/zircon_editor/editor_layout/21`(GPU 提交与绘制管线)的契约:
+
+- **批次合并**:相邻绘制命令在批次键一致(shader+纹理/图集+**裁剪状态**)时合一批,裁剪进键、layer/z 不进键但定排序与相邻性(对标 UE `FSlateElementBatcher`/`FSlateRenderBatch::IsBatchableWith`)。
+- **裁剪栈**:轴对齐矩形走硬件 scissor、非矩形/圆角走 stencil(`editor_layout/21` §3.3)。
+- **动态图集**:字形(本计划 SDF/位图共享文本服务)按 `font_size_logical × scale_factor` 栅格进图集,atlas key 含 scale(接 `editor_layout/17` §3.2 / `16` DPI);同图集合批。
+- **顶点吸附**:Taffy 已 `disable_rounding`(`editor_layout/13` §3.8),像素吸附在本层顶点装配完成——文本/1px 边框整像素吸附,自由内容不吸附(`editor_layout/16` §3.4a / `21` §3.5)。
+- **增量上屏**:dirty-region 局部重绘接 `editor_layout/09` 脏集 + 既有 damage cache。
+
+提交契约语义以 `editor_layout/21` 为准,本计划不另立 UI 提交规范;上游 extract 由 `zircon_runtime/src/ui/surface/render` 产出(见 `docs/plans/zircon_runtime/runtime/09`),`editor_ui/` 为运行时能力层。勾稽:`editor_layout/index §6.1` ↔ `editor_ui/index §3.1` ↔ `runtime/09` ↔ 本节。
+
 ## 参考代码
 
 | 文件 | 应重点阅读 |

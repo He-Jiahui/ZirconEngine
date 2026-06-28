@@ -5,8 +5,18 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_runtime_ui_dead_code_support_split_coremin_check_passed")
     } else if slice == "Runtime 15 M5 production dead-code suppression global gate" {
         Some("runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F12 dead-code review status sync" {
+        Some("runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F12 dead-code runtime/editor boundary status guard" {
+        Some("runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F12 UI text edit-state dead-code suppression cleanup" {
+        Some(
+            "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 UI boundary runtime-host forbidden attribute literal cleanup" {
         Some("runtime_15_ui_boundary_runtime_host_literal_cleanup_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F1 native host callback panic guard" {
+        Some("runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 lock poison policy guard folder split" {
         Some("runtime_15_lock_poison_policy_guard_folder_split_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 core runtime lock poison guard child-owner split" {
@@ -14,7 +24,7 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
             "runtime_15_core_runtime_lock_poison_guard_child_owner_split_static_passed_cargo_deferred",
         )
     } else if slice == "Runtime 15 M3 F2 lock poison recovery guard" {
-        Some("runtime_15_f2_lock_poison_recovery_guard_static_passed_cargo_deferred")
+        Some("runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending")
     } else if slice == "Runtime 15 M3 production direct lock unwrap global gate" {
         Some("runtime_15_production_direct_lock_unwrap_global_gate_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 config store lock poison recovery" {
@@ -77,6 +87,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_input_runtime_manager_lock_poison_recovery_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 script VM registry lock poison recovery" {
         Some("runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 ZrVM real backend runtime lock poison recovery" {
+        Some(
+            "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result",
+        )
     } else if slice == "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery" {
         Some(
             "runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred",
@@ -91,6 +105,30 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_scene_property_access_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 animation manager typed errors" {
         Some("runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 animation asset binary typed errors" {
+        Some("runtime_15_animation_asset_binary_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 profile export typed errors" {
+        Some("runtime_15_profile_export_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 gameplay host typed errors" {
+        Some("runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 script scene hook typed errors" {
+        Some("runtime_15_script_scene_hook_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 VM plugin management policy typed errors" {
+        Some("runtime_15_vm_plugin_management_policy_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 UI surface input effect typed errors" {
+        Some("runtime_15_ui_surface_input_effect_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 UI input surrounding-text error source" {
+        Some("runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 UI template resource resolver typed errors" {
+        Some("runtime_15_ui_template_resource_resolver_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 UI asset document typed errors" {
+        Some("runtime_15_ui_asset_document_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 export CLI typed errors" {
+        Some("runtime_15_export_cli_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 host reflection docs CLI typed errors" {
+        Some("runtime_15_host_reflection_docs_cli_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 dynamic API session typed errors" {
+        Some("runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 typed API residual typed errors" {
         Some("runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 fixed world mutation typed errors" {
@@ -113,6 +151,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_mesh_loader_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F8 texture descriptor typed errors" {
         Some("runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup" {
+        Some(
+            "runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 F13 provider registration shared owner" {
         Some("runtime_15_provider_registration_shared_owner_coremin_check_passed")
     } else if slice == "Runtime 15 F13 provider update shared stats owner" {

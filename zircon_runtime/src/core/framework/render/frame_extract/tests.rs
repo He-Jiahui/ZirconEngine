@@ -34,8 +34,11 @@ fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
             size: UVec2 { x: 320, y: 180 }
         }
     ));
-    assert_eq!(selected.culling_mask.to_legacy_mask_lossy(), 1 << 3);
-    assert_eq!(selected.volume_mask.to_legacy_mask_lossy(), 1 << 4);
+    assert_eq!(
+        selected.culling_mask.to_scene_schema_v1_mask_lossy(),
+        1 << 3
+    );
+    assert_eq!(selected.volume_mask.to_scene_schema_v1_mask_lossy(), 1 << 4);
     assert!((view.camera.aspect_ratio - 2.0).abs() < 1.0e-4);
 }
 
@@ -84,7 +87,7 @@ fn render_frame_extract_selected_camera_descriptor_replaces_active_selection_onl
         selected
             .view
             .selected_camera_layers()
-            .to_legacy_mask_lossy(),
+            .to_scene_schema_v1_mask_lossy(),
         1 << 4
     );
 }
@@ -135,5 +138,5 @@ fn render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_widt
 
     let render_layer_mask = &extract.visibility.renderables[0].render_layer_mask;
     assert!(render_layer_mask.contains(40));
-    assert_eq!(render_layer_mask.to_legacy_mask_lossy(), 0);
+    assert_eq!(render_layer_mask.to_scene_schema_v1_mask_lossy(), 0);
 }

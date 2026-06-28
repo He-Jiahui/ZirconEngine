@@ -14,6 +14,7 @@ pub use shader_prewarm::{
     builtin_standard_material_shader_prewarm_manifest_for_geometry,
     default_shader_variant_cache_root_for_project,
     default_staged_shader_variant_cache_root_for_project, prewarm_shader_variants,
+    prewarm_shader_variants_with_wgpu_module_validation,
 };
 
 #[cfg(test)]

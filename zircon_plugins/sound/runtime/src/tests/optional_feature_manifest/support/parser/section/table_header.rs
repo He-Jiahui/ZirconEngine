@@ -7,6 +7,7 @@ impl OptionalFeatureSection {
             "[[optional_features.dependencies]]" => Some(Self::Dependency),
             "[[optional_features.modules]]" => Some(Self::Module),
             _ if line.starts_with("[[") => Some(Self::None),
+            _ if line.starts_with('[') => Some(Self::None),
             _ => None,
         }
     }

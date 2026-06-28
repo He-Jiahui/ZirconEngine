@@ -10,7 +10,7 @@ fn surface_index_tracks_node_asset_edges_and_replaces_stale_node_edges() {
     index.record_surface_assets(
         main.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/icons/run.svg",
             "res://fonts/inter.font.toml",
         ],
@@ -211,7 +211,7 @@ fn surface_index_tree_resource_registration_removes_stale_node_edges() {
 fn hot_reload_plan_maps_resource_targets_to_precise_nodes_when_registered() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/icons/run.svg"),
             asset_ref("res://fonts/inter.font.toml"),
@@ -224,17 +224,14 @@ fn hot_reload_plan_maps_resource_targets_to_precise_nodes_when_registered() {
     surface_index.record_surface_assets(
         main.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/icons/run.svg",
             "res://fonts/inter.font.toml",
         ],
     );
     surface_index.record_surface_assets(
         inspector.clone(),
-        [
-            "res://ui/views/inspector.v2.ui.toml",
-            "res://ui/icons/run.svg",
-        ],
+        ["res://ui/views/inspector.zui", "res://ui/icons/run.svg"],
     );
     surface_index.record_node_assets(main.clone(), UiNodeId::new(2), ["res://ui/icons/run.svg"]);
     surface_index.record_node_assets(

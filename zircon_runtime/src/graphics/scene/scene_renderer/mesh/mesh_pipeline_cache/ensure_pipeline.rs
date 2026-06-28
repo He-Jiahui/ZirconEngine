@@ -37,7 +37,7 @@ impl MeshPipelineCache {
         ) {
             Ok(source) => source,
             Err(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(&shader_variant_key);
                 return None;
             }
         };
@@ -83,11 +83,11 @@ impl MeshPipelineCache {
         );
         match self.shader_variant_disk_cache.lookup(&disk_key) {
             ShaderVariantCacheDiskLookup::Hit(entry) => {
-                self.record_shader_variant_disk_hit();
+                self.record_shader_variant_disk_hit(variant_key);
                 entry.wgsl_source
             }
             ShaderVariantCacheDiskLookup::Miss => {
-                self.record_shader_variant_compile_miss();
+                self.record_shader_variant_compile_miss(variant_key);
                 match self.shader_variant_disk_cache.write(
                     &disk_key,
                     &source.wgsl_source,
@@ -95,13 +95,13 @@ impl MeshPipelineCache {
                     MESH_SHADER_NAGA_VERSION,
                     MESH_SHADER_WGPU_VERSION,
                 ) {
-                    Ok(_) => self.record_shader_variant_disk_write(),
-                    Err(_) => self.record_shader_variant_disk_error(),
+                    Ok(_) => self.record_shader_variant_disk_write(variant_key),
+                    Err(_) => self.record_shader_variant_disk_error(variant_key),
                 }
                 source.wgsl_source
             }
             ShaderVariantCacheDiskLookup::Error(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(variant_key);
                 source.wgsl_source
             }
         }

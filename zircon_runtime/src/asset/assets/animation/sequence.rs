@@ -4,6 +4,7 @@ use super::binary::{
     decode_binary_asset_with_v1_payload_fallback, encode_binary_asset, AnimationBinaryAssetKind,
 };
 use super::channel::AnimationChannelAsset;
+use super::error::{AnimationAssetError, AnimationAssetResult};
 use crate::core::framework::animation::AnimationTrackPath;
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::math::Real;
@@ -37,9 +38,11 @@ struct AnimationSequenceBindingAssetV1 {
     tracks: Vec<AnimationSequenceTrackAsset>,
 }
 
-impl From<AnimationSequenceAssetV1> for AnimationSequenceAsset {
-    fn from(value: AnimationSequenceAssetV1) -> Self {
-        Self {
+impl TryFrom<AnimationSequenceAssetV1> for AnimationSequenceAsset {
+    type Error = AnimationAssetError;
+
+    fn try_from(value: AnimationSequenceAssetV1) -> Result<Self, Self::Error> {
+        Ok(Self {
             name: value.name,
             duration_seconds: value.duration_seconds,
             frames_per_second: value.frames_per_second,
@@ -52,7 +55,7 @@ impl From<AnimationSequenceAssetV1> for AnimationSequenceAsset {
                     tracks: binding.tracks,
                 })
                 .collect(),
-        }
+        })
     }
 }
 
@@ -65,14 +68,14 @@ pub struct AnimationSequenceAsset {
 }
 
 impl AnimationSequenceAsset {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset_with_v1_payload_fallback::<
             AnimationSequenceAsset,
             AnimationSequenceAssetV1,
         >(AnimationBinaryAssetKind::Sequence, bytes)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(AnimationBinaryAssetKind::Sequence, self)
     }
 

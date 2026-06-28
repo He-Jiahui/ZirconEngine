@@ -4,114 +4,114 @@ use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 pub(super) const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/ui_asset_editor.v2.ui.toml"
+    "/assets/ui/editor/ui_asset_editor.zui"
 ));
-const LEGACY_EDITOR_WIDGET_TOML: &str = include_str!(concat!(
+const ZUI_EDITOR_WIDGET_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/editor_widgets.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/editor_widgets.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_ASSET_BROWSER_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/asset_browser.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/asset_browser.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_THEME_BROWSER_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/theme_browser.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/theme_browser.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_BINDING_BROWSER_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/binding_browser.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/binding_browser.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_LAYOUT_WORKBENCH_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/layout_workbench.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/layout_workbench.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_PREVIEW_STATE_LAB_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/editor/preview_state_lab.ui.toml"
+    "/src/tests/fixtures/ui_zui/editor/preview_state_lab.zui"
 ));
-pub(super) const UI_ASSET_EDITOR_RUNTIME_HUD_V2_TOML: &str = include_str!(concat!(
+pub(super) const UI_ASSET_EDITOR_RUNTIME_HUD_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml"
+    "/../zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui"
 ));
-pub(super) const UI_ASSET_EDITOR_RUNTIME_DIALOG_V2_TOML: &str = include_str!(concat!(
+pub(super) const UI_ASSET_EDITOR_RUNTIME_DIALOG_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml"
+    "/../zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui"
 ));
-pub(super) const UI_ASSET_EDITOR_RUNTIME_SETTINGS_V2_TOML: &str = include_str!(concat!(
+pub(super) const UI_ASSET_EDITOR_RUNTIME_SETTINGS_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml"
+    "/../zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui"
 ));
-pub(super) const UI_ASSET_EDITOR_RUNTIME_INVENTORY_V2_TOML: &str = include_str!(concat!(
+pub(super) const UI_ASSET_EDITOR_RUNTIME_INVENTORY_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml"
+    "/../zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui"
 ));
-pub(super) const UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_V2_TOML: &str = include_str!(concat!(
+pub(super) const UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml"
+    "/../zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui"
 ));
 pub(super) const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/theme/editor_material.v2.ui.toml"
+    "/assets/ui/theme/editor_material.zui"
 ));
 
-const LEGACY_EDITOR_BASE_STYLE_TOML: &str = include_str!(concat!(
+const ZUI_EDITOR_BASE_STYLE_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/tests/fixtures/ui_legacy/theme/editor_base.ui.toml"
+    "/src/tests/fixtures/ui_zui/theme/editor_base.zui"
 ));
-const LEGACY_EDITOR_BASE_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.ui.toml";
-const LEGACY_EDITOR_WIDGET_TOOLBAR_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar";
-const LEGACY_EDITOR_WIDGET_HEADER_SHELL_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorHeaderShell";
-const LEGACY_EDITOR_WIDGET_BUTTON_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton";
-const LEGACY_EDITOR_WIDGET_SECTION_CARD_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard";
+const ZUI_EDITOR_BASE_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
+const ZUI_EDITOR_WIDGET_TOOLBAR_REFERENCE: &str =
+    "res://ui/editor/editor_widgets.zui#EditorToolbar";
+const ZUI_EDITOR_WIDGET_HEADER_SHELL_REFERENCE: &str =
+    "res://ui/editor/editor_widgets.zui#EditorHeaderShell";
+const ZUI_EDITOR_WIDGET_BUTTON_REFERENCE: &str =
+    "res://ui/editor/editor_widgets.zui#EditorToolbarButton";
+const ZUI_EDITOR_WIDGET_SECTION_CARD_REFERENCE: &str =
+    "res://ui/editor/editor_widgets.zui#EditorSectionCard";
 
 pub(super) fn register_bootstrap_imports(compiler: &mut UiDocumentCompiler) {
-    let widget = crate::tests::support::load_test_ui_asset(LEGACY_EDITOR_WIDGET_TOML)
+    let widget = crate::tests::support::load_test_ui_asset(ZUI_EDITOR_WIDGET_TOML)
         .expect("bootstrap widget asset");
-    let style = crate::tests::support::load_test_ui_asset(LEGACY_EDITOR_BASE_STYLE_TOML)
+    let style = crate::tests::support::load_test_ui_asset(ZUI_EDITOR_BASE_STYLE_TOML)
         .expect("bootstrap style asset");
 
     compiler
-        .register_widget_import(LEGACY_EDITOR_WIDGET_TOOLBAR_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_TOOLBAR_REFERENCE, widget.clone())
         .expect("register bootstrap toolbar import");
     compiler
-        .register_widget_import(LEGACY_EDITOR_WIDGET_HEADER_SHELL_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_HEADER_SHELL_REFERENCE, widget.clone())
         .expect("register bootstrap header shell import");
     compiler
-        .register_widget_import(LEGACY_EDITOR_WIDGET_BUTTON_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_BUTTON_REFERENCE, widget.clone())
         .expect("register bootstrap widget import");
     compiler
-        .register_widget_import(LEGACY_EDITOR_WIDGET_SECTION_CARD_REFERENCE, widget)
+        .register_widget_import(ZUI_EDITOR_WIDGET_SECTION_CARD_REFERENCE, widget)
         .expect("register bootstrap section card import");
     compiler
-        .register_style_import(LEGACY_EDITOR_BASE_STYLE_ASSET_ID, style)
+        .register_style_import(ZUI_EDITOR_BASE_STYLE_ASSET_ID, style)
         .expect("register bootstrap style import");
 }
 
 pub(super) fn hydrate_bootstrap_imports(session: &mut UiAssetEditorSession) {
-    let widget = crate::tests::support::load_test_ui_asset(LEGACY_EDITOR_WIDGET_TOML)
+    let widget = crate::tests::support::load_test_ui_asset(ZUI_EDITOR_WIDGET_TOML)
         .expect("bootstrap widget asset");
-    let style = crate::tests::support::load_test_ui_asset(LEGACY_EDITOR_BASE_STYLE_TOML)
+    let style = crate::tests::support::load_test_ui_asset(ZUI_EDITOR_BASE_STYLE_TOML)
         .expect("bootstrap style asset");
 
     session
-        .register_widget_import(LEGACY_EDITOR_WIDGET_TOOLBAR_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_TOOLBAR_REFERENCE, widget.clone())
         .expect("hydrate bootstrap toolbar import");
     session
-        .register_widget_import(LEGACY_EDITOR_WIDGET_HEADER_SHELL_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_HEADER_SHELL_REFERENCE, widget.clone())
         .expect("hydrate bootstrap header shell import");
     session
-        .register_widget_import(LEGACY_EDITOR_WIDGET_BUTTON_REFERENCE, widget.clone())
+        .register_widget_import(ZUI_EDITOR_WIDGET_BUTTON_REFERENCE, widget.clone())
         .expect("hydrate bootstrap widget import");
     session
-        .register_widget_import(LEGACY_EDITOR_WIDGET_SECTION_CARD_REFERENCE, widget)
+        .register_widget_import(ZUI_EDITOR_WIDGET_SECTION_CARD_REFERENCE, widget)
         .expect("hydrate bootstrap section card import");
     session
-        .register_style_import(LEGACY_EDITOR_BASE_STYLE_ASSET_ID, style)
+        .register_style_import(ZUI_EDITOR_BASE_STYLE_ASSET_ID, style)
         .expect("hydrate bootstrap style import");
 }
 

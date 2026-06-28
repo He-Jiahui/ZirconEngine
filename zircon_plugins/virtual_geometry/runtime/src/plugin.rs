@@ -8,6 +8,11 @@ use crate::{
     PLUGIN_ID,
 };
 use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::render::{
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
+    GEOMETRY_SOURCE_PLUGIN_ID_START,
+};
 use zircon_runtime::plugin::{
     ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
     PluginPackageManifest,
@@ -20,6 +25,10 @@ pub const VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY: &str =
 const VIRTUAL_GEOMETRY_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
+pub const VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN: &str = "custom:virtual_geometry";
+pub const VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_ID: u8 = GEOMETRY_SOURCE_PLUGIN_ID_START;
+pub const VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_WGSL_INCLUDE: &str =
+    "zr_geometry_virtual_geometry.wgsl";
 
 #[derive(Clone, Debug)]
 pub struct VirtualGeometryRuntimePlugin {
@@ -57,6 +66,11 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
                     RuntimeTargetMode::EditorHost,
                 ])
                 .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
+        );
+        manifest = manifest.with_geometry_source_descriptor(virtual_geometry_source_descriptor());
+        manifest = manifest.with_shader_geometry_source_id(
+            VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN,
+            VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_ID,
         );
         manifest.with_distribution(PluginDistributionManifest {
             forms: vec!["dist".to_string()],
@@ -108,4 +122,26 @@ zircon_plugin_sdk::runtime_plugin_exports!(VirtualGeometryRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
     RUNTIME_CAPABILITIES
+}
+
+pub fn virtual_geometry_source_descriptor() -> GeometrySourceDescriptor {
+    GeometrySourceDescriptor {
+        id: GeometrySourceId::new(VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_ID),
+        token: VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN.to_string(),
+        wgsl_include: VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_WGSL_INCLUDE.to_string(),
+        vertex_attributes: vec![
+            GeometrySourceVertexAttribute::Position,
+            GeometrySourceVertexAttribute::Normal,
+            GeometrySourceVertexAttribute::Tangent,
+            GeometrySourceVertexAttribute::Uv0,
+        ],
+        required_bindings: vec![GeometrySourceBindingRequirement::new(
+            GeometrySourceBindingKind::VirtualGeometryPages,
+            "virtual_geometry.pages",
+        )],
+        shader_defines: vec![RenderShaderDefinitionValue::bool(
+            "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
+            true,
+        )],
+    }
 }

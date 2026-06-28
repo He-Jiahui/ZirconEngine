@@ -15,7 +15,7 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::{env, path::PathBuf};
 
 pub use counter_hotspot::analyze_counter_hotspots;
-pub use export::ProfileExportReport;
+pub use export::{ProfileExportError, ProfileExportReport, ProfileExportResult};
 pub use hotspot::analyze_hotspots;
 pub use recorder::{ProfileRecorder, ProfileRecorderStatus};
 pub use scope::{ProfileFrameScope, ProfileScope};
@@ -66,9 +66,9 @@ pub fn snapshot() -> ProfileSnapshot {
     lock_recorder().snapshot()
 }
 
-pub fn export_report() -> Result<ProfileExportReport, String> {
+pub fn export_report() -> ProfileExportResult<ProfileExportReport> {
     if !feature_enabled() {
-        return Err("profiling feature is disabled".to_string());
+        return Err(ProfileExportError::FeatureDisabled);
     }
     let (snapshot, include_perfetto) = with_recorder(|recorder| {
         (
@@ -86,7 +86,7 @@ pub fn start_capture_from_env(default_session_id: &str) -> Option<ProfileRecorde
     Some(start_capture(env_capture_config(default_session_id)))
 }
 
-pub fn stop_and_export_capture_from_env() -> Option<Result<ProfileExportReport, String>> {
+pub fn stop_and_export_capture_from_env() -> Option<ProfileExportResult<ProfileExportReport>> {
     if !feature_enabled() || !env_capture_enabled() {
         return None;
     }
@@ -127,7 +127,7 @@ pub fn control(request: ProfileControlRequest) -> ProfileControlResponse {
                 response.files = report.files;
                 response
             }
-            Err(error) => ProfileControlResponse::error(error),
+            Err(error) => ProfileControlResponse::error(error.to_string()),
         },
         ProfileControlCommand::Reset => {
             let status = reset_capture();

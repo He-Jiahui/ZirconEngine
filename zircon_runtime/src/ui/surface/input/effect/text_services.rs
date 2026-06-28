@@ -7,30 +7,34 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
-use super::super::require_valid_input_owner;
+use super::super::{
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+};
 
 pub(super) fn apply_text_service_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::RequestInputMethod { request } => {
             apply_input_method_request(surface, request)
         }
         UiDispatchEffect::RequestClipboard { request } => apply_clipboard_request(surface, request),
-        _ => Err("expected input method or clipboard effect".to_string()),
+        _ => Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "input method or clipboard",
+        }),
     }
 }
 
 fn apply_input_method_request(
     surface: &mut UiSurface,
     request: &UiInputMethodRequest,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     require_valid_input_owner(surface, request.owner)?;
     if let Some(surrounding_text) = &request.surrounding_text {
-        surrounding_text
-            .validate()
-            .map_err(|error| format!("invalid input method surrounding text: {error}"))?;
+        surrounding_text.validate().map_err(|validation_error| {
+            UiSurfaceInputEffectError::InvalidInputMethodSurroundingText { validation_error }
+        })?;
     }
     match request.kind {
         UiInputMethodRequestKind::Enable => {
@@ -41,14 +45,14 @@ fn apply_input_method_request(
             if surface.input.input_method_owner == Some(request.owner) {
                 surface.input.input_method_request = Some(request.clone());
             } else {
-                return Err("input method owner mismatch".to_string());
+                return Err(UiSurfaceInputEffectError::InputMethodOwnerMismatch);
             }
         }
         UiInputMethodRequestKind::Disable => {
             if surface.input.input_method_owner == Some(request.owner) {
                 surface.input.clear_input_method();
             } else {
-                return Err("input method owner mismatch".to_string());
+                return Err(UiSurfaceInputEffectError::InputMethodOwnerMismatch);
             }
         }
     }
@@ -58,14 +62,14 @@ fn apply_input_method_request(
 fn apply_clipboard_request(
     surface: &UiSurface,
     request: &UiClipboardRequest,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     require_valid_input_owner(surface, request.owner)?;
     match request.kind {
         UiClipboardRequestKind::ReadText if request.text.is_some() => {
-            Err("clipboard read request cannot carry text".to_string())
+            Err(UiSurfaceInputEffectError::ClipboardReadRequestCarriesText)
         }
         UiClipboardRequestKind::WriteText if request.text.is_none() => {
-            Err("clipboard write request missing text".to_string())
+            Err(UiSurfaceInputEffectError::ClipboardWriteRequestMissingText)
         }
         UiClipboardRequestKind::ReadText | UiClipboardRequestKind::WriteText => {
             Ok(Some(request.owner))

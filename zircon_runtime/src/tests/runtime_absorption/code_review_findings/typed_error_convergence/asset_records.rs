@@ -150,7 +150,8 @@ fn review_f5_font_asset_uses_typed_error_source() {
     let asset_assets_mod = include_str!("../../../../asset/assets/mod.rs");
     let asset_mod = include_str!("../../../../asset/mod.rs");
     let font_tests = include_str!("../../../../asset/tests/assets/font.rs");
-    let import_font_asset = include_str!("../../../../asset/importer/ingest/import_font_asset.rs");
+    let import_font_asset =
+        include_str!("../../../../asset/importer/ingest/import_font_asset/mod.rs");
     let review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let runtime_15_plan = include_str!(

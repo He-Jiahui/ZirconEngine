@@ -187,6 +187,38 @@ fn ui_resource_resolver_preserves_ui_scheme_labels_when_mapping_to_runtime_locat
 }
 
 #[test]
+fn ui_resource_resolver_reports_invalid_mapped_ui_scheme_empty_label() {
+    let manager = ResourceManager::new();
+    let mut resolver = UiResourceResolver::new(manager)
+        .with_scheme_map(UiResourceResolverSchemeMap::default().asset_to(ResourceScheme::Res));
+
+    let resolved = resolver.resolve(&resource_ref(
+        UiResourceKind::Image,
+        "asset://ui/icons/sheet.svg#".to_string(),
+    ));
+
+    assert_eq!(
+        resolved,
+        UiResolvedUiResource::Placeholder {
+            handle: None,
+            diagnostic_index: 0,
+        }
+    );
+    assert_eq!(
+        resolver.diagnostics()[0].code,
+        UiResourceResolveDiagnosticCode::InvalidUri
+    );
+    assert_eq!(
+        resolver.diagnostics()[0].severity,
+        UiResourceDiagnosticSeverity::Error
+    );
+    assert_eq!(
+        resolver.diagnostics()[0].message,
+        "resource uri is invalid: resource locator label cannot be empty"
+    );
+}
+
+#[test]
 fn ui_resource_resolver_reports_missing_placeholder_fallback() {
     let manager = ResourceManager::new();
     let mut resolver = UiResourceResolver::new(manager);

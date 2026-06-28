@@ -1,7 +1,10 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
-use crate::asset::assets::{UiAssetDocumentError, UiV2AssetDocumentError};
+use crate::asset::assets::{
+    AnimationAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
+    UiV2AssetDocumentError,
+};
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
 #[derive(Debug, Error)]
@@ -18,6 +21,8 @@ pub enum AssetImportError {
     ShaderValidation(String),
     #[error("asset schema migration failed: {0}")]
     SchemaMigration(String),
+    #[error("animation asset decode failed: {0}")]
+    AnimationAsset(#[from] AnimationAssetError),
     #[error("native asset importer failed: {0}")]
     Native(String),
     #[error("duplicate asset label {label} for source {source_uri}")]
@@ -50,17 +55,29 @@ pub enum AssetImportError {
         #[source]
         source: toml::value::DatetimeParseError,
     },
-    #[error("cached UI asset document failed while {context}: {source}")]
+    #[error("ui asset document failed while {context}: {source}")]
     UiDocument {
         context: &'static str,
         #[source]
         source: UiAssetDocumentError,
     },
-    #[error("cached UI v2 asset document failed while {context}: {source}")]
+    #[error("ui v2 asset document failed while {context}: {source}")]
     UiV2Document {
         context: &'static str,
         #[source]
         source: UiV2AssetDocumentError,
+    },
+    #[error("ui theme asset document failed while {context}: {source}")]
+    UiThemeDocument {
+        context: &'static str,
+        #[source]
+        source: UiThemeAssetDocumentError,
+    },
+    #[error("ui icon asset document failed while {context}: {source}")]
+    UiIconDocument {
+        context: &'static str,
+        #[source]
+        source: UiIconAssetDocumentError,
     },
     #[error("artifact cache serialization failed: {0}")]
     ArtifactCacheSerialize(#[source] bincode::Error),

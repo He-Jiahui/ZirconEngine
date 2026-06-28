@@ -271,7 +271,7 @@ fn node_id_by_control_id(surface: &crate::ui::surface::UiSurface, control_id: &s
 }
 
 fn welcome_material_surface(tree_id: &str) -> UiSurface {
-    editor_v2_theme_surface("welcome.v2.ui.toml", tree_id)
+    editor_v2_theme_surface("welcome.zui", tree_id)
 }
 
 fn editor_v2_theme_surface(asset_file_name: &str, tree_id: &str) -> UiSurface {

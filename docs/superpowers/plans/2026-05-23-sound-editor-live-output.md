@@ -16,7 +16,7 @@
 - Create `zircon_plugins/sound/editor/src/live_output/model.rs`: editor-facing snapshot/action DTOs.
 - Create `zircon_plugins/sound/editor/src/live_output/controller.rs`: `SoundEditorLiveOutputController` over `Arc<dyn SoundManager>`.
 - Modify `zircon_plugins/sound/editor/src/lib.rs`: declare and re-export `live_output` only.
-- Modify `zircon_plugins/sound/editor/mixer_console.v2.ui.toml`: replace the transport placeholder with refresh/start/stop controls and a picker/status slot.
+- Modify `zircon_plugins/sound/editor/mixer_console.zui`: replace the transport placeholder with refresh/start/stop controls and a picker/status slot.
 - Create `docs/zircon_plugins/sound/editor.md`: module detail doc for the editor live-output boundary.
 - Update `docs/engine-architecture/runtime-sound-extension.md`: record live-output editor model and validation evidence.
 - Update `.codex/sessions/20260523-0748-sound-sequential-milestones.md`: record this active editor live wiring slice and evidence.
@@ -50,7 +50,7 @@ Goal: Make the Sound Mixer UI metadata discoverable for live output actions and 
 
 Implementation slices:
 
-- [x] Replace the transport placeholder in `mixer_console.v2.ui.toml` with `SoundOutputDevicePicker`, `SoundOutputRefreshButton`, `SoundOutputStartButton`, `SoundOutputStopButton`, and `SoundOutputStatusPanel` controls.
+- [x] Replace the transport placeholder in `mixer_console.zui` with `SoundOutputDevicePicker`, `SoundOutputRefreshButton`, `SoundOutputStartButton`, `SoundOutputStopButton`, and `SoundOutputStatusPanel` controls.
 - [x] Route button events to existing sound output operation paths.
 - [x] Keep the picker as a metadata/control slot, not a concrete editor-core pane payload.
 - [x] Create `docs/zircon_plugins/sound/editor.md` with required YAML frontmatter.

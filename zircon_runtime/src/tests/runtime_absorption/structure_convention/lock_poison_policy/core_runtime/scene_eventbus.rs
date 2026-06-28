@@ -114,8 +114,10 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
             source,
             &[
                 "Runtime 15 M3 F2 lock poison recovery guard",
-                "runtime_15_f2_lock_poison_recovery_guard_static_passed_cargo_deferred",
+                "runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending",
                 "structure_convention/lock_poison_policy.rs",
+                "review_f2_scene_eventbus_locks_recover_after_poison",
+                "scene/EventBus poison-safe lock recovery complete",
                 "runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus",
             ],
         );

@@ -663,8 +663,8 @@ related_code:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/create_default_pipelines.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/create_default_pipelines.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/mod.rs
@@ -1580,8 +1580,8 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/create_default_pipelines.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/create_default_pipelines.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs

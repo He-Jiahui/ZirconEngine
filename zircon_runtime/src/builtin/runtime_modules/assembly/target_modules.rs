@@ -37,6 +37,7 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
             target,
             inputs.asset_importers(),
             inputs.render_features(),
+            inputs.shading_models(),
             inputs.render_pass_executors(),
             inputs.runtime_prepare_collectors(),
             inputs.hybrid_gi_runtime_providers(),

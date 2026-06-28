@@ -1,5 +1,6 @@
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::plugin::{
-    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginOptionManifest,
+    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginModuleId, PluginOptionManifest,
     UiComponentDescriptor,
 };
 
@@ -20,5 +21,29 @@ impl RuntimeExtensionRegistry {
 
     pub fn plugin_event_catalogs(&self) -> &[PluginEventCatalogManifest] {
         self.plugin_event_catalogs.values()
+    }
+
+    pub fn geometry_sources(&self) -> &[GeometrySourceDescriptor] {
+        self.geometry_sources.values()
+    }
+
+    pub(in crate::plugin) fn geometry_source_entries(
+        &self,
+    ) -> impl Iterator<Item = (PluginModuleId, &GeometrySourceDescriptor)> {
+        self.geometry_sources
+            .iter()
+            .map(|(owner, _, descriptor)| (owner, descriptor))
+    }
+
+    pub fn shading_models(&self) -> &[ShadingModelDescriptor] {
+        self.shading_models.values()
+    }
+
+    pub(in crate::plugin) fn shading_model_entries(
+        &self,
+    ) -> impl Iterator<Item = (PluginModuleId, &ShadingModelDescriptor)> {
+        self.shading_models
+            .iter()
+            .map(|(owner, _, descriptor)| (owner, descriptor))
     }
 }

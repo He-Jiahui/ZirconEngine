@@ -99,16 +99,16 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
 
 fn navigation_editor_documents() -> &'static [&'static str] {
     &[
-        "surfaces.v2.ui.toml",
-        "agents_areas.v2.ui.toml",
-        "bake.v2.ui.toml",
-        "debug_gizmos.v2.ui.toml",
-        "navmesh_asset.v2.ui.toml",
-        "navigation_settings_asset.v2.ui.toml",
-        "navmesh_surface.drawer.v2.ui.toml",
-        "navmesh_modifier.drawer.v2.ui.toml",
-        "navmesh_agent.drawer.v2.ui.toml",
-        "navmesh_obstacle.drawer.v2.ui.toml",
-        "navmesh_offmesh_link.drawer.v2.ui.toml",
+        "surfaces.zui",
+        "agents_areas.zui",
+        "bake.zui",
+        "debug_gizmos.zui",
+        "navmesh_asset.zui",
+        "navigation_settings_asset.zui",
+        "navmesh_surface.drawer.zui",
+        "navmesh_modifier.drawer.zui",
+        "navmesh_agent.drawer.zui",
+        "navmesh_obstacle.drawer.zui",
+        "navmesh_offmesh_link.drawer.zui",
     ]
 }

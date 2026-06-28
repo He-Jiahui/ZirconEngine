@@ -7,4 +7,4 @@ license.workspace = true
 [dependencies]
 wgpu = "29.0.1"
 zircon_plugin_rendering_runtime = { path = "../../../runtime" }
-zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

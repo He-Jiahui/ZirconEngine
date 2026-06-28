@@ -28,8 +28,14 @@ pub use stage::RenderShaderStage;
 pub use variant_key::{
     RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
 };
-pub use variant_miss_report::ShaderVariantMissReport;
+pub use variant_miss_report::{
+    ShaderVariantMissReport, ShaderVariantRuntimeDimensionCount,
+    ShaderVariantRuntimeDimensionSummary,
+};
 pub use variant_prewarm::{
+    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmDimensionSummary,
     ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantPrewarmRequest,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSourceProvenanceEntry,
+    ShaderVariantPrewarmSourceProvenanceSummary, ShaderVariantPrewarmWgpuModuleValidationSummary,
+    ShaderVariantPrewarmWrittenVariant,
 };

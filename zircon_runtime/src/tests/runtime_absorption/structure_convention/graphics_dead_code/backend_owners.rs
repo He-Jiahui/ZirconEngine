@@ -1,5 +1,5 @@
 use super::super::assert_contains_all;
-use super::{read_repo, read_runtime_src};
+use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
 #[test]
 fn runtime_15_offscreen_target_texture_owner_cleanup() {
@@ -19,7 +19,7 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !offscreen_target.contains("#[allow(dead_code)]"),
+        !offscreen_target.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "OffscreenTarget texture owners should be live ownership contracts, not dead-code suppressions"
     );
     assert_contains_all(
@@ -97,7 +97,7 @@ fn runtime_15_render_backend_state_owner_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !render_backend.contains("#[allow(dead_code)]"),
+        !render_backend.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "RenderBackend state owners should be live ownership contracts, not dead-code suppressions"
     );
     assert_contains_all(

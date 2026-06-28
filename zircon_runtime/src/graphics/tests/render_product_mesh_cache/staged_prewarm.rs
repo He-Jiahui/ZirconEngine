@@ -7,8 +7,10 @@ use crate::asset::AssetUri;
 use crate::core::framework::render::{
     CorePipelineKind, DisplayMode, PostProcessGraphResourceNames, RenderFramework, RenderPhase,
     RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    ShaderFeatureBits, ShaderQualityTier, ShaderVariantPrewarmManifest,
-    GEOMETRY_SOURCE_ID_SKINNED_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+    ShaderFeatureBits, ShaderQualityTier, ShaderVariantMissReport,
+    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    ShaderVariantRuntimeDimensionCount, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
@@ -41,6 +43,7 @@ fn render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_mi
     assert_eq!(prewarm_report.written_count, manifest.variants.len());
     assert_eq!(prewarm_report.failed_count, 0);
     assert!(prewarm_report.failures.is_empty());
+    assert_staged_prewarm_dimension_written(&prewarm_report);
 
     let first_launch = submit_base_mesh_with_staged_cache(
         1801,
@@ -53,8 +56,16 @@ fn render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_mi
         &cache_roots.staged_root,
     );
 
-    assert_staged_base_mesh_shader_cache_hit(&first_launch, "first product launch");
-    assert_staged_base_mesh_shader_cache_hit(&second_launch, "second product launch");
+    assert_staged_base_mesh_shader_cache_hit(
+        &first_launch,
+        "first product launch",
+        &prewarm_report,
+    );
+    assert_staged_base_mesh_shader_cache_hit(
+        &second_launch,
+        "second product launch",
+        &prewarm_report,
+    );
     let _ = fs::remove_dir_all(&cache_roots.root);
 }
 
@@ -124,8 +135,12 @@ fn submit_base_mesh_with_staged_cache(
     framework.query_stats().expect("render stats")
 }
 
-fn assert_staged_base_mesh_shader_cache_hit(stats: &RenderStats, launch_label: &str) {
-    let report = stats.last_shader_variant_miss_report;
+fn assert_staged_base_mesh_shader_cache_hit(
+    stats: &RenderStats,
+    launch_label: &str,
+    prewarm_report: &ShaderVariantPrewarmReport,
+) {
+    let report = &stats.last_shader_variant_miss_report;
     assert!(
         report.request_count >= 1,
         "{launch_label} should request at least one Base mesh shader variant; stats={stats:?}"
@@ -160,6 +175,101 @@ fn assert_staged_base_mesh_shader_cache_hit(stats: &RenderStats, launch_label: &
             .iter()
             .any(|executor| executor == "mesh.opaque"),
         "{launch_label} should execute the product mesh Base/Opaque path"
+    );
+    assert_staged_prewarm_runtime_dimension_correlation(prewarm_report, report, launch_label);
+}
+
+fn assert_staged_prewarm_dimension_written(report: &ShaderVariantPrewarmReport) {
+    let skinned_geometry = GEOMETRY_SOURCE_ID_SKINNED_MESH.value().to_string();
+    let standard_pbr = SHADING_MODEL_ID_STANDARD_PBR.value().to_string();
+
+    assert_prewarm_dimension_written(
+        report.dimension_summary.pass_types.get("forward"),
+        "prewarm forward pass",
+    );
+    assert_prewarm_dimension_written(
+        report
+            .dimension_summary
+            .geometry_source_ids
+            .get(&skinned_geometry),
+        "prewarm skinned geometry source",
+    );
+    assert_prewarm_dimension_written(
+        report
+            .dimension_summary
+            .shading_model_ids
+            .get(&standard_pbr),
+        "prewarm StandardPBR shading model",
+    );
+    assert_prewarm_dimension_written(
+        report.dimension_summary.quality_tiers.get("medium"),
+        "prewarm medium quality tier",
+    );
+}
+
+fn assert_staged_prewarm_runtime_dimension_correlation(
+    prewarm_report: &ShaderVariantPrewarmReport,
+    runtime_report: &ShaderVariantMissReport,
+    launch_label: &str,
+) {
+    assert_staged_prewarm_dimension_written(prewarm_report);
+    let skinned_geometry = GEOMETRY_SOURCE_ID_SKINNED_MESH.value().to_string();
+    let standard_pbr = SHADING_MODEL_ID_STANDARD_PBR.value().to_string();
+
+    assert_runtime_dimension_disk_hit(
+        runtime_report.dimension_summary.pass_types.get("forward"),
+        launch_label,
+        "forward pass",
+    );
+    assert_runtime_dimension_disk_hit(
+        runtime_report
+            .dimension_summary
+            .geometry_source_ids
+            .get(&skinned_geometry),
+        launch_label,
+        "skinned geometry source",
+    );
+    assert_runtime_dimension_disk_hit(
+        runtime_report
+            .dimension_summary
+            .shading_model_ids
+            .get(&standard_pbr),
+        launch_label,
+        "StandardPBR shading model",
+    );
+    assert_runtime_dimension_disk_hit(
+        runtime_report.dimension_summary.quality_tiers.get("medium"),
+        launch_label,
+        "medium quality tier",
+    );
+}
+
+fn assert_prewarm_dimension_written(
+    count: Option<&ShaderVariantPrewarmDimensionCount>,
+    label: &str,
+) {
+    let count = count.unwrap_or_else(|| panic!("{label} should be present in prewarm report"));
+    assert!(
+        count.written_count >= 1,
+        "{label} should include at least one written prewarm variant; count={count:?}"
+    );
+}
+
+fn assert_runtime_dimension_disk_hit(
+    count: Option<&ShaderVariantRuntimeDimensionCount>,
+    launch_label: &str,
+    dimension_label: &str,
+) {
+    let count = count.unwrap_or_else(|| {
+        panic!("{launch_label} should report runtime dimension {dimension_label}")
+    });
+    assert!(
+        count.disk_hit_count >= 1,
+        "{launch_label} should disk-hit staged cache for {dimension_label}; count={count:?}"
+    );
+    assert_eq!(
+        count.compile_miss_count, 0,
+        "{launch_label} should not compile-miss staged cache for {dimension_label}; count={count:?}"
     );
 }
 

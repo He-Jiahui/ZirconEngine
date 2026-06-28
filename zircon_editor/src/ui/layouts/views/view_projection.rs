@@ -103,7 +103,7 @@ fn build_view_template_nodes_from_v2_asset(
 }
 
 fn is_v2_asset_path(path: &str) -> bool {
-    path.ends_with(".v2.ui.toml")
+    path.ends_with(".zui")
 }
 
 fn v2_source_paths(layout_asset_path: &str, style_imports: &[(&str, &str)]) -> Vec<PathBuf> {
@@ -905,6 +905,8 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
         UiTextAlign::Left => "left",
         UiTextAlign::Center => "center",
         UiTextAlign::Right => "right",
+        UiTextAlign::Start => "start",
+        UiTextAlign::End => "end",
     }
 }
 

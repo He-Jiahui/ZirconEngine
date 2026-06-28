@@ -3,6 +3,19 @@ related_code:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
   - tools/zircon_build_shader_prewarm.py
+  - tools/zircon_build_shader_resource_registry.py
+  - tools/zircon_build_shader_prewarm_report_contract.py
+  - tools/zircon_build_shader_prewarm_cache_artifacts.py
+  - tools/zircon_build_shader_prewarm_acceptance.py
+  - tools/zircon_build_shader_prewarm_written_variants.py
+  - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_source_provenance_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_cache_contract.py
+  - tools/tests/test_zircon_build_plugin_carriers.py
   - Cargo.toml
   - zircon_hub/Cargo.toml
   - zircon_app/Cargo.toml
@@ -21,6 +34,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
@@ -29,24 +43,88 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
+  - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/graphics/shader/mod.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
+  - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/plugin.toml
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_permutation_registry_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_asset_roots_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs
 implementation_files:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
   - tools/zircon_build_shader_prewarm.py
+  - tools/zircon_build_shader_resource_registry.py
+  - tools/zircon_build_shader_prewarm_report_contract.py
+  - tools/zircon_build_shader_prewarm_cache_artifacts.py
+  - tools/zircon_build_shader_prewarm_acceptance.py
+  - tools/zircon_build_shader_prewarm_written_variants.py
+  - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_command_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_source_provenance_contract.py
+  - tools/tests/test_zircon_build_shader_prewarm_cache_contract.py
+  - tools/tests/test_zircon_build_plugin_carriers.py
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
+  - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/graphics/shader/mod.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
+  - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
+  - zircon_plugins/virtual_geometry/plugin.toml
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
@@ -70,6 +148,148 @@ plan_sources:
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
 tests:
   - python -m py_compile tools/zircon_build.py
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-27 build-tool prewarm dimension summary, shader permutation registry overlay, and CLI-id auto-export: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-27 shader permutation registry CLI-id auto-export: passed, 9 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shader permutation registry auto-export: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin shader permutation registry auto-export: passed, 13 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_permutation_registry_contract.py (2026-06-28 Plugin shader permutation registry export contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_permutation_registry_contract (2026-06-28 Plugin shader permutation registry export contract: passed, 32 tests)
+  - python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shading-model descriptor registration: passed)
+  - python -m unittest tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin shading-model descriptor registration: passed, 3 tests)
+  - python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin geometry-source descriptor registration: passed)
+  - python -m unittest tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin geometry-source descriptor registration: passed, 4 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shader asset roots auto-export: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin shader asset roots auto-export: passed, 20 tests)
+  - python tools/zircon_build.py --targets runtime,plugins --plugins native_dynamic_fixture --out target/codex-plan08-plugin-asset-roots-dry-run --mode debug --prewarm-shaders --dry-run (2026-06-27 Plugin shader asset roots auto-export: passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-27 Prewarm opt-in WGPU shader-module validation: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-27 Prewarm opt-in WGPU shader-module validation: passed, 13 tests)
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root (2026-06-28 Runtime custom id staged fallback lookup contract: added; Cargo deferred under milestone-first cadence)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Runtime custom id staged fallback lookup contract: passed)
+  - source/docs anchor scan, conflict marker scan, trailing-whitespace scan, scoped git diff --check (2026-06-28 Runtime custom id staged fallback lookup contract: passed; diff-check only reported LF/CRLF warnings)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool staged prewarm acceptance contract: RED then passed, 3 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool staged prewarm runtime fallback layout contract: RED then passed, 5 tests; status render_plan08_build_tool_staged_prewarm_runtime_fallback_layout_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py (2026-06-28 Build-tool staged prewarm runtime fallback layout contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract.ZirconBuildShaderPrewarmAcceptanceContractTests.test_acceptance_contract_rejects_empty_success_report (2026-06-28 Build-tool staged prewarm nonempty success report acceptance: RED with old source-provenance error)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool staged prewarm nonempty success report acceptance: passed, 7 tests; status render_plan08_build_tool_staged_prewarm_nonempty_success_report_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract.ZirconBuildShaderPrewarmAcceptanceContractTests.test_acceptance_contract_requires_written_variant_identity (2026-06-28 Build-tool staged prewarm written variant identity acceptance: RED with old source-provenance error)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool staged prewarm written variant identity acceptance: passed, 9 tests; status render_plan08_build_tool_staged_prewarm_written_variant_identity_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract.ZirconBuildShaderPrewarmAcceptanceContractTests.test_acceptance_contract_rejects_partial_written_success_report (2026-06-28 Build-tool staged prewarm complete written count acceptance: RED with old source-provenance error, then passed after helper check)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool staged prewarm acceptance contract: passed, 30 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_permutation_registry_contract (2026-06-28 Build-tool staged prewarm acceptance contract closeout: passed, 3 tests after old build-root report-validator patch was moved to the staged acceptance entry point)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool staged prewarm written variant identity acceptance: passed, 64 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool staged prewarm complete written count acceptance: passed, 65 tests; status render_plan08_build_tool_staged_prewarm_complete_written_count_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_rejects_source_provenance_count_mismatch tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_accepts_source_provenance_counts (2026-06-28 Build-tool source provenance totals match contract: RED then passed, 2 tests; status render_plan08_build_tool_source_provenance_totals_match_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool source provenance totals match contract: passed, 66 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool source provenance report test owner split: passed, 32 tests; status render_plan08_build_tool_source_provenance_report_tests_owner_split_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool source provenance report test owner split: passed, 66 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_report_contract.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_source_provenance_contract.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py tools/tests/test_zircon_build_shader_prewarm_command_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_permutation_registry_contract.py (2026-06-28 Build-tool source provenance report test owner split: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool WGPU validation totals match contract: RED first failed with RuntimeError not raised, then passed, 3 tests; status render_plan08_build_tool_wgpu_validation_totals_match_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool WGPU validation totals match contract: passed, 30 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm_report_contract.py tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool WGPU validation totals match contract: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool WGPU validation totals match contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool product Base pass acceptance contract: RED first failed with unexpected keyword argument expected_pass_types, then passed, 32 tests; status render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool product Base pass acceptance contract: passed, 70 tests)
+  - python -m py_compile tools/zircon_build_shader_prewarm_report_contract.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py (2026-06-28 Build-tool product Base pass acceptance contract: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs (2026-06-28 Build-tool product Base pass acceptance contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool product material mesh pass acceptance contract: RED then passed, 12 tests; status render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool product material mesh pass acceptance contract: passed, 90 tests)
+  - python -m py_compile tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py (2026-06-28 Build-tool product material mesh pass acceptance contract: passed with PYTHONPYCACHEPREFIX isolation)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs (2026-06-28 Build-tool product material mesh pass acceptance contract: passed)
+  - source/docs anchor scan, conflict marker scan, trailing-whitespace scan, line-count scan, scoped git diff --check (2026-06-28 Build-tool product material mesh pass acceptance contract: passed; diff-check only reported LF/CRLF warnings)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool cache quality/geometry identity contract: RED first failed with unexpected keyword argument expected_quality_tiers/expected_geometry_sources, then passed, 29 tests; status render_plan08_build_tool_cache_quality_geometry_identity_contract_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py (2026-06-28 Build-tool cache quality/geometry identity contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool cache quality/geometry identity contract: passed, 73 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs (2026-06-28 Build-tool cache quality/geometry identity contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool cache dimension combination contract: RED first failed with RuntimeError not raised, then passed, 20 tests; status render_plan08_build_tool_cache_dimension_combination_contract_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool cache dimension combination contract: passed, 30 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool cache dimension combination contract: passed, 74 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py (2026-06-28 Build-tool cache dimension combination contract: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs (2026-06-28 Build-tool cache dimension combination contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool cache custom id combination contract: RED first failed with RuntimeError not raised, then passed, 21 tests; status render_plan08_build_tool_cache_custom_id_combination_contract_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract (2026-06-28 Build-tool cache custom id combination contract: passed, 31 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool cache custom id combination contract: passed, 75 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py (2026-06-28 Build-tool cache custom id combination contract: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs (2026-06-28 Build-tool cache custom id combination contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_report_contract.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/zircon_build_shader_prewarm_acceptance.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py tools/tests/test_zircon_build_shader_prewarm_command_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_permutation_registry_contract.py (2026-06-28 Build-tool staged prewarm acceptance contract closeout: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool staged prewarm acceptance contract closeout: passed)
+  - rustfmt --edition 2021 zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs zircon_runtime/src/bin/zircon_shader_prewarm/run.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_auto_export.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Staged shader resource registry multi-root dedupe: passed)
+  - python -m py_compile tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool shader asset-root plan visibility: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool shader asset-root plan visibility: passed, 15 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_plan_lists_runtime_fallback_handoff_paths (2026-06-28 Build-tool shader asset-root plan visibility fallback handoff extension: RED then passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool shader asset-root plan visibility fallback handoff extension: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader asset-root plan visibility: passed)
+  - python -m py_compile tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Prewarm WGPU validation report summary: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_dimension_summary_lines_accept_rust_count_field_names tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_dimension_summary_lines_format_wgpu_module_validation_counts (2026-06-28 Prewarm WGPU validation report summary: passed, 2 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Prewarm WGPU validation report summary: passed, 17 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/dynamic_api/shader_prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Prewarm WGPU validation report summary: passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool WGPU validation report contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_prints_summary_before_raising_nonzero_exit tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_requires_wgpu_validation_when_requested tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_accepts_wgpu_validation_counts (2026-06-28 Build-tool WGPU validation report contract: passed, 4 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool WGPU validation report contract: passed, 20 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool WGPU validation report contract: passed)
+  - python -m py_compile tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Shader prewarm source provenance summary: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_dimension_summary_lines_format_source_provenance (2026-06-28 Shader prewarm source provenance summary: RED then passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Shader prewarm source provenance summary: passed, 21 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs zircon_runtime/src/dynamic_api/shader_prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Shader prewarm source provenance summary: passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool source provenance report contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_requires_source_provenance_when_requested tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_report_contract_accepts_source_provenance_counts (2026-06-28 Build-tool source provenance report contract: RED then passed, 3 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool source provenance report contract: passed, 23 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool source provenance report contract: passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool shader resource registry export contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_skips_export_contract_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_requires_resource_records tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_wrapped_resources tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_raw_array (2026-06-28 Build-tool shader resource registry export contract: RED then passed, 5 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool shader resource registry export contract: passed, 27 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader resource registry export contract: passed)
+  - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_resource_registry_export_contract_is_wired --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-registry-export-contract-0628 --message-format short --color never -- --nocapture (2026-06-28 Build-tool shader resource registry export contract: blocked before compile because Cargo.lock would need update under --locked; not counted as passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool shader resource registry report correlation: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_rejects_missing_report_source_locator tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_report_source_locator tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_ignores_builtin_report_sources (2026-06-28 Build-tool shader resource registry report correlation: RED then passed, 4 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool shader resource registry report correlation: passed, 30 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader resource registry report correlation: passed)
+  - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-registry-report-correlation-0628 --message-format short --color never -- --nocapture (2026-06-28 Build-tool shader resource registry report correlation: timed out after 120 seconds with no test result; no residual cargo/rustc process; not counted as passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool resource registry written source-label correlation: RED first failed with RuntimeError not raised, then passed, 28 tests; status render_plan08_build_tool_resource_registry_written_source_label_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool resource registry usable shader revision contract: RED first failed with RuntimeError not raised for non-Shader and zero-revision records, then passed, 30 tests; status render_plan08_build_tool_resource_registry_usable_shader_revision_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool resource registry contract test owner split: passed, 30 tests; status render_plan08_build_tool_resource_registry_contract_tests_owner_split_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool resource registry ResourceRecord wire-shape contract: RED first failed with RuntimeError not raised, then passed, 10 tests; status render_plan08_build_tool_resource_registry_record_shape_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool resource registry enum wire-shape contract: RED first failed with TypeError on dict enum, then passed, 11 tests; status render_plan08_build_tool_resource_registry_enum_wire_shape_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool resource registry numeric width contract: RED first failed with RuntimeError not raised for u64/u32 overflow, then passed, 13 tests; status render_plan08_build_tool_resource_registry_numeric_width_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool resource registry locator wire-shape contract: RED first failed with RuntimeError not raised and a rejected valid duplicate-separator path, then passed, 16 tests; status render_plan08_build_tool_resource_registry_locator_wire_shape_python_passed_cargo_deferred)
+  - PYTHONPYCACHEPREFIX=%TEMP%\zircon-codex-pycache-plan08-locator python -m py_compile tools\zircon_build_shader_prewarm.py tools\zircon_build_shader_resource_registry.py tools\tests\test_zircon_build_shader_prewarm_resource_registry_contract.py (2026-06-28 Build-tool resource registry locator wire-shape contract: passed after local __pycache__ lock was bypassed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-28 Build-tool resource registry locator wire-shape contract: passed, 87 tests)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool shader resource registry-backed locator correlation: RED first failed with RuntimeError not raised for missing lib/package report source locators, then passed, 18 tests; status render_plan08_build_tool_resource_registry_backed_locator_correlation_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Resource registry ready shader revision contract: passed, 19 tests; status render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred; includes test_validate_registry_export_contract_rejects_non_ready_report_source_record)
+  - python -m py_compile tools/zircon_build_shader_resource_registry.py tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py (2026-06-28 Resource registry ready shader revision contract: passed)
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs::shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only (2026-06-28 Resource registry ready shader revision contract: added; Cargo deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_acceptance_contract.ZirconBuildShaderPrewarmAcceptanceContractTests.test_acceptance_contract_rejects_duplicate_written_variant_identity (2026-06-28 Build-tool written variant uniqueness contract: RED first failed with RuntimeError not raised, then passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract.ZirconBuildShaderPrewarmCacheContractTests.test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity (2026-06-28 Build-tool written variant uniqueness contract: RED first failed with RuntimeError not raised, then passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm_dimension_contract (2026-06-28 Build-tool shader prewarm report dimension contract: RED then passed, 4 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py (2026-06-28 Build-tool shader prewarm report dimension contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract (2026-06-28 Build-tool shader prewarm report dimension contract: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader prewarm report dimension contract: passed)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract (2026-06-28 Build-tool shader prewarm report dimension complete-count contract: RED then passed, 7 tests; status render_plan08_build_tool_report_dimension_complete_counts_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract (2026-06-28 Build-tool shader prewarm report dimension totals match contract: RED then passed, 8 tests; status render_plan08_build_tool_report_dimension_totals_match_python_passed_cargo_deferred)
+  - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed, 92 tests)
+  - python -m py_compile tools/zircon_build_shader_prewarm_report_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed with isolated PYTHONPYCACHEPREFIX)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_skips_export_contract_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool shader prewarm cache artifact contract: RED then passed, 5 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Build-tool shader prewarm cache artifact contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool shader prewarm cache artifact contract: passed, 38 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader prewarm cache artifact contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm report cache identity contract: RED then passed, 8 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Prewarm report cache identity contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm report cache identity contract: passed, 41 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Prewarm report cache identity contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm cache runtime layout contract: RED then passed, 10 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Prewarm cache runtime layout contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm cache runtime layout contract: passed, 43 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Prewarm cache runtime layout contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm cache hash shape contract: RED then passed, 11 tests)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Prewarm cache hash shape contract: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm cache hash shape contract: passed, 44 tests)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Prewarm cache hash shape contract: passed)
+- python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_report_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_permutation_registry_contract.py (2026-06-28 Build-tool shader permutation id report dimension contract: passed)
+- python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract (2026-06-28 Build-tool shader permutation id report dimension contract: passed, 8 tests)
+- PYTHONDONTWRITEBYTECODE=1 python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_report_contract.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_permutation_registry_contract.py (2026-06-28 Prewarm cache custom id correlation contract: passed)
+- PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_permutation_registry_contract (2026-06-28 Prewarm cache custom id correlation contract: passed, 52 tests)
+- PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_command_contract (2026-06-28 Build-tool staged WGPU handoff command contract: RED then passed, 2 tests; status render_plan08_build_tool_staged_wgpu_handoff_command_contract_python_passed_cargo_deferred)
+- PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool staged WGPU handoff command contract: passed, 30 tests; runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired guards docs/status anchors)
   - python tools/zircon_build.py --help
   - python tools/zircon_build.py --list-plugins
   - python tools/zircon_build.py --targets editor,runtime --out <dir> --mode debug --dry-run
@@ -77,12 +297,20 @@ tests:
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets runtime --out <dir> --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
   - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --dry-run
+  - python tools/zircon_build.py --targets runtime --out target/codex-plan08-build-tool-prewarm-summary-dry-run --mode debug --prewarm-shaders --dry-run (2026-06-27 build-tool prewarm dimension summary: passed)
   - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-shading-model-id custom:subsurface=16 --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-geometry-source-id custom:gpu-driven=4 --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-permutation-registry <registry.json> --dry-run
+  - python tools/zircon_build.py --targets runtime --out target/codex-plan08-permutation-registry-dry-run --mode debug --prewarm-shaders --shader-permutation-registry Project/shader_permutation_registry.json --dry-run (2026-06-27 shader permutation registry overlay: passed)
+  - python tools/zircon_build.py --targets runtime --out target/codex-plan08-permutation-registry-auto-export-dry-run --mode debug --prewarm-shaders --shader-geometry-source-id custom:gpu-driven=4 --shader-shading-model-id custom:toon=16 --dry-run (2026-06-27 shader permutation registry auto-export: passed)
+  - python tools/zircon_build.py --targets runtime,plugins --plugins virtual_geometry --out target/codex-plan08-plugin-permutation-registry-dry-run --mode debug --prewarm-shaders --dry-run (2026-06-27 Plugin shader permutation registry auto-export: passed)
   - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --shader-resource-registry <resources.json> --dry-run
   - target: ./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
   - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir <target-dir>
+  - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-prewarm-diagnostics-check-0627 --message-format short --color never (2026-06-27 prewarm report dimension diagnostics: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib render_shader_variant_prewarm_report_groups_written_and_failed_dimensions --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-prewarm-diagnostics-check-0627 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27 prewarm report dimension diagnostics: timed out after 604s with no test result; not counted as passed)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
-  - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.v2.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/host/activity_drawer_window.zui')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
+  - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.zui')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/host/activity_drawer_window.zui')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
   - powershell: Get-ChildItem E:\zircon-build\ZirconEngine\assets\ui -Recurse -File -Filter *.ui.toml | Where-Object { $_.Name -notlike '*.v2.ui.toml' } returns no files
   - E:\zircon-build\ZirconEngine\zircon_editor.exe smoke run with E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log
 doc_type: workflow-detail
@@ -138,7 +366,7 @@ one copy; identical duplicates are treated as idempotent.
 
 UI template staging is now v2-only for packaged payloads. Legacy `.ui.toml`
 authoring and migration inputs live under
-`zircon_editor/src/tests/fixtures/ui_legacy/**`, outside the deployable asset
+`zircon_editor/src/tests/fixtures/ui_zui/**`, outside the deployable asset
 roots. `tools/zircon_build.py` still defensively skips non-v2 `assets/ui/**`
 files if one is reintroduced, and guard tests reject that regression. Files
 ending in `.v2.ui.toml` are staged for root view/style documents, and `.zui`
@@ -157,7 +385,17 @@ processes against the staged runtime library.
 are staged. The tool runs the `zircon_shader_prewarm` binary with the staged
 `ZirconEngine` directory as its project root, writes cache entries into
 `ZirconEngine/cache/shader_variants`, and writes
-`ZirconEngine/cache/shader_variants_report.json`. The prewarm producer accepts
+`ZirconEngine/cache/shader_variants_report.json`. The report contains the
+top-level requested/written/failed totals plus
+`dimension_summary.pass_types`, `dimension_summary.geometry_source_ids`,
+`dimension_summary.shading_model_ids`, and
+`dimension_summary.quality_tiers`, each with requested/written/failed counts so
+build logs can identify which prewarm dimension missed. After a non-dry-run
+prewarm command returns, the build tool reads the same report and prints a
+compact `shader prewarm dimension summary` grouped by pass type, geometry source
+id, shading model id, and quality tier before propagating any non-zero exit code
+so CI output exposes missed dimensions without opening the JSON artifact. The
+prewarm producer accepts
 explicit manifest JSON and can scan staged asset roots for `.zshader`, `.wgsl`,
 and `.zmaterial` sources. Shader-prewarm parsing and command assembly live in
 `tools/zircon_build_shader_prewarm.py`, while `tools/zircon_build.py` keeps the
@@ -167,7 +405,776 @@ morphed, and skinned-morphed shader variant keys. `--shader-shading-model-id
 custom:name=16` forwards explicit project/plugin shading-model ids to the
 staged prewarm tool so `.zmaterial` files with `lighting_model =
 "custom:name"` can write plugin-range `ShaderVariantKey.shading_model` values
-instead of falling back to StandardPBR. `--shader-resource-registry <path>`
+instead of falling back to StandardPBR. `--shader-geometry-source-id
+custom:name=4` forwards explicit project/plugin geometry-source ids to the
+staged prewarm tool; the tool validates the id is in the plugin range and then
+adds it to the prewarm geometry dimension so asset-root shader requests can
+write plugin-range `ShaderVariantKey.geometry_source` values. Implementation
+files are `bin/zircon_shader_prewarm/args.rs`,
+`bin/zircon_shader_prewarm/manifest.rs`, `tools/zircon_build.py`, and
+`tools/zircon_build_shader_prewarm.py`; the focused manifest regression is
+`shader_prewarm_asset_root_manifest_expands_custom_geometry_source_plugin_ids`,
+the structure guard is
+`runtime_15_shader_prewarm_custom_geometry_source_id_is_wired`, and current
+status is
+`render_plan08_asset_root_custom_geometry_source_id_prewarm_typecheck_passed_test_timeout_no_result`.
+Shader permutation registry overlay is wired for staged prewarm build
+invocation: `--shader-permutation-registry <registry.json>` forwards a
+project/plugin shader permutation registry JSON file to the staged prewarm tool,
+and `zircon_shader_prewarm` also auto-discovers
+`shader_permutation_registry.json` at each `--asset-root` through
+`shader_permutation_registry_paths`. The registry owner is
+`bin/zircon_shader_prewarm/manifest/permutation_registry.rs`; it accepts
+`geometry_source_ids` and `shading_model_ids` records, normalizes custom
+tokens, validates plugin id ranges, and merges those ids into prewarm
+`ShaderVariantKey.geometry_source` / `ShaderVariantKey.shading_model`
+dimensions before asset manifests expand. The focused regressions are
+`shader_prewarm_permutation_registry_merges_custom_geometry_and_shading_ids`,
+`shader_prewarm_permutation_registry_discovers_asset_root_registry`, and
+`test_build_command_forwards_shader_permutation_registries`; the structure
+guard is `runtime_15_shader_prewarm_permutation_registry_overlay_is_wired`,
+and current status is
+`render_plan08_shader_permutation_registry_overlay_focused_tests_passed_renderdoc_deferred`.
+
+Shader permutation registry auto-export is wired for the staged build path when
+`--prewarm-shaders` receives explicit custom id inputs but no explicit
+`--shader-permutation-registry`. `tools/zircon_build.py` owns
+`shader_prewarm_permutation_registry_path`, which resolves to
+`ZirconEngine/cache/shader_permutation_registry.json`; before a non-dry-run
+prewarm command, `tools/zircon_build_shader_prewarm.py` writes that file with
+`geometry_source_ids` and `shading_model_ids` records derived from
+`--shader-geometry-source-id` and `--shader-shading-model-id`. The generated
+file uses the same registry schema as the overlay reader, while explicit
+`--shader-permutation-registry` remains the override path. The focused
+regressions are
+`test_build_command_uses_generated_shader_permutation_registry_for_custom_ids`,
+`test_build_command_prefers_explicit_shader_permutation_registry`,
+`test_generated_shader_permutation_registry_document_groups_custom_ids`, and
+`test_write_generated_shader_permutation_registry_writes_json`; the structure
+guard is
+`runtime_15_shader_prewarm_permutation_registry_auto_export_is_wired`, and
+current status is
+`render_plan08_build_tool_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred`.
+
+Plugin shader permutation registry auto-export extends that generated-registry
+path to selected plugin manifests. A plugin `plugin.toml` may include optional
+`[shader_permutation]` records with `[[shader_permutation.geometry_source_ids]]`
+or `[[shader_permutation.shading_model_ids]]` entries; each entry supplies a
+custom `token` and plugin-range `id`. `tools/zircon_build.py` discovers those
+records only for the selected plugins, and `tools/zircon_build_shader_prewarm.py`
+merges them with explicit CLI id records before writing the generated
+`shader_permutation_registry.json`. The focused regressions are
+`test_zircon_build_discovers_plugin_shader_permutation_records`,
+`test_generated_shader_permutation_registry_document_merges_selected_plugin_ids`,
+and
+`test_build_command_uses_generated_shader_permutation_registry_for_selected_plugin_ids`;
+the structure guard is
+`runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired`, and
+current status is
+`render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred`.
+The non-dry-run generated-registry path is also validated before launching the
+prewarm subprocess: `validate_shader_permutation_registry_export_contract(...)`
+requires the generated `geometry_source_ids` and `shading_model_ids` arrays to
+contain every selected-plugin and explicit CLI id spec expected by the current
+build config. The focused regressions are
+`test_validate_generated_registry_requires_selected_plugin_ids` and
+`test_prewarm_shaders_validates_generated_registry_before_run`; current status
+is
+`render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred`.
+After a successful prewarm subprocess, the report dimension contract also
+requires those same selected-plugin and explicit CLI ids to appear in
+`dimension_summary.geometry_source_ids` and `dimension_summary.shading_model_ids`
+with positive requested counts. `tools/zircon_build_shader_prewarm_report_contract.py`
+owns report summary formatting and report contract validation, while
+`tools/zircon_build_shader_prewarm.py` re-exports the public report helpers for
+existing callers. `prewarm_shaders(...)` passes
+`expected_geometry_source_ids=shader_geometry_source_id_specs(config)` and
+`expected_shading_model_ids=shader_shading_model_id_specs(config)` into
+`validate_shader_prewarm_report_contract(...)`. The focused regressions are
+`test_validate_report_contract_requires_requested_geometry_source_ids`,
+`test_validate_report_contract_requires_requested_shading_model_ids`, and
+`test_prewarm_shaders_passes_selected_custom_ids_to_report_contract`; current
+status is
+`render_plan08_build_tool_permutation_id_report_dimension_contract_python_passed_cargo_deferred`.
+
+Selected plugin `[[shading_models]]` descriptors now feed the same staged
+prewarm id discovery path. `tools/zircon_build.py::discover_plugins(...)` derives
+`shader_shading_model_ids` from descriptor rows with `token` and `id`, so custom
+shading-model plugins can keep `PluginPackageManifest.shading_models` as the
+authoritative descriptor owner instead of duplicating a
+`shader_permutation.shading_model_ids` row. The focused regression is
+`test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids`; the
+structure guard is
+`runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`,
+and current status is
+`render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`.
+
+Selected plugin `[[geometry_sources]]` descriptors now feed staged geometry-source
+id discovery as well. `tools/zircon_build.py::discover_plugins(...)` derives
+`shader_geometry_source_ids` from descriptor rows with `token` and `id`, then
+dedupes those ids with legacy `shader_permutation.geometry_source_ids` entries.
+This keeps `PluginPackageManifest.geometry_sources` authoritative for custom
+geometry-source descriptors while preserving the old id-row input for staged
+registries. The focused regression is
+`test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids`;
+the structure guard is
+`runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired`,
+and current status is
+`render_plan08_plugin_geometry_source_descriptor_registration_typecheck_python_cargo_check_passed_renderdoc_deferred`.
+
+Plugin shader asset roots auto-export extends staged prewarm and staged shader
+resource registry export to selected plugin package assets. `tools/zircon_build.py`
+stores existing package asset roots on `PluginPackage.asset_roots`, resolving
+top-level `asset_roots`, defaulting to an existing `assets` directory, and
+supporting legacy `[distribution] assets = ["assets/**"]` declarations such as
+`native_dynamic_fixture`. `tools/zircon_build_shader_prewarm.py` keeps staged
+`ZirconEngine/assets` as the first `--asset-root` and appends selected plugin
+asset roots, so the same `--export-resource-registry
+ZirconEngine/cache/shader_resource_records.json` run scans engine assets and
+selected plugin shader payloads. The focused regressions are
+`test_build_command_includes_selected_plugin_asset_roots`,
+`test_zircon_build_discovers_plugin_asset_roots_for_shader_prewarm`,
+`test_zircon_build_discovers_distribution_assets_as_plugin_asset_roots`, and
+`test_zircon_build_uses_existing_default_plugin_assets_root`; the structure guard
+is `runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired`, and
+current status is
+`render_plan08_plugin_shader_asset_roots_auto_export_focused_tests_passed_cargo_deferred_renderdoc_deferred`.
+
+Build-tool shader asset-root plan visibility makes that selected-root set
+auditable before a prewarm run starts. `print_shader_prewarm_plan(...)` prints
+`shader asset roots: ...` from `shader_asset_root_paths_for_prewarm(config)`,
+so dry-run output and the final `--asset-root` command arguments share one root
+owner. The focused regressions are
+`test_prewarm_plan_lists_asset_roots_for_registry_export` and
+`test_build_command_auto_export_registry_scans_all_asset_roots`; the structure
+guard is `runtime_15_shader_prewarm_asset_root_plan_visibility_is_wired`, and
+current status is
+`render_plan08_build_tool_shader_asset_root_plan_visibility_python_passed_cargo_deferred`.
+The same plan visibility owner now also prints `shader prewarm cache root`,
+`shader prewarm report`, and `shader runtime fallback root`, so dry-run output
+shows the staged cache/report handoff path before the acceptance helper reads a
+real report. `test_prewarm_plan_lists_runtime_fallback_handoff_paths` locks
+those lines. Closeout verification passed the build-helper Python combo 60/60
+plus py_compile, rustfmt, per-doc anchors, conflict/trailing-whitespace,
+line-budget, and scoped diff-check.
+
+Prewarm opt-in WGPU shader-module validation is available through
+`--validate-wgpu-shaders` when `--prewarm-shaders` is enabled. The build helper
+keeps normal staged prewarm on the existing Naga-only cache-write path unless
+that flag is present; when enabled, it appends `--validate-wgpu-modules` to the
+internal `zircon_shader_prewarm` command. The runtime prewarm tool then creates
+an offscreen WGPU shader module for each request after WGSL validation and before
+writing `ZirconEngine/cache/shader_variants`. The focused regression is
+`test_build_command_forwards_wgpu_shader_module_validation`, the structure guard
+is `runtime_15_shader_prewarm_wgpu_module_validation_is_wired`, and current
+status is
+`render_plan08_prewarm_wgpu_module_validation_gate_python_cargo_check_passed_runtime_run_timeout_deferred`.
+Python and scoped Cargo checks passed for this handoff; an actual
+`cargo run ... --validate-wgpu-modules` attempt timed out during Windows
+compilation and is not counted as runtime execution evidence.
+
+Prewarm WGPU validation report summary makes that opt-in path auditable after a
+real run. `ShaderVariantPrewarmReport.wgpu_module_validation` records whether
+module validation was enabled and how many variants were requested, validated,
+failed, or skipped because WGSL validation failed first. The build helper prints
+that data as `WGPU module validation: enabled requested=... validated=...
+failed=... skipped=...`, and it also accepts Rust report fields named
+`requested_count`, `written_count`, and `failed_count` when formatting dimension
+summaries. The focused regressions are
+`test_dimension_summary_lines_accept_rust_count_field_names` and
+`test_dimension_summary_lines_format_wgpu_module_validation_counts`; the
+structure guard is
+`runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired`, and current
+status is
+`render_plan08_prewarm_wgpu_validation_report_summary_python_passed_cargo_deferred`.
+Cargo/WGPU runtime execution remains a later Plan 08 acceptance gate.
+
+Build-tool WGPU validation report contract turns that report into a success
+condition when `--validate-wgpu-shaders` is requested. After a successful
+`zircon_shader_prewarm` process, `prewarm_shaders(...)` calls
+`validate_shader_prewarm_report_contract(...)`; the helper requires
+`wgpu_module_validation.enabled`, a positive requested count, every requested
+variant counted as validated, and zero failed/skipped entries. Non-zero prewarm
+exits still print the summary and then propagate `CalledProcessError` without
+running the contract check. The focused regressions are
+`test_prewarm_shaders_validates_wgpu_report_after_success`,
+`test_validate_report_contract_requires_wgpu_validation_when_requested`, and
+`test_validate_report_contract_accepts_wgpu_validation_counts`; the structure
+guard is `runtime_15_shader_prewarm_wgpu_report_contract_is_wired`, and current
+status is
+`render_plan08_build_tool_wgpu_report_contract_python_passed_cargo_deferred`.
+
+Build-tool WGPU validation totals match contract extends that success condition
+to the top-level report counts. `validate_shader_prewarm_report_contract(...)`
+now compares `wgpu_module_validation.requested_count`, `validated_count`, and
+`failed_count` with top-level `requested_count`, `written_count`, and
+`failed_count`; mismatches raise
+`shader prewarm WGPU module validation counts did not match report totals`.
+The dedicated test owner is
+`tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py`, covering
+the required/positive WGPU report cases plus
+`test_validate_report_contract_rejects_wgpu_validation_total_mismatch`.
+`runtime_15_shader_prewarm_wgpu_report_contract_is_wired` reads that owner and
+keeps the WGPU report-contract regressions out of the general prewarm test file.
+Status:
+`render_plan08_build_tool_wgpu_validation_totals_match_python_passed_cargo_deferred`.
+This is report-contract evidence only; real WGPU runtime execution remains open.
+
+Shader prewarm source provenance summary makes the same report artifact explain
+which shader source/template payload produced each written or failed variant.
+`ShaderVariantPrewarmRequest.source_label` is filled from the asset scan stable
+label or `builtin://shader/pbr.wgsl`, and
+`ShaderVariantPrewarmReport.source_provenance` groups request outcomes by source
+label, WGSL source hash, include hashes, template revision, Naga version, and
+WGPU version. `tools/zircon_build_shader_prewarm.py` prints a compact
+`source provenance:` line from that JSON, so dry-run/runtime logs can be tied
+back to the staged report without dumping full WGSL. Status:
+`render_plan08_shader_prewarm_source_provenance_summary_python_passed_cargo_deferred`;
+`test_dimension_summary_lines_format_source_provenance` and
+`runtime_15_shader_prewarm_source_provenance_summary_is_wired` lock the helper
+format and structure anchors. Cargo/WGPU runtime execution, RenderDoc capture,
+full registry export, and product miss=0 remain later Plan 08 gates.
+
+Build-tool source provenance report contract turns that report field into a
+success condition for staged builds. After a successful prewarm process,
+`prewarm_shaders(...)` now calls `validate_shader_prewarm_report_contract(...)`
+with `require_source_provenance=True` regardless of whether WGPU module
+validation was requested. The helper requires a non-empty
+`source_provenance.sources` map, matching `source_count`, a `variant_count` that
+covers the report `requested_count`, and per-source `source_label`,
+`source_hash`, `template_revision`, and closed requested/written/failed counts.
+Status:
+`render_plan08_build_tool_source_provenance_report_contract_python_passed_cargo_deferred`;
+`test_validate_report_contract_requires_source_provenance_when_requested`,
+`test_validate_report_contract_accepts_source_provenance_counts`, and
+`runtime_15_shader_prewarm_source_provenance_report_contract_is_wired` lock this
+contract. It still does not count as real staged WGPU execution or product
+miss=0 acceptance.
+
+Build-tool source provenance totals match contract closes the next report
+consistency gap. The same report helper now sums
+`source_provenance.sources[*].requested/written/failed` and requires those
+values to match report-level `requested_count`, `written_count`, and
+`failed_count`, so a report cannot claim top-level success while a source entry
+records a failed variant. Status:
+`render_plan08_build_tool_source_provenance_totals_match_python_passed_cargo_deferred`;
+`test_validate_report_contract_rejects_source_provenance_count_mismatch` and
+`runtime_15_shader_prewarm_source_provenance_report_contract_is_wired` lock this
+behavior. Closeout verification passed the build-helper Python combo 66/66.
+
+Build-tool source provenance report tests now have a dedicated owner:
+`tools/tests/test_zircon_build_shader_prewarm_source_provenance_contract.py`.
+The Runtime 15 guard reads that file directly and asserts the source-provenance
+mismatch regression does not move back into the general
+`test_zircon_build_shader_prewarm.py` owner. Status:
+`render_plan08_build_tool_source_provenance_report_tests_owner_split_python_passed_cargo_deferred`;
+the split leaves the general owner at 694 lines and the dedicated owner at 101
+lines.
+
+Build-tool shader resource registry export contract makes the automatic
+`--export-resource-registry` artifact a success condition for staged prewarm.
+When `--shader-resource-registry` is omitted and the prewarm process exits with
+zero, `prewarm_shaders(...)` now calls
+`validate_shader_resource_registry_export_contract(...)` on
+`shader_prewarm_resource_registry_path`. The helper accepts a raw
+`ResourceRecord` array or `{ resources: [...] }` / `{ records: [...] }` wrapper,
+allows an empty array, and rejects missing, non-JSON, non-array, or non-object
+record shapes. Explicit `--shader-resource-registry` inputs continue to bypass
+the auto-export contract because they are consumed rather than produced by this
+build step. Status:
+`render_plan08_build_tool_resource_registry_export_contract_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_requires_resource_records`,
+`test_prewarm_shaders_skips_export_contract_for_explicit_registry`, and
+`runtime_15_shader_prewarm_resource_registry_export_contract_is_wired` lock this
+gate. It still does not count as a real staged WGPU run, RenderDoc/product
+capture, full live registry export, or miss=0 acceptance. A focused Cargo guard
+attempt was blocked before compile because `Cargo.lock` would need update under
+`--locked`; no Rust diagnostics were produced and that run is not counted as
+passed.
+
+Build-tool shader resource registry report correlation now ties that exported
+registry to the successful prewarm report. When the build helper validates an
+auto-exported registry, it also receives `report_path` and requires every
+`res://` shader source reported in `source_provenance.sources` to appear in a
+`ResourceRecord.primary_locator` or `ResourceRecord.artifact_locator`. Builtin
+sources such as `builtin://shader/pbr.wgsl` and raw path-like sources remain
+outside the registry requirement because they are not produced by staged
+`.zmeta` registry export. Status:
+`render_plan08_build_tool_resource_registry_report_correlation_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_missing_report_source_locator`,
+`test_validate_registry_export_contract_accepts_report_source_locator`,
+`test_validate_registry_export_contract_ignores_builtin_report_sources`, and
+`runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired` lock
+this gate. It still does not count as real staged WGPU execution,
+RenderDoc/product capture, full live registry export, or miss=0 acceptance.
+
+The same registry correlation now also reads actual cache write identity rows.
+`_report_resource_source_labels(...)` collects `res://` labels from both
+`source_provenance.sources[*].source_label` and
+`written_variants[].source_label`, then checks those labels against exported
+resource record locators. Status:
+`render_plan08_build_tool_resource_registry_written_source_label_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_missing_written_variant_locator`
+and `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`
+lock this extension. It remains build-helper evidence only; live WGPU,
+RenderDoc/product capture, full live registry export, and miss=0 acceptance are
+separate Plan 08 gates.
+
+Registry/report correlation also now requires the matching record to be usable
+by the shader revision overlay. `_usable_shader_resource_record_locators(...)`
+only accepts records whose `kind` is Shader and whose `revision` is a positive
+integer before a `res://` report source is considered covered. Status:
+`render_plan08_build_tool_resource_registry_usable_shader_revision_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_non_shader_report_source_record`,
+`test_validate_registry_export_contract_rejects_zero_revision_report_source_record`,
+and `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`
+lock this extension. This remains build-helper/static evidence, not live WGPU,
+RenderDoc/product capture, full live registry export, or miss=0 acceptance.
+
+Registry export/report correlation tests now live in
+`tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py`
+instead of the general build-helper test owner. Status:
+`render_plan08_build_tool_resource_registry_contract_tests_owner_split_python_passed_cargo_deferred`;
+the split leaves `tools/tests/test_zircon_build_shader_prewarm.py` at 540 lines
+and the registry owner at 234 lines. Future registry/report cases should go to
+the dedicated owner.
+
+Registry export validation now lives in
+`tools/zircon_build_shader_resource_registry.py`, while
+`tools/zircon_build_shader_prewarm.py` only exposes the original
+`validate_shader_resource_registry_export_contract(...)` entry point. The
+helper validates ResourceRecord wire shape before report/source correlation:
+`id` and `dependency_ids` must be UUID strings, `kind` and `state` must be known
+resource enums, `primary_locator` and nullable-but-present `artifact_locator`
+must use locator strings, `diagnostics` must contain severity/message records,
+and `source_hash/importer_id/importer_version/config_hash` must be present.
+Status:
+`render_plan08_build_tool_resource_registry_record_shape_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_incomplete_resource_record`
+and `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`
+lock this wire-shape contract. It remains build-helper evidence only; live WGPU
+execution, RenderDoc/product capture, full live registry export, and miss=0
+acceptance remain separate Plan 08 gates.
+
+The same ResourceRecord gate now matches Rust unit-enum JSON shape for
+`ResourceKind` and `ResourceState`: `kind` and `state` must be strings such as
+`"Shader"` and `"Ready"`, not tagged objects. Status:
+`render_plan08_build_tool_resource_registry_enum_wire_shape_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_tagged_enum_resource_record`
+locks the negative case.
+
+Numeric ResourceRecord fields are also clamped to Rust serde widths. `revision`
+must fit `u64`, and `importer_version` must fit `u32`. Status:
+`render_plan08_build_tool_resource_registry_numeric_width_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_u64_revision_overflow` and
+`test_validate_registry_export_contract_rejects_u32_importer_version_overflow`
+lock the overflow cases.
+
+ResourceRecord locators now follow Rust `ResourceLocator::parse(...)` instead
+of the old loose `://` check. Accepted schemes are `res`, `lib`, `package`,
+`builtin`, and `mem`; paths must stay relative, non-empty after normalization,
+without Windows drive prefixes or root escapes, and labels cannot be empty.
+`package://` additionally requires a single package id plus a package-local
+path. Status:
+`render_plan08_build_tool_resource_registry_locator_wire_shape_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_invalid_locator_wire_shape`,
+`test_validate_registry_export_contract_accepts_locator_wire_shape_variants`,
+and `test_validate_registry_export_contract_rejects_invalid_artifact_locator`
+lock the primary and artifact locator cases.
+
+Resource registry/report correlation now treats registry-backed locator schemes
+consistently with `ResourceLocator::parse(...)`. `res://`, `lib://`,
+`package://`, and `mem://` report source labels must match exported
+`ResourceRecord.primary_locator` or `ResourceRecord.artifact_locator` entries,
+while `builtin://` remains an internal shader source outside staged project
+registry export. Status:
+`render_plan08_build_tool_resource_registry_backed_locator_correlation_python_passed_cargo_deferred`;
+`test_validate_registry_export_contract_accepts_registry_backed_source_locators`,
+`test_validate_registry_export_contract_rejects_missing_registry_backed_source_locator`,
+and `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`
+lock this correlation extension. It remains build-helper evidence only; live
+WGPU execution, RenderDoc/product capture, full live registry export, and miss=0
+acceptance are separate Plan 08 gates.
+
+Resource registry ready shader revision contract keeps build-tool report
+correlation aligned with runtime `ResourceManager::ready_records_for_kind(...)`
+and the Rust prewarm overlay. `_is_usable_shader_record(...)` now requires
+`kind=Shader`, `state=Ready`, and positive `revision`; non-Ready shader records
+with a nonzero revision no longer satisfy report-source coverage. Status:
+`render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred`;
+`test_validate_registry_export_contract_rejects_non_ready_report_source_record`,
+`shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only`,
+`runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`, and
+`runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired` lock the
+helper, Rust overlay, docs/status anchors, and child test owner. This remains
+Python/static evidence only; real staged WGPU execution, full live registry
+export, RenderDoc/product capture, fallback-root hit, and miss=0 acceptance are
+separate Plan 08 gates.
+
+Build-tool shader prewarm report dimension contract now verifies that a
+successful report covers the requested staged build dimensions, not only that a
+report exists. `prewarm_shaders(...)` passes
+`expected_pass_types`, `expected_quality_tiers=config.shader_quality_tiers`, and
+`expected_geometry_sources=config.shader_geometry_sources` into
+`validate_shader_prewarm_report_contract(...)`; the helper requires
+`dimension_summary.pass_types`, `dimension_summary.quality_tiers`, and
+`dimension_summary.geometry_source_ids` to contain positive requested counts for
+every requested pass, quality tier, and built-in geometry source. Status:
+`render_plan08_build_tool_report_dimension_contract_python_passed_cargo_deferred`;
+`test_validate_report_contract_requires_requested_pass_types`,
+`test_validate_report_contract_requires_requested_quality_tiers`,
+`test_validate_report_contract_requires_requested_geometry_sources`,
+`test_validate_report_contract_accepts_requested_dimensions`, and
+`runtime_15_shader_prewarm_report_dimension_contract_is_wired` lock this gate.
+It prevents `--shader-quality-tier high` or `--shader-geometry-source skinned`
+from silently accepting a default `medium/static` report, but it still does not
+count as real staged WGPU execution, RenderDoc/product capture, full live
+registry export, or miss=0 acceptance.
+
+Build-tool shader prewarm report dimension complete-count contract tightens that
+same report gate so requested dimensions must also close their counts. The
+helper now rejects expected pass, quality tier, built-in geometry source,
+geometry-source id, or shading-model id summary entries where
+`requested_count > 0` but `written_count != requested_count` or
+`failed_count != 0`. Status:
+`render_plan08_build_tool_report_dimension_complete_counts_python_passed_cargo_deferred`;
+`test_validate_report_contract_rejects_incomplete_requested_dimension_counts`
+locks the `forward requested=6 written=5 failed=1` regression. This still does
+not count as real WGPU execution or product miss=0 evidence.
+
+Build-tool shader prewarm report dimension totals match contract now requires
+dimension-summary group totals to match the top-level report counts. The helper
+uses `_validate_dimension_summary_totals_match_report(...)` and
+`_dimension_group_totals(...)` to reject reports where entries are individually
+complete but the group sums drift, such as `requested=6/7 written=6/7
+failed=0/0`. Status:
+`render_plan08_build_tool_report_dimension_totals_match_python_passed_cargo_deferred`;
+`test_validate_report_contract_rejects_dimension_count_total_mismatch` locks the
+negative case. This still does not count as real WGPU execution or product
+miss=0 evidence.
+
+Build-tool product Base pass acceptance contract ties the generic staged
+prewarm validators to the product Base/Opaque path. That earlier slice first
+routed `forward` into both the report dimension contract and cache artifact
+contract, so successful build output had to report a requested Forward pass and
+had to include a written cache identity with `pass=forward`. Status:
+`render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred`;
+`test_validate_report_contract_requires_requested_pass_types`,
+`test_validate_cache_artifact_contract_requires_requested_pass_types`,
+`test_validate_cache_artifact_contract_accepts_requested_pass_types`, and the
+three structure guards lock this handoff. This still does not count as real
+WGPU execution or product miss=0 evidence.
+
+Build-tool product material mesh pass acceptance contract extends that handoff
+from Base-only to the product material mesh pass tuple. The acceptance helper
+now owns `_PRODUCT_MATERIAL_MESH_PASS_TYPES = ("forward", "gbuffer",
+"depth_prepass", "shadow", "velocity", "taa_reactive_mask")` and passes it to
+both validators, so a forward-only staged report/cache bundle is rejected before
+build acceptance. Status:
+`render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred`;
+`test_acceptance_contract_rejects_forward_only_staged_pass_report`, the updated
+acceptance handoff assertion for `expected_pass_types`, and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this contract.
+This still does not count as real WGPU execution, RenderDoc/product capture,
+full live registry export, or product miss=0 evidence.
+
+Build-tool cache quality/geometry identity contract extends that same cache
+handoff beyond pass and custom ids. The acceptance helper passes
+`config.shader_quality_tiers` and `config.shader_geometry_sources` into
+`validate_shader_prewarm_cache_artifact_contract(...)`; the cache helper checks
+the written cache canonical strings for `quality=<tier>` and built-in
+`geometry=<id>` values. Status:
+`render_plan08_build_tool_cache_quality_geometry_identity_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_requested_quality_tiers`,
+`test_validate_cache_artifact_contract_requires_requested_geometry_sources`, and
+`test_validate_cache_artifact_contract_accepts_requested_quality_and_geometry`
+lock the gate. This still does not count as real WGPU execution or product
+miss=0 evidence.
+
+Build-tool cache dimension combination contract closes the gap left by
+independent dimension coverage. The cache validator now calls
+`_validate_expected_written_variant_combinations(...)` after pass, quality, and
+geometry checks, parses each written canonical string with
+`_canonical_dimension_values(...)`, and requires the requested `pass x quality x
+built-in geometry` combinations to exist in a single written variant identity.
+Status:
+`render_plan08_build_tool_cache_dimension_combination_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_requested_dimension_combinations`
+locks the case where `forward/high/static` plus `shadow/medium/skinned` cannot
+satisfy `forward/high/skinned`. This still does not count as real WGPU execution
+or product miss=0 evidence.
+
+Build-tool cache custom id combination contract applies the same product-key
+rule to selected plugin/CLI ids. After individual custom geometry and shading id
+checks pass, the cache validator calls
+`_validate_expected_written_custom_id_combinations(...)` and requires the
+requested custom geometry id and custom shading id to appear in the same written
+canonical string; requested pass and quality dimensions are included in that same
+match when present. Status:
+`render_plan08_build_tool_cache_custom_id_combination_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_requested_custom_id_combinations`
+locks the case where `forward/high/geometry=0/shading=0` plus
+`shadow/medium/geometry=4/shading=16` cannot satisfy
+`forward/high/geometry=4/shading=16`. This still does not count as real WGPU
+execution or product miss=0 evidence.
+
+Build-tool cache source-label provenance correlation contract ties written cache
+identity back to the source provenance table. When a successful report contains
+`source_provenance.sources`, the cache artifact helper now requires every
+`written_variants[].source_label` to be present and to match one
+`source_provenance.sources[*].source_label`. Status:
+`render_plan08_build_tool_cache_source_label_provenance_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_written_variant_source_labels_in_provenance`
+locks the mismatch where cache metadata matches the report but the written
+variant points at an unprovenanced `res://` shader source. This is still
+Python/static build-helper evidence, not a live WGPU run or product miss=0
+acceptance.
+
+Build-tool written variant uniqueness contract keeps duplicated report identity
+rows from satisfying staged success. The shared
+`tools/zircon_build_shader_prewarm_written_variants.py` owner now parses
+`written_variants`, validates BLAKE3 cache-hash shape, keeps source-label
+provenance correlation out of the oversized cache artifact helper, and exposes
+`validate_unique_written_variant_identity(...)` for both the cache artifact
+contract and staged acceptance precheck. Status:
+`render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity`
+and `test_acceptance_contract_rejects_duplicate_written_variant_identity` lock
+that duplicate `cache_hash` or duplicate `canonical_string` rows cannot satisfy
+`written_count`. This closes a static acceptance gap only; real staged WGPU,
+fallback lookup, RenderDoc/product capture, full registry export, and miss=0
+product acceptance remain later Plan 08 gates.
+
+Build-tool cache metadata field type contract keeps malformed staged `.meta`
+wire shapes from being treated as valid cache evidence. The cache artifact
+helper now rejects bool/string schema or timestamp values and non-string
+canonical/template/Naga/WGPU fields at metadata-parse time. Status:
+`render_plan08_build_tool_cache_metadata_field_type_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_rejects_invalid_metadata_field_types`
+locks that `schema_version=True`, string timestamps, and list/dict metadata
+fields fail as invalid cache metadata instead of passing or surfacing as a late
+variant mismatch. This is still Python/static build-helper evidence, not a live
+WGPU run or product miss=0 acceptance.
+
+Build-tool staged prewarm written cache-hash shape acceptance now rejects
+malformed `written_variants[].cache_hash` values in the success precheck. The
+acceptance helper reuses `validate_cache_hash_shape(...)`, so a staged success
+report with `cache_hash="not-a-cache-key"` fails before the lower cache artifact
+validator is patched in. Status:
+`render_plan08_build_tool_staged_prewarm_written_cache_hash_shape_python_passed_cargo_deferred`;
+`test_acceptance_contract_rejects_invalid_written_variant_cache_hash_shape`
+locks the entry point. This is still Python/static build-helper evidence, not a
+live WGPU run or product miss=0 acceptance.
+
+Build-tool staged prewarm written source-label identity acceptance moves the
+same requirement earlier in the success path. The staged acceptance helper now
+requires each `written_variants[]` entry to include `source_label` alongside
+`cache_hash`, `canonical_string`, template revision, and Naga/WGPU versions
+before report/source/cache/registry validators run. Status:
+`render_plan08_build_tool_staged_prewarm_written_source_label_identity_python_passed_cargo_deferred`;
+`test_acceptance_contract_requires_written_variant_source_label_identity` locks
+the precheck. This is still build-helper evidence, not a live WGPU run or
+product miss=0 acceptance.
+
+Build-tool shader prewarm cache artifact contract now verifies that a successful
+report is backed by staged cache files. After the report contract passes,
+`prewarm_shaders(...)` calls
+`validate_shader_prewarm_cache_artifact_contract(...)` with
+`config.shader_prewarm_cache_root` and the report path. The helper lives in
+`tools/zircon_build_shader_prewarm_cache_artifacts.py`, reads report
+`written_count`, and scans the cache root for `.wgsl.zst` files with matching
+`.meta` siblings whose JSON metadata includes a matching `hash`,
+`schema_version`, `canonical_string`, template revision, and Naga/WGPU version
+fields. Status:
+`render_plan08_build_tool_cache_artifact_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_written_cache_pairs`,
+`test_validate_cache_artifact_contract_rejects_orphan_wgsl_artifacts`,
+`test_validate_cache_artifact_contract_rejects_invalid_metadata`,
+`test_validate_cache_artifact_contract_rejects_metadata_hash_mismatch`,
+`test_validate_cache_artifact_contract_accepts_written_cache_pairs`, and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this gate.
+It prevents a zero-exit prewarm command from claiming written variants while
+leaving no staged cache artifacts, but it still does not count as real WGPU
+execution, runtime key lookup, RenderDoc/product capture, or miss=0 acceptance.
+
+Prewarm report cache identity contract extends the same staged cache gate from
+pair presence to exact identity. New reports include
+`ShaderVariantPrewarmReport.written_variants`, where each
+`ShaderVariantPrewarmWrittenVariant` records the `cache_hash`,
+`canonical_string`, source label, template revision, and Naga/WGPU versions
+captured from the `ShaderVariantCacheDiskKey` that was successfully written.
+When `written_variants` is present, the cache artifact helper requires its
+length to match `written_count` and validates every reported hash and canonical
+metadata against the staged `.meta` file. Status:
+`render_plan08_prewarm_report_cache_identity_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_report_written_variants`,
+`test_validate_cache_artifact_contract_rejects_partial_written_variant_report`,
+`test_validate_cache_artifact_contract_rejects_wrong_canonical_variant`, and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this gate.
+Legacy reports without `written_variants` still use the previous count/pair
+contract, and real WGPU execution, runtime key lookup, RenderDoc/product
+capture, full live registry export, and miss=0 acceptance remain deferred.
+
+Prewarm cache runtime layout contract extends the same helper toward the actual
+runtime lookup path. The cache artifact helper now mirrors
+`ShaderVariantCacheDisk` layout by requiring each staged `.wgsl.zst` file to sit
+under `<cache_root>/v1/<hash[0..2]>/<hash>.wgsl.zst` and requiring `.meta`
+`schema_version == 1`. Status:
+`render_plan08_prewarm_cache_runtime_layout_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_rejects_non_runtime_cache_layout`,
+`test_validate_cache_artifact_contract_rejects_schema_version_mismatch`, and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this gate.
+This prevents a successful build from accepting cache files that the runtime
+fallback root cannot find, but it is still not a live WGPU run, RenderDoc/product
+capture, full registry export, or miss=0 acceptance.
+
+Prewarm cache hash shape contract closes the next build acceptance gap. The same
+helper now rejects staged artifact names and report `written_variants.cache_hash`
+values that are not 64-character lowercase BLAKE3 hex strings, matching
+`ShaderVariantCacheDiskKey::from_variant_key(...)` hash output. Status:
+`render_plan08_prewarm_cache_hash_shape_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_rejects_non_blake3_hex_cache_hash` and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this gate.
+This is still static/build-helper evidence, not a live WGPU run or product
+miss=0 acceptance.
+
+Prewarm cache custom id correlation contract closes the next staged-cache
+identity gap. After successful prewarm, `prewarm_shaders(...)` passes
+`shader_geometry_source_id_specs(config)` and
+`shader_shading_model_id_specs(config)` into the cache artifact helper. The
+helper parses the selected plugin / explicit CLI custom ids and requires
+`written_variants[].canonical_string` to include matching `geometry=<id>` and
+`shading=<id>` entries before accepting staged cache artifacts. Status:
+`render_plan08_prewarm_cache_custom_id_correlation_contract_python_passed_cargo_deferred`;
+`test_validate_cache_artifact_contract_requires_requested_custom_ids`,
+`test_validate_cache_artifact_contract_requires_requested_shading_ids`,
+`test_validate_cache_artifact_contract_accepts_requested_custom_ids`, and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this gate.
+This is still Python/static build evidence, not a live WGPU run, runtime
+fallback-root hit, RenderDoc/product capture, or product miss=0 acceptance.
+
+Runtime prewarm custom id cache lookup contract is the Rust-side pair to the
+build-helper custom-id artifact check. The existing prewarm/cache owner now
+constructs a request with custom `GeometrySourceId(4)` and `ShadingModelId(16)`,
+writes it with `prewarm_shader_variants_to_disk`, and verifies the same
+`ShaderVariantCacheDiskKey` can be looked up from disk with canonical
+`geometry=4` and `shading=16`. Status:
+`render_plan08_runtime_prewarm_custom_id_cache_lookup_static_passed_cargo_deferred`;
+`render_shader_variant_prewarm_custom_ids_survive_disk_lookup` and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this owner.
+This remains static Rust coverage; the real staged `zircon_shader_prewarm`
+process, WGPU validation, RenderDoc/product capture, full registry export, and
+product miss=0 acceptance are still later Plan 08 gates.
+
+Runtime custom id staged fallback lookup contract proves that the same custom-id
+cache entry is addressable through the runtime fallback chain that product
+launches use for staged payloads. The prewarm/cache owner writes the custom
+`GeometrySourceId(4)` / `ShadingModelId(16)` request into a staged
+`cache/shader_variants` root, confirms the empty runtime cache root misses, then
+confirms `ShaderVariantCacheDisk::with_fallback_roots(&runtime_root, [&staged_root])`
+hits without creating or writing the runtime root. Status:
+`render_plan08_runtime_custom_id_staged_fallback_lookup_static_passed_cargo_deferred`;
+`render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root` and
+`runtime_15_shader_prewarm_cache_artifact_contract_is_wired` lock this owner.
+This remains static Rust coverage; live `zircon_shader_prewarm`, WGPU validation,
+RenderDoc/product capture, full registry export, and product miss=0 acceptance
+are still later Plan 08 gates.
+
+Build-tool staged prewarm acceptance contract now owns the zero-exit build
+acceptance bundle. `tools/zircon_build_shader_prewarm_acceptance.py::validate_staged_shader_prewarm_acceptance_contract`
+collects selected plugin and CLI custom ids once, then runs the report contract,
+cache artifact contract, and automatic resource-registry/report correlation from
+a single helper. `prewarm_shaders(...)` calls this helper after the subprocess
+returns success instead of directly calling each low-level validator. Status:
+`render_plan08_build_tool_staged_prewarm_acceptance_contract_python_passed_cargo_deferred`;
+`test_acceptance_contract_validates_report_cache_and_exported_registry` and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this behavior.
+This is still build-helper acceptance evidence only; live
+`zircon_shader_prewarm --validate-wgpu-modules`, RenderDoc/product capture, full
+live registry export, and second-launch miss=0 remain separate Plan 08 gates.
+
+Build-tool staged prewarm runtime fallback layout contract is the path gate
+inside the same acceptance helper. Before reading report JSON,
+`validate_staged_shader_prewarm_runtime_fallback_layout(...)` requires the cache
+root to be `ZirconEngine/cache/shader_variants`, the report to be
+`ZirconEngine/cache/shader_variants_report.json`, and the automatic resource
+registry export to be `ZirconEngine/cache/shader_resource_records.json` under
+the staged engine root. Status:
+`render_plan08_build_tool_staged_prewarm_runtime_fallback_layout_python_passed_cargo_deferred`;
+`test_acceptance_contract_rejects_runtime_fallback_layout_drift`,
+`test_acceptance_contract_accepts_runtime_fallback_layout`, and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock the runtime fallback root behavior. This remains build-helper evidence; the real WGPU run,
+RenderDoc/product capture, full live registry export, and product miss=0 gates
+are still separate Plan 08 checks.
+
+Build-tool staged prewarm nonempty success report acceptance is the result gate
+inside the same helper. After path layout passes and before lower report/cache
+validators run, `validate_staged_shader_prewarm_nonempty_success_report(...)`
+requires `requested_count > 0`, `written_count > 0`, and `failed_count == 0` in
+`shader_variants_report.json`. This prevents a zero-exit prewarm command with no
+written variants, or with any failed variant, from being accepted as a build
+success. Status:
+`render_plan08_build_tool_staged_prewarm_nonempty_success_report_python_passed_cargo_deferred`;
+`test_acceptance_contract_rejects_empty_success_report`,
+`test_acceptance_contract_rejects_failed_success_report`, and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this behavior.
+Closeout verification passed focused acceptance 7/7 and the build-helper Python
+combo 62/62.
+
+Build-tool staged prewarm written variant identity acceptance is the cache-key
+handoff gate inside the same helper. Successful reports must include
+`written_variants` with a row for every `written_count` entry, and each row must
+name `cache_hash`, `canonical_string`, `template_revision`, `naga_version`, and
+`wgpu_version` before the lower cache artifact helper validates staged `.meta`
+files. Status:
+`render_plan08_build_tool_staged_prewarm_written_variant_identity_python_passed_cargo_deferred`;
+`test_acceptance_contract_requires_written_variant_identity`,
+`test_acceptance_contract_rejects_incomplete_written_variant_identity`, and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this behavior.
+Closeout verification passed focused acceptance 9/9 and the build-helper Python
+combo 64/64.
+
+Build-tool staged prewarm complete written count acceptance is the final count
+relation gate inside the same helper. Successful reports must have
+`written_count == requested_count` before source-provenance, dimension, cache,
+and registry validators run; a zero-exit report with `requested=2`,
+`written=1`, `failed=0`, and one `written_variants` row is rejected as partial
+success. Status:
+`render_plan08_build_tool_staged_prewarm_complete_written_count_python_passed_cargo_deferred`;
+`test_acceptance_contract_rejects_partial_written_success_report` and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this behavior.
+Closeout verification passed the build-helper Python combo 65/65.
+
+The same acceptance owner first carried the product Base pass handoff, then was
+extended to full product material mesh pass acceptance. A successful staged
+prewarm report/cache bundle must now satisfy `expected_pass_types=("forward",
+"gbuffer", "depth_prepass", "shadow", "velocity", "taa_reactive_mask")`, so the
+product material consumer is not handed a cache populated only with Forward.
+`test_acceptance_contract_rejects_forward_only_staged_pass_report` locks the
+negative case under status
+`render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred`.
+
+The cache identity handoff now also requires written variants for requested
+quality tiers and built-in geometry sources. A staged report may no longer
+claim `high` or `skinned` in `dimension_summary` while only writing
+`quality=medium` or `geometry=0` cache keys. Focused cache/acceptance tests
+passed 29/29 under status
+`render_plan08_build_tool_cache_quality_geometry_identity_contract_python_passed_cargo_deferred`.
+
+Build-tool staged WGPU handoff command contract keeps the real prewarm command
+from drifting before the next controlled WGPU run. `build_shader_prewarm_command`
+now validates that opt-in WGPU validation, generated permutation registry,
+engine/plugin asset roots, resource-registry export, cache/report paths, and
+quality/geometry/custom-id dimensions are all present and in config order.
+The contract is locked by `test_full_staged_wgpu_handoff_keeps_generated_registries_and_roots`
+and `runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired`.
+Status:
+`render_plan08_build_tool_staged_wgpu_handoff_command_contract_python_passed_cargo_deferred`.
+It is command-shape evidence only; real `zircon_shader_prewarm --validate-wgpu-modules`,
+RenderDoc/product capture, full live registry export, and second-launch miss=0
+remain separate acceptance gates.
+
+`--shader-resource-registry <path>`
 forwards a serialized `ResourceRecord` array, or a JSON object with a
 `resources`/`records` array, to `zircon_shader_prewarm --resource-registry`.
 Asset-root resource registry revision overlay is owned by
@@ -179,7 +1186,7 @@ revisions. The focused wiring guard is
 manifest regression is
 `shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay`,
 and current status is
-`render_plan08_asset_root_resource_registry_revision_overlay_static_passed_cargo_timeout_no_result`.
+`render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`.
 Built-in fallback and
 `builtin://shader/pbr.wgsl` material references use the standard-material
 template builder for each requested geometry source; custom scanned shader
@@ -187,6 +1194,32 @@ payloads remain raw WGSL requests. Runtime lookup checks the writable
 `.zircon-cache/shader_variants` cache first and then the staged
 `cache/shader_variants` payload, so packaged prewarm entries can satisfy the
 first matching shader-module lookup.
+
+Staged shader resource registry auto-export is the default when
+`--prewarm-shaders` runs without an explicit `--shader-resource-registry`.
+The build helper forwards `--export-resource-registry` to write
+`ZirconEngine/cache/shader_resource_records.json`, then the prewarm binary
+immediately consumes those generated records as an overlay for the same
+asset-root manifest scan. `shader_resource_records_from_asset_root(...)` reads
+staged `.zmeta` documents, exports shader-only ready `ResourceRecord` rows, and
+keeps explicit `--resource-registry` input as the override path. The focused
+manifest regression is
+`shader_prewarm_asset_root_exports_shader_resource_records`, the structure
+guard is `runtime_15_shader_prewarm_registry_auto_export_is_wired`, and status
+is
+`render_plan08_shader_resource_registry_auto_export_focused_tests_passed_renderdoc_deferred`.
+
+Staged shader resource registry multi-root dedupe keeps that automatic export
+stable when selected plugin asset roots overlap the engine staged assets.
+`shader_resource_records_from_asset_roots(...)` now owns aggregation for all
+asset roots before the build writes `shader_resource_records.json`; duplicate
+shader records collapse once, while conflicting id/locator mappings return an
+error from the prewarm binary. The focused regression is
+`shader_resource_records_from_asset_roots_deduplicates_duplicate_shader_records`,
+the structure guard is
+`runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired`, and
+current status is
+`render_plan08_shader_resource_registry_multi_root_dedupe_static_passed_cargo_deferred`.
 
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the
@@ -344,6 +1377,7 @@ python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon-smo
 python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug --dry-run
 python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
 python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --dry-run
+python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
 cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir E:\cargo-targets\zircon-shader-prewarm-bin
 ```
 

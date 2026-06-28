@@ -17,8 +17,8 @@ impl AnimationEditorSession {
         let asset_path = path.to_string_lossy().into_owned();
         let lowered = asset_path.to_ascii_lowercase();
         if lowered.ends_with(".sequence.zranim") {
-            let asset =
-                AnimationSequenceAsset::from_bytes(&bytes).map_err(AnimationEditorSessionError)?;
+            let asset = AnimationSequenceAsset::from_bytes(&bytes)
+                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
             let timeline_end_frame =
                 duration_frames(asset.duration_seconds, asset.frames_per_second);
             return Ok(Self {
@@ -37,8 +37,8 @@ impl AnimationEditorSession {
             });
         }
         if lowered.ends_with(".graph.zranim") {
-            let asset =
-                AnimationGraphAsset::from_bytes(&bytes).map_err(AnimationEditorSessionError)?;
+            let asset = AnimationGraphAsset::from_bytes(&bytes)
+                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
             return Ok(Self {
                 asset_path,
                 document: AnimationEditorDocument::Graph(asset),
@@ -47,7 +47,7 @@ impl AnimationEditorSession {
         }
         if lowered.ends_with(".state_machine.zranim") {
             let asset = AnimationStateMachineAsset::from_bytes(&bytes)
-                .map_err(AnimationEditorSessionError)?;
+                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
             return Ok(Self {
                 asset_path,
                 document: AnimationEditorDocument::StateMachine(asset),

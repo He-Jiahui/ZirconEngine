@@ -615,7 +615,7 @@ mod tests {
     fn parses_search_projects_typed_payload() {
         let action = HubActionRequest {
             action_id: "search-projects".to_string(),
-            target_id: Some("legacy query".to_string()),
+            target_id: Some("archived query".to_string()),
             payload: Some(serde_json::json!({
                 "query": "typed query"
             })),

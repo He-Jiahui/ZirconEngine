@@ -44,11 +44,15 @@ related_code:
   - zircon_plugins/net/runtime/src/tests/udp.rs
   - zircon_plugins/net/runtime/src/tests/worker.rs
   - zircon_plugins/net/runtime/src/tests/websocket.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/net/features/http/runtime/Cargo.toml
   - zircon_plugins/net/features/http/runtime/src/lib.rs
   - zircon_plugins/net/features/http/runtime/src/feature.rs
   - zircon_plugins/net/features/http/runtime/src/backend.rs
   - zircon_plugins/net/features/http/runtime/src/backend/client.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
   - zircon_plugins/net/features/http/runtime/src/backend/method.rs
   - zircon_plugins/net/features/http/runtime/src/backend/security.rs
   - zircon_plugins/net/features/http/runtime/src/backend/server.rs
@@ -177,6 +181,9 @@ implementation_files:
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/runtime_system.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/net/runtime/src/transport/mod.rs
   - zircon_plugins/net/runtime/src/transport/reconnect.rs
   - zircon_plugins/net/runtime/src/transport/state_machine.rs
@@ -217,6 +224,7 @@ implementation_files:
   - zircon_plugins/net/features/http/runtime/src/feature.rs
   - zircon_plugins/net/features/http/runtime/src/backend.rs
   - zircon_plugins/net/features/http/runtime/src/backend/client.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
   - zircon_plugins/net/features/http/runtime/src/backend/method.rs
   - zircon_plugins/net/features/http/runtime/src/backend/security.rs
   - zircon_plugins/net/features/http/runtime/src/backend/server.rs
@@ -402,6 +410,7 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-net-http-m2-0614 --message-format short --color never (passed 2026-06-14 with Cargo.lock restored afterward)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_content_download_runtime --offline --jobs 1 --no-run --target-dir D:\cargo-targets\zircon-net-http-m2-0614 --message-format short --color never (passed 2026-06-14 with Cargo.lock restored afterward)
   - D:\cargo-targets\zircon-net-http-m2-0614\debug\deps\zircon_plugin_net_content_download_runtime-83c7497b4388f3c5.exe --test-threads=1 --nocapture (13 passed 2026-06-14)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated (2026-06-27 Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover; static guard added; Cargo deferred because external cargo/rustc lanes were active)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-net-tls-m2-0614 --message-format short --color never (passed 2026-06-14 with Cargo.lock restored afterward)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-net-tls-m2-0614 --message-format short --color never (passed 2026-06-14 with Cargo.lock restored afterward)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_http_runtime --offline --jobs 1 --no-run --target-dir D:\cargo-targets\zircon-net-tls-m2-0614 --message-format short --color never (passed 2026-06-14 with Cargo.lock restored afterward)
@@ -448,6 +457,8 @@ doc_type: module-detail
 
 `zircon_plugins/net/runtime` owns the executable networking service for the first-party Net plugin. It implements the neutral `zircon_runtime::core::framework::net::NetManager` contract with a Tokio-backed base runtime, plugin-owned state, in-memory HTTP route dispatch, loopback WebSocket support, diagnostics, and package metadata for optional network features.
 
+Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover is recorded as `runtime_15_net_http_hyper_http1_client_policy_hard_cutover_static_passed_cargo_deferred`. The HTTP feature backend now keeps the third-party Hyper HTTP/1 legacy API path isolated in `zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs`; `zircon_plugins/net/features/http/runtime/src/backend/client.rs` only calls `http1_client_policy::plain_http_client()` and remains the request/response/retry/timeout owner. The structure audit classifies the policy owner as allowed `external-hyper-http1-client-policy`, guarded by `runtime_15_net_http_hyper_http1_client_policy_is_isolated`; HTTP behavior is unchanged and Cargo remains deferred while external lanes are active.
+
 The runtime plugin is intentionally not the whole networking stack. HTTP sockets, WebSocket handshakes, RPC, replication, reliable UDP, and content-download behavior are layered as optional features and feature crates. The base plugin contributes the shared manager and the project/export catalog rows that make those features selectable.
 
 ## Runtime Boundary
@@ -457,7 +468,9 @@ The runtime plugin is intentionally not the whole networking stack. HTTP sockets
 - `package.rs` contributes options, optional feature rows, dependencies, and event catalog metadata. The static plugin manifest and runtime manifest must stay synchronized.
 - `runtime_state.rs` stores plugin-owned Tokio runtime handles, the dedicated `NetWorker`, metadata tables for UDP sockets and TCP listeners/connections, HTTP routes/listeners, WebSocket listeners/connections, and queued events.
 - `worker/{mod,egress,ingress,shutdown}.rs` owns the dedicated network worker thread. It keeps Tokio socket/listener/stream handles out of the caller thread and accepts bounded egress commands for UDP/TCP bind, listen, connect, send, poll, close, and shutdown.
-- `runtime_system.rs` registers `net.transport`, `net.poll_ingress`, `net.flush_egress`, and the typed `NetEvent` channel. `net.poll_ingress` runs in `SystemStage::First`, publishes copied Net diagnostics into the shared rolling diagnostic store, and drains manager events into the world event queue; `net.flush_egress` is a `SystemStage::Last` scheduling anchor reserved for the later frame-command collection path.
+- `RuntimePluginRegistrationBuilder` registers the `net.runtime` module before option/catalog metadata and runtime systems. `runtime_system.rs` registers `net.transport`, `net.poll_ingress`, `net.flush_egress`, and the typed `NetEvent` channel through `RuntimePluginModuleRegistration`; option/catalog metadata, the typed event, and scene systems stay on the SDK module handle rather than direct `PluginModuleId` / `RuntimeExtensionRegistry` calls. D8 runtime registration builder original evidence paths are locked by `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` and `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred`. `net.poll_ingress` runs in `SystemStage::First`, publishes copied Net diagnostics into the shared rolling diagnostic store, and drains manager events into the world event queue; `net.flush_egress` is a `SystemStage::Last` scheduling anchor reserved for the later frame-command collection path.
+- D5 editor authoring macro consumer guard keeps the editor package on the SDK macro path: `zircon_plugins/net/editor/src/plugin.rs` uses `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest: zircon_plugin_net_runtime::package_manifest()` and only keeps the Net-specific extension registration body outside the macro. Status `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` is locked by `review_d5_editor_authoring_plugins_use_sdk_macro`.
+- D9 editor/runtime mirror consumer guard keeps the editor package tied to this runtime package manifest through the SDK declaration projection: editor tests assert `mirrored_runtime_package_id()`, and the package manifest carries both `zircon_plugin_net_runtime::NET_RUNTIME_CAPABILITY` and the Net authoring capability. `tools/audit_plugin_structure.py --json` reports `editor_runtime_mirror_violations = 0` and `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`; status `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` is locked by `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`.
 - `transport/{mod,reconnect,state_machine,tls}.rs` owns shared transport control helpers. `ReconnectPolicy` provides deterministic exponential retry delays with max-delay capping and optional deterministic jitter, while `TransportStateMachine` centralizes TCP connection state transitions and emits typed `ConnectionStateChanged` events. `transport/tls.rs` centralizes rustls root-store construction, certificate SHA-256 pin calculation/matching, and `TlsServerIdentity` server-config injection for optional transport features.
 - `service_types.rs` is the structural manager facade. It owns `DefaultNetManager`, `NetDriver`, id allocation, backend injection, and the `NetManager` trait implementation that delegates to focused service modules.
 - `service_types/udp.rs`, `tcp.rs`, and `http_routes.rs` own protocol-specific base runtime operations. UDP/TCP operations now validate local metadata on the manager facade and then route actual socket IO through `NetWorker` commands instead of blocking the caller thread on Tokio; send/poll paths also update outbound and inbound byte counters for diagnostics. HTTP request execution records request bytes, response bytes, and the last observed request latency. `service_types/websocket.rs` is a structural WebSocket service root whose child modules separate optional-backend lookup, real connect calls, real listener accept loops, deterministic loopback pairs, frame send/poll behavior, and close handling; frame send/poll paths feed the same byte counters. `service_types/listeners.rs` and `connections.rs` own cross-protocol listener/connection lifecycle helpers. `service_types/diagnostics.rs` owns copied diagnostics, backend-name projection, worker ingress polling, bounded event draining, and counter projection.

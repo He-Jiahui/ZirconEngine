@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use super::support::collect_rust_files;
 use std::collections::BTreeMap;
-use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 fn source(relative: &str) -> String {
@@ -54,7 +54,7 @@ fn assert_no_files_with_extension(root: PathBuf, extension: &str) {
     }
 }
 
-fn assert_no_legacy_ui_toml(root: PathBuf) {
+fn assert_no_legacy_ui_document_suffixes(root: PathBuf) {
     if !root.exists() {
         return;
     }
@@ -80,46 +80,11 @@ fn assert_no_legacy_ui_toml(root: PathBuf) {
             continue;
         };
         assert!(
-            !file_name.ends_with(".ui.toml") || file_name.ends_with(".v2.ui.toml"),
-            "packaged UI asset tree must not contain legacy schema file `{}`",
+            !file_name.ends_with(".ui.toml"),
+            "production UI asset tree must not contain legacy UI document suffix `{}`",
             path.display()
         );
     }
-}
-
-fn collect_v2_ui_toml_files(root: &Path) -> Vec<PathBuf> {
-    if !root.exists() {
-        return Vec::new();
-    }
-
-    let mut files = Vec::new();
-    let mut stack = vec![root.to_path_buf()];
-    while let Some(path) = stack.pop() {
-        if path.is_dir() {
-            for entry in fs::read_dir(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
-            {
-                stack.push(
-                    entry
-                        .unwrap_or_else(|error| {
-                            panic!("read entry under `{}`: {error}", path.display())
-                        })
-                        .path(),
-                );
-            }
-            continue;
-        }
-
-        if path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .is_some_and(|file_name| file_name.ends_with(".v2.ui.toml"))
-        {
-            files.push(path);
-        }
-    }
-    files.sort();
-    files
 }
 
 fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
@@ -181,48 +146,32 @@ fn active_editor_ui_tree_contains_no_deleted_source_files() {
 }
 
 #[test]
-fn packaged_ui_asset_roots_contain_only_v2_schema_files() {
+fn production_ui_assets_use_only_zui_suffix() {
     let editor_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui");
-    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("zircon_editor lives directly under workspace root")
-        .join("zircon_runtime/assets/ui");
+        .expect("zircon_editor lives directly under workspace root");
+    let runtime_root = workspace_root.join("zircon_runtime/assets/ui");
+    let plugins_root = workspace_root.join("zircon_plugins");
 
-    assert_no_legacy_ui_toml(editor_root);
-    assert_no_legacy_ui_toml(runtime_root);
-}
-
-#[test]
-fn production_v2_ui_toml_assets_do_not_define_components() {
-    let editor_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui");
-    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("zircon_editor lives directly under workspace root")
-        .join("zircon_runtime/assets/ui");
-
-    let mut offenders = Vec::new();
-    for path in collect_v2_ui_toml_files(&editor_root)
-        .into_iter()
-        .chain(collect_v2_ui_toml_files(&runtime_root))
-    {
-        let source =
-            fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
-        let document = UiV2AssetLoader::load_toml_str(&source)
-            .unwrap_or_else(|error| panic!("parse {:?}: {error}", path));
-        if document.asset.kind == UiV2AssetKind::Component {
-            offenders.push(path);
+    assert_no_legacy_ui_document_suffixes(editor_root);
+    assert_no_legacy_ui_document_suffixes(runtime_root);
+    if plugins_root.exists() {
+        for entry in fs::read_dir(&plugins_root)
+            .unwrap_or_else(|error| panic!("read `{}`: {error}", plugins_root.display()))
+        {
+            let plugin_root = entry
+                .unwrap_or_else(|error| {
+                    panic!("read entry under `{}`: {error}", plugins_root.display())
+                })
+                .path();
+            assert_no_legacy_ui_document_suffixes(plugin_root.join("editor"));
         }
     }
-
-    assert!(
-        offenders.is_empty(),
-        "component prototypes must be .zui assets, not .v2.ui.toml documents: {:?}",
-        offenders
-    );
 }
 
 #[test]
-fn production_zui_assets_are_single_component_documents() {
+fn production_zui_component_assets_are_single_component_documents() {
     let editor_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui");
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -230,16 +179,19 @@ fn production_zui_assets_are_single_component_documents() {
         .join("zircon_runtime/assets/ui");
 
     let mut asset_ids = BTreeMap::<String, PathBuf>::new();
-    let mut zui_count = 0usize;
+    let mut component_count = 0usize;
     for path in collect_zui_files(&editor_root)
         .into_iter()
         .chain(collect_zui_files(&runtime_root))
     {
-        zui_count += 1;
         let source =
             fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
         let document = UiZuiAssetLoader::load_zui_str(&source)
             .unwrap_or_else(|error| panic!("parse .zui {:?}: {error}", path));
+        if document.asset.kind != UiV2AssetKind::Component {
+            continue;
+        }
+        component_count += 1;
         let (component_name, component) = document
             .components
             .iter()
@@ -262,7 +214,7 @@ fn production_zui_assets_are_single_component_documents() {
     }
 
     assert!(
-        zui_count > 0,
+        component_count > 0,
         "production UI asset roots should contain .zui component assets"
     );
 }
@@ -278,13 +230,13 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
             ],
         ),
         (
-            "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+            "assets/ui/editor/host/workbench_shell.zui",
             &[
                 "UiHostWindow",
                 "activity_rail",
                 "document_host",
                 "menu_bar",
-                "editor_workbench_strict.v2.ui.toml",
+                "editor_workbench_strict.zui",
                 "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
                 "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton",
                 "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
@@ -293,9 +245,9 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
             ],
         ),
         (
-            "assets/ui/editor/windows/workbench_window.v2.ui.toml",
+            "assets/ui/editor/windows/workbench_window.zui",
             &[
-                "editor_workbench_strict.v2.ui.toml",
+                "editor_workbench_strict.zui",
                 "res://ui/editor/components/workbench/shell/workbench_component_drawer.zui#WorkbenchComponentDrawer",
                 "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
                 "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
@@ -308,23 +260,23 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
             ],
         ),
         (
-            "assets/ui/editor/host/floating_window_source.v2.ui.toml",
+            "assets/ui/editor/host/floating_window_source.zui",
             &["FloatingWindowSourceRoot", "FloatingWindowTopBarRoot"],
         ),
         (
-            "assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml",
+            "assets/ui/editor/host/scene_viewport_toolbar.zui",
             &["SceneViewportToolbarRoot", "FrameSelection"],
         ),
         (
-            "assets/ui/editor/host/asset_surface_controls.v2.ui.toml",
+            "assets/ui/editor/host/asset_surface_controls.zui",
             &["AssetSurfaceControls", "OpenAssetBrowser"],
         ),
         (
-            "assets/ui/editor/host/inspector_surface_controls.v2.ui.toml",
+            "assets/ui/editor/host/inspector_surface_controls.zui",
             &["InspectorSurfaceControls", "DeleteSelected"],
         ),
         (
-            "assets/ui/editor/host/startup_welcome_controls.v2.ui.toml",
+            "assets/ui/editor/host/startup_welcome_controls.zui",
             &["CreateProject", "OpenExistingProject"],
         ),
     ];
@@ -339,7 +291,7 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
 
 #[test]
 fn workbench_drawer_frame_owners_live_in_real_component_assets() {
-    let workbench_window = source("assets/ui/editor/windows/workbench_window.v2.ui.toml");
+    let workbench_window = source("assets/ui/editor/windows/workbench_window.zui");
     for forbidden in [
         "drawer_projection",
         "WorkbenchDrawerSourceRoot",
@@ -408,7 +360,7 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
     );
     assert_eq!(png_dimensions(&asset_bytes), (1672, 941));
 
-    let workbench = source("assets/ui/editor/windows/workbench_window.v2.ui.toml");
+    let workbench = source("assets/ui/editor/windows/workbench_window.zui");
     for forbidden in [
         "component = \"IconButton\"",
         "component = \"Button\"",
@@ -438,7 +390,7 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
         );
     }
 
-    let shell = source("assets/ui/editor/host/workbench_shell.v2.ui.toml");
+    let shell = source("assets/ui/editor/host/workbench_shell.zui");
     for forbidden in [
         "WorkbenchShellReferenceImage",
         "ui/editor/reference/workbench.png",
@@ -455,11 +407,11 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
     for (document_id, expected_suffix) in [
         (
             "ui.host_window",
-            "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+            "assets/ui/editor/host/workbench_shell.zui",
         ),
         (
             "editor.window.workbench",
-            "assets/ui/editor/windows/workbench_window.v2.ui.toml",
+            "assets/ui/editor/windows/workbench_window.zui",
         ),
     ] {
         let route_path = builtin_documents
@@ -528,29 +480,29 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     let registry = source("src/ui/template_runtime/builtin/template_documents.rs");
     let runtime_host = source("src/ui/template_runtime/runtime/runtime_host.rs");
     for required in [
-        "editor_main_frame.v2.ui.toml",
-        "workbench_window.v2.ui.toml",
-        "asset_window.v2.ui.toml",
-        "ui_layout_editor_window.v2.ui.toml",
-        "component_showcase.v2.ui.toml",
-        "material_demo_window.v2.ui.toml",
-        "material_component_lab.v2.ui.toml",
-        "workbench_shell.v2.ui.toml",
-        "floating_window_source.v2.ui.toml",
-        "scene_viewport_toolbar.v2.ui.toml",
-        "console_body.v2.ui.toml",
-        "inspector_body.v2.ui.toml",
-        "hierarchy_body.v2.ui.toml",
-        "animation_sequence_body.v2.ui.toml",
-        "animation_graph_body.v2.ui.toml",
-        "runtime_diagnostics_body.v2.ui.toml",
-        "performance_timeline_body.v2.ui.toml",
-        "module_plugins_body.v2.ui.toml",
-        "build_export_desktop_body.v2.ui.toml",
-        "asset_surface_controls.v2.ui.toml",
-        "startup_welcome_controls.v2.ui.toml",
-        "inspector_surface_controls.v2.ui.toml",
-        "pane_surface_controls.v2.ui.toml",
+        "editor_main_frame.zui",
+        "workbench_window.zui",
+        "asset_window.zui",
+        "ui_layout_editor_window.zui",
+        "component_showcase.zui",
+        "material_demo_window.zui",
+        "material_component_lab.zui",
+        "workbench_shell.zui",
+        "floating_window_source.zui",
+        "scene_viewport_toolbar.zui",
+        "console_body.zui",
+        "inspector_body.zui",
+        "hierarchy_body.zui",
+        "animation_sequence_body.zui",
+        "animation_graph_body.zui",
+        "runtime_diagnostics_body.zui",
+        "performance_timeline_body.zui",
+        "module_plugins_body.zui",
+        "build_export_desktop_body.zui",
+        "asset_surface_controls.zui",
+        "startup_welcome_controls.zui",
+        "inspector_surface_controls.zui",
+        "pane_surface_controls.zui",
     ] {
         assert!(
             registry.contains(required),
@@ -646,38 +598,38 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     }
 
     let asset_browser = source("src/ui/layouts/views/asset_browser.rs");
-    assert!(asset_browser.contains("asset_browser.v2.ui.toml"));
+    assert!(asset_browser.contains("asset_browser.zui"));
     assert!(!asset_browser.contains("\"/assets/ui/editor/asset_browser.ui.toml\""));
 
     for (relative, required, forbidden) in [
         (
             "src/ui/layouts/views/console.rs",
-            "console.v2.ui.toml",
+            "console.zui",
             "\"/assets/ui/editor/console.ui.toml\"",
         ),
         (
             "src/ui/layouts/views/hierarchy.rs",
-            "hierarchy.v2.ui.toml",
+            "hierarchy.zui",
             "\"/assets/ui/editor/hierarchy.ui.toml\"",
         ),
         (
             "src/ui/layouts/views/inspector.rs",
-            "inspector.v2.ui.toml",
+            "inspector.zui",
             "\"/assets/ui/editor/inspector.ui.toml\"",
         ),
         (
             "src/ui/layouts/views/assets_activity.rs",
-            "assets_activity.v2.ui.toml",
+            "assets_activity.zui",
             "\"/assets/ui/editor/assets_activity.ui.toml\"",
         ),
         (
             "src/ui/layouts/views/animation_editor.rs",
-            "animation_editor.v2.ui.toml",
+            "animation_editor.zui",
             "\"/assets/ui/editor/animation_editor.ui.toml\"",
         ),
         (
             "src/ui/layouts/views/welcome.rs",
-            "welcome.v2.ui.toml",
+            "welcome.zui",
             "\"/assets/ui/editor/welcome.ui.toml\"",
         ),
     ] {
@@ -700,7 +652,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
         "UI Asset Editor bootstrap must stay on the v2 authoring asset"
     );
     for required in [
-        "ui_asset_editor.v2.ui.toml",
+        "ui_asset_editor.zui",
         "UiV2PrototypeStoreFileCache",
         "node_projection_v2_store_file_cache()",
         "UiV2SurfaceBuilder::build_surface_from_compiled_document",
@@ -727,7 +679,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
 
 #[test]
 fn welcome_startup_demo_routes_to_component_showcase_window() {
-    let welcome_asset = source("assets/ui/editor/welcome.v2.ui.toml");
+    let welcome_asset = source("assets/ui/editor/welcome.zui");
     assert!(welcome_asset.contains("text = \"Component Showcase\""));
     assert!(welcome_asset.contains("id = \"Welcome/OpenStartupDemo\""));
     assert!(welcome_asset.contains("route = \"workbench.welcome.open_startup_demo\""));
@@ -1327,11 +1279,11 @@ fn runtime_ui_golden_is_hard_cut_to_v2_fixtures() {
     for required in [
         "UiV2PrototypeStoreFileCache",
         "UiV2SurfaceBuilder",
-        "hud_overlay.v2.ui.toml",
-        "pause_menu.v2.ui.toml",
-        "settings_dialog.v2.ui.toml",
-        "inventory_list.v2.ui.toml",
-        "quest_log_dialog.v2.ui.toml",
+        "hud_overlay.zui",
+        "pause_menu.zui",
+        "settings_dialog.zui",
+        "inventory_list.zui",
+        "quest_log_dialog.zui",
     ] {
         assert!(
             runtime_golden.contains(required),
@@ -1411,7 +1363,7 @@ fn runtime_fixture_host_tests_are_hard_cut_to_v2_paths() {
 #[test]
 fn component_showcase_is_hard_cut_to_v2_catalog_components() {
     let searchable_assets = [
-        "assets/ui/editor/component_showcase.v2.ui.toml",
+        "assets/ui/editor/component_showcase.zui",
         "assets/ui/editor/components/showcase/showcase_visual_section.zui",
         "assets/ui/editor/components/showcase/showcase_input_section.zui",
         "assets/ui/editor/components/showcase/showcase_selection_section.zui",
@@ -1466,7 +1418,7 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
         "component = \"WorldSpaceSurface\"",
         "component = \"TreeRow\"",
         "component = \"ContextActionMenu\"",
-        "res://ui/theme/editor_material.v2.ui.toml",
+        "res://ui/theme/editor_material.zui",
         "res://ui/editor/components/showcase/showcase_command_toolbar.zui#ShowcaseCommandToolbar",
         "res://ui/editor/components/showcase/showcase_bottom_log.zui#ShowcaseBottomLog",
         "res://ui/editor/components/showcase/showcase_category_nav.zui#ShowcaseCategoryNav",
@@ -1493,7 +1445,7 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
 
 #[test]
 fn material_meta_components_cover_retained_material_exports() {
-    let asset = source("src/tests/fixtures/ui_legacy/editor/material_meta_components.ui.toml");
+    let asset = source("src/tests/fixtures/ui_zui/editor/material_meta_components.zui");
     for component in [
         "ButtonBase",
         "Button",
@@ -1529,7 +1481,7 @@ fn material_meta_components_cover_retained_material_exports() {
         let marker = format!("[components.Material{component}]");
         assert!(
             asset.contains(&marker),
-            "material_meta_components.ui.toml missing Retained Material export `{component}`"
+            "material_meta_components.zui missing Retained Material export `{component}`"
         );
     }
 }

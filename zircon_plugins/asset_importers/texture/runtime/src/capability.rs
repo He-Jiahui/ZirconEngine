@@ -5,8 +5,4 @@ pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.texture";
 pub const CONTAINER_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.texture.container";
 pub const PSD_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.texture.psd";
 
-pub const RUNTIME_CAPABILITIES: &[&str] = &[
-    RUNTIME_CAPABILITY,
-    CONTAINER_IMPORTER_CAPABILITY,
-    PSD_IMPORTER_CAPABILITY,
-];
+pub const RUNTIME_CAPABILITIES: &[&str] = &[RUNTIME_CAPABILITY];

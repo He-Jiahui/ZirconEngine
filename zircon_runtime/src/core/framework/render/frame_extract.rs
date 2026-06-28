@@ -543,7 +543,7 @@ pub struct RenderFrameExtract {
 }
 
 impl RenderFrameExtract {
-    /// Builds a frame DTO from the legacy viewport packet for preview,
+    /// Builds a frame DTO from the scene viewport snapshot packet for preview,
     /// roundtrip, and synthetic validation paths. Scene production producers
     /// should fill `RenderFrameExtract` directly because this adapter cannot
     /// recover advanced sidebands such as sprites, particles, VG payloads, or

@@ -254,6 +254,9 @@ mod tests {
         assert!(manifest
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));
+        assert!(!manifest
+            .capabilities
+            .contains(&WGSL_IMPORTER_CAPABILITY.to_string()));
         assert!(manifest
             .capabilities
             .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
@@ -307,6 +310,9 @@ mod tests {
         assert!(dist_module
             .capabilities
             .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
+        assert!(!dist_module
+            .capabilities
+            .contains(&WGSL_IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]

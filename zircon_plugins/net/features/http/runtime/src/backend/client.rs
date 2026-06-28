@@ -3,13 +3,12 @@ use std::time::Duration;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::HeaderMap;
-use hyper_util::client::legacy::Client;
-use hyper_util::rt::TokioExecutor;
 use zircon_plugin_net_runtime::certificate_pin_matches;
 use zircon_runtime::core::framework::net::{
     NetError, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
 };
 
+use super::http1_client_policy;
 use super::method::{method_to_hyper, method_to_reqwest};
 use super::security::validate_http_security_policy;
 
@@ -64,7 +63,7 @@ async fn send_http_request_once_hyper(
     let outbound = builder
         .body(Full::new(Bytes::from(request.body.clone())))
         .map_err(|error| NetError::Io(error.to_string()))?;
-    let client = Client::builder(TokioExecutor::new()).build_http();
+    let client = http1_client_policy::plain_http_client();
     let response = tokio::time::timeout(
         Duration::from_millis(request.timeout_ms),
         client.request(outbound),

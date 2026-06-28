@@ -2,10 +2,10 @@
 related_code:
   - zircon_plugins/editor_build_export_desktop/plugin.toml
   - zircon_plugins/editor_build_export_desktop/editor/Cargo.toml
-  - zircon_plugins/editor_build_export_desktop/editor/panel.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/source_template_report.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/library_embed_report.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/native_dynamic_report.v2.ui.toml
+  - zircon_plugins/editor_build_export_desktop/editor/panel.zui
+  - zircon_plugins/editor_build_export_desktop/editor/source_template_report.zui
+  - zircon_plugins/editor_build_export_desktop/editor/library_embed_report.zui
+  - zircon_plugins/editor_build_export_desktop/editor/native_dynamic_report.zui
   - zircon_plugins/editor_build_export_desktop/editor/export_profile_drawer.zui
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
@@ -69,10 +69,10 @@ related_code:
 implementation_files:
   - zircon_plugins/editor_build_export_desktop/plugin.toml
   - zircon_plugins/editor_build_export_desktop/editor/Cargo.toml
-  - zircon_plugins/editor_build_export_desktop/editor/panel.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/source_template_report.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/library_embed_report.v2.ui.toml
-  - zircon_plugins/editor_build_export_desktop/editor/native_dynamic_report.v2.ui.toml
+  - zircon_plugins/editor_build_export_desktop/editor/panel.zui
+  - zircon_plugins/editor_build_export_desktop/editor/source_template_report.zui
+  - zircon_plugins/editor_build_export_desktop/editor/library_embed_report.zui
+  - zircon_plugins/editor_build_export_desktop/editor/native_dynamic_report.zui
   - zircon_plugins/editor_build_export_desktop/editor/export_profile_drawer.zui
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
@@ -370,7 +370,7 @@ mapping. It also provides `ExportWizardPanelSession`, which can regenerate a
 plan from `ExportWizardPipelineOptions`, start the background
 `ExportWizardJobController`, poll job events into `ExportWizardPanelViewModel`,
 request cancellation, and join the worker into a final snapshot. The private
-`panel.v2.ui.toml` template now attaches Click events to Generate Plan, Start,
+`panel.zui` template now attaches Click events to Generate Plan, Start,
 and Cancel, so retained projection can resolve these buttons through
 `register_export_wizard_panel_bindings(...)`.
 `register_export_wizard_panel_template(...)` is the standard host installation
@@ -442,7 +442,7 @@ model control state, keeping retained rendering code on stable button ids
 instead of duplicating session lifecycle decisions.
 `panel_host_projection.rs` is the first retained-host materialization for that
 template state. `export_wizard_panel_retained_projection(...)` installs the
-standard panel projection, builds and lays out the shared `panel.v2.ui.toml`
+standard panel projection, builds and lays out the shared `panel.zui`
 surface, converts it into `RetainedUiHostProjection`, applies Generate
 Plan/Start/Cancel disabled state, and appends synthetic label nodes below the
 five slot anchors. `apply_export_wizard_panel_template_state(...)` is split out
@@ -547,7 +547,7 @@ the oversized root test owner was deleted and replaced with
 `wizard/tests/{mod,support,pipeline_plan,pipeline_execution,job,panel_session,view_model}.rs`.
 The same slice fixed cancellation classification so in-stage cancellation is
 reported separately from phase-boundary cancellation, and registered the v2 panel
-template with its `editor_base.v2.ui.toml` import source. `cargo fmt -p
+template with its `editor_base.zui` import source. `cargo fmt -p
 zircon_editor --check`, `audit_editor_structure.py --json`, old-file existence
 checks, line-count sampling, and scoped `git diff --check` passed. Focused
 `cargo test -p zircon_editor --lib export_wizard --locked --target-dir
@@ -672,7 +672,7 @@ claimed yet.
 
 2026-06-14 panel-session follow-up validation: targeted `rustfmt --check` over
 the touched editor/plugin files passed, and Python `tomllib` confirmed
-`panel.v2.ui.toml` contains Click events for
+`panel.zui` contains Click events for
 `DesktopExportWizard/GeneratePlan`, `DesktopExportWizard/Start`, and
 `DesktopExportWizard/Cancel`. The later `zircon_editor` check was blocked by
 `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs`

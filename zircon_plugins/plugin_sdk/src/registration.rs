@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
+use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::{CoreError, ModuleDescriptor};
 use zircon_runtime::plugin::{
-    PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    PluginEventCatalogManifest, PluginEventManifest, PluginModuleId, PluginOptionManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use zircon_runtime::scene::ecs::{
-    RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
+    Event, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
 };
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
@@ -61,6 +65,41 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
             constraints: Vec::new(),
             order: 0,
         }
+    }
+
+    pub fn event<E>(
+        &mut self,
+        manifest: PluginEventManifest,
+    ) -> Result<(), RuntimeExtensionRegistryError>
+    where
+        E: Event,
+    {
+        self.registry.register_event::<E>(self.owner, manifest)
+    }
+
+    pub fn plugin_option(
+        &mut self,
+        manifest: PluginOptionManifest,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.registry.register_plugin_option(manifest)
+    }
+
+    pub fn plugin_event_catalog(
+        &mut self,
+        manifest: PluginEventCatalogManifest,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.registry.register_plugin_event_catalog(manifest)
+    }
+
+    pub fn export_interface<T>(
+        &mut self,
+        implementation: Arc<T>,
+    ) -> Result<(), RuntimeExtensionRegistryError>
+    where
+        T: PluginInterface + ?Sized,
+    {
+        self.registry
+            .export_interface::<T>(self.owner, implementation)
     }
 }
 
@@ -134,7 +173,16 @@ mod tests {
     const MODULE_NAME: &str = "SdkRegistrationRuntimeModule";
     const SYSTEM_SET: &str = "sdk_registration.update";
     const SYSTEM_ID: &str = "sdk_registration.runtime.tick";
+    const OPTION_ID: &str = "sdk_registration.option";
+    const CATALOG_NAMESPACE: &str = "sdk_registration.events";
+    const CATALOG_SEED_EVENT_ID: &str = "sdk_registration.events.seed";
+    const CATALOG_SEED_EVENT_SCHEMA: &str = "sdk_registration.seed.v1";
+    const EVENT_ID: &str = "sdk_registration.events.runtime_event";
+    const EVENT_SCHEMA: &str = "sdk_registration.runtime_event.v1";
     const WORLD_TRANSFORM_SYSTEM: &str = "zircon.scene.world_transform";
+
+    #[derive(Clone, Debug)]
+    struct SdkRegistrationEvent;
 
     #[test]
     fn runtime_registration_builder_hides_module_owner_sequence() {
@@ -157,6 +205,32 @@ mod tests {
             .with_order(7)
             .register()
             .expect("runtime scene system registered");
+        module
+            .plugin_option(PluginOptionManifest::new(
+                OPTION_ID,
+                "SDK Registration Option",
+                "bool",
+                "false",
+            ))
+            .expect("plugin option registered");
+        module
+            .plugin_event_catalog(PluginEventCatalogManifest {
+                namespace: CATALOG_NAMESPACE.to_string(),
+                version: 1,
+                events: vec![PluginEventManifest {
+                    id: CATALOG_SEED_EVENT_ID.to_string(),
+                    display_name: "SDK Registration Seed Event".to_string(),
+                    payload_schema: CATALOG_SEED_EVENT_SCHEMA.to_string(),
+                }],
+            })
+            .expect("plugin event catalog registered");
+        module
+            .event::<SdkRegistrationEvent>(PluginEventManifest {
+                id: EVENT_ID.to_string(),
+                display_name: "SDK Registration Event".to_string(),
+                payload_schema: EVENT_SCHEMA.to_string(),
+            })
+            .expect("runtime event registered");
 
         assert!(registry
             .modules()
@@ -177,5 +251,25 @@ mod tests {
                 WORLD_TRANSFORM_SYSTEM.to_string()
             ))]
         );
+
+        let events = registry.plugin_events().collect::<Vec<_>>();
+        assert_eq!(events.len(), 1);
+        let (event_owner, event) = events[0];
+        assert_eq!(registry.plugin_module_name(event_owner), Some(MODULE_OWNER));
+        assert_eq!(event.manifest().id, EVENT_ID);
+
+        assert!(registry
+            .plugin_options()
+            .iter()
+            .any(|option| option.key == OPTION_ID));
+        let event_catalog = registry
+            .plugin_event_catalogs()
+            .iter()
+            .find(|catalog| catalog.namespace == CATALOG_NAMESPACE)
+            .expect("event catalog registered");
+        assert!(event_catalog
+            .events
+            .iter()
+            .any(|event| event.id == EVENT_ID));
     }
 }

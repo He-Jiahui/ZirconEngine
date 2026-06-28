@@ -71,14 +71,14 @@ impl HubRuntimeSession {
                 );
                 self.task_status = TaskStatus::success(
                     "Output folder opened",
-                    HubMessage::legacy(output_dir.to_string_lossy().into_owned()),
+                    HubMessage::raw_text(output_dir.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Process, output_dir.to_string_lossy());
                 self.persist(None)
             }
             Err(error) => self.record_output_folder_failure(
                 output_dir.to_string_lossy().into_owned(),
-                HubMessage::legacy(error.to_string()),
+                HubMessage::raw_text(error.to_string()),
                 HubMessage::new(HubMessageId::Delivery(
                     DeliveryMessageId::OpenFolderManuallyRecovery,
                 )),
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn open_output_folder_prefers_typed_output_dir_over_legacy_path_payload() {
+    fn open_output_folder_prefers_typed_output_dir_over_archived_path_payload() {
         let temp = temp_test_dir("zircon-hub-open-output-typed-output-dir");
         let stale_path = temp.join("stale-visible-row-path");
         let output_dir = temp.join("package-output");
@@ -236,7 +236,7 @@ mod tests {
                     history_id: None,
                 }),
             )
-            .expect("typed outputDir should resolve before legacy path");
+            .expect("typed outputDir should resolve before archived path");
 
         assert_eq!(resolved, output_dir);
         fs::remove_dir_all(temp).unwrap();
@@ -334,7 +334,7 @@ mod tests {
             action: HubActionKind::PackageProject,
             status: HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: HubMessage::legacy("Packaged Game"),
+            detail: HubMessage::raw_text("Packaged Game"),
             log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: None,

@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime/tests/native_plugin_loader_contract.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
   - zircon_plugins/Cargo.lock
   - zircon_plugins/native_dynamic_fixture/plugin.toml
@@ -64,12 +65,14 @@ implementation_files:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
   - zircon_plugins/Cargo.lock
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 plan_sources:
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - docs/superpowers/specs/2026-05-19-native-dynamic-v3-hardening-design.md
   - docs/superpowers/plans/2026-05-20-native-dynamic-v3-hardening.md
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
@@ -115,6 +118,7 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-native-fixture-0613 --message-format short --color never (2026-06-13: old blocked attempt; superseded by the 2026-06-19 lockfile refresh and passing fixture --locked build)
   - runtime_06_native_loader_tests_use_isolated_plugin_native_namespace
   - runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs::review_d13_native_fixture_importer_is_manifest_described
 doc_type: module-detail
 ---
 
@@ -214,16 +218,21 @@ Stateless runtime behavior and editor behavior do not require a snapshot. Schema
 
 Focused contract coverage proves the clean ABI v3 fixture reports `NativePluginBehaviorHealth::Clean` for runtime and editor behavior, preserves host log and host diagnostic callback output, rejects unknown ABI versions with an explicit plugin-scoped descriptor diagnostic, validates plugin-owned byte-buffer free diagnostics, keeps runtime registration diagnostics scoped to runtime entries, and rejects accidental v2 editor diagnostics on the v3 entry path. The export-root smoke `native_runtime_hot_update_loads_real_fixture_from_export_manifest` now builds the fixture cdylib, materializes `plugins/native_dynamic_fixture/{plugin.toml,native/<platform-library>}` plus `plugins/native_plugins.toml`, calls `NativePluginLiveHost::hot_reload_runtime_plugins_from_export_root(...)`, and verifies the loaded runtime behavior by invoking `echo` through the live host.
 
+The 2026-06-28 D13 native_dynamic_fixture importer self-description (`D13 native_dynamic_fixture importer self-description` / `native_dynamic_fixture_importer_manifest_self_description_static_passed_cargo_deferred`) makes the fixture's native importer discoverable through both package and ABI registration metadata. The runtime command manifest still exposes `command=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001`, while `RUNTIME_REGISTRATION_MANIFEST` now includes `runtime.asset.importer.native_dynamic_fixture.data_json` and a `[[extensions]]` row with `point = "runtime.asset.importer.data"`, `contribution = "plugin.native_dynamic_fixture.data_json"`, and `schema = "zircon.runtime.asset-importer.data/1"`. `review_d13_native_fixture_importer_is_manifest_described` keeps the native registration manifest, `plugin.toml [[asset_importers]]`, and review finding text in sync.
+
 The runtime contract test now builds the fixture through the checked-in `zircon_plugins` workspace, so `zircon_plugins/Cargo.lock` is part of the runtime smoke contract. The 2026-06-19 refresh added the current `zircon_runtime` lockfile entries needed by the fixture path, and the fixture-only `--locked` Cargo build passed after that update.
 
 Runtime 06 M2.2 keeps native loader tests in the isolated `zircon_runtime/src/tests/plugin_extensions` tree. `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace` currently records native loader test files 3/3, native test namespace import files 2/2, and native test root import leaks 0/0, so test code cannot silently reintroduce `zircon_runtime::plugin` root imports for `NativePlugin*` or `ZIRCON_NATIVE_PLUGIN*` symbols.
 
 Runtime 06 M1.2 keeps the VM fallback lifecycle failure path folder-backed in `zircon_runtime/src/script/vm/tests/lifecycle_failures.rs`. `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed` records `plugin_surface_lifecycle_boundary` source 14/14, `expected_source_file_count = 14`, fallback lifecycle failure tests 4/4, and the remaining real-backend Cargo lane as pending, so native/public-surface evidence cannot accidentally stand in for VM lifecycle validation.
 
+Runtime 15 F1 native host callback panic guard records the current closed state for the original P0 finding: `review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi` verifies `ffi_panic_guard.rs`, `catch_native_host_api_panic`, `catch_native_plugin_host_callback_panic`, `ZrStatusCode::Panic`, `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`, the 9 public `ZrHostApiV3` callbacks, the 4 private native host callbacks, and the status anchor `runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred`. This is a status/guard closure and does not change the native ABI.
+
 ## Acceptance Evidence
 
 Scoped evidence recorded during the M1-M6 implementation stages:
 
+- 2026-06-27 Runtime 15 F1 native host callback panic guard evidence: `review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi` statically checks 13/13 native host callbacks before they cross FFI, documents the closed `runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred` state, and keeps Cargo deferred while other runtime cargo/rustc lanes are active.
 - 2026-06-22 F1/E7 native host FFI panic guard evidence: added `ffi_panic_guard.rs`, routed 9 `ZrHostApiV3` callbacks in `host_api_adapter.rs` and 4 private native host callbacks in `host_callbacks.rs` through panic guards, and added focused guard tests plus `native_host_bridge_call_catches_plugin_method_panic`. `rustfmt --edition 2021 --config skip_children=true --check` passed for the touched native-loader files; the static guard scan checked 13 `unsafe extern "C" fn native_host_*` callbacks and reported all route through panic guards; `git diff --check` passed with only LF/CRLF warnings. Focused Cargo `native_host_bridge_call_catches_plugin_method_panic` under `--no-default-features --features core-min` timed out after 1200s during compile, and matching residual cargo/rustc processes were stopped, so no Cargo pass is claimed for this slice.
 - `cargo check -p zircon_runtime --lib --locked --jobs 1` passed after the module split and after the restore/schema changes, with only the pre-existing `entity_ids_matching_query_archetypes` dead-code warning.
 - `cargo test -p zircon_runtime --lib native_live_host --locked --jobs 1` passed after M4 with 13 tests passed.

@@ -565,9 +565,7 @@ fn validate_ui_template_document(
     kind: &'static str,
     document: &str,
 ) -> Result<(), EditorExtensionRegistryError> {
-    if is_invalid_ui_document(document)
-        || !(document.ends_with(".zui") || document.ends_with(".v2.ui.toml"))
-    {
+    if is_invalid_ui_document(document) || !document.ends_with(".zui") {
         return Err(EditorExtensionRegistryError::InvalidUiDocument {
             kind,
             document: document.to_string(),

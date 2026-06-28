@@ -80,10 +80,10 @@ impl UiAssetSchemaMigrator {
             .map_err(|error| schema_migration_failed(&asset_id, error))?;
 
         let mut report = UiAssetMigrationReport::new(
-            UiAssetSchemaSourceKind::LegacyTemplateFixture,
+            UiAssetSchemaSourceKind::SourceTemplateFixture,
             Some(source_version),
         );
-        report.push_step(UiAssetMigrationStep::LegacyTemplateConverted);
+        report.push_step(UiAssetMigrationStep::SourceTemplateFixtureConverted);
         push_version_bump_step(&mut report, source_version);
 
         Ok(UiAssetMigrationOutcome {

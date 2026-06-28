@@ -21,15 +21,12 @@ mod import_shader_package;
 #[cfg(test)]
 mod import_sound;
 mod import_texture;
-#[cfg(test)]
-mod import_ui_asset;
 mod import_ui_icon_asset;
 mod import_ui_theme_asset;
-#[cfg(test)]
-mod import_ui_v2_asset;
 mod import_ui_zui_asset;
 mod model_mesh_subassets;
 mod primitive_from_indexed_mesh;
+mod ui_v2_document_import;
 mod validate_wgsl;
 
 pub use asset_importer::AssetImporter;

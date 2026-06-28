@@ -13,6 +13,6 @@ pub(crate) use template::{
     TaaReactiveMaskShaderTemplateRequest,
 };
 pub(crate) use variant_cache::{
-    prewarm_shader_variants_to_disk, ShaderVariantCacheDisk, ShaderVariantCacheDiskKey,
-    ShaderVariantCacheDiskLookup,
+    prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_module_validation,
+    ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
 };

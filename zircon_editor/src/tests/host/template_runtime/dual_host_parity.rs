@@ -22,7 +22,7 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         .register_template_document_file(
             UI_ASSET_EDITOR_SHELL_DOCUMENT_ID,
             std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("assets/ui/editor/ui_asset_editor.v2.ui.toml"),
+                .join("assets/ui/editor/ui_asset_editor.zui"),
         )
         .unwrap();
 

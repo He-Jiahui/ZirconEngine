@@ -90,6 +90,74 @@ class PluginBuildTests(unittest.TestCase):
             self.assertIn("--locked", cargo_args)
             self.assertIn("--release", cargo_args)
 
+    def test_plugin_build_materializes_feature_provider_package(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            out = root / "out"
+            target_dir = root / "target"
+            crate_name = "zircon_plugin_sound_timeline_animation_dist"
+            _write_feature_provider_workspace(repo_root, crate_name)
+            _write_fake_cargo_build_script(repo_root)
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                exit_code = main(
+                    [
+                        "plugin",
+                        "build",
+                        "sound_timeline_animation_track",
+                        "--repo-root",
+                        str(repo_root),
+                        "--out",
+                        str(out),
+                        "--target-dir",
+                        str(target_dir),
+                        "--platform",
+                        "windows-x86_64",
+                        "--mode",
+                        "release",
+                        "--cargo",
+                        sys.executable,
+                    ]
+                )
+
+            package_dir = out / "sound_timeline_animation_track"
+            package_manifest_path = package_dir / "plugin.toml"
+            package_report_path = package_dir / "native_dynamic_package.toml"
+            loader_manifest_path = out / "native_plugins.toml"
+            cargo_args = json.loads((repo_root / "cargo_args.json").read_text())
+            with package_manifest_path.open("rb") as manifest_file:
+                package_manifest = tomllib.load(manifest_file)
+            with package_report_path.open("rb") as report_file:
+                package_report = tomllib.load(report_file)
+            with loader_manifest_path.open("rb") as manifest_file:
+                loader_manifest = tomllib.load(manifest_file)
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue((package_dir / "sound_timeline_animation_track.dll").is_file())
+            self.assertTrue((package_dir / "native" / f"{crate_name}.dll").is_file())
+            self.assertEqual(package_manifest["id"], "sound_timeline_animation_track")
+            self.assertEqual(package_manifest["package_kind"], "feature_extension")
+            self.assertEqual(package_manifest["distribution"]["dist_crate"], crate_name)
+            self.assertEqual(package_manifest["distribution"]["abi_version"], 3)
+            self.assertEqual(
+                package_manifest["distribution"]["runtime_entry"],
+                "zircon_plugin_sound_timeline_animation_runtime_entry_v3",
+            )
+            feature_extension = package_manifest["feature_extensions"][0]
+            self.assertEqual(feature_extension["id"], "sound.timeline_animation_track")
+            self.assertEqual(feature_extension["owner_plugin_id"], "sound")
+            self.assertEqual(feature_extension["default_packaging"], ["native_dynamic"])
+            self.assertEqual(
+                feature_extension["modules"][0]["crate_name"],
+                crate_name,
+            )
+            self.assertEqual(feature_extension["modules"][0]["kind"], "runtime")
+            self.assertEqual(package_report["package_id"], "sound_timeline_animation_track")
+            self.assertEqual(loader_manifest["plugins"][0]["id"], "sound_timeline_animation_track")
+            self.assertIn("-p", cargo_args)
+            self.assertIn(crate_name, cargo_args)
+
     def test_plugin_dist_build_is_byte_reproducible(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -360,6 +428,105 @@ def _write_dist_plugin_workspace(
                 "[features]",
                 'default = ["dist"]',
                 "dist = []",
+                "",
+                "[dependencies]",
+                'zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_feature_provider_workspace(repo_root: Path, crate_name: str) -> None:
+    plugins_root = repo_root / "zircon_plugins"
+    plugin_root = plugins_root / "sound"
+    crate_root = plugin_root / "features" / "timeline_animation_track" / "dist"
+    crate_root.mkdir(parents=True)
+    (plugins_root / "Cargo.toml").write_text(
+        "\n".join(
+            [
+                "[workspace]",
+                'members = ["sound/features/timeline_animation_track/dist"]',
+                'resolver = "2"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (plugin_root / "plugin.toml").write_text(
+        "\n".join(
+            [
+                'id = "sound"',
+                'version = "0.1.0"',
+                'display_name = "Sound"',
+                'sdk_api_version = "0.1.0"',
+                'category = "runtime"',
+                'maturity = "beta"',
+                'supported_targets = ["client_runtime", "editor_host"]',
+                'supported_platforms = ["windows", "linux", "macos"]',
+                'capabilities = ["runtime.plugin.sound"]',
+                "",
+                "[[optional_features]]",
+                'id = "sound.timeline_animation_track"',
+                'display_name = "Sound Timeline Animation Track"',
+                'owner_plugin_id = "sound"',
+                'provider_package_id = "sound_timeline_animation_track"',
+                'capabilities = ["runtime.feature.sound.timeline_animation_track"]',
+                'default_packaging = ["source_template", "library_embed", "native_dynamic"]',
+                "enabled_by_default = false",
+                "",
+                "[[optional_features.dependencies]]",
+                'plugin_id = "sound"',
+                'capability = "runtime.plugin.sound"',
+                "primary = true",
+                "",
+                "[[optional_features.dependencies]]",
+                'plugin_id = "animation"',
+                'capability = "runtime.feature.animation.timeline_event_track"',
+                "primary = false",
+                "",
+                "[[optional_features.modules]]",
+                'name = "sound.timeline_animation_track.runtime"',
+                'kind = "runtime"',
+                'crate_name = "zircon_plugin_sound_timeline_animation_runtime"',
+                'target_modes = ["client_runtime", "editor_host"]',
+                'capabilities = ["runtime.feature.sound.timeline_animation_track"]',
+                "",
+                "[[optional_features.modules]]",
+                'name = "sound.timeline_animation_track.dist"',
+                'kind = "native"',
+                f'crate_name = "{crate_name}"',
+                'target_modes = ["client_runtime", "editor_host"]',
+                'capabilities = ["runtime.feature.sound.timeline_animation_track"]',
+                "",
+                "[optional_features.distribution]",
+                'forms = ["dist"]',
+                'default_packaging = ["native_dynamic"]',
+                "abi_version = 3",
+                'engine_compat = ">=0.1, <0.2"',
+                f'dist_crate = "{crate_name}"',
+                'descriptor_symbol = "zircon_native_plugin_descriptor_v3"',
+                'runtime_entry = "zircon_plugin_sound_timeline_animation_runtime_entry_v3"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (crate_root / "Cargo.toml").write_text(
+        "\n".join(
+            [
+                "[package]",
+                f'name = "{crate_name}"',
+                'version = "0.1.0"',
+                'edition = "2021"',
+                "",
+                "[lib]",
+                'crate-type = ["cdylib"]',
+                "",
+                "[features]",
+                'default = ["dist"]',
+                "dist = []",
+                "",
+                "[dependencies]",
+                'zircon_plugin_sdk = { workspace = true, default-features = false, features = ["native"] }',
             ]
         ),
         encoding="utf-8",

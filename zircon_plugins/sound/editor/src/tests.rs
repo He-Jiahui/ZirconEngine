@@ -126,25 +126,19 @@ fn sound_editor_ui_template_routes_are_registered_operations() {
         .map(|operation| operation.path().as_str().to_string())
         .collect::<BTreeSet<_>>();
     let routes = ui_template_routes(&[
+        ("mixer_console.zui", include_str!("../mixer_console.zui")),
+        ("acoustic_debug.zui", include_str!("../acoustic_debug.zui")),
         (
-            "mixer_console.v2.ui.toml",
-            include_str!("../mixer_console.v2.ui.toml"),
+            "audio_source.drawer.zui",
+            include_str!("../audio_source.drawer.zui"),
         ),
         (
-            "acoustic_debug.v2.ui.toml",
-            include_str!("../acoustic_debug.v2.ui.toml"),
+            "audio_listener.drawer.zui",
+            include_str!("../audio_listener.drawer.zui"),
         ),
         (
-            "audio_source.drawer.v2.ui.toml",
-            include_str!("../audio_source.drawer.v2.ui.toml"),
-        ),
-        (
-            "audio_listener.drawer.v2.ui.toml",
-            include_str!("../audio_listener.drawer.v2.ui.toml"),
-        ),
-        (
-            "audio_volume.drawer.v2.ui.toml",
-            include_str!("../audio_volume.drawer.v2.ui.toml"),
+            "audio_volume.drawer.zui",
+            include_str!("../audio_volume.drawer.zui"),
         ),
     ]);
 
@@ -163,28 +157,28 @@ fn sound_editor_ui_template_routes_are_registered_operations() {
 #[test]
 fn sound_editor_ui_template_asset_ids_match_registered_surfaces() {
     assert_template_asset_id(
-        "mixer_console.v2.ui.toml",
-        include_str!("../mixer_console.v2.ui.toml"),
+        "mixer_console.zui",
+        include_str!("../mixer_console.zui"),
         SOUND_TEMPLATE_ID,
     );
     assert_template_asset_id(
-        "acoustic_debug.v2.ui.toml",
-        include_str!("../acoustic_debug.v2.ui.toml"),
+        "acoustic_debug.zui",
+        include_str!("../acoustic_debug.zui"),
         SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID,
     );
     assert_template_asset_id(
-        "audio_source.drawer.v2.ui.toml",
-        include_str!("../audio_source.drawer.v2.ui.toml"),
+        "audio_source.drawer.zui",
+        include_str!("../audio_source.drawer.zui"),
         "sound.audio_source.drawer",
     );
     assert_template_asset_id(
-        "audio_listener.drawer.v2.ui.toml",
-        include_str!("../audio_listener.drawer.v2.ui.toml"),
+        "audio_listener.drawer.zui",
+        include_str!("../audio_listener.drawer.zui"),
         "sound.audio_listener.drawer",
     );
     assert_template_asset_id(
-        "audio_volume.drawer.v2.ui.toml",
-        include_str!("../audio_volume.drawer.v2.ui.toml"),
+        "audio_volume.drawer.zui",
+        include_str!("../audio_volume.drawer.zui"),
         "sound.audio_volume.drawer",
     );
 }

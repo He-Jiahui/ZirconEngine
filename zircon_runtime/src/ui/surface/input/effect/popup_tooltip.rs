@@ -6,12 +6,14 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
-use super::super::require_valid_input_owner;
+use super::super::{
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+};
 
 pub(super) fn apply_popup_tooltip_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::Popup {
             kind,
@@ -27,7 +29,9 @@ pub(super) fn apply_popup_tooltip_effect(
         UiDispatchEffect::DismissTransientUi { target, .. } => {
             apply_transient_dismissal_effect(surface, *target)
         }
-        _ => Err("expected popup or tooltip effect".to_string()),
+        _ => Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "popup or tooltip",
+        }),
     }
 }
 
@@ -37,7 +41,7 @@ fn apply_popup_effect(
     popup_id: &str,
     owner: Option<UiNodeId>,
     anchor: Option<zircon_runtime_interface::ui::layout::UiPoint>,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     if let Some(owner) = owner {
         require_valid_input_owner(surface, owner)?;
     }
@@ -63,7 +67,7 @@ fn apply_popup_effect(
 fn apply_transient_dismissal_effect(
     surface: &mut UiSurface,
     target: UiTransientDismissalTarget,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     Ok(surface.input.dismiss_transient_ui(target))
 }
 
@@ -72,7 +76,7 @@ fn apply_tooltip_effect(
     kind: UiTooltipEffectKind,
     tooltip_id: &str,
     owner: Option<UiNodeId>,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     if let Some(owner) = owner {
         require_valid_input_owner(surface, owner)?;
     }

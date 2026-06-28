@@ -6,4 +6,4 @@ license.workspace = true
 description = "Shared editor plugin registration helpers for Zircon plugin packages."
 
 [dependencies]
-zircon_editor = { path = "../../zircon_editor" }
+zircon_editor = { workspace = true }

@@ -1,6 +1,8 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+use super::error::{ExportValidateError, ExportValidateResult};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ValidateArgs {
     pub project: PathBuf,
@@ -10,7 +12,9 @@ pub struct ValidateArgs {
     pub pretty: bool,
 }
 
-pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<ValidateArgs>, String> {
+pub fn parse(
+    args: impl IntoIterator<Item = OsString>,
+) -> ExportValidateResult<Option<ValidateArgs>> {
     let mut project = PathBuf::from("zircon-project.toml");
     let mut profile = None;
     let mut report = None;
@@ -19,9 +23,11 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<Validate
 
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
-        let arg_text = arg
-            .to_str()
-            .ok_or_else(|| "zircon_export_validate expects UTF-8 command arguments".to_string())?;
+        let arg_text = arg.to_str().ok_or_else(|| {
+            ExportValidateError::Usage(usage(
+                "zircon_export_validate expects UTF-8 command arguments",
+            ))
+        })?;
         match arg_text {
             "-h" | "--help" => return Ok(None),
             "--project" => project = next_path(&mut args, "--project")?,
@@ -29,11 +35,15 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<Validate
             "--report" => report = Some(next_path(&mut args, "--report")?),
             "--stage-output" => stage_output = Some(next_path(&mut args, "--stage-output")?),
             "--pretty" => pretty = true,
-            unknown => return Err(usage(&format!("unknown argument {unknown}"))),
+            unknown => {
+                return Err(ExportValidateError::Usage(usage(&format!(
+                    "unknown argument {unknown}"
+                ))))
+            }
         }
     }
 
-    let profile = profile.ok_or_else(|| usage("missing --profile"))?;
+    let profile = profile.ok_or_else(|| ExportValidateError::Usage(usage("missing --profile")))?;
     Ok(Some(ValidateArgs {
         project,
         profile,
@@ -52,16 +62,16 @@ pub fn usage(message: &str) -> String {
 fn next_string(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<String, String> {
+) -> ExportValidateResult<String> {
     args.next()
-        .ok_or_else(|| usage(&format!("missing value for {flag}")))?
+        .ok_or_else(|| ExportValidateError::Usage(usage(&format!("missing value for {flag}"))))?
         .into_string()
-        .map_err(|_| usage(&format!("{flag} value must be UTF-8")))
+        .map_err(|_| ExportValidateError::Usage(usage(&format!("{flag} value must be UTF-8"))))
 }
 
 fn next_path(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<PathBuf, String> {
+) -> ExportValidateResult<PathBuf> {
     Ok(PathBuf::from(next_string(args, flag)?))
 }

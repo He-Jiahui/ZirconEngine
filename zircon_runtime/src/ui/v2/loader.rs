@@ -19,8 +19,9 @@ impl UiV2AssetLoader {
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(path: P) -> Result<UiV2AssetDocument, UiV2AssetError> {
-        let input =
-            std::fs::read_to_string(path).map_err(|error| UiV2AssetError::Io(error.to_string()))?;
+        let path = path.as_ref();
+        let input = std::fs::read_to_string(path)
+            .map_err(|error| UiV2AssetError::Io(format!("{}: {error}", path.display())))?;
         Self::load_toml_str(&input)
     }
 }
@@ -28,13 +29,14 @@ impl UiV2AssetLoader {
 impl UiZuiAssetLoader {
     pub fn load_zui_str(input: &str) -> Result<UiV2AssetDocument, UiV2AssetError> {
         let document = UiV2AssetLoader::load_toml_str(input)?;
-        validate_zui_component_profile(&document)?;
+        validate_zui_document_profile(&document)?;
         Ok(document)
     }
 
     pub fn load_zui_file<P: AsRef<Path>>(path: P) -> Result<UiV2AssetDocument, UiV2AssetError> {
-        let input =
-            std::fs::read_to_string(path).map_err(|error| UiV2AssetError::Io(error.to_string()))?;
+        let path = path.as_ref();
+        let input = std::fs::read_to_string(path)
+            .map_err(|error| UiV2AssetError::Io(format!("{}: {error}", path.display())))?;
         Self::load_zui_str(&input)
     }
 }
@@ -50,14 +52,16 @@ fn validate_version(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> 
     Ok(())
 }
 
+fn validate_zui_document_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
+    match document.asset.kind {
+        UiV2AssetKind::Component => validate_zui_component_profile(document),
+        UiV2AssetKind::View => validate_zui_view_profile(document),
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => validate_zui_style_profile(document),
+    }
+}
+
 fn validate_zui_component_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
     let asset_id = document.asset.id.clone();
-    if document.asset.kind != UiV2AssetKind::Component {
-        return Err(UiV2AssetError::InvalidDocument {
-            asset_id,
-            detail: ".zui assets require asset.kind = \"component\"".to_string(),
-        });
-    }
     if document.root.is_some() {
         return Err(UiV2AssetError::InvalidDocument {
             asset_id,
@@ -90,6 +94,51 @@ fn validate_zui_component_profile(document: &UiV2AssetDocument) -> Result<(), Ui
             asset_id,
             node_id: component.root.clone(),
         });
+    }
+    Ok(())
+}
+
+fn validate_zui_view_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
+    let asset_id = document.asset.id.clone();
+    let root = document
+        .root
+        .as_ref()
+        .ok_or_else(|| UiV2AssetError::InvalidDocument {
+            asset_id: asset_id.clone(),
+            detail: ".zui view assets must declare a [root] view entry".to_string(),
+        })?;
+    if root.node.trim().is_empty() {
+        return Err(UiV2AssetError::InvalidDocument {
+            asset_id,
+            detail: ".zui view assets must declare a non-empty root node".to_string(),
+        });
+    }
+    if !document.nodes.contains_key(&root.node) {
+        return Err(UiV2AssetError::MissingNode {
+            asset_id,
+            node_id: root.node.clone(),
+        });
+    }
+    Ok(())
+}
+
+fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
+    if let Some(root) = &document.root {
+        let asset_id = document.asset.id.clone();
+        if root.node.trim().is_empty() {
+            return Err(UiV2AssetError::InvalidDocument {
+                asset_id,
+                detail:
+                    ".zui style assets must declare a non-empty root node when [root] is present"
+                        .to_string(),
+            });
+        }
+        if !document.nodes.contains_key(&root.node) {
+            return Err(UiV2AssetError::MissingNode {
+                asset_id,
+                node_id: root.node.clone(),
+            });
+        }
     }
     Ok(())
 }

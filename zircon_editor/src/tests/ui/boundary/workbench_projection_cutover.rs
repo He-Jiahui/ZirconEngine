@@ -99,23 +99,23 @@ fn retained_host_import_blocks(source: &str) -> Vec<String> {
 #[test]
 fn workbench_main_interface_entries_are_template_backed_and_reflected() {
     let shared_chrome_assets = [
-        "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
-        "/assets/ui/editor/workbench_menu_popup.v2.ui.toml",
-        "/assets/ui/editor/workbench_page_chrome.v2.ui.toml",
-        "/assets/ui/editor/workbench_dock_header.v2.ui.toml",
-        "/assets/ui/editor/workbench_status_bar.v2.ui.toml",
-        "/assets/ui/editor/workbench_activity_rail.v2.ui.toml",
+        "/assets/ui/editor/workbench_menu_chrome.zui",
+        "/assets/ui/editor/workbench_menu_popup.zui",
+        "/assets/ui/editor/workbench_page_chrome.zui",
+        "/assets/ui/editor/workbench_dock_header.zui",
+        "/assets/ui/editor/workbench_status_bar.zui",
+        "/assets/ui/editor/workbench_activity_rail.zui",
     ];
     for asset in shared_chrome_assets {
         assert_asset_exists(asset);
     }
 
     for asset in [
-        "assets/ui/editor/host/editor_main_frame.v2.ui.toml",
-        "assets/ui/editor/host/workbench_shell.v2.ui.toml",
-        "assets/ui/editor/host/floating_window_source.v2.ui.toml",
-        "assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml",
-        "assets/ui/editor/host/pane_surface_controls.v2.ui.toml",
+        "assets/ui/editor/host/editor_main_frame.zui",
+        "assets/ui/editor/host/workbench_shell.zui",
+        "assets/ui/editor/host/floating_window_source.zui",
+        "assets/ui/editor/host/scene_viewport_toolbar.zui",
+        "assets/ui/editor/host/pane_surface_controls.zui",
     ] {
         assert_asset_exists(asset);
     }

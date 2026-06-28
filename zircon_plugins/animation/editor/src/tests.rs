@@ -8,6 +8,18 @@ fn animation_editor_plugin_contributes_authoring_extensions() {
     assert!(registration
         .capabilities
         .contains(&ANIMATION_AUTHORING_CAPABILITY.to_string()));
+    assert_eq!(
+        editor_plugin().declaration().mirrored_runtime_package_id(),
+        Some(PLUGIN_ID)
+    );
+    assert!(registration
+        .package_manifest
+        .capabilities
+        .contains(&zircon_plugin_animation_runtime::ANIMATION_RUNTIME_CAPABILITY.to_string()));
+    assert!(registration
+        .package_manifest
+        .capabilities
+        .contains(&ANIMATION_AUTHORING_CAPABILITY.to_string()));
     assert!(registration
         .extensions
         .views()

@@ -12,23 +12,42 @@ related_code:
   - dev/bevy/crates/bevy_light/src/lib.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/text/mod.rs
+  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
+  - zircon_runtime/src/core/framework/render/text/shaping_service.rs
+  - zircon_runtime/src/core/framework/render/text/font/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
+  - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/core/framework/render/mesh/mod.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
   - zircon_runtime/src/core/framework/render/light/mod.rs
+  - zircon_runtime/src/core/framework/render/light/readiness.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/core/framework/tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/text/mod.rs
+  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
+  - zircon_runtime/src/core/framework/render/text/shaping_service.rs
+  - zircon_runtime/src/core/framework/render/text/font/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
+  - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/core/framework/render/mesh/mod.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
   - zircon_runtime/src/core/framework/render/light/mod.rs
+  - zircon_runtime/src/core/framework/render/light/readiness.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
 plan_sources:
   - user: 2026-05-21 continue M10 common render API readiness checklist
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
@@ -44,6 +63,7 @@ tests:
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo test -p zircon_runtime render_profile --locked
   - cargo check -p zircon_runtime --lib --locked
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/graphics/text/shaping/cosmic.rs zircon_runtime/src/graphics/text/shaping/mod.rs zircon_runtime/src/graphics/text/layout/measure.rs (2026-06-28 text DTO facade import repair: passed)
 doc_type: module-detail
 ---
 
@@ -73,7 +93,9 @@ Zircon copies that boundary. The common API layer describes what renderable data
 
 `RenderProfileBundle::common_render_api()` exposes `Camera`, `Image`, `Mesh`, `Material`, and `Shader` product features (`zircon_runtime/src/core/framework/render/profile.rs:44-52`, `profile.rs:239-248`). `DefaultRender` includes `CommonRenderApi`, `Render2d`, `Render3d`, and `Ui`, but the common profile itself carries no renderer capability requirement (`profile.rs:78-87`, `profile.rs:301-304`).
 
-`render::mod` re-exports the stable common product DTOs from the owning modules: camera snapshots and targets, image descriptors and sampler/fallback kinds, mesh bounds and topology, material descriptors/readiness reports, and shader entry/dependency/layout descriptors (`zircon_runtime/src/core/framework/render/mod.rs:44-85`, `mod.rs:121-128`).
+`render::mod` re-exports the stable common product DTOs from the owning modules: camera snapshots and targets, image descriptors and sampler/fallback kinds, mesh bounds and topology, material descriptors/readiness reports, shader entry/dependency/layout descriptors, and neutral text shaping/font DTOs (`zircon_runtime/src/core/framework/render/mod.rs`). Text remains implementation-owned by `graphics/text`; the render facade exposes only neutral `ShapedGlyphRun` / `TextShapingService` / font contract types so runtime leaves do not import the private `render::text` module path.
+
+The 2026-06-27 Runtime 15 M2 core framework render fixture naming hard cutover records `runtime_15_core_framework_render_fixture_naming_hard_cutover_static_passed_cargo_deferred`. Core render fixtures now use current names for authored render-queue offsets, retired post-process fields, and scene-schema-v1 render-layer mask width; light readiness and scene extract fixtures call `RenderLayerSet::from_scene_schema_v1_mask(...)` rather than the old mask helper. Guard `runtime_15_core_framework_render_fixtures_use_current_names` locks `core/framework/render/core_pipeline/render_queue.rs`, `post_process/effect_stack_settings.rs`, `relevance.rs`, `light/readiness.rs`, `scene_extract.rs`, Runtime 15/status mirrors, module-convention docs, and this common render API documentation. This is naming-only fixture cleanup and does not change render queue clamp, effect-stack enablement, primitive relevance, light readiness, or scene extraction behavior.
 
 The module ownership is intentionally narrow:
 

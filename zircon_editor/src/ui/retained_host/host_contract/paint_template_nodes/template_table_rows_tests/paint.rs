@@ -1,11 +1,11 @@
 use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::{
     WORKBENCH_TABLE_HEADER_BG as TABLE_HEADER_BG, WORKBENCH_TABLE_HEADER_TEXT as TABLE_HEADER_TEXT,
     WORKBENCH_TABLE_SELECTED_BG as TABLE_SELECTED_BG, WORKBENCH_TABLE_SEPARATOR as TABLE_SEPARATOR,
     WORKBENCH_TABLE_TAIL_BG as TABLE_TAIL_BG,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
-use super::super::super::render_commands::HostPaintCommand;
 use super::super::commands::{push_table_row_commands, push_table_row_text_commands};
 use super::super::style::table_cell_color;
 use super::support::{different_pixel_count, pixel_at, table_node};

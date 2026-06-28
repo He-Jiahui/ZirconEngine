@@ -27,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract) fn paint_host_frame(
         );
         workbench::draw_componentized_workbench_window(&mut frame, presentation);
     } else {
-        workbench::draw_legacy_workbench_window_profiled(
+        workbench::draw_host_workbench_window_profiled(
             &mut frame,
             width,
             height,
@@ -74,7 +74,7 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_host_frame_region(
         );
         workbench::draw_componentized_workbench_window(frame, presentation);
     } else {
-        workbench::draw_legacy_workbench_window_profiled(
+        workbench::draw_host_workbench_window_profiled(
             frame,
             frame.width(),
             frame.height(),

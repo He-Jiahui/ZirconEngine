@@ -67,9 +67,13 @@ fn mouse_wheel_at_events_decode_delta_bits_for_dynamic_session() {
     let submit = wheel_handler
         .find("MouseWheelEvent::new(unit, delta_x, delta_y)")
         .expect("decoded wheel deltas should feed runtime input state");
+    let scalar_delta = wheel_handler
+        .find("wheel.vertical_line_delta()")
+        .expect("dynamic preview scalar scroll should use the current line-delta helper");
 
     assert!(decode < finite_check);
     assert!(finite_check < submit);
+    assert!(submit < scalar_delta);
 }
 
 #[test]

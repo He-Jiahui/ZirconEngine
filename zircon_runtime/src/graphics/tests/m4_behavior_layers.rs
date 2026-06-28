@@ -54,12 +54,14 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         }],
         vec![RenderDirectionalLightSnapshot {
             node_id: 7,
             light_id: 7,
-            layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
             direction: Vec3::new(-0.4, -0.4, -1.0).normalize_or_zero(),
             color: Vec3::new(1.0, 0.62, 0.28),
             intensity: 3.2,

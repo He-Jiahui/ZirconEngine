@@ -226,6 +226,7 @@ last_refined: 2026-06-22
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| 横切 | Runtime 08 F17 top-row closed status sync | f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred | 2026-06-28 | Runtime 15 M3 review-status follow-up：F17 entity path Option lookup 已由 `runtime_08_entity_path_lookup_getter_rename_coremin_check_passed` 闭合，本轮只把 `docs/plans/engine-code-review-findings-2026-06.md` 的 F17 顶表状态同步为 `convention + Runtime 08 / review closed`，并由 `review_f17_entity_path_option_lookup_uses_get_verb` 要求顶表行包含该状态锚和 review-closed 结尾。该行是 Runtime 08 对跨计划状态镜像的记录，不改 ECS/scene 生产代码；Runtime 08 entity/observer/command/messages/change_tick/ecs 行为 gates 仍 pending。 |
 | M0 | 0.1 五维对照表 | 完成 | 2026-06-12 | `docs/zircon_runtime/scene/ecs.md` 新增 Runtime 08 Data-Kernel Alignment Verdict；裁决 storage/entity/observer/events/messages/commands/change tick 六行，无待定项 |
 | M1 | 1.1 生命周期测试矩阵 | code_complete_pending_cargo | 2026-06-12 | 已补 `despawned_entity_handle_is_rejected_by_world_access`、`entity_id_reuse_does_not_alias_previous_generation_handle`、`stable_entity_location_survives_archetype_move_and_invalidates_on_despawn`、`component_removal_emits_removal_record_in_same_frame`；Cargo 待活动 lanes 清空后运行 |
 | M2 | 2.1 观察者时序 | code_complete_pending_cargo | 2026-06-12 | 已补 `lifecycle_observer_fires_immediately_during_component_mutation`、`entity_event_observer_only_fires_for_target_entity`、`observer_remove_during_dispatch_does_not_skip_or_double_fire`；`docs/zircon_runtime/scene/ecs.md` 写入同步触发、目标实体、dispatch 移除判词；Cargo 待活动 lanes 清空后运行 |

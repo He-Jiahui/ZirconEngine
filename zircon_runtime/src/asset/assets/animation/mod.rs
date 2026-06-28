@@ -1,6 +1,7 @@
 mod binary;
 mod channel;
 mod clip;
+mod error;
 mod graph;
 mod reference;
 mod sequence;
@@ -12,6 +13,7 @@ pub use channel::{
     AnimationInterpolationAsset,
 };
 pub use clip::{AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationEventTrackAsset};
+pub use error::{AnimationAssetError, AnimationAssetResult};
 pub use graph::{AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset};
 pub use sequence::{
     AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,

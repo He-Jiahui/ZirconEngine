@@ -237,7 +237,7 @@ const ICON_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionIconLibrarySaveTableRow",
     "WorkbenchExtensionIconLibraryPlayTableRow",
     "WorkbenchExtensionIconLibraryWarningTableRow",
-    "WorkbenchExtensionIconLibraryLegacyTableRow",
+    "WorkbenchExtensionIconLibraryArchivedTableRow",
     "WorkbenchExtensionIconLibraryOutputRow",
 ];
 const ICON_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
@@ -266,8 +266,8 @@ const ICON_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
         "WorkbenchExtensionIconLibraryWarningTableRow",
     ),
     action(
-        "workbench.extension.icon_library.legacy_table_row.select",
-        "WorkbenchExtensionIconLibraryLegacyTableRow",
+        "workbench.extension.icon_library.archived_table_row.select",
+        "WorkbenchExtensionIconLibraryArchivedTableRow",
     ),
     action(
         "workbench.extension.icon_library.output.select",

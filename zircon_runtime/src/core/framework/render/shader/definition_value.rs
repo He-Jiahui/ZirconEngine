@@ -83,12 +83,12 @@ impl<'de> Deserialize<'de> for RenderShaderDefinitionValue {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum DefinitionValueRepr {
-            LegacyFlag(String),
+            BareFlag(String),
             Tagged(TaggedDefinitionValue),
         }
 
         Ok(match DefinitionValueRepr::deserialize(deserializer)? {
-            DefinitionValueRepr::LegacyFlag(name) => Self::from(name),
+            DefinitionValueRepr::BareFlag(name) => Self::from(name),
             DefinitionValueRepr::Tagged(TaggedDefinitionValue::Bool { name, value }) => {
                 Self::bool(name, value)
             }

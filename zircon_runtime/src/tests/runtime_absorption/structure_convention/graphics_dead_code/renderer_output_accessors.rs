@@ -1,5 +1,5 @@
 use super::super::assert_contains_all;
-use super::{read_repo, read_runtime_src};
+use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
 #[test]
 fn runtime_15_particle_gpu_readback_output_accessor_cleanup() {
@@ -18,7 +18,7 @@ fn runtime_15_particle_gpu_readback_output_accessor_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !take_particle_readback.contains("#[allow(dead_code)]"),
+        !take_particle_readback.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "SceneRenderer particle GPU readback output accessor is consumed by runtime feedback and should not keep a dead-code suppression"
     );
     assert_contains_all(
@@ -82,7 +82,7 @@ fn runtime_15_advanced_plugin_output_test_accessor_cleanup() {
     let particles_doc = read_repo("docs/zircon_plugins/particles/runtime.md");
 
     assert!(
-        !output_access.contains("#[allow(dead_code)]"),
+        !output_access.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "advanced plugin output observation helpers should be test-only or production-live, not dead-code suppressions"
     );
 

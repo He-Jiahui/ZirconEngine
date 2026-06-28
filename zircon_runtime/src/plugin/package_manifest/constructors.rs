@@ -1,14 +1,20 @@
 use crate::builtin::RuntimeTargetMode;
 use crate::{
-    asset::AssetImporterDescriptor, plugin::CapabilityStatusManifest,
-    plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginMaturity, plugin::UiComponentDescriptor,
+    asset::AssetImporterDescriptor,
+    core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor},
+    plugin::CapabilityStatusManifest,
+    plugin::ComponentTypeDescriptor,
+    plugin::ExportPackagingStrategy,
+    plugin::ExportTargetPlatform,
+    plugin::PluginMaturity,
+    plugin::UiComponentDescriptor,
 };
 
 use super::{
     PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
     PluginFeatureBundleManifest, PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest,
     PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
+    PluginShaderPermutationIdManifest,
 };
 
 impl PluginModuleManifest {
@@ -99,13 +105,14 @@ impl PluginModuleManifest {
 impl PluginPackageManifest {
     pub fn new(id: impl Into<String>, display_name: impl Into<String>) -> Self {
         let id = id.into();
+        let package_name = default_package_coordinate_name(&id);
         Self {
             id: id.clone(),
             version: "0.1.0".to_string(),
             sdk_api_version: "0.1.0".to_string(),
             package_prefix: "com".to_string(),
             package_company: "zircon".to_string(),
-            package_name: id,
+            package_name,
             package_kind: PluginPackageKind::Standard,
             display_name: display_name.into(),
             category: "uncategorized".to_string(),
@@ -127,6 +134,9 @@ impl PluginPackageManifest {
             asset_importers: Vec::new(),
             optional_features: Vec::new(),
             feature_extensions: Vec::new(),
+            geometry_sources: Vec::new(),
+            shading_models: Vec::new(),
+            shader_permutation: Default::default(),
             default_packaging: vec![
                 ExportPackagingStrategy::SourceTemplate,
                 ExportPackagingStrategy::LibraryEmbed,
@@ -316,6 +326,46 @@ impl PluginPackageManifest {
         self
     }
 
+    pub fn with_geometry_source_descriptor(mut self, descriptor: GeometrySourceDescriptor) -> Self {
+        self.geometry_sources.push(descriptor);
+        self
+    }
+
+    pub fn with_geometry_source_descriptors(
+        mut self,
+        descriptors: impl IntoIterator<Item = GeometrySourceDescriptor>,
+    ) -> Self {
+        self.geometry_sources.extend(descriptors);
+        self
+    }
+
+    pub fn with_shading_model_descriptor(mut self, descriptor: ShadingModelDescriptor) -> Self {
+        self.shading_models.push(descriptor);
+        self
+    }
+
+    pub fn with_shading_model_descriptors(
+        mut self,
+        descriptors: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Self {
+        self.shading_models.extend(descriptors);
+        self
+    }
+
+    pub fn with_shader_geometry_source_id(mut self, token: impl Into<String>, id: u8) -> Self {
+        self.shader_permutation
+            .geometry_source_ids
+            .push(PluginShaderPermutationIdManifest::new(token, id));
+        self
+    }
+
+    pub fn with_shader_shading_model_id(mut self, token: impl Into<String>, id: u8) -> Self {
+        self.shader_permutation
+            .shading_model_ids
+            .push(PluginShaderPermutationIdManifest::new(token, id));
+        self
+    }
+
     pub fn with_default_packaging(
         mut self,
         packaging: impl IntoIterator<Item = ExportPackagingStrategy>,
@@ -348,4 +398,8 @@ impl PluginPackageManifest {
     pub fn with_vm_module(self, module: PluginModuleManifest) -> Self {
         self.with_module(module)
     }
+}
+
+fn default_package_coordinate_name(package_id: &str) -> String {
+    package_id.replace('.', "_")
 }

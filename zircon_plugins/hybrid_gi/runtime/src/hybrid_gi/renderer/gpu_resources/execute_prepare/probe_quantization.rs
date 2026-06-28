@@ -451,7 +451,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn probe_parent_probe_id_prefers_runtime_parent_topology_over_legacy_extract() {
+    fn probe_parent_probe_id_prefers_runtime_parent_topology_over_extract_input() {
         let extract = extract_with_probes(vec![
             probe(100, Vec3::ZERO, 1.0),
             probe(200, Vec3::ZERO, 1.0),
@@ -494,23 +494,23 @@ mod tests {
 
         assert!(
             probe_lineage_trace_support_q(None, Some(&extract), &[40], 300) > 0,
-            "legacy extract parent topology should reach the warm parent without runtime authority"
+            "extract input parent topology should reach the warm parent without runtime authority"
         );
         assert_eq!(
             probe_lineage_trace_support_q(Some(&runtime), Some(&extract), &[40], 300),
             0,
-            "flat runtime topology should block stale legacy RenderHybridGiProbe parent inheritance"
+            "flat runtime topology should block stale extract-sourced RenderHybridGiProbe parent inheritance"
         );
     }
 
     #[test]
-    fn probe_resident_ancestors_drop_legacy_parent_without_live_payload() {
+    fn probe_resident_ancestors_drop_extract_parent_without_live_payload() {
         let extract = extract_with_probes(vec![probe_with_parent(300, 400, Vec3::ZERO, 1.0)]);
 
         assert_eq!(
             probe_resident_ancestors(None, Some(&extract), &BTreeSet::from([400]), 300)[0],
             (NO_PARENT_PROBE_ID, 0),
-            "legacy parent ids without a live RenderHybridGiProbe payload should not re-enter GPU prepare ancestry"
+            "extract parent ids without a live RenderHybridGiProbe payload should not re-enter GPU prepare ancestry"
         );
     }
 
@@ -536,7 +536,7 @@ mod tests {
     }
 
     #[test]
-    fn probe_lineage_trace_support_limits_legacy_schedule_before_tail_payload() {
+    fn probe_lineage_trace_support_limits_extract_schedule_before_tail_payload() {
         let tail_region_id = 10_000;
         let mut scheduled_trace_region_ids =
             (0..MAX_GPU_TRACE_REGION_INPUTS as u32).collect::<Vec<_>>();
@@ -570,7 +570,7 @@ mod tests {
     }
 
     #[test]
-    fn probe_resident_ancestors_prefers_runtime_parent_topology_over_legacy_extract() {
+    fn probe_resident_ancestors_prefers_runtime_parent_topology_over_extract_input() {
         let extract = extract_with_probes(vec![
             probe(100, Vec3::ZERO, 1.0),
             probe(200, Vec3::ZERO, 1.0),
@@ -592,7 +592,7 @@ mod tests {
     }
 
     #[test]
-    fn probe_quantization_prefers_runtime_probe_scene_data_over_legacy_extract() {
+    fn probe_quantization_prefers_runtime_probe_scene_data_over_extract_input() {
         let extract = extract_with_probes(vec![probe(300, Vec3::new(2.0, 4.0, 8.0), 1.5)]);
         let runtime = HybridGiResolveRuntime::fixture()
             .with_probe_scene_data(BTreeMap::from([(
@@ -608,7 +608,7 @@ mod tests {
     }
 
     #[test]
-    fn probe_lineage_trace_support_prefers_runtime_probe_scene_data_over_legacy_extract() {
+    fn probe_lineage_trace_support_prefers_runtime_probe_scene_data_over_extract_input() {
         let extract = RenderHybridGiExtract {
             enabled: true,
             probes: vec![probe(300, Vec3::new(1000.0, 0.0, 0.0), 0.1)],
@@ -643,7 +643,7 @@ mod tests {
     }
 
     #[test]
-    fn probe_quantization_ignores_legacy_probe_payloads_when_scene_representation_is_budgeted() {
+    fn probe_quantization_ignores_extract_probe_payloads_when_scene_representation_is_budgeted() {
         let extract = RenderHybridGiExtract {
             enabled: true,
             card_budget: 1,
@@ -665,7 +665,7 @@ mod tests {
     }
 
     #[test]
-    fn scheduled_trace_region_ids_ignore_legacy_payloads_when_scene_representation_is_budgeted() {
+    fn scheduled_trace_region_ids_ignore_extract_payloads_when_scene_representation_is_budgeted() {
         let extract = RenderHybridGiExtract {
             enabled: true,
             trace_budget: 2,
@@ -692,35 +692,35 @@ mod tests {
     }
 
     #[test]
-    fn scheduled_runtime_trace_region_ids_ignore_legacy_payloads_when_runtime_has_scene_truth() {
-        let legacy_region_id = 40;
-        let extract = extract_with_trace_regions(vec![trace_region(legacy_region_id)]);
+    fn scheduled_runtime_trace_region_ids_ignore_extract_payloads_when_runtime_has_scene_truth() {
+        let extract_region_id = 40;
+        let extract = extract_with_trace_regions(vec![trace_region(extract_region_id)]);
         let runtime = runtime_scene_truth_with_trace_regions(BTreeMap::from([(
-            legacy_region_id,
+            extract_region_id,
             runtime_trace_region_scene_data([240, 96, 48]),
         )]));
 
         assert_eq!(
-            scheduled_live_trace_region_ids(Some(&runtime), Some(&extract), &[legacy_region_id]),
+            scheduled_live_trace_region_ids(Some(&runtime), Some(&extract), &[extract_region_id]),
             Vec::<u32>::new(),
-            "stripped runtime scene truth should keep legacy-backed RenderHybridGiTraceRegion ids out of GPU prepare scheduling"
+            "stripped runtime scene truth should keep extract-backed RenderHybridGiTraceRegion ids out of GPU prepare scheduling"
         );
         assert_eq!(
-            probe_lineage_trace_support_q(Some(&runtime), Some(&extract), &[legacy_region_id], 300),
+            probe_lineage_trace_support_q(Some(&runtime), Some(&extract), &[extract_region_id], 300),
             0,
-            "stripped runtime scene truth should prevent legacy-backed runtime trace scene data from feeding GPU prepare lineage support"
+            "stripped runtime scene truth should prevent extract-backed runtime trace scene data from feeding GPU prepare lineage support"
         );
     }
 
     #[test]
-    fn scheduled_runtime_trace_region_ids_keep_runtime_only_region_when_legacy_payload_is_scheduled(
+    fn scheduled_runtime_trace_region_ids_keep_runtime_only_region_when_extract_payload_is_scheduled(
     ) {
-        let legacy_region_id = 40;
+        let extract_region_id = 40;
         let runtime_only_region_id = 41;
-        let extract = extract_with_trace_regions(vec![trace_region(legacy_region_id)]);
+        let extract = extract_with_trace_regions(vec![trace_region(extract_region_id)]);
         let runtime = runtime_scene_truth_with_trace_regions(BTreeMap::from([
             (
-                legacy_region_id,
+                extract_region_id,
                 runtime_trace_region_scene_data([240, 96, 48]),
             ),
             (
@@ -733,16 +733,16 @@ mod tests {
             scheduled_live_trace_region_ids(
                 Some(&runtime),
                 Some(&extract),
-                &[legacy_region_id, runtime_only_region_id, runtime_only_region_id],
+                &[extract_region_id, runtime_only_region_id, runtime_only_region_id],
             ),
             vec![runtime_only_region_id],
-            "stripped runtime scene truth should filter only legacy-backed trace ids and keep runtime-only trace scene data"
+            "stripped runtime scene truth should filter only extract-backed trace ids and keep runtime-only trace scene data"
         );
         assert!(
             probe_lineage_trace_support_q(
                 Some(&runtime),
                 Some(&extract),
-                &[legacy_region_id, runtime_only_region_id],
+                &[extract_region_id, runtime_only_region_id],
                 300
             ) > 0,
             "runtime-only trace scene data should still feed GPU prepare lineage support"

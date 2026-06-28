@@ -7,6 +7,8 @@ related_code:
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/lock.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
@@ -33,6 +35,8 @@ implementation_files:
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/lock.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
@@ -55,6 +59,7 @@ implementation_files:
 plan_sources:
   - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - cargo check -p zircon_runtime --lib --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
@@ -71,6 +76,8 @@ tests:
   - vm_lifecycle_fallback_missing_optional_export_returns_none_not_error
   - vm_lifecycle_fallback_deactivate_is_idempotent_after_unload
   - vm_lifecycle_fallback_empty_arguments_do_not_require_real_backend
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/lock.rs::zr_vm_real_backend_runtime_lock_recovers_after_poison
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs::runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata
   - zircon_runtime/src/asset/tests/project/zmeta.rs::project_manager_imports_compound_zshader_package_with_subassets
 doc_type: module-detail
@@ -89,6 +96,14 @@ The real backend is feature gated through `zircon_runtime/zr-vm-real-backend`. `
 `zr_vm:project` is now claimed by `ZrVmBackend`. The fallback project backend is intentionally narrowed to `zr_vm_fallback:project` and `fallback:project`, so a package that opts into the real backend no longer silently runs through fallback gameplay code.
 
 The selected backend compiles or reuses cached project modules, creates a runtime plugin instance, and provides the same lifecycle surface expected by `VmPluginManager`: `activate`, `deactivate`, `save_state`, `restore_state`, and exported scene callbacks such as `onStart` and `onUpdate`.
+
+## Runtime Lock Policy
+
+Runtime 15 M3 ZrVM real backend runtime lock poison recovery status: `runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result`.
+
+The real backend still serializes access to the ZrVM runtime/session boundary through `script/vm/backend/zr_vm_project_backend/real_backend/lock.rs::acquire_zr_vm_lock()`. Project package loading in `script/vm/backend/zr_vm_project_backend/real_backend/package.rs` and lifecycle/export calls in `instance.rs` continue to take that guard before touching the runtime, session, host-module registration, compile, activate/deactivate, state transfer, or generic export-call path.
+
+The lock helper now recovers poisoned mutex state with `unwrap_or_else(|poisoned| poisoned.into_inner())` instead of panicking with `zr_vm runtime lock should not be poisoned`. The module-local `zr_vm_real_backend_runtime_lock_recovers_after_poison` test poisons the global lock and verifies a later acquisition succeeds. The Runtime 15 structure guard `runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock` keeps the helper shape, package/instance call sites, direct-panic rollback scan, status rows, and this document synchronized. This does not change backend selection, host callback table lowering, project compile/session lifecycle, or lifecycle export ABI.
 
 ## Host Callback Call Table
 

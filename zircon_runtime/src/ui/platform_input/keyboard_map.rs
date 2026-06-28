@@ -10,7 +10,7 @@ pub(super) fn keyboard_state(state: ElementState, repeat: bool) -> UiKeyboardInp
     }
 }
 
-pub(super) fn legacy_key_code(key: &Key) -> u32 {
+pub(super) fn dom_key_code(key: &Key) -> u32 {
     match key {
         Key::Named(NamedKey::Backspace) => 8,
         Key::Named(NamedKey::Tab) => 9,
@@ -29,7 +29,7 @@ pub(super) fn legacy_key_code(key: &Key) -> u32 {
         Key::Named(NamedKey::ArrowRight) => 39,
         Key::Named(NamedKey::ArrowDown) => 40,
         Key::Named(NamedKey::Delete) => 46,
-        Key::Character(text) => legacy_character_key_code(text),
+        Key::Character(text) => dom_character_key_code(text),
         _ => 0,
     }
 }
@@ -61,7 +61,7 @@ pub(super) fn logical_key_name(key: &Key) -> String {
     }
 }
 
-fn legacy_character_key_code(text: &str) -> u32 {
+fn dom_character_key_code(text: &str) -> u32 {
     let mut chars = text.chars();
     let Some(ch) = chars.next() else {
         return 0;

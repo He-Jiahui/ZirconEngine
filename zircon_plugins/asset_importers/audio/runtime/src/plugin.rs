@@ -1,9 +1,12 @@
+use zircon_plugin_sdk::{
+    importer_runtime_supported_platforms, importer_runtime_supported_targets,
+    ImporterRuntimeManifestBuilder,
+};
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, ExportTargetPlatform, PluginDistributionManifest,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 
@@ -15,10 +18,6 @@ use crate::{
 pub const AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_asset_importer_audio_dist";
 pub const AUDIO_ASSET_IMPORTER_DIST_RUNTIME_ENTRY: &str =
     "zircon_plugin_asset_importer_audio_runtime_entry_v3";
-
-const AUDIO_ASSET_IMPORTER_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
-const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
-const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct AudioAssetImporterRuntimePlugin {
@@ -66,7 +65,6 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     .with_category("asset_importer")
     .with_target_modes(supported_targets())
     .with_capability(RUNTIME_CAPABILITY)
-    .with_capability(CODEC_IMPORTER_CAPABILITY)
     .build()
 }
 
@@ -77,18 +75,11 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
 }
 
 pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    [
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ]
+    importer_runtime_supported_targets()
 }
 
 pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    [
-        ExportTargetPlatform::Windows,
-        ExportTargetPlatform::Linux,
-        ExportTargetPlatform::Macos,
-    ]
+    importer_runtime_supported_platforms()
 }
 
 pub fn module_descriptor() -> ModuleDescriptor {
@@ -113,40 +104,28 @@ pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
 }
 
 pub fn runtime_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::runtime("asset_importer.audio.runtime", RUNTIME_CRATE_NAME)
-        .with_target_modes(supported_targets())
-        .with_capabilities(runtime_capabilities().iter().copied())
+    importer_manifest_builder().runtime_module_manifest()
 }
 
 pub fn dist_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::native(
-        "asset_importer.audio.dist",
-        AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME,
-    )
-    .with_target_modes(supported_targets())
-    .with_capabilities(runtime_capabilities().iter().copied())
+    importer_manifest_builder().dist_module_manifest()
 }
 
 fn package_manifest_from_descriptor(descriptor: &RuntimePluginDescriptor) -> PluginPackageManifest {
-    let mut manifest = descriptor.package_manifest();
-    manifest
-        .default_packaging
-        .push(ExportPackagingStrategy::NativeDynamic);
-    manifest = manifest.with_native_module(dist_module_manifest());
-    manifest = manifest.with_distribution(PluginDistributionManifest {
-        forms: vec!["dist".to_string()],
-        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
-        abi_version: Some(NATIVE_ABI_VERSION_V3),
-        engine_compat: AUDIO_ASSET_IMPORTER_DIST_ENGINE_COMPAT.to_string(),
-        dist_crate: AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME.to_string(),
-        descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
-        runtime_entry: AUDIO_ASSET_IMPORTER_DIST_RUNTIME_ENTRY.to_string(),
-        ..PluginDistributionManifest::default()
-    });
-    for importer in asset_importer_descriptors() {
-        manifest = manifest.with_asset_importer(importer);
-    }
-    manifest
+    importer_manifest_builder()
+        .with_asset_importers(asset_importer_descriptors())
+        .build_package_manifest(descriptor)
+}
+
+fn importer_manifest_builder() -> ImporterRuntimeManifestBuilder {
+    ImporterRuntimeManifestBuilder::new(
+        "asset_importer.audio.runtime",
+        RUNTIME_CRATE_NAME,
+        "asset_importer.audio.dist",
+        AUDIO_ASSET_IMPORTER_DIST_CRATE_NAME,
+        AUDIO_ASSET_IMPORTER_DIST_RUNTIME_ENTRY,
+    )
+    .with_capabilities(runtime_capabilities().iter().copied())
 }
 
 fn descriptor(

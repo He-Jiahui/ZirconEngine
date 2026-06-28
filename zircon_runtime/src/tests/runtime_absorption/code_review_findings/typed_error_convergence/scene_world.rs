@@ -124,6 +124,7 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
         "SceneResult",
         "F5 typed API residual typed errors",
         "runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred",
+        "f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred",
     ] {
         assert!(
             review_findings.contains(doc_anchor)
@@ -134,6 +135,15 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
             "F5 docs should record `{doc_anchor}`"
         );
     }
+    let f5_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F5 |"))
+        .expect("F5 review findings top row");
+    assert!(
+        f5_row.contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred")
+            && f5_row.ends_with("| Runtime 08 + Runtime 15 / review closed |"),
+        "F5 top row should record typed-error review closed status"
+    );
 }
 
 #[test]

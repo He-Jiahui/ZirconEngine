@@ -601,10 +601,10 @@ fn extension_module_feedback(action_id: &str) -> Option<ExtensionModuleFeedback>
             status_text: "Particle GPU spark selected",
             output_text: "Selected GPU Spark Burst   GPU   60 fps",
         },
-        "workbench.extension.particle_library.deprecated_row.select" => ExtensionModuleFeedback {
+        "workbench.extension.particle_library.archived_row.select" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionParticleLibraryOutputRow",
             status_text: "Particle warning row selected",
-            output_text: "Selected Legacy Smoke   Deprecated   Warning",
+            output_text: "Selected Archived Smoke   Archived   Warning",
         },
         "workbench.extension.ui_asset_editor.open" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionUiAssetEditorOutputRow",
@@ -678,10 +678,10 @@ fn extension_module_feedback(action_id: &str) -> Option<ExtensionModuleFeedback>
             status_text: "Icon row selected",
             output_text: "Selected icon-warning   System   14 refs",
         },
-        "workbench.extension.icon_library.legacy_table_row.select" => ExtensionModuleFeedback {
+        "workbench.extension.icon_library.archived_table_row.select" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionIconLibraryOutputRow",
             status_text: "Icon warning row selected",
-            output_text: "Selected icon-old   Legacy   Warning",
+            output_text: "Selected icon-archive   Archived   Warning",
         },
         "workbench.extension.accessibility_audit.open" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionAccessibilityAuditOutputRow",

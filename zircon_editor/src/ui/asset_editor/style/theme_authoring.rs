@@ -213,7 +213,7 @@ pub(crate) fn default_external_style_draft(
 ) -> UiAssetExternalStyleDraft {
     let base_name = theme_base_name(source_asset_id);
     UiAssetExternalStyleDraft {
-        asset_id: format!("res://ui/themes/{base_name}_theme.ui.toml"),
+        asset_id: format!("res://ui/themes/{base_name}_theme.zui"),
         document_id: format!("ui.theme.{base_name}_theme"),
         display_name: theme_display_name(source_display_name, &base_name),
     }

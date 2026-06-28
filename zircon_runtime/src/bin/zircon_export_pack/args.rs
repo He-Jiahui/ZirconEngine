@@ -1,6 +1,8 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+use super::error::{ExportPackError, ExportPackResult};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PackArgs {
     pub profile: String,
@@ -14,7 +16,7 @@ pub struct PackArgs {
     pub determinism_check: bool,
 }
 
-pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<PackArgs>, String> {
+pub fn parse(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<Option<PackArgs>> {
     let mut profile = None;
     let mut manifest = None;
     let mut pack = None;
@@ -27,9 +29,9 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<PackArgs
 
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
-        let arg_text = arg
-            .to_str()
-            .ok_or_else(|| "zircon_export_pack expects UTF-8 command arguments".to_string())?;
+        let arg_text = arg.to_str().ok_or_else(|| {
+            ExportPackError::Usage(usage("zircon_export_pack expects UTF-8 command arguments"))
+        })?;
         match arg_text {
             "-h" | "--help" => return Ok(None),
             "--profile" => profile = Some(next_string(&mut args, "--profile")?),
@@ -41,17 +43,21 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<PackArgs
             "--stage-output" => stage_output = Some(next_path(&mut args, "--stage-output")?),
             "--pretty" => pretty = true,
             "--determinism-check" => determinism_check = true,
-            unknown => return Err(usage(&format!("unknown argument {unknown}"))),
+            unknown => {
+                return Err(ExportPackError::Usage(usage(&format!(
+                    "unknown argument {unknown}"
+                ))))
+            }
         }
     }
 
-    let profile = profile.ok_or_else(|| usage("missing --profile"))?;
-    let manifest = manifest.ok_or_else(|| usage("missing --manifest"))?;
-    let pack = pack.ok_or_else(|| usage("missing --pack"))?;
+    let profile = profile.ok_or_else(|| ExportPackError::Usage(usage("missing --profile")))?;
+    let manifest = manifest.ok_or_else(|| ExportPackError::Usage(usage("missing --manifest")))?;
+    let pack = pack.ok_or_else(|| ExportPackError::Usage(usage("missing --pack")))?;
     if previous_pack.is_some() != delta_pack.is_some() {
-        return Err(usage(
+        return Err(ExportPackError::Usage(usage(
             "--previous-pack and --delta-pack must be supplied together",
-        ));
+        )));
     }
     Ok(Some(PackArgs {
         profile,
@@ -75,16 +81,16 @@ pub fn usage(message: &str) -> String {
 fn next_string(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<String, String> {
+) -> ExportPackResult<String> {
     args.next()
-        .ok_or_else(|| usage(&format!("missing value for {flag}")))?
+        .ok_or_else(|| ExportPackError::Usage(usage(&format!("missing value for {flag}"))))?
         .into_string()
-        .map_err(|_| usage(&format!("{flag} value must be UTF-8")))
+        .map_err(|_| ExportPackError::Usage(usage(&format!("{flag} value must be UTF-8"))))
 }
 
 fn next_path(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<PathBuf, String> {
+) -> ExportPackResult<PathBuf> {
     Ok(PathBuf::from(next_string(args, flag)?))
 }

@@ -24,6 +24,20 @@ class PluginStandaloneCiMatrixTests(unittest.TestCase):
             standalone_dist_ci_matrix_entries(workflow_text),
         )
 
+    def test_plugin_standalone_validate_ci_runs_all_target_preflight(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        workflow_text = (repo_root / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        job_block = standalone_validate_ci_job_block(workflow_text)
+
+        self.assertIn("uses: actions/setup-python@v5", job_block)
+        self.assertIn("python-version: '3.11'", job_block)
+        self.assertIn(
+            "python -m tools.zircon_export plugin validate --all --repo-root . --json",
+            job_block,
+        )
+
 
 def standalone_dist_ci_matrix_entries(workflow_text: str) -> set[tuple[str, str]]:
     job_block = standalone_dist_ci_job_block(workflow_text)
@@ -43,6 +57,22 @@ def standalone_dist_ci_matrix_entries(workflow_text: str) -> set[tuple[str, str]
 
 def standalone_dist_ci_job_block(workflow_text: str) -> str:
     start_match = re.search(r"^  plugin-standalone-dist:\s*$", workflow_text, re.M)
+    if start_match is None:
+        return ""
+    next_job_match = re.search(
+        r"^  [A-Za-z0-9_-]+:\s*$",
+        workflow_text[start_match.end() :],
+        re.M,
+    )
+    if next_job_match is None:
+        return workflow_text[start_match.start() :]
+    return workflow_text[
+        start_match.start() : start_match.end() + next_job_match.start()
+    ]
+
+
+def standalone_validate_ci_job_block(workflow_text: str) -> str:
+    start_match = re.search(r"^  plugin-standalone-validate:\s*$", workflow_text, re.M)
     if start_match is None:
         return ""
     next_job_match = re.search(

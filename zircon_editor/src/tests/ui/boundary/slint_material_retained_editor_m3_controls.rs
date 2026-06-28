@@ -4,7 +4,7 @@ use toml::Value;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 const MIGRATION_DOC: &str = "docs/ui-and-layout/slint-material-retained-editor-migration.md";
-const THEME: &str = "zircon_editor/assets/ui/theme/editor_material.v2.ui.toml";
+const THEME: &str = "zircon_editor/assets/ui/theme/editor_material.zui";
 const BUTTONS_ZUI: &str =
     "zircon_editor/assets/ui/editor/material_components/inputs/material_buttons.zui";
 const FAB_ZUI: &str =

@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/assets/icons/editor_pages/**
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
@@ -22,20 +22,20 @@ related_code:
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
 implementation_files:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
@@ -74,20 +74,20 @@ doc_type: milestone-detail
 ## File Structure
 
 - Modify production template assets:
-  - `zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml`
-  - `zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml`
+  - `zircon_editor/assets/ui/editor/host/workbench_shell.zui`
+  - `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui`
+  - `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui`
+  - `zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui`
+  - `zircon_editor/assets/ui/editor/workbench_activity_rail.zui`
+  - `zircon_editor/assets/ui/editor/workbench_dock_header.zui`
+  - `zircon_editor/assets/ui/editor/host/console_body.zui`
+  - `zircon_editor/assets/ui/editor/host/hierarchy_body.zui`
+  - `zircon_editor/assets/ui/editor/host/animation_graph_body.zui`
+  - `zircon_editor/assets/ui/editor/host/animation_sequence_body.zui`
+  - `zircon_editor/assets/ui/editor/host/performance_timeline_body.zui`
+  - `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui`
+  - `zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui`
+  - `zircon_editor/assets/ui/editor/host/module_plugins_body.zui`
 - Modify docs:
   - `docs/zircon_editor/assets/editor-page-function-icon-template-map.md`
   - `docs/zircon_editor/assets/editor-page-function-svg-resources.md`
@@ -110,45 +110,45 @@ Use this table as the exact replacement source. Preserve every non-icon property
 
 | Template | Control id | Replace prop(s) with | Confidence |
 | --- | --- | --- | --- |
-| `host/workbench_shell.v2.ui.toml` | `OpenProject` | `icon = "editor_pages/workbench/menu/open-project.svg"` | `direct` |
-| `host/workbench_shell.v2.ui.toml` | `SaveProject` | `icon = "editor_pages/workbench/menu/save-all.svg"` | `direct` |
-| `host/workbench_shell.v2.ui.toml` | `ResetLayout` | `icon = "editor_pages/workbench/dock/reset-layout.svg"` | `direct` |
-| `host/workbench_shell.v2.ui.toml` | `AssetsToggle` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
-| `host/workbench_shell.v2.ui.toml` | `HierarchyToggle` | `icon = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
-| `host/workbench_shell.v2.ui.toml` | `ConsoleToggle` | `icon = "editor_pages/console_profiler/logs/log-info.svg"` | `near` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetTool` | `icon = "editor_pages/scene_viewport/tools/universal-transform.svg"` | `near` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetDisplayMode` | `icon = "editor_pages/scene_viewport/display/lit.svg"` | `near` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetGridMode` | `icon = "editor_pages/scene_viewport/display/grid-overlay.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetTranslateSnap` | `icon = "editor_pages/scene_viewport/snapping/grid-snap.svg"` | `near` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetRotateSnapDegrees` | `icon = "editor_pages/scene_viewport/snapping/angle-snap.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetScaleSnap` | `icon = "editor_pages/scene_viewport/snapping/scale-snap.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetPreviewLighting` | `icon = "editor_pages/scene_viewport/display/lit.svg"` | `near` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetGizmosEnabled` | `icon = "editor_pages/scene_viewport/display/gizmo-visibility.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `FrameSelection` | `icon = "editor_pages/scene_viewport/camera/frame-selection.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `EnterPlayMode` | `icon = "editor_pages/scene_viewport/play/play.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `ExitPlayMode` | `icon = "editor_pages/scene_viewport/play/stop.svg"` | `direct` |
-| `host/scene_viewport_toolbar.v2.ui.toml` | `SetProjectionMode` | `icon = "editor_pages/scene_viewport/camera/perspective.svg"` | `near` |
-| `host/asset_surface_controls.v2.ui.toml` | `SelectFolder` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
-| `host/asset_surface_controls.v2.ui.toml` | `SetUtilityTab` | `icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg"` | `near` |
-| `host/asset_surface_controls.v2.ui.toml` | `ActivateReference` | `icon = "editor_pages/asset_browser/references/reference.svg"` | `direct` |
-| `host/asset_surface_controls.v2.ui.toml` | `OpenAssetBrowser` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `near` |
-| `host/asset_surface_controls.v2.ui.toml` | `LocateSelectedAsset` | `icon = "editor_pages/asset_browser/navigation/search.svg"` | `near` |
-| `host/asset_surface_controls.v2.ui.toml` | `ImportModel` | `icon = "editor_pages/asset_browser/import_pipeline/import.svg"` | `direct` |
-| `host/startup_welcome_controls.v2.ui.toml` | `OpenExistingProject` | `icon = "editor_pages/workbench/menu/open-project.svg"` | `direct` |
-| `host/startup_welcome_controls.v2.ui.toml` | `OpenRecentProject` | `icon = "editor_pages/asset_browser/navigation/recent.svg"` | `near` |
-| `host/startup_welcome_controls.v2.ui.toml` | `RemoveRecentProject` | `icon = "editor_pages/workbench/tabs/close-tab.svg"` | `near` |
-| `workbench_activity_rail.v2.ui.toml` | `ActivityRailButtonIcon0` | `icon = "editor_pages/asset_browser/navigation/folder.svg"`; `value = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
-| `workbench_activity_rail.v2.ui.toml` | `ActivityRailButtonIcon1` | `icon = "editor_pages/hierarchy/entity/scene.svg"`; `value = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
-| `workbench_dock_header.v2.ui.toml` | `DockTabClose0` | `icon = "editor_pages/workbench/tabs/close-tab.svg"`; `value = "editor_pages/workbench/tabs/close-tab.svg"` | `direct` |
-| `workbench_dock_header.v2.ui.toml` | `DockTabClose1` | `icon = "editor_pages/workbench/tabs/close-tab.svg"`; `value = "editor_pages/workbench/tabs/close-tab.svg"` | `direct` |
-| `host/console_body.v2.ui.toml` | `FocusConsole` | `icon = "editor_pages/console_profiler/logs/log-info.svg"` | `near` |
-| `host/hierarchy_body.v2.ui.toml` | `SelectRoot` | `icon = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
-| `host/animation_graph_body.v2.ui.toml` | `AddNode` | `icon = "editor_pages/graph_editor/nodes/state-node.svg"` | `near` |
-| `host/animation_sequence_body.v2.ui.toml` | `ScrubTimeline` | `icon = "editor_pages/animation_timeline/transport/timeline-play.svg"` | `near` |
-| `host/performance_timeline_body.v2.ui.toml` | `RefreshTimelineSnapshot` | `icon = "editor_pages/console_profiler/profiling/frame-time.svg"` | `near` |
-| `host/runtime_diagnostics_body.v2.ui.toml` | `FocusDiagnostics` | `icon = "editor_pages/console_profiler/diagnostics/watch.svg"` | `near` |
-| `host/build_export_desktop_body.v2.ui.toml` | `FocusBuildExport` | `icon = "editor_pages/build_plugins/package/package.svg"` | `near` |
-| `host/module_plugins_body.v2.ui.toml` | `FocusModulePlugins` | `icon = "editor_pages/build_plugins/plugins/plugin.svg"` | `direct` |
+| `host/workbench_shell.zui` | `OpenProject` | `icon = "editor_pages/workbench/menu/open-project.svg"` | `direct` |
+| `host/workbench_shell.zui` | `SaveProject` | `icon = "editor_pages/workbench/menu/save-all.svg"` | `direct` |
+| `host/workbench_shell.zui` | `ResetLayout` | `icon = "editor_pages/workbench/dock/reset-layout.svg"` | `direct` |
+| `host/workbench_shell.zui` | `AssetsToggle` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
+| `host/workbench_shell.zui` | `HierarchyToggle` | `icon = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
+| `host/workbench_shell.zui` | `ConsoleToggle` | `icon = "editor_pages/console_profiler/logs/log-info.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `SetTool` | `icon = "editor_pages/scene_viewport/tools/universal-transform.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `SetDisplayMode` | `icon = "editor_pages/scene_viewport/display/lit.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `SetGridMode` | `icon = "editor_pages/scene_viewport/display/grid-overlay.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `SetTranslateSnap` | `icon = "editor_pages/scene_viewport/snapping/grid-snap.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `SetRotateSnapDegrees` | `icon = "editor_pages/scene_viewport/snapping/angle-snap.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `SetScaleSnap` | `icon = "editor_pages/scene_viewport/snapping/scale-snap.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `SetPreviewLighting` | `icon = "editor_pages/scene_viewport/display/lit.svg"` | `near` |
+| `host/scene_viewport_toolbar.zui` | `SetGizmosEnabled` | `icon = "editor_pages/scene_viewport/display/gizmo-visibility.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `FrameSelection` | `icon = "editor_pages/scene_viewport/camera/frame-selection.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `EnterPlayMode` | `icon = "editor_pages/scene_viewport/play/play.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `ExitPlayMode` | `icon = "editor_pages/scene_viewport/play/stop.svg"` | `direct` |
+| `host/scene_viewport_toolbar.zui` | `SetProjectionMode` | `icon = "editor_pages/scene_viewport/camera/perspective.svg"` | `near` |
+| `host/asset_surface_controls.zui` | `SelectFolder` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
+| `host/asset_surface_controls.zui` | `SetUtilityTab` | `icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg"` | `near` |
+| `host/asset_surface_controls.zui` | `ActivateReference` | `icon = "editor_pages/asset_browser/references/reference.svg"` | `direct` |
+| `host/asset_surface_controls.zui` | `OpenAssetBrowser` | `icon = "editor_pages/asset_browser/navigation/folder.svg"` | `near` |
+| `host/asset_surface_controls.zui` | `LocateSelectedAsset` | `icon = "editor_pages/asset_browser/navigation/search.svg"` | `near` |
+| `host/asset_surface_controls.zui` | `ImportModel` | `icon = "editor_pages/asset_browser/import_pipeline/import.svg"` | `direct` |
+| `host/startup_welcome_controls.zui` | `OpenExistingProject` | `icon = "editor_pages/workbench/menu/open-project.svg"` | `direct` |
+| `host/startup_welcome_controls.zui` | `OpenRecentProject` | `icon = "editor_pages/asset_browser/navigation/recent.svg"` | `near` |
+| `host/startup_welcome_controls.zui` | `RemoveRecentProject` | `icon = "editor_pages/workbench/tabs/close-tab.svg"` | `near` |
+| `workbench_activity_rail.zui` | `ActivityRailButtonIcon0` | `icon = "editor_pages/asset_browser/navigation/folder.svg"`; `value = "editor_pages/asset_browser/navigation/folder.svg"` | `direct` |
+| `workbench_activity_rail.zui` | `ActivityRailButtonIcon1` | `icon = "editor_pages/hierarchy/entity/scene.svg"`; `value = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
+| `workbench_dock_header.zui` | `DockTabClose0` | `icon = "editor_pages/workbench/tabs/close-tab.svg"`; `value = "editor_pages/workbench/tabs/close-tab.svg"` | `direct` |
+| `workbench_dock_header.zui` | `DockTabClose1` | `icon = "editor_pages/workbench/tabs/close-tab.svg"`; `value = "editor_pages/workbench/tabs/close-tab.svg"` | `direct` |
+| `host/console_body.zui` | `FocusConsole` | `icon = "editor_pages/console_profiler/logs/log-info.svg"` | `near` |
+| `host/hierarchy_body.zui` | `SelectRoot` | `icon = "editor_pages/hierarchy/entity/scene.svg"` | `direct` |
+| `host/animation_graph_body.zui` | `AddNode` | `icon = "editor_pages/graph_editor/nodes/state-node.svg"` | `near` |
+| `host/animation_sequence_body.zui` | `ScrubTimeline` | `icon = "editor_pages/animation_timeline/transport/timeline-play.svg"` | `near` |
+| `host/performance_timeline_body.zui` | `RefreshTimelineSnapshot` | `icon = "editor_pages/console_profiler/profiling/frame-time.svg"` | `near` |
+| `host/runtime_diagnostics_body.zui` | `FocusDiagnostics` | `icon = "editor_pages/console_profiler/diagnostics/watch.svg"` | `near` |
+| `host/build_export_desktop_body.zui` | `FocusBuildExport` | `icon = "editor_pages/build_plugins/package/package.svg"` | `near` |
+| `host/module_plugins_body.zui` | `FocusModulePlugins` | `icon = "editor_pages/build_plugins/plugins/plugin.svg"` | `direct` |
 
 ## Milestone 1: Template Wiring
 
@@ -178,14 +178,14 @@ Update production Editor template icon metadata for all 39 `direct` and `near` r
 
 ### Implementation Slices
 
-- [x] Edit `zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml` according to the shared wiring table.
-- [x] Edit `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` according to the shared wiring table, leaving `SetTransformSpace`, `SetPreviewSkybox`, and `AlignView` unchanged.
-- [x] Edit `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml` according to the shared wiring table, leaving `SelectItem` and `SetViewMode` unchanged.
-- [x] Edit `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml` according to the shared wiring table, leaving `CreateProject` unchanged.
-- [x] Edit `zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml` so `ActivityRailButtonIcon0` and `ActivityRailButtonIcon1` set both `icon` and `value` to matching `editor_pages/...svg` paths.
-- [x] Edit `zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml` so `DockTabClose0` and `DockTabClose1` set both `icon` and `value` to `editor_pages/workbench/tabs/close-tab.svg`.
+- [x] Edit `zircon_editor/assets/ui/editor/host/workbench_shell.zui` according to the shared wiring table.
+- [x] Edit `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui` according to the shared wiring table, leaving `SetTransformSpace`, `SetPreviewSkybox`, and `AlignView` unchanged.
+- [x] Edit `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui` according to the shared wiring table, leaving `SelectItem` and `SetViewMode` unchanged.
+- [x] Edit `zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui` according to the shared wiring table, leaving `CreateProject` unchanged.
+- [x] Edit `zircon_editor/assets/ui/editor/workbench_activity_rail.zui` so `ActivityRailButtonIcon0` and `ActivityRailButtonIcon1` set both `icon` and `value` to matching `editor_pages/...svg` paths.
+- [x] Edit `zircon_editor/assets/ui/editor/workbench_dock_header.zui` so `DockTabClose0` and `DockTabClose1` set both `icon` and `value` to `editor_pages/workbench/tabs/close-tab.svg`.
 - [x] Edit the single-icon pane body templates listed in the shared table: `console_body`, `hierarchy_body`, `animation_graph_body`, `animation_sequence_body`, `performance_timeline_body`, `runtime_diagnostics_body`, `build_export_desktop_body`, and `module_plugins_body`.
-- [x] Do not edit `zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml`; its only icon row is a `gap` row.
+- [x] Do not edit `zircon_editor/assets/ui/editor/host/pane_surface_controls.zui`; its only icon row is a `gap` row.
 
 ### Testing Stage: Template Wiring Gate
 

@@ -2,6 +2,8 @@ use std::{collections::BTreeMap, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
+mod error;
+
 use crate::core::framework::script::ScriptHostValue;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
@@ -15,6 +17,8 @@ use crate::script::{
     with_script_runtime_call_context, ScriptRuntimeCallContext, VmPluginManager,
     VM_PLUGIN_MANAGER_NAME,
 };
+
+use self::error::{ScriptSceneHookError, ScriptSceneHookResult};
 
 const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
 const SCRIPT_HOOK_PLUGIN_ID: &str = "zr_vm_language";
@@ -91,7 +95,9 @@ impl SceneRuntimeHook for ScriptSceneRuntimeHook {
             context.delta_seconds,
             self.phase,
         )
-        .map_err(|error| CoreError::Initialization("ScriptSceneRuntimeHook".to_string(), error))
+        .map_err(|error| {
+            CoreError::Initialization("ScriptSceneRuntimeHook".to_string(), error.to_string())
+        })
     }
 }
 
@@ -100,14 +106,14 @@ fn tick_script_bindings(
     level: &LevelSystem,
     delta_seconds: Real,
     phase: ScriptSceneLifecyclePhase,
-) -> Result<(), String> {
+) -> ScriptSceneHookResult<()> {
     let bindings = active_script_bindings_for_phase(collect_script_bindings(level)?, phase);
     if bindings.is_empty() {
         return Ok(());
     }
     let manager = core
         .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)
-        .map_err(|error| error.to_string())?;
+        .map_err(ScriptSceneHookError::from)?;
 
     for entity_bindings in bindings {
         for binding in entity_bindings.bindings {
@@ -167,7 +173,7 @@ fn call_script_binding(
     phase: ScriptSceneLifecyclePhase,
     entity: EntityId,
     binding: RuntimeSceneScriptBinding,
-) -> Result<(), String> {
+) -> ScriptSceneHookResult<()> {
     let binding_key = binding_key(&binding);
     if phase == ScriptSceneLifecyclePhase::Update && !binding_started(level, entity, &binding_key) {
         call_export_for_binding(
@@ -204,8 +210,8 @@ fn call_export_for_binding(
     delta_seconds: Real,
     entity: EntityId,
     binding: &RuntimeSceneScriptBinding,
-    export_name: &str,
-) -> Result<(), String> {
+    export_name: &'static str,
+) -> ScriptSceneHookResult<()> {
     let arguments = [
         ScriptHostValue::Int(entity as i64),
         ScriptHostValue::Float(f64::from(delta_seconds)),
@@ -221,11 +227,8 @@ fn call_export_for_binding(
         manager.call_package_export(&binding.package, &binding.module, export_name, &arguments)
     });
     trace_script_binding_export(binding, entity, export_name, "done", Some(result.is_ok()));
-    result.map(|_| ()).map_err(|error| {
-        format!(
-            "script binding {}.{export_name} failed: {error}",
-            binding_key(binding)
-        )
+    result.map(|_| ()).map_err(|source| {
+        ScriptSceneHookError::export_call(binding_key(binding), export_name, source)
     })
 }
 
@@ -273,7 +276,9 @@ struct EntityScriptBindings {
     bindings: Vec<RuntimeSceneScriptBinding>,
 }
 
-fn collect_script_bindings(level: &LevelSystem) -> Result<Vec<EntityScriptBindings>, String> {
+fn collect_script_bindings(
+    level: &LevelSystem,
+) -> ScriptSceneHookResult<Vec<EntityScriptBindings>> {
     level.with_world(|world| {
         world
             .node_records()
@@ -286,11 +291,8 @@ fn collect_script_bindings(level: &LevelSystem) -> Result<Vec<EntityScriptBindin
                             entity: node.id,
                             bindings,
                         })
-                        .map_err(|error| {
-                            format!(
-                                "invalid {SCRIPT_BINDINGS_COMPONENT} for entity {}: {error}",
-                                node.id
-                            )
+                        .map_err(|source| {
+                            ScriptSceneHookError::invalid_binding_component(node.id, source)
                         }),
                 )
             })

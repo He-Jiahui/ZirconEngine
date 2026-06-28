@@ -368,5 +368,5 @@ pub(super) fn v2_template_file_cache_len_for_tests() -> usize {
 fn is_v2_backed_document_path(path: &std::path::Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with(".zui") || name.ends_with(".v2.ui.toml"))
+        .is_some_and(|name| name.ends_with(".zui"))
 }

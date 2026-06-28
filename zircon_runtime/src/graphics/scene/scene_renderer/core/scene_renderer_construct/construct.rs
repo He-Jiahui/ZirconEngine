@@ -1,0 +1,63 @@
+use std::sync::Arc;
+
+use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::framework::render::ShadingModelDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
+};
+
+use crate::graphics::types::GraphicsError;
+
+use super::super::super::overlay::EmptyViewportIconSource;
+use super::super::scene_renderer::SceneRenderer;
+
+impl SceneRenderer {
+    pub fn new(asset_manager: Arc<ProjectAssetManager>) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source(asset_manager, Arc::new(EmptyViewportIconSource))
+    }
+
+    pub fn new_with_plugin_render_features(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            Vec::new(),
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions_and_shading_models(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            Vec::new(),
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions_and_shading_models(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models(
+            asset_manager,
+            Arc::new(EmptyViewportIconSource),
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_shading_models,
+        )
+    }
+}

@@ -1,6 +1,7 @@
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use super::error::AnimationAssetError;
 use crate::core::math::Real;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,7 +89,7 @@ impl From<&AnimationChannelValueAsset> for AnimationChannelValueBinary {
 }
 
 impl TryFrom<AnimationChannelValueBinary> for AnimationChannelValueAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationChannelValueBinary) -> Result<Self, Self::Error> {
         match value.tag {
@@ -103,7 +104,7 @@ impl TryFrom<AnimationChannelValueBinary> for AnimationChannelValueAsset {
             ])),
             5 => Ok(Self::Vec4(value.scalar_values)),
             6 => Ok(Self::Quaternion(value.scalar_values)),
-            other => Err(format!("unknown animation channel value tag {other}")),
+            tag => Err(AnimationAssetError::UnknownChannelValueTag { tag }),
         }
     }
 }

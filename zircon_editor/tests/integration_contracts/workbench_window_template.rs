@@ -5,8 +5,8 @@ use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn workbench_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/windows/workbench_window.v2.ui.toml");
-    fs::read_to_string(path).expect("workbench_window.v2.ui.toml should be readable")
+        .join("assets/ui/editor/windows/workbench_window.zui");
+    fs::read_to_string(path).expect("workbench_window.zui should be readable")
 }
 
 #[test]
@@ -18,7 +18,7 @@ fn workbench_window_uses_componentized_workbench_layout() {
     assert_eq!(document.asset.id, "editor.window.workbench");
 
     for marker in [
-        "editor_workbench_strict.v2.ui.toml",
+        "editor_workbench_strict.zui",
         "res://ui/editor/components/workbench/shell/workbench_component_drawer.zui#WorkbenchComponentDrawer",
         "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
         "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",

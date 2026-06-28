@@ -23,18 +23,32 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
 try:
     from .zircon_build_shader_prewarm import (
         build_shader_prewarm_command,
+        parse_shader_geometry_source_ids,
         parse_shader_geometry_sources,
         parse_shader_quality_tiers,
         parse_shader_shading_model_ids,
         print_shader_prewarm_plan,
+        print_shader_prewarm_report_dimensions,
+        validate_shader_permutation_registry_export_contract,
+        write_generated_shader_permutation_registry,
+    )
+    from .zircon_build_shader_prewarm_acceptance import (
+        validate_staged_shader_prewarm_acceptance_contract,
     )
 except ImportError:  # pragma: no cover - exercised when run as a script.
     from zircon_build_shader_prewarm import (
         build_shader_prewarm_command,
+        parse_shader_geometry_source_ids,
         parse_shader_geometry_sources,
         parse_shader_quality_tiers,
         parse_shader_shading_model_ids,
         print_shader_prewarm_plan,
+        print_shader_prewarm_report_dimensions,
+        validate_shader_permutation_registry_export_contract,
+        write_generated_shader_permutation_registry,
+    )
+    from zircon_build_shader_prewarm_acceptance import (
+        validate_staged_shader_prewarm_acceptance_contract,
     )
 
 
@@ -56,8 +70,6 @@ ENGINE_ASSET_ROOTS = (
     Path("zircon_editor") / "assets",
     Path("zircon_runtime") / "assets",
 )
-UI_ASSET_SUFFIX = ".ui.toml"
-UI_V2_ASSET_SUFFIX = ".v2.ui.toml"
 UI_COMPILED_ARTIFACT_CACHE_ENV = "ZIRCON_UI_COMPILED_ARTIFACT_CACHE"
 UI_COMPILED_ARTIFACT_CACHE_ROOT = Path(".zircon") / "ui" / "compiled_artifacts"
 UI_COMPILED_ARTIFACT_STAGE_ROOT = Path("ui") / "compiled_artifacts"
@@ -82,35 +94,34 @@ class PluginPackage:
     display_name: str
     manifest_path: Path
     package_root: Path
+    asset_roots: tuple[Path, ...]
     default_packaging: tuple[str, ...]
     distribution_forms: tuple[str, ...]
     dist_crate_name: str | None
     module_crate_names: tuple[str, ...]
+    shader_geometry_source_ids: tuple[str, ...]
+    shader_shading_model_ids: tuple[str, ...]
     crates: tuple[CargoPackage, ...]
 
     @property
     def native_dynamic_crates(self) -> tuple[CargoPackage, ...]:
-        if self.distribution_forms:
-            if PLUGIN_DISTRIBUTION_FORM_DIST not in self.distribution_forms:
-                return ()
-            if self.dist_crate_name:
-                return tuple(
-                    crate for crate in self.crates if crate.name == self.dist_crate_name
-                )
-            return tuple(crate for crate in self.crates if crate.is_native_dynamic)
+        if PLUGIN_DISTRIBUTION_FORM_DIST not in self.distribution_forms:
+            return ()
+        if self.dist_crate_name:
+            return tuple(
+                crate for crate in self.crates if crate.name == self.dist_crate_name
+            )
         return tuple(crate for crate in self.crates if crate.is_native_dynamic)
 
     @property
     def rlib_static_crates(self) -> tuple[CargoPackage, ...]:
-        if self.distribution_forms:
-            if PLUGIN_DISTRIBUTION_FORM_EMBED not in self.distribution_forms:
-                return ()
-            if self.dist_crate_name and len(self.crates) > 1:
-                return tuple(
-                    crate for crate in self.crates if crate.name != self.dist_crate_name
-                )
-            return self.crates
-        return tuple(crate for crate in self.crates if not crate.is_native_dynamic)
+        if PLUGIN_DISTRIBUTION_FORM_EMBED not in self.distribution_forms:
+            return ()
+        if self.dist_crate_name and len(self.crates) > 1:
+            return tuple(
+                crate for crate in self.crates if crate.name != self.dist_crate_name
+            )
+        return self.crates
 
     @property
     def carriers(self) -> tuple[str, ...]:
@@ -136,9 +147,12 @@ class BuildConfig:
     jobs: str | None
     dry_run: bool
     prewarm_shaders: bool
+    validate_wgpu_shaders: bool
     shader_quality_tiers: tuple[str, ...]
     shader_geometry_sources: tuple[str, ...]
+    shader_geometry_source_ids: tuple[str, ...]
     shader_shading_model_ids: tuple[str, ...]
+    shader_permutation_registries: tuple[Path, ...]
     shader_resource_registry: Path | None
 
     @property
@@ -177,6 +191,14 @@ class BuildConfig:
     @property
     def shader_prewarm_report_path(self) -> Path:
         return self.engine_root / "cache" / "shader_variants_report.json"
+
+    @property
+    def shader_prewarm_resource_registry_path(self) -> Path:
+        return self.engine_root / "cache" / "shader_resource_records.json"
+
+    @property
+    def shader_prewarm_permutation_registry_path(self) -> Path:
+        return self.engine_root / "cache" / "shader_permutation_registry.json"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -261,6 +283,14 @@ Plugin carrier boundary:
         help="Prewarm built-in shader variants into ZirconEngine/cache/shader_variants.",
     )
     parser.add_argument(
+        "--validate-wgpu-shaders",
+        action="store_true",
+        help=(
+            "When --prewarm-shaders is enabled, validate each prewarm WGSL source by "
+            "creating an offscreen WGPU shader module before writing the cache."
+        ),
+    )
+    parser.add_argument(
         "--shader-quality-tier",
         action="append",
         choices=("low", "medium", "high", "ultra", "all"),
@@ -281,6 +311,16 @@ Plugin carrier boundary:
         ),
     )
     parser.add_argument(
+        "--shader-geometry-source-id",
+        action="append",
+        default=[],
+        metavar="CUSTOM=ID",
+        help=(
+            "Custom geometry source plugin id(s) to prewarm when --prewarm-shaders is enabled. "
+            "Use custom:name=4 or name=4, repeat for multiple plugin geometry sources."
+        ),
+    )
+    parser.add_argument(
         "--shader-shading-model-id",
         action="append",
         default=[],
@@ -291,10 +331,21 @@ Plugin carrier boundary:
         ),
     )
     parser.add_argument(
+        "--shader-permutation-registry",
+        action="append",
+        default=[],
+        help=(
+            "Project/plugin shader permutation registry JSON file to merge during "
+            "--prewarm-shaders. Repeat for multiple registries. Asset roots also "
+            "auto-discover shader_permutation_registry.json."
+        ),
+    )
+    parser.add_argument(
         "--shader-resource-registry",
         help=(
             "ResourceRecord JSON array or {resources:[...]} file whose shader revisions "
-            "override asset-root source-hash revisions during --prewarm-shaders."
+            "override asset-root source-hash revisions during --prewarm-shaders. "
+            "When omitted, --prewarm-shaders exports a staged shader registry automatically."
         ),
     )
     parser.add_argument(
@@ -353,10 +404,17 @@ def resolve_config(
         jobs=args.jobs or None,
         dry_run=args.dry_run,
         prewarm_shaders=args.prewarm_shaders,
+        validate_wgpu_shaders=args.validate_wgpu_shaders,
         shader_quality_tiers=parse_shader_quality_tiers(args.shader_quality_tier),
         shader_geometry_sources=parse_shader_geometry_sources(args.shader_geometry_source),
+        shader_geometry_source_ids=parse_shader_geometry_source_ids(
+            args.shader_geometry_source_id
+        ),
         shader_shading_model_ids=parse_shader_shading_model_ids(
             args.shader_shading_model_id
+        ),
+        shader_permutation_registries=resolve_optional_paths(
+            args.shader_permutation_registry
         ),
         shader_resource_registry=resolve_optional_path(args.shader_resource_registry),
     )
@@ -407,6 +465,15 @@ def resolve_optional_path(raw: str | None) -> Path | None:
     if not path.is_absolute():
         path = (Path.cwd() / path).resolve()
     return path
+
+
+def resolve_optional_paths(raw_paths: Sequence[str]) -> tuple[Path, ...]:
+    paths: list[Path] = []
+    for raw in raw_paths:
+        path = resolve_optional_path(raw)
+        if path is not None:
+            paths.append(path)
+    return tuple(paths)
 
 
 def prompt_targets() -> tuple[str, ...]:
@@ -469,9 +536,30 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 distribution.get("default_packaging", data.get("default_packaging", []))
             )
         )
-        distribution_forms = normalize_distribution_forms(distribution.get("forms", []))
+        distribution_forms = require_distribution_forms(manifest_path, distribution)
         dist_crate_name = normalize_optional_string(distribution.get("dist_crate"))
         module_crate_names = tuple(unique_in_order(collect_module_crate_names(data)))
+        asset_roots = collect_plugin_asset_roots(manifest_path, data, distribution)
+        shader_geometry_source_ids = tuple(
+            unique_in_order(
+                [
+                    *collect_shader_permutation_id_specs(
+                        manifest_path, data, "geometry_source_ids"
+                    ),
+                    *collect_geometry_source_descriptor_id_specs(manifest_path, data),
+                ]
+            )
+        )
+        shader_shading_model_ids = tuple(
+            unique_in_order(
+                [
+                    *collect_shader_permutation_id_specs(
+                        manifest_path, data, "shading_model_ids"
+                    ),
+                    *collect_shading_model_descriptor_id_specs(manifest_path, data),
+                ]
+            )
+        )
         matched_crates = tuple(
             crates_by_name[name] for name in module_crate_names if name in crates_by_name
         )
@@ -481,10 +569,13 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 display_name=display_name,
                 manifest_path=manifest_path,
                 package_root=manifest_path.parent,
+                asset_roots=asset_roots,
                 default_packaging=default_packaging,
                 distribution_forms=distribution_forms,
                 dist_crate_name=dist_crate_name,
                 module_crate_names=module_crate_names,
+                shader_geometry_source_ids=shader_geometry_source_ids,
+                shader_shading_model_ids=shader_shading_model_ids,
                 crates=matched_crates,
             )
         )
@@ -534,14 +625,25 @@ def distribution_table(data: dict) -> dict:
     return {}
 
 
-def normalize_distribution_forms(values: object) -> tuple[str, ...]:
-    if not isinstance(values, list):
-        return ()
-    forms = (
-        str(value).strip().lower()
-        for value in values
-        if str(value).strip().lower() in PLUGIN_DISTRIBUTION_FORMS
-    )
+def require_distribution_forms(
+    manifest_path: Path,
+    distribution: dict,
+) -> tuple[str, ...]:
+    raw_forms = distribution.get("forms")
+    if not isinstance(raw_forms, list) or not raw_forms:
+        raise SystemExit(
+            f"{manifest_path}: distribution.forms must be a non-empty array "
+            f"containing only {', '.join(PLUGIN_DISTRIBUTION_FORMS)}"
+        )
+    forms: list[str] = []
+    for index, value in enumerate(raw_forms, start=1):
+        form = str(value).strip().lower()
+        if form not in PLUGIN_DISTRIBUTION_FORMS:
+            raise SystemExit(
+                f"{manifest_path}: distribution.forms[{index}] must be one of "
+                f"{', '.join(PLUGIN_DISTRIBUTION_FORMS)}"
+            )
+        forms.append(form)
     return tuple(unique_in_order(forms))
 
 
@@ -550,6 +652,116 @@ def normalize_optional_string(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def collect_plugin_asset_roots(
+    manifest_path: Path, data: dict, distribution: dict
+) -> tuple[Path, ...]:
+    roots: list[Path] = []
+    if "asset_roots" in data:
+        asset_root_values = data["asset_roots"]
+        if isinstance(asset_root_values, list) and not asset_root_values:
+            asset_root_values = ["assets"]
+    else:
+        asset_root_values = ["assets"]
+    append_plugin_asset_roots_from_field(
+        roots,
+        manifest_path,
+        asset_root_values,
+        "asset_roots",
+    )
+    append_plugin_asset_roots_from_distribution_assets(
+        roots,
+        manifest_path,
+        distribution.get("assets", []),
+    )
+    existing_roots = [root for root in roots if root.exists() and root.is_dir()]
+    return tuple(unique_paths(existing_roots))
+
+
+def append_plugin_asset_roots_from_field(
+    roots: list[Path], manifest_path: Path, values: object, field: str
+) -> None:
+    if values is None:
+        return
+    if not isinstance(values, list):
+        raise SystemExit(f"{manifest_path}: {field} must be a list.")
+    if not values:
+        return
+    for index, value in enumerate(values, start=1):
+        root = normalized_plugin_asset_root(manifest_path, value, f"{field}[{index}]")
+        roots.append(root)
+
+
+def append_plugin_asset_roots_from_distribution_assets(
+    roots: list[Path], manifest_path: Path, values: object
+) -> None:
+    if values is None:
+        return
+    if not isinstance(values, list):
+        raise SystemExit(f"{manifest_path}: distribution.assets must be a list.")
+    if not values:
+        return
+    for index, value in enumerate(values, start=1):
+        root_text = distribution_asset_root_text(value)
+        if root_text is None:
+            continue
+        roots.append(
+            normalized_plugin_asset_root(
+                manifest_path,
+                root_text,
+                f"distribution.assets[{index}]",
+            )
+        )
+
+
+def distribution_asset_root_text(value: object) -> str | None:
+    text = str(value).strip().replace("\\", "/")
+    if not text:
+        return None
+    wildcard_index = min(
+        (index for index in (text.find("*"), text.find("?")) if index >= 0),
+        default=-1,
+    )
+    if wildcard_index >= 0:
+        text = text[:wildcard_index]
+    if not text:
+        return None
+    if text.endswith("/"):
+        text = text.rstrip("/")
+    else:
+        text = str(Path(text).parent).replace("\\", "/")
+        if text == ".":
+            return None
+    return text or None
+
+
+def normalized_plugin_asset_root(
+    manifest_path: Path, value: object, field: str
+) -> Path:
+    text = str(value).strip()
+    if not text:
+        raise SystemExit(f"{manifest_path}: {field} must not be empty.")
+    relative = Path(text)
+    if relative.is_absolute():
+        raise SystemExit(f"{manifest_path}: {field} must be relative to the package root.")
+    if any(part in ("", ".", "..") for part in relative.parts):
+        raise SystemExit(
+            f"{manifest_path}: {field} must not contain empty, current, or parent segments."
+        )
+    return manifest_path.parent / relative
+
+
+def unique_paths(paths: Iterable[Path]) -> list[Path]:
+    seen: set[str] = set()
+    result: list[Path] = []
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(path)
+    return result
 
 
 def collect_module_crate_names(data: dict) -> list[str]:
@@ -569,6 +781,97 @@ def append_module_crate(crate_names: list[str], module: object) -> None:
     crate_name = module.get("crate_name")
     if crate_name:
         crate_names.append(str(crate_name))
+
+
+def collect_shader_permutation_id_specs(
+    manifest_path: Path, data: dict, field: str
+) -> tuple[str, ...]:
+    permutation = data.get("shader_permutation", {})
+    if not permutation:
+        return ()
+    if not isinstance(permutation, dict):
+        raise SystemExit(
+            f"{manifest_path}: shader_permutation must be a TOML table when present."
+        )
+    entries = permutation.get(field, [])
+    if not entries:
+        return ()
+    if not isinstance(entries, list):
+        raise SystemExit(f"{manifest_path}: shader_permutation.{field} must be a list.")
+    specs: list[str] = []
+    for index, entry in enumerate(entries, start=1):
+        if not isinstance(entry, dict):
+            raise SystemExit(
+                f"{manifest_path}: shader_permutation.{field}[{index}] must be a table."
+            )
+        token = normalize_optional_string(entry.get("token"))
+        id_value = entry.get("id")
+        if token is None:
+            raise SystemExit(
+                f"{manifest_path}: shader_permutation.{field}[{index}].token is required."
+            )
+        if isinstance(id_value, bool) or not isinstance(id_value, int):
+            raise SystemExit(
+                f"{manifest_path}: shader_permutation.{field}[{index}].id must be an integer."
+            )
+        specs.append(f"{token}={id_value}")
+    return tuple(unique_in_order(specs))
+
+
+def collect_geometry_source_descriptor_id_specs(
+    manifest_path: Path, data: dict
+) -> tuple[str, ...]:
+    entries = data.get("geometry_sources", [])
+    if not entries:
+        return ()
+    if not isinstance(entries, list):
+        raise SystemExit(f"{manifest_path}: geometry_sources must be a list.")
+    specs: list[str] = []
+    for index, entry in enumerate(entries, start=1):
+        if not isinstance(entry, dict):
+            raise SystemExit(
+                f"{manifest_path}: geometry_sources[{index}] must be a table."
+            )
+        token = normalize_optional_string(entry.get("token"))
+        id_value = entry.get("id")
+        if token is None:
+            raise SystemExit(
+                f"{manifest_path}: geometry_sources[{index}].token is required."
+            )
+        if isinstance(id_value, bool) or not isinstance(id_value, int):
+            raise SystemExit(
+                f"{manifest_path}: geometry_sources[{index}].id must be an integer."
+            )
+        specs.append(f"{token}={id_value}")
+    return tuple(unique_in_order(specs))
+
+
+def collect_shading_model_descriptor_id_specs(
+    manifest_path: Path, data: dict
+) -> tuple[str, ...]:
+    entries = data.get("shading_models", [])
+    if not entries:
+        return ()
+    if not isinstance(entries, list):
+        raise SystemExit(f"{manifest_path}: shading_models must be a list.")
+    specs: list[str] = []
+    for index, entry in enumerate(entries, start=1):
+        if not isinstance(entry, dict):
+            raise SystemExit(
+                f"{manifest_path}: shading_models[{index}] must be a table."
+            )
+        token = normalize_optional_string(entry.get("token"))
+        id_value = entry.get("id")
+        if token is None:
+            raise SystemExit(
+                f"{manifest_path}: shading_models[{index}].token is required."
+            )
+        if isinstance(id_value, bool) or not isinstance(id_value, int):
+            raise SystemExit(
+                f"{manifest_path}: shading_models[{index}].id must be an integer."
+            )
+        specs.append(f"{token}={id_value}")
+    return tuple(unique_in_order(specs))
 
 
 def filter_plugins_by_carrier(
@@ -833,12 +1136,23 @@ def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview
 
 
 def prewarm_shaders(config: BuildConfig) -> None:
+    if not config.dry_run:
+        permutation_registry_path = write_generated_shader_permutation_registry(config)
+        if permutation_registry_path is not None:
+            validate_shader_permutation_registry_export_contract(
+                permutation_registry_path,
+                config=config,
+            )
     command = build_shader_prewarm_command(config)
     if config.dry_run:
         print("DRY-RUN", quote_command(command))
         return
     print(quote_command(command))
-    subprocess.run(command, cwd=config.repo_root, check=True)
+    result = subprocess.run(command, cwd=config.repo_root, check=False)
+    print_shader_prewarm_report_dimensions(config.shader_prewarm_report_path)
+    if result.returncode == 0:
+        validate_staged_shader_prewarm_acceptance_contract(config)
+    result.check_returncode()
 
 
 def build_editor(config: BuildConfig, editor_feature_arg: str) -> None:
@@ -1017,7 +1331,7 @@ def stage_engine_assets(config: BuildConfig) -> None:
         print(f"Staging assets {source_root} -> {destination_root}")
         skipped = copy_tree_contents(source_root, destination_root, config)
         if skipped:
-            print(f"Skipped {skipped} legacy UI schema asset(s) from staged package")
+            print(f"Skipped {skipped} staged asset(s)")
     stage_ui_compiled_artifacts(config, destination_root)
 
 
@@ -1034,11 +1348,7 @@ def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildC
             continue
         if not source.is_file():
             continue
-        if should_skip_staged_engine_asset(relative):
-            skipped += 1
-            if config.dry_run:
-                print(f"DRY-RUN skip legacy UI schema asset {source}")
-            continue
+        validate_staged_engine_asset_suffix(relative, source)
         copy_asset_file(source, destination, config)
     return skipped
 
@@ -1079,13 +1389,13 @@ def ui_compiled_artifact_cache_root(config: BuildConfig) -> Path:
     return config.repo_root / UI_COMPILED_ARTIFACT_CACHE_ROOT
 
 
-def should_skip_staged_engine_asset(relative: Path) -> bool:
+def validate_staged_engine_asset_suffix(relative: Path, source: Path) -> None:
     normalized = relative.as_posix()
-    return (
-        normalized.startswith("ui/")
-        and normalized.endswith(UI_ASSET_SUFFIX)
-        and not normalized.endswith(UI_V2_ASSET_SUFFIX)
-    )
+    if normalized.startswith("ui/") and normalized.endswith(".ui.toml"):
+        raise SystemExit(
+            "Legacy UI document suffix is not stageable after .zui cutover: "
+            f"{source}. Rename the asset to .zui."
+        )
 
 
 def copy_asset_file(source: Path, destination: Path, config: BuildConfig) -> None:

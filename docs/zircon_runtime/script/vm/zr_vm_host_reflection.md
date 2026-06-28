@@ -14,6 +14,7 @@ related_code:
   - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
+  - zircon_runtime/src/script/vm/plugin/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/host_registry.rs
@@ -22,6 +23,11 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
+  - zircon_runtime/src/script/vm/scene_hook/error.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/error.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
@@ -56,6 +62,9 @@ related_code:
   - examples/vampire/assets/animation/vampire_attack.graph.zranim
   - examples/vampire/assets/animation/vampire_locomotion.state_machine.zranim
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/error.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/run.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
@@ -74,6 +83,7 @@ implementation_files:
   - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
+  - zircon_runtime/src/script/vm/plugin/mod.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/host_registry.rs
@@ -82,6 +92,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
+  - zircon_runtime/src/script/vm/scene_hook/error.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
@@ -116,6 +127,9 @@ implementation_files:
   - examples/vampire/assets/animation/vampire_attack.graph.zranim
   - examples/vampire/assets/animation/vampire_locomotion.state_machine.zranim
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/error.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs/run.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
@@ -244,6 +258,8 @@ The implemented capabilities are:
 
 `scene_hook.rs` contributes fixed-update and update hooks under plugin-prefixed ids `zr_vm_language.script.scene.fixed_update` and `zr_vm_language.script.scene.update`. It reads the `script.bindings` dynamic component imported from `SceneAsset.script_bindings`, calls `onStart(entity, dt)` once per binding on the first update, then calls `onFixedUpdate(entity, dt)` or `onUpdate(entity, dt)` as the scene tick runs. Bindings can opt out of a phase with `fixed_update = false` or `update = false`; when no binding is active for a phase, the hook returns before resolving the VM manager. Export calls go through `VmPluginManager::call_package_export`, so script-bound scene entities can target packages by manifest name rather than a transient slot index.
 
+Runtime 15 F5 script scene hook typed errors (`runtime_15_script_scene_hook_typed_errors_static_passed_cargo_deferred`) keeps those hook ids, phase filters, lifecycle export names, and `script.bindings` schema unchanged while moving hook-local failures into `script/vm/scene_hook/error.rs`. `ScriptSceneHookError` / `ScriptSceneHookResult` preserve manager resolve, `script.bindings` JSON parse, and VM export-call sources until `SceneRuntimeHook::run(...)` converts the final diagnostic into `CoreError::Initialization`; `review_f5_script_scene_hook_uses_typed_errors_before_core_boundary` locks that boundary and rejects `Result<_, String>` rollback inside `scene_hook.rs`.
+
 The `examples/vampire/scripts/vampire_game` package demonstrates this surface. `main.zr` moves the player with WASD through `gameplay.key_pressed` and `gameplay.translate`, updates a third-person camera with `gameplay.camera_follow`, lets enemies chase the player with `gameplay.nav_move_towards_entity`, and runs Blood Bolt auto-targeting through `gameplay.nearest_by_script_property` plus `gameplay.damage_entity`. The example also uses `gameplay.face_direction`, `gameplay.set_scale`, `gameplay.follow_position`, `gameplay.current_hp`, and `gameplay.set_particle_sprites` for visible action-state feedback: moving and attacking actors face their target direction, pose scale changes distinguish idle/run/attack states, the HUD displays real player HP from script bindings, attacks emit buff-colored particle sprites, and the player blood-aura point light follows the player entity.
 
 ## Project Backend Boundary
@@ -339,6 +355,18 @@ cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline
 
 The command requires exactly one output Markdown path, creates missing parent directories through the writer API, and does not commit a machine-specific generated artifact path into the repository. Callers choose where generated interface documentation is emitted.
 
+Runtime 15 F5 host reflection docs CLI typed errors
+(`runtime_15_host_reflection_docs_cli_typed_errors_static_passed_cargo_deferred`) keeps that writer
+command folder-backed and typed internally. `zircon_host_reflection_docs.rs` is now only the CLI
+entry shell; `args.rs` owns the explicit-output argument contract, `error.rs` owns
+`HostReflectionDocsError` / `HostReflectionDocsResult`, and `run.rs` owns descriptor collection plus
+Markdown writer handoff. `HostReflectionDocsError::CollectBuiltInHostModules` preserves the
+`VmError` source from `builtin_host_module_descriptors()`, while
+`HostReflectionDocsError::WriteHostInterfaceDocs` preserves the output path and `std::io::Error`
+source from `write_script_host_modules_markdown(...)`. The final string is produced only by
+`main.rs` for process stderr; `review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary`
+locks the no `Result<_, String>` rollback.
+
 The built-in math module is the proof that handwritten and macro-generated descriptors flow through one documentation path. `zr.zircon.math` is registered through the reflection macros, then rendered from the same descriptor model as the handwritten built-ins; Milestone 3 generated output was inspected and contained `zr.zircon.math` at line 76.
 
 ## Real Backend Lowering Boundary
@@ -354,6 +382,10 @@ VM plugin manifests now carry a neutral `management` policy block. The default p
 The hot-reload policy has three modes. `preserve_state` saves state from the active slot, deactivates it, loads and activates the replacement instance, and restores the saved state. `stateless` deactivates the old instance and activates the replacement without calling state transfer hooks. `disabled` rejects hot reload before deactivation, leaving the active slot untouched.
 
 The garbage-collection policy is descriptive at this layer. `backend_managed` means the backend owns collection timing, `cooperative` can declare an `interval_frames` cadence for future host-driven collection, and `disabled` forbids an interval. Memory policy can declare `soft_limit_bytes` and `hard_limit_bytes`; invalid zero limits or a soft limit above the hard limit are rejected during package discovery before the package reaches a backend.
+
+Runtime 15 F5 VM plugin management policy typed errors (`runtime_15_vm_plugin_management_policy_typed_errors_static_passed_cargo_deferred`) keeps that schema and behavior unchanged while moving policy validation failures into `script/vm/plugin/management_policy/error.rs`. `VmPluginManagementPolicyError` / `VmPluginManagementPolicyResult` now cover disabled GC interval, zero GC interval, zero memory limits, and soft limit exceeding hard limit before package discovery hands the policy to a backend. `review_f5_vm_plugin_management_policy_uses_typed_validation_errors` locks the error owner, validate signatures, script facade exports, and status/docs anchors so `Result<(), String>` does not return to this boundary.
+
+`script/vm/plugin/mod.rs` also re-exports `VmPluginManagementPolicyError` and `VmPluginManagementPolicyResult` from the management-policy owner. That keeps `script/vm/mod.rs` and `script/mod.rs` as typed public facades after the error owner split without adding a compatibility shim or changing the management policy schema.
 
 `VmPluginSlotRecord` exposes the resolved management policy beside each loaded slot, plus a monotonic `generation` and a lifecycle state. Initial loads start at generation 1, and successful hot reload increments the generation. The status projection uses `active` for a running instance, `reloading` while the coordinator is saving state, deactivating, loading, activating, or restoring a replacement, and `failed` when a reload step fails after the original instance has already left the clean active path. Reload hooks run without holding the coordinator slot-table lock, so a VM plugin can safely query its slot lifecycle facade during `activate` or `restore_state` and still observe the transient `reloading` record. This gives editor, Hub, export, and diagnostics surfaces a single read-only status projection without needing to inspect backend internals. Real GC execution and live memory measurements remain backend follow-up work; this slice only establishes the neutral contract and lifecycle bookkeeping that those backends can report through.
 

@@ -265,16 +265,16 @@ fn explicit_request_camera_uses_volume_mask_for_post_process_volumes() {
 
     assert_eq!(
         *extract.view.selected_camera_layers(),
-        RenderLayerSet::from_legacy_mask(0b0010)
+        RenderLayerSet::from_scene_schema_v1_mask(0b0010)
     );
     assert_eq!(
         *extract.view.selected_camera_volume_layers(),
-        RenderLayerSet::from_legacy_mask(0b0100)
+        RenderLayerSet::from_scene_schema_v1_mask(0b0100)
     );
     assert_eq!(extract.post_process.volumes.len(), 1);
     assert_eq!(
         extract.post_process.volumes[0].volume_mask,
-        RenderLayerSet::from_legacy_mask(0b0100)
+        RenderLayerSet::from_scene_schema_v1_mask(0b0100)
     );
     assert_near(
         resolved_post_process_settings(&extract).bloom.intensity,
@@ -489,7 +489,7 @@ fn resolved_post_process_settings(
 fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
     let mut camera =
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
-    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.culling_mask = RenderLayerSet::from_scene_schema_v1_mask(mask);
     camera.volume_mask = camera.culling_mask.clone();
     camera
 }
@@ -500,8 +500,8 @@ fn camera_descriptor_with_culling_and_volume_layers(
 ) -> CameraRenderDescriptor {
     let mut camera =
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
-    camera.culling_mask = RenderLayerSet::from_legacy_mask(culling_mask);
-    camera.volume_mask = RenderLayerSet::from_legacy_mask(volume_mask);
+    camera.culling_mask = RenderLayerSet::from_scene_schema_v1_mask(culling_mask);
+    camera.volume_mask = RenderLayerSet::from_scene_schema_v1_mask(volume_mask);
     camera
 }
 

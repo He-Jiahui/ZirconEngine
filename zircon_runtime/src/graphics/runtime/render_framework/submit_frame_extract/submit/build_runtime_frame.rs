@@ -533,7 +533,7 @@ mod tests {
             tint: Vec4::ONE,
             mobility: crate::core::framework::scene::Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(1),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
         }
     }
 }

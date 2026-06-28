@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
@@ -831,12 +832,15 @@ old upgraded asset does not leave misleading schema metadata on a later non-migr
 import.
 
 The split `ui_document_importer` runtime package routes `.zui` TOML through `UiZuiAssetLoader`.
-The importer descriptor and package `plugin.toml` both expose a single `ui_document_importer.zui_component`
-entry for `.zui` with importer version 2 and `UiWidget` output. `.ui.toml` and `.v2.ui.toml`
-source-template suffixes are intentionally absent from production registration so they cannot
-silently route through `UiAssetLoader`, the recursive `UiAssetDocument` migration chain, or the
-pre-`.zui` mixed-kind v2 importer. `.ui.json` and `.uidoc` are also absent from production
-registration; the plugin no longer depends on `serde_json` or `bincode` for UI document import.
+The importer descriptor and package `plugin.toml` expose `ui_document_importer.zui_document`
+for `.zui` with importer version 2, primary `UiWidget` output, and additional UiLayout/UiStyle
+outputs. The shared `ui_v2_document_import.rs` owner maps `asset.kind` to component, view, or
+style payloads after the `.zui` profile accepts the matching document shape. `.ui.toml` and
+`.v2.ui.toml` source-template suffixes are intentionally absent from production registration so
+they cannot silently route through `UiAssetLoader`, the recursive `UiAssetDocument` migration
+chain, or a second production kind-mapping path. `.ui.json` and `.uidoc` are also absent from
+production registration; the plugin no longer depends on `serde_json` or `bincode` for UI
+document import.
 
 Standalone theme and icon documents are the exceptions for UI TOML source ingestion. The built-in
 `zircon.builtin.ui_theme.toml` importer owns the `.theme.toml` full suffix, parses the source as

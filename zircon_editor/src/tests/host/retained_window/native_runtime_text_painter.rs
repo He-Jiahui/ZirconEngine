@@ -63,6 +63,7 @@ fn editable_text_command() -> UiRenderCommand {
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
             measured_width: 50.0,
+            glyph_advances: vec![],
             baseline: 8.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {

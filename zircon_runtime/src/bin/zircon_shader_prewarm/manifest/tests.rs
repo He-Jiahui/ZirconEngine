@@ -2,26 +2,33 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use zircon_runtime::core::framework::render::{
-    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShadingModelId,
-    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_BLINN_PHONG,
-    SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
+    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShadingModelId,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
 };
-use zircon_runtime::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
+use zircon_runtime::core::resource::{
+    ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
+};
 
 use super::{
     asset_root_manifest, asset_root_manifest_for_quality_tiers_and_geometry_sources,
     asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids,
     asset_root_manifest_with_resource_registry_revisions,
     builtin_fallback_manifest_for_quality_tiers_and_geometry_sources,
-    resource_registry::ShaderPrewarmResourceRegistryOverlay,
+    resource_registry::{
+        shader_resource_records_from_asset_root, shader_resource_records_from_manager,
+        ShaderPrewarmResourceRegistryOverlay,
+    },
 };
 
-const BUILTIN_MATERIAL_PASS_TYPES: [ShaderPassType; 5] = [
+const BUILTIN_MATERIAL_PASS_TYPES: [ShaderPassType; 6] = [
     ShaderPassType::Forward,
     ShaderPassType::GBuffer,
     ShaderPassType::DepthPrepass,
     ShaderPassType::Shadow,
     ShaderPassType::Velocity,
+    ShaderPassType::TaaReactiveMask,
 ];
 
 #[test]
@@ -34,14 +41,14 @@ fn shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources()
         ],
     );
 
-    assert_eq!(manifest.variants.len(), 20);
+    assert_eq!(manifest.variants.len(), 24);
     assert_eq!(
         manifest
             .variants
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_STATIC_MESH)
             .count(),
-        10
+        12
     );
     assert_eq!(
         manifest
@@ -49,7 +56,7 @@ fn shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources()
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH)
             .count(),
-        10
+        12
     );
     for pass_type in BUILTIN_MATERIAL_PASS_TYPES {
         assert_eq!(
@@ -182,6 +189,7 @@ mode = "blend"
 
     assert_eq!(manifest.variants.len(), 11);
     let request = &manifest.variants[0];
+    assert_eq!(request.source_label, "res://shaders/example");
     assert!(request.wgsl_source.contains("fn base() {}"));
     assert!(request.wgsl_source.contains("fn variant() {}"));
     assert_eq!(request.include_content_hashes.len(), 2);
@@ -265,14 +273,14 @@ cutoff = 0.5
     )
     .unwrap();
 
-    assert_eq!(manifest.variants.len(), 10);
+    assert_eq!(manifest.variants.len(), 12);
     assert_eq!(
         manifest
             .variants
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_STATIC_MESH)
             .count(),
-        5
+        6
     );
     assert_eq!(
         manifest
@@ -280,7 +288,7 @@ cutoff = 0.5
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH)
             .count(),
-        5
+        6
     );
     for pass_type in BUILTIN_MATERIAL_PASS_TYPES {
         assert_eq!(
@@ -318,6 +326,7 @@ cutoff = 0.5
         .expect("skinned builtin standard material depth-only request");
 
     for request in &manifest.variants {
+        assert_eq!(request.source_label, "builtin://shader/pbr.wgsl");
         assert_eq!(request.key.quality, ShaderQualityTier::High);
         assert_eq!(request.key.shading_model, SHADING_MODEL_ID_BLINN_PHONG);
         assert_eq!(
@@ -410,7 +419,7 @@ lighting_model = "custom:subsurface"
     )
     .unwrap();
 
-    assert_eq!(manifest.variants.len(), 5);
+    assert_eq!(manifest.variants.len(), 6);
     assert!(manifest.variants.iter().all(|request| {
         request.key.shading_model == custom_id && request.key.shading_model.is_plugin_range()
     }));
@@ -428,6 +437,39 @@ lighting_model = "custom:subsurface"
     assert!(forward_request
         .wgsl_source
         .contains("fn zr_material_surface("));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn shader_prewarm_asset_root_manifest_expands_custom_geometry_source_plugin_ids() {
+    let root = std::env::temp_dir().join(format!(
+        "zircon_shader_prewarm_custom_geometry_source_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("procedural.wgsl"), "fn procedural() {}\n").unwrap();
+
+    let custom_geometry_source = GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START);
+    let manifest = asset_root_manifest_for_quality_tiers_and_geometry_sources(
+        &root,
+        &[ShaderQualityTier::Medium],
+        &[custom_geometry_source],
+    )
+    .unwrap();
+
+    assert_eq!(manifest.variants.len(), 6);
+    assert!(manifest.variants.iter().all(|request| {
+        request.key.geometry_source == custom_geometry_source
+            && request.key.geometry_source.is_plugin_range()
+    }));
+    for pass_type in BUILTIN_MATERIAL_PASS_TYPES {
+        assert!(manifest
+            .variants
+            .iter()
+            .any(|request| request.key.pass_type == pass_type));
+    }
 
     let _ = fs::remove_dir_all(root);
 }
@@ -530,11 +572,143 @@ source_hash = "source-hash-registry-fallback"
     )
     .unwrap();
 
-    assert_eq!(manifest.variants.len(), 5);
+    assert_eq!(manifest.variants.len(), 6);
     assert!(manifest
         .variants
         .iter()
         .all(|request| request.key.material_revision == 77));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn shader_prewarm_asset_root_exports_shader_resource_records() {
+    let root = std::env::temp_dir().join(format!(
+        "zircon_shader_prewarm_registry_export_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("shaders")).unwrap();
+    fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
+    fs::write(
+        root.join("shaders/example.wgsl.zmeta"),
+        r#"format_version = 6
+uuid = "00000000-0000-0000-0000-000000000046"
+url = "res://shaders/example"
+asset_kind = "Shader"
+unit = "single"
+source_hash = "source-hash-registry-export"
+"#,
+    )
+    .unwrap();
+
+    let records = shader_resource_records_from_asset_root(&root).unwrap();
+
+    assert_eq!(records.len(), 1);
+    let record = &records[0];
+    assert_eq!(record.kind, ResourceKind::Shader);
+    assert_eq!(record.state, ResourceState::Ready);
+    assert_eq!(
+        record.primary_locator,
+        ResourceLocator::parse("res://shaders/example").unwrap()
+    );
+    assert_ne!(record.revision, 0);
+
+    let overlay = ShaderPrewarmResourceRegistryOverlay::from_records(records.clone());
+    let manifest = asset_root_manifest_with_resource_registry_revisions(
+        &root,
+        &[ShaderQualityTier::Medium],
+        &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+        &BTreeMap::new(),
+        Some(&overlay),
+    )
+    .unwrap();
+
+    assert_eq!(manifest.variants.len(), 6);
+    assert!(manifest
+        .variants
+        .iter()
+        .all(|request| request.key.material_revision == record.revision));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[derive(Debug)]
+struct ShaderPayload;
+
+#[test]
+fn shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions() {
+    let root = std::env::temp_dir().join(format!(
+        "zircon_shader_prewarm_live_registry_export_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("shaders")).unwrap();
+    fs::write(root.join("shaders/live.wgsl"), "fn live() {}\n").unwrap();
+    fs::write(
+        root.join("shaders/live.wgsl.zmeta"),
+        r#"format_version = 6
+uuid = "00000000-0000-0000-0000-000000000047"
+url = "res://shaders/live"
+asset_kind = "Shader"
+unit = "single"
+source_hash = "source-hash-live-manager-fallback"
+"#,
+    )
+    .unwrap();
+
+    let manager = ResourceManager::new();
+    let live_locator = ResourceLocator::parse("res://shaders/live").unwrap();
+    let live_id = ResourceId::from_locator(&live_locator);
+    manager.register_ready(
+        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator.clone())
+            .with_source_hash("live-manager-shader-a"),
+        ShaderPayload,
+    );
+    manager.register_ready(
+        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator)
+            .with_source_hash("live-manager-shader-b"),
+        ShaderPayload,
+    );
+    let model_locator = ResourceLocator::parse("res://models/mesh.glb").unwrap();
+    manager.register_ready(
+        ResourceRecord::new(
+            ResourceId::from_locator(&model_locator),
+            ResourceKind::Model,
+            model_locator,
+        )
+        .with_source_hash("live-manager-model"),
+        ShaderPayload,
+    );
+    let pending_locator = ResourceLocator::parse("res://shaders/pending").unwrap();
+    manager.register_record(ResourceRecord::new(
+        ResourceId::from_locator(&pending_locator),
+        ResourceKind::Shader,
+        pending_locator,
+    ));
+
+    let records = shader_resource_records_from_manager(&manager);
+
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].id, live_id);
+    assert_eq!(records[0].kind, ResourceKind::Shader);
+    assert_eq!(records[0].state, ResourceState::Ready);
+    assert_eq!(records[0].revision, 2);
+    let live_revision = records[0].revision;
+
+    let overlay = ShaderPrewarmResourceRegistryOverlay::from_records(records);
+    let manifest = asset_root_manifest_with_resource_registry_revisions(
+        &root,
+        &[ShaderQualityTier::Medium],
+        &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+        &BTreeMap::new(),
+        Some(&overlay),
+    )
+    .unwrap();
+
+    assert_eq!(manifest.variants.len(), 6);
+    assert!(manifest
+        .variants
+        .iter()
+        .all(|request| request.key.material_revision == live_revision));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -586,14 +760,14 @@ fn shader_prewarm_asset_root_manifest_expands_requested_geometry_sources() {
     )
     .unwrap();
 
-    assert_eq!(manifest.variants.len(), 10);
+    assert_eq!(manifest.variants.len(), 12);
     assert_eq!(
         manifest
             .variants
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_STATIC_MESH)
             .count(),
-        5
+        6
     );
     assert_eq!(
         manifest
@@ -601,7 +775,7 @@ fn shader_prewarm_asset_root_manifest_expands_requested_geometry_sources() {
             .iter()
             .filter(|request| request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH)
             .count(),
-        5
+        6
     );
     assert!(manifest
         .variants

@@ -14,7 +14,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
 ]
-styles = ["res://ui/editor/theme/editor_tokens.v2.ui.toml"]
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchInspectorPanel]
 root = "inspector_panel"

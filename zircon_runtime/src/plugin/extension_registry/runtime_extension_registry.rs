@@ -1,4 +1,5 @@
 use crate::asset::AssetImporterRegistry;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
@@ -34,6 +35,8 @@ pub struct RuntimeExtensionRegistry {
     pub(super) modules: TypedExtensionPoint<String, ModuleDescriptor>,
     pub(super) render_features: TypedExtensionPoint<String, RenderFeatureDescriptor>,
     pub(super) render_pass_executors: TypedExtensionPoint<String, RenderPassExecutorRegistration>,
+    pub(super) geometry_sources: TypedExtensionPoint<String, GeometrySourceDescriptor>,
+    pub(super) shading_models: TypedExtensionPoint<String, ShadingModelDescriptor>,
     pub(super) runtime_prepare_collectors:
         TypedExtensionPoint<String, RuntimePrepareCollectorRegistration>,
     pub(super) hybrid_gi_runtime_providers:
@@ -72,6 +75,8 @@ impl RuntimeExtensionRegistry {
             modules: self.modules.entries_owned_by(owner).collect(),
             render_features: self.render_features.entries_owned_by(owner).collect(),
             render_pass_executors: self.render_pass_executors.entries_owned_by(owner).collect(),
+            geometry_sources: self.geometry_sources.entries_owned_by(owner).collect(),
+            shading_models: self.shading_models.entries_owned_by(owner).collect(),
             runtime_prepare_collectors: self
                 .runtime_prepare_collectors
                 .entries_owned_by(owner)
@@ -118,6 +123,8 @@ impl RuntimeExtensionRegistry {
             modules: self.modules.remove_owned_by(owner),
             render_features: self.render_features.remove_owned_by(owner),
             render_pass_executors: self.render_pass_executors.remove_owned_by(owner),
+            geometry_sources: self.geometry_sources.remove_owned_by(owner),
+            shading_models: self.shading_models.remove_owned_by(owner),
             runtime_prepare_collectors: self.runtime_prepare_collectors.remove_owned_by(owner),
             hybrid_gi_runtime_providers: self.hybrid_gi_runtime_providers.remove_owned_by(owner),
             solari_runtime_providers: self.solari_runtime_providers.remove_owned_by(owner),

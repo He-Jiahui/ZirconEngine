@@ -1,4 +1,4 @@
-use super::legacy::LegacyProjectDocument;
+use super::v1_project_document::V1ProjectDocument;
 use crate::scene::dynamic_scene::{DynamicScene, DynamicSceneError};
 
 impl DynamicScene {
@@ -9,7 +9,7 @@ impl DynamicScene {
             })?;
 
         if value.get("world").is_some() {
-            let document: LegacyProjectDocument =
+            let document: V1ProjectDocument =
                 serde_json::from_value(value).map_err(|error| DynamicSceneError::Parse {
                     reason: error.to_string(),
                 })?;

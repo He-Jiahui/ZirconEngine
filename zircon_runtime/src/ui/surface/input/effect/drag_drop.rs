@@ -4,13 +4,15 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
-use super::super::require_valid_input_owner;
+use super::super::{
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+};
 use super::node::require_node;
 
 pub(super) fn apply_drag_drop_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     let UiDispatchEffect::DragDrop {
         target,
         kind,
@@ -20,7 +22,9 @@ pub(super) fn apply_drag_drop_effect(
         payload,
     } = effect
     else {
-        return Err("expected drag/drop effect".to_string());
+        return Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "drag/drop",
+        });
     };
 
     require_node(surface, *target)?;
@@ -102,7 +106,7 @@ fn set_dragging_component_state(
     surface: &mut UiSurface,
     node_id: UiNodeId,
     dragging: bool,
-) -> Result<(), String> {
+) -> UiSurfaceInputEffectResult<()> {
     if surface.component_states.set_dragging(node_id, dragging) {
         mark_component_state_render_dirty(surface, node_id)?;
     }
@@ -113,7 +117,7 @@ fn set_drop_target_component_state(
     surface: &mut UiSurface,
     node_id: UiNodeId,
     active: bool,
-) -> Result<(), String> {
+) -> UiSurfaceInputEffectResult<()> {
     let drop_hover_changed = surface.component_states.set_drop_hovered(node_id, active);
     let active_target_changed = surface
         .component_states
@@ -128,7 +132,7 @@ fn sync_drag_drop_target_component_state(
     surface: &mut UiSurface,
     previous_target: Option<UiNodeId>,
     current_target: UiNodeId,
-) -> Result<(), String> {
+) -> UiSurfaceInputEffectResult<()> {
     if previous_target != Some(current_target) {
         if let Some(previous_target) = previous_target {
             set_drop_target_component_state(surface, previous_target, false)?;
@@ -140,8 +144,8 @@ fn sync_drag_drop_target_component_state(
 fn mark_component_state_render_dirty(
     surface: &mut UiSurface,
     node_id: UiNodeId,
-) -> Result<(), String> {
+) -> UiSurfaceInputEffectResult<()> {
     surface
         .mark_component_state_render_dirty(node_id)
-        .map_err(|error| format!("component state dirty rejected: {error}"))
+        .map_err(|source| UiSurfaceInputEffectError::ComponentStateDirtyRejected { source })
 }

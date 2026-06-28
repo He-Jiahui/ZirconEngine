@@ -33,8 +33,8 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 implementation_files:
   - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
@@ -57,8 +57,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 plan_sources:
   - user: 2026-05-06 Drawer/Window/Menu Slate plan requested menu tree, popup bounds, scroll overflow, and optional multi-column popup behavior
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
@@ -95,7 +95,7 @@ doc_type: module-detail
 
 ## Data Flow
 
-`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.v2.ui.toml` through the v2 file cache rather than reparsing the old root chrome asset.
+`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.zui` through the v2 file cache rather than reparsing the old root chrome asset.
 
 `HostMenuPointerLayout` carries editor action state, preset rows, popup height, explicit tree-shaped `menus`, dynamic top-level button frames, menu-bar content width, menu-bar scroll offset state, and `menu_overflow_mode`. `build_host_menu_pointer_layout(...)` reads overflow mode from `EditorChromeSnapshot`, whose active-window value comes from persisted `ActivityWindowLayout.menu_overflow_mode`. When `menus` is present, the pointer bridge consumes those rows rather than rebuilding hard-coded menu contents. Branch rows stay as enabled tree nodes with children; leaves preserve either legacy `MenuAction` ids or `EditorOperationPath` ids so extension operations dispatch through the operation runtime.
 
@@ -123,7 +123,7 @@ Overwide menu bars use `menu_bar_content_width` plus `menu_bar_scroll_offset`. T
 
 ## Native Chrome Projection
 
-Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows come from `workbench_menu_popup.v2.ui.toml`, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar v2 stencil still owns the first seven JetBrains-like Material menu slots, and `chrome_template_projection.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
+Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows come from `workbench_menu_popup.zui`, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar v2 stencil still owns the first seven JetBrains-like Material menu slots, and `chrome_template_projection.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
 
 ## Test Coverage
 

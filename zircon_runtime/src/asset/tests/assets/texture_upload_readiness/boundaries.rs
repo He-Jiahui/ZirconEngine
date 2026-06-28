@@ -14,7 +14,7 @@ fn texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload
         4,
         4,
         "dds/DXT1",
-        dds_legacy_mip_bytes("DXT1", 2, 16),
+        dds_classic_mip_bytes("DXT1", 2, 16),
         2,
         1,
     );
@@ -28,7 +28,7 @@ fn texture_upload_readiness_rejects_compressed_mips_and_arrays_until_full_upload
         4,
         4,
         "dds/DXT1",
-        dds_legacy_cubemap_bytes("DXT1", 48),
+        dds_classic_cubemap_bytes("DXT1", 48),
         1,
         6,
     );
@@ -167,7 +167,7 @@ fn texture_upload_readiness_rejects_container_header_extent_mismatches() {
         ..TextureUploadSupport::uncompressed_only()
     };
 
-    let mut mismatched_dds_height = dds_legacy_bytes("DXT1", 8);
+    let mut mismatched_dds_height = dds_classic_fourcc_bytes("DXT1", 8);
     write_u32_le(&mut mismatched_dds_height, 12, 8);
     let dds = TextureAsset::new_container(
         AssetUri::parse("res://textures/stale-height.dds").unwrap(),

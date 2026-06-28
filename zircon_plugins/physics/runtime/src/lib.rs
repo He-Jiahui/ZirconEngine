@@ -31,6 +31,9 @@ pub use plugin::{
 pub use runtime_system::{
     register_runtime_system, PhysicsRuntimeSystem, PHYSICS_STEP_SYSTEM, PHYSICS_SYSTEM_SET,
 };
+pub use zircon_runtime::core::framework::physics::{
+    PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID,
+};
 pub use zircon_runtime::core::manager::PHYSICS_MANAGER_NAME;
 
 #[cfg(test)]

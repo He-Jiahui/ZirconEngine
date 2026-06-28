@@ -23,7 +23,7 @@ fn view_template_projection_rejects_non_v2_asset_paths() {
 }
 
 #[test]
-fn v2_view_template_projection_uses_v2_surface_builder_without_legacy_fallback() {
+fn zui_view_template_projection_uses_v2_surface_builder_without_legacy_fallback() {
     let text_overrides = BTreeMap::from([(
         "ProjectOverviewTitleText".to_string(),
         "V2 Project".to_string(),
@@ -31,7 +31,7 @@ fn v2_view_template_projection_uses_v2_surface_builder_without_legacy_fallback()
 
     let nodes = build_view_template_nodes(
         "view.v2.project_overview",
-        "/assets/ui/editor/project_overview.v2.ui.toml",
+        "/assets/ui/editor/project_overview.zui",
         &[],
         UiSize::new(320.0, 240.0),
         &text_overrides,
@@ -62,7 +62,7 @@ fn v2_view_template_projection_reuses_cached_store_for_identical_inputs() {
 
     let first = build_view_template_nodes(
         "view.v2.project_overview.first",
-        "/assets/ui/editor/project_overview.v2.ui.toml",
+        "/assets/ui/editor/project_overview.zui",
         &[],
         UiSize::new(640.0, 480.0),
         &text_overrides,
@@ -75,7 +75,7 @@ fn v2_view_template_projection_reuses_cached_store_for_identical_inputs() {
 
     let second = build_view_template_nodes(
         "view.v2.project_overview.second",
-        "/assets/ui/editor/project_overview.v2.ui.toml",
+        "/assets/ui/editor/project_overview.zui",
         &[],
         UiSize::new(640.0, 480.0),
         &text_overrides,

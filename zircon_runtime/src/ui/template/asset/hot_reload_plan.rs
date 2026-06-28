@@ -155,7 +155,7 @@ pub fn classify_ui_hot_reload_asset(asset_id: &str) -> UiHotReloadAssetKind {
     if path.ends_with(".font.toml") || has_any_suffix(&path, FONT_SOURCE_SUFFIXES) {
         return UiHotReloadAssetKind::Font;
     }
-    if path.ends_with(".zui") || path.ends_with(".v2.ui.toml") || path.ends_with(".ui.toml") {
+    if path.ends_with(".zui") {
         return UiHotReloadAssetKind::Template;
     }
     if has_any_suffix(&path, TEXTURE_SOURCE_SUFFIXES) {

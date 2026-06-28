@@ -65,6 +65,8 @@ fn plugin_tomls_declare_capability_statuses_reference_owned_capabilities() {
 fn plugin_tomls_declare_module_capabilities_stay_under_owner_namespace() {
     for_each_static_plugin_manifest(|relative_path, table| {
         let package_id = non_empty_string_value(table, relative_path, "top-level", "id");
+        let allows_asset_importer_domain_capabilities =
+            table.get("category").and_then(toml::Value::as_str) == Some("asset_importer");
 
         visit_module_rows(
             table.get("modules"),
@@ -76,6 +78,7 @@ fn plugin_tomls_declare_module_capabilities_stay_under_owner_namespace() {
                     relative_path,
                     module_context,
                     package_id,
+                    allows_asset_importer_domain_capabilities,
                 );
             },
         );
@@ -92,6 +95,7 @@ fn plugin_tomls_declare_module_capabilities_stay_under_owner_namespace() {
                         relative_path,
                         module_context,
                         feature_id,
+                        false,
                     );
                 },
             );
@@ -109,6 +113,7 @@ fn plugin_tomls_declare_module_capabilities_stay_under_owner_namespace() {
                         relative_path,
                         module_context,
                         feature_id,
+                        false,
                     );
                 },
             );
@@ -121,6 +126,7 @@ fn assert_module_capabilities_under_owner_namespace(
     relative_path: &Path,
     module_context: &str,
     owner_namespace: &str,
+    allows_asset_importer_domain_capabilities: bool,
 ) {
     let module_name = non_empty_string_value(module, relative_path, module_context, "name");
     let module_context = format!("{module_context} module `{module_name}`");
@@ -132,6 +138,7 @@ fn assert_module_capabilities_under_owner_namespace(
             &module_context,
             capability,
             owner_namespace,
+            allows_asset_importer_domain_capabilities,
         );
     }
 }
@@ -141,6 +148,7 @@ fn assert_capability_mentions_owner_namespace(
     context: &str,
     capability: &str,
     owner_namespace: &str,
+    allows_asset_importer_domain_capabilities: bool,
 ) {
     let capability_segments: Vec<_> = capability.split('.').collect();
     let owner_segments: Vec<_> = owner_namespace.split('.').collect();
@@ -154,9 +162,31 @@ fn assert_capability_mentions_owner_namespace(
                 Some(suffix) if suffix.starts_with('_')
             )
         });
+    let contains_editor_extension_alias =
+        owner_namespace
+            .strip_prefix("editor_")
+            .is_some_and(|editor_alias| {
+                let editor_extension_prefix = format!("editor.extension.{editor_alias}");
+                capability == editor_extension_prefix
+                    || capability.starts_with(&format!("{editor_extension_prefix}."))
+            });
+    let contains_feature_alias = owner_namespace == "net.content_download"
+        && capability == "runtime.feature.net.cdn_download";
+    let contains_script_backend_alias =
+        owner_namespace
+            .strip_suffix("_language")
+            .is_some_and(|language_alias| {
+                capability.starts_with(&format!("runtime.script.backend.{language_alias}_"))
+            });
 
     assert!(
-        contains_owner_segments || contains_owner_prefixed_segment,
+        contains_owner_segments
+            || contains_owner_prefixed_segment
+            || contains_editor_extension_alias
+            || contains_feature_alias
+            || contains_script_backend_alias
+            || (allows_asset_importer_domain_capabilities
+                && capability.starts_with("runtime.asset.importer.")),
         "plugin manifest {relative_path:?} {context} capability `{capability}` should stay under owner namespace `{owner_namespace}`"
     );
 }

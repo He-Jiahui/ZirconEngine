@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::core::framework::render::{GeometrySourceId, GEOMETRY_SOURCE_ID_SKINNED_MESH};
 use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::PipelineKey;
 
@@ -81,6 +82,19 @@ impl MeshDrawQueueProfile {
         self.geometry_source
     }
 
+    pub(crate) fn shader_geometry_source_id(self) -> GeometrySourceId {
+        if self.uses_skinned_gpu_skinning {
+            match self.geometry_source {
+                MeshDrawGeometrySource::Prepared
+                | MeshDrawGeometrySource::DynamicGpuSkinningSource => {
+                    return GEOMETRY_SOURCE_ID_SKINNED_MESH;
+                }
+                MeshDrawGeometrySource::Dynamic => {}
+            }
+        }
+        self.geometry_source.shader_geometry_source_id()
+    }
+
     pub(crate) fn early_z_eligible(self) -> bool {
         self.phase.casts_shadow()
     }
@@ -114,6 +128,51 @@ impl MeshDrawQueueProfile {
             && !self.uses_indirect_draw
             && !self.uses_skinned_gpu_skinning
             && self.early_z_eligible()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    };
+    use crate::core::framework::scene::Mobility;
+
+    use super::{MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile};
+
+    #[test]
+    fn queue_profile_maps_prepared_gpu_skinning_to_skinned_shader_geometry() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::Prepared,
+            Mobility::Dynamic,
+            false,
+            true,
+            false,
+        );
+
+        assert_eq!(profile.geometry_source(), MeshDrawGeometrySource::Prepared);
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_SKINNED_MESH
+        );
+    }
+
+    #[test]
+    fn queue_profile_keeps_cpu_fallback_dynamic_on_static_shader_geometry() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::Dynamic,
+            Mobility::Dynamic,
+            false,
+            false,
+            false,
+        );
+
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_STATIC_MESH
+        );
     }
 }
 

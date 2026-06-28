@@ -1,6 +1,7 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
 const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!("#[allow(", "dead_code", ")]");
+const DEAD_CODE_ALLOW_CALL_PREFIX: &str = concat!("allow(", "dead_code");
 
 #[test]
 fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
@@ -94,9 +95,20 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
                 "Runtime 15 runtime UI dead-code support split",
                 "runtime_15_runtime_ui_dead_code_support_split_coremin_check_passed",
                 "runtime_15_runtime_ui_dead_code_surface_is_test_support",
+                "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred",
             ],
         );
     }
+    let f10_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F10 |"))
+        .expect("F10 review findings top row");
+    assert!(
+        f10_row.contains(
+            "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred"
+        ) && f10_row.ends_with("| Runtime 09 + Runtime 15 / review closed |"),
+        "F10 top row should record runtime surface review closed status"
+    );
 }
 
 #[test]
@@ -172,6 +184,113 @@ fn runtime_15_runtime_owned_dead_code_suppression_cleanup() {
             ],
         );
     }
+}
+
+#[test]
+fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
+    let ui_text_mod = read_runtime_src("ui/text/mod.rs");
+    let edit_state = read_runtime_src("ui/text/edit_state.rs");
+    let text_input = read_runtime_src("ui/component/state_reducer/text_input.rs");
+    let editable_text = read_runtime_src("ui/surface/input/editable_text.rs");
+    let keyboard_clipboard = read_runtime_src("ui/surface/input/keyboard_clipboard.rs");
+    let text_pointer = read_runtime_src("ui/surface/input/text_pointer.rs");
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
+    let session_note =
+        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
+    let status_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
+    );
+    let date_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
+    );
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
+    );
+
+    assert!(
+        dead_code_suppression_lines(&ui_text_mod).is_empty(),
+        "ui/text/mod.rs should keep edit_state live without cfg_attr/allow(dead_code)"
+    );
+    assert_contains_all(
+        "ui text edit state production module",
+        &ui_text_mod,
+        &[
+            "mod edit_state;",
+            "pub(crate) use edit_state::apply_text_edit_action;",
+        ],
+    );
+    assert_contains_all(
+        "ui text edit state owner",
+        &edit_state,
+        &[
+            "pub(crate) fn apply_text_edit_action",
+            "UiTextEditAction::Insert { text }",
+            "UiTextEditAction::SetComposition { range, text }",
+            "replace_range_preserving_composition",
+            "previous_grapheme_boundary",
+            "next_grapheme_boundary",
+        ],
+    );
+    assert_contains_all(
+        "text input edit state reducer consumer",
+        &text_input,
+        &[
+            "use crate::ui::text::apply_text_edit_action;",
+            "let next_state = apply_text_edit_action(",
+        ],
+    );
+    for (label, source) in [
+        ("editable text input consumer", editable_text.as_str()),
+        ("keyboard clipboard consumer", keyboard_clipboard.as_str()),
+        ("text pointer consumer", text_pointer.as_str()),
+    ] {
+        assert_contains_all(label, source, &["apply_text_edit_action("]);
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("UI text doc", ui_text_doc.as_str()),
+        ("session note", session_note.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
+                "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
+                "ui/text/mod.rs",
+                "ui/text/edit_state.rs",
+                "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup",
+            ],
+        );
+    }
+    assert_contains_all(
+        "Runtime 15 status map",
+        &status_map,
+        &[
+            "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
+            "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
+        ],
+    );
+    assert_contains_all(
+        "Runtime 15 date map",
+        &date_map,
+        &[
+            "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
+            "2026-06-27",
+        ],
+    );
 }
 
 #[test]
@@ -345,7 +464,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
     );
 
     assert_contains_all(
@@ -360,6 +479,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     for moved_guard in [
         "fn runtime_15_runtime_ui_dead_code_surface_is_test_support",
         "fn runtime_15_runtime_owned_dead_code_suppression_cleanup",
+        "fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup",
         "fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code",
         "fn runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code",
         "fn runtime_15_runtime_dead_code_guard_forbidden_attribute_literal_is_constant_backed",
@@ -424,13 +544,14 @@ fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
     for path in &production_sources {
         let source = std::fs::read_to_string(path)
             .unwrap_or_else(|error| panic!("failed to read production source `{path:?}`: {error}"));
-        if source.contains(DEAD_CODE_ALLOW_ATTRIBUTE) {
+        let suppression_lines = dead_code_suppression_lines(&source);
+        if !suppression_lines.is_empty() {
             let relative = path
                 .strip_prefix(&src_root)
                 .unwrap_or(path)
                 .to_string_lossy()
                 .replace('\\', "/");
-            violations.push(relative);
+            violations.push(format!("{relative}: {suppression_lines:?}"));
         }
     }
 
@@ -454,7 +575,7 @@ fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
     );
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
     );
 
     for (label, source) in [
@@ -491,6 +612,23 @@ fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
         &date_map,
         &["Runtime 15 M5 production dead-code suppression global gate"],
     );
+}
+
+fn dead_code_suppression_lines(source: &str) -> Vec<(usize, String)> {
+    source
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let compact: String = line.chars().filter(|ch| !ch.is_whitespace()).collect();
+            if compact.contains(DEAD_CODE_ALLOW_CALL_PREFIX)
+                && (compact.contains("#[") || compact.contains("#!["))
+            {
+                Some((index + 1, line.trim().to_string()))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn collect_production_rust_sources(

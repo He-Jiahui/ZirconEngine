@@ -3226,11 +3226,11 @@ fn asset_import_binding_normalizes_to_runtime_host_request() {
 }
 
 #[test]
-fn asset_open_event_opens_ui_asset_editor_for_v2_ui_toml_source() {
+fn asset_open_event_opens_ui_asset_editor_for_zui_source() {
     let _guard = env_lock().lock().unwrap();
 
     let runtime = EventRuntimeHarness::new("zircon_editor_event_ui_asset_open");
-    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_ui_asset_open.v2.ui.toml");
+    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_ui_asset_open.zui");
     fs::write(
         &ui_asset_path,
         r#"
@@ -3421,8 +3421,7 @@ fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
     let _guard = env_lock().lock().unwrap();
 
     let runtime = EventRuntimeHarness::new("zircon_editor_event_menu_open_ui_asset");
-    let ui_asset_path =
-        std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.v2.ui.toml");
+    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.zui");
     fs::write(
         &ui_asset_path,
         r#"

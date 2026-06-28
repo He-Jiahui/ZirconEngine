@@ -12,6 +12,10 @@ related_code:
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
@@ -28,8 +32,10 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
@@ -37,9 +43,17 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
+  - zircon_runtime/src/graphics/visibility/static_index/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -77,6 +91,10 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render/lights.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
@@ -89,8 +107,10 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
@@ -98,9 +118,17 @@ implementation_files:
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
+  - zircon_runtime/src/graphics/visibility/static_index/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -267,7 +295,9 @@ TP-M2-S3 adds a product-level guard for that neutral path: `render_product_tempo
 
 `RenderLayerSet` is the Bevy-style layer contract. Its default value is layer `0`; `RenderLayerSet::none()` belongs to no layers and does not intersect anything, including another empty set.
 
-The current scene component still stores a legacy `u32` mask, so M2A provides `RenderLayerSet::from_legacy_mask(...)`, `to_legacy_mask_lossy(...)`, `intersects_legacy_mask(...)`, and `union(...)`. This lets scene extraction enforce Bevy-style visibility immediately while leaving the broader scene serialization migration for a later deliberate cutover.
+The current scene schema v1 component still stores a `u32` mask, so Runtime 15 M2 scene render layer schema-v1 mask naming hard cutover added `RenderLayerSet::from_scene_schema_v1_mask(...)`, `to_scene_schema_v1_mask_lossy(...)`, and `intersects_scene_schema_v1_mask(...)` for the scene/world extraction boundary. Runtime 15 M2 render layer schema-v1 mask API naming hard cutover then removed the retired `from_legacy_mask(...)`, `to_legacy_mask_lossy(...)`, and `intersects_legacy_mask(...)` helpers and switched ordinary runtime source/test callers to the schema-v1 API names directly.
+
+Status: `runtime_15_render_layer_schema_v1_mask_api_naming_hard_cutover_static_passed_cargo_deferred`; guard `runtime_15_render_layer_schema_v1_mask_api_uses_current_names` locks `from_scene_schema_v1_mask`, `to_scene_schema_v1_mask_lossy`, and `intersects_scene_schema_v1_mask` across ordinary runtime source/test callers, docs, and status-output mirrors.
 
 During scene render extraction, `World::build_render_camera_descriptor_for_component(...)` projects the active camera entity's `RenderLayerMask` into `CameraRenderDescriptor::culling_mask` and `volume_mask`. Mesh, sprite, scene-light, and volume extraction filter scene entities against the selected descriptor layer set before building `GeometryExtract`, phase inputs, lighting extracts, post-process volumes, and visibility input. Explicit `SceneViewportExtractRequest::camera` descriptors keep their own masks and can override the scene camera. Request-only projection and viewport-size overrides are applied in this request-aware path, not in the shared scene-component descriptor helper.
 
@@ -321,7 +351,9 @@ The behavior follows Bevy's render-app `sort_cameras` path in `dev/bevy/crates/b
 
 Plan 09 CO-M1 now has a neutral camera descriptor layer in `camera_stack.rs`. `CameraRenderDescriptor` owns render order, Base/Overlay render type, stack membership, target, viewport, clear policy, culling/volume masks, and the current `ViewportCameraSnapshot` payload. The descriptor is the only owner for target/order/viewport/clear/layers; callers that still need matrix-oriented camera data use `as_effective_camera()` or `ViewportRenderFrame::effective_camera()` to get the projected payload.
 
-`resolve_camera_sequence(...)` filters inactive descriptors, orders Base cameras by the same render-order/target/entity rule used by camera ordering, and attaches only the Base camera's declared Overlay stack members. Overlay cameras do not independently create sequence entries. Matching overlays inherit the Base target and viewport so the renderer can later reuse the Base stack's physical attachments without each overlay choosing its own target rectangle.
+`resolve_camera_sequence(...)` filters inactive owned descriptors, orders Base cameras by the same render-order/target/entity rule used by camera ordering, and attaches only the Base camera's declared Overlay stack members. `resolve_camera_sequence_borrowed(...)` uses the same ordering and violation logic for submit hotpaths that already own a `RenderViewExtract.cameras` slice; it borrows the source list and clones only the descriptors that survive into the resolved sequence, so production camera-loop submission does not pre-clone the whole camera vector before sorting. Overlay cameras do not independently create sequence entries. Matching overlays inherit the Base target and viewport so the renderer can later reuse the Base stack's physical attachments without each overlay choosing its own target rectangle.
+
+Status: `render_camera_loop_borrowed_sequence_resolution_static_passed_cargo_deferred` records the 2026-06-27 Runtime 07 F3 borrowed-sequence slice; it is a hotpath pre-copy cleanup, not a claim that the Runtime 07 FPS/profiling/full gates have passed.
 
 The resolver reports invalid stack data instead of panicking. Violations cover Overlay cameras that declare their own stack, Base stacks that reference missing cameras, Base stacks that reference non-Overlay cameras, and Overlay targets that do not match the Base target. The WGPU offscreen submit, native surface-present, and direct runtime-frame paths now loop `RenderViewExtract.cameras` through `camera_loop.rs`, and renderer-bound frames derive `ViewportCameraStackAttachmentPolicy` from the selected descriptor. That policy translates Base `RenderCameraClear` and Overlay `clear_depth` into the first `scene-color` / `scene-depth` graph clear write while leaving later load-store pass writes alone. Physical Base/Overlay attachment reuse, final composite ownership, per-camera history/post/light ownership, and surface-present pixel/RenderDoc acceptance remain follow-up work.
 

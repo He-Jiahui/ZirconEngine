@@ -22,35 +22,35 @@ related_code:
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/inspector_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
@@ -63,9 +63,9 @@ related_code:
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_base.zui
+  - zircon_editor/assets/ui/theme/editor_unreal_dark.zui
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
 implementation_files:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
@@ -91,35 +91,35 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/inspector_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
@@ -128,9 +128,9 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
-  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_base.zui
+  - zircon_editor/assets/ui/theme/editor_unreal_dark.zui
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
 plan_sources:
   - user: 2026-05-11 hard-cut workbench host and core panes to UI v2
   - user: 2026-05-13 migrate UI Asset Editor authoring support to v2 so old schema assets can keep being removed
@@ -188,9 +188,9 @@ tests:
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 input-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 selection-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 collections-section .zui extraction: passed)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15: passed)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 state-panel .zui extraction: passed and included showcase_state_panel.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 visual-section .zui extraction: passed and included showcase_visual_section.zui in the editor build output)
@@ -227,9 +227,9 @@ tests:
   - cargo test -p zircon_editor --lib surface_backed_retained_projection_exposes_style_overrides_as_effective_properties --locked -- --nocapture (2026-06-16 surface-backed retained projection style overrides: passed, 1 passed / 2040 filtered)
   - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exposes_document_tab_runtime_routes --locked -- --nocapture (2026-06-16 Workbench document tab runtime routes: passed, 1 passed / 2040 filtered)
   - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exports_surface_projection_frames_and_routes --locked -- --nocapture (2026-06-16 Workbench surface projection frame/route baseline: passed, 1 passed / 2040 filtered)
-  - python -c "import tomllib, pathlib; paths=[r'zircon_editor/assets/ui/theme/editor_base.v2.ui.toml', r'zircon_editor/assets/ui/theme/editor_material.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml']; [tomllib.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in paths]" (2026-06-12 editor_base chrome theme role consumer: passed)
+  - python -c "import tomllib, pathlib; paths=[r'zircon_editor/assets/ui/theme/editor_base.zui', r'zircon_editor/assets/ui/theme/editor_material.zui', r'zircon_editor/assets/ui/editor/workbench_activity_rail.zui', r'zircon_editor/assets/ui/editor/workbench_status_bar.zui']; [tomllib.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in paths]" (2026-06-12 editor_base chrome theme role consumer: passed)
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\tests\v2_asset.rs (2026-06-12 editor_base chrome theme role consumer: passed)
-  - git diff --check -- zircon_editor/assets/ui/theme/editor_base.v2.ui.toml zircon_runtime/src/ui/tests/v2_asset.rs docs/zircon_runtime/ui/theme.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 editor_base chrome theme role consumer: passed with LF-to-CRLF warnings only)
+  - git diff --check -- zircon_editor/assets/ui/theme/editor_base.zui zircon_runtime/src/ui/tests/v2_asset.rs docs/zircon_runtime/ui/theme.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 editor_base chrome theme role consumer: passed with LF-to-CRLF warnings only)
   - python tomllib parse zircon_editor/assets/ui/editor/components/showcase/showcase_selection_section.zui (2026-06-14 M3.S1 ContextMenu/DropdownPopup showcase visibility baseline: passed)
   - rustfmt --edition 2021 --check zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs (2026-06-14 M3.S1 ContextMenu/DropdownPopup showcase visibility baseline: passed after formatting)
   - git diff --check -- zircon_editor/assets/ui/editor/components/showcase/showcase_selection_section.zui zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/plans/zircon_editor/editor_ui/06-component-library-mui.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-14 M3.S1 ContextMenu/DropdownPopup showcase visibility baseline: passed with LF-to-CRLF warnings only)
@@ -259,63 +259,63 @@ Pane payload injection is shared between old and v2 paths. Legacy panes still mu
 
 Shared-surface layout failures now flow through `EditorUiHostRuntimeError::UiTree`. That keeps retained host callers such as the desktop export panel projection on the same error boundary as template parsing, v2 asset loading, and template build failures when they compute layout before building a `RetainedUiHostProjection`.
 
-The workbench chrome path now benefits from that same theme-aware materialization through `editor_base.v2.ui.toml`. Menu, page, dock, status, and activity-rail assets still author local chrome classes, but their ordinary base aliases delegate to central palette roles. The runtime guard loads `workbench_activity_rail.v2.ui.toml` and `workbench_status_bar.v2.ui.toml` as real imported documents and checks the resulting `style_tokens`, so host diagnostics can trace chrome colors back through chains such as `token.panel_bg -> theme.palette.surface.2` instead of seeing only legacy hex literals.
+The workbench chrome path now benefits from that same theme-aware materialization through `editor_base.zui`. Menu, page, dock, status, and activity-rail assets still author local chrome classes, but their ordinary base aliases delegate to central palette roles. The runtime guard loads `workbench_activity_rail.zui` and `workbench_status_bar.zui` as real imported documents and checks the resulting `style_tokens`, so host diagnostics can trace chrome colors back through chains such as `token.panel_bg -> theme.palette.surface.2` instead of seeing only legacy hex literals.
 
 ## Current Hard Cut
 
 The builtin registry now routes these critical editor shell assets to v2:
 
-- `editor_main_frame.v2.ui.toml`
-- `workbench_shell.v2.ui.toml`
-- `workbench_window.v2.ui.toml` (owns the componentized Workbench window and real bottom drawer shell)
-- `floating_window_source.v2.ui.toml`
-- `scene_viewport_toolbar.v2.ui.toml`
-- `animation_sequence_body.v2.ui.toml`
-- `animation_graph_body.v2.ui.toml`
-- `runtime_diagnostics_body.v2.ui.toml`
-- `module_plugins_body.v2.ui.toml`
-- `build_export_desktop_body.v2.ui.toml`
-- `console_body.v2.ui.toml`
-- `inspector_body.v2.ui.toml`
-- `hierarchy_body.v2.ui.toml`
+- `editor_main_frame.zui`
+- `workbench_shell.zui`
+- `workbench_window.zui` (owns the componentized Workbench window and real bottom drawer shell)
+- `floating_window_source.zui`
+- `scene_viewport_toolbar.zui`
+- `animation_sequence_body.zui`
+- `animation_graph_body.zui`
+- `runtime_diagnostics_body.zui`
+- `module_plugins_body.zui`
+- `build_export_desktop_body.zui`
+- `console_body.zui`
+- `inspector_body.zui`
+- `hierarchy_body.zui`
 
 The view projection layer now routes these top-level pane assets to v2:
 
-- `project_overview.v2.ui.toml`
-- `asset_browser.v2.ui.toml`
-- `console.v2.ui.toml`
-- `hierarchy.v2.ui.toml`
-- `inspector.v2.ui.toml`
-- `assets_activity.v2.ui.toml`
-- `animation_editor.v2.ui.toml`
-- `welcome.v2.ui.toml`
+- `project_overview.zui`
+- `asset_browser.zui`
+- `console.zui`
+- `hierarchy.zui`
+- `inspector.zui`
+- `assets_activity.zui`
+- `animation_editor.zui`
+- `welcome.zui`
 
-The Asset Browser v2 pane remains fully authored in `asset_browser.v2.ui.toml`. Its bottom utility region now keeps Preview/References/Metadata/Plugins as a compact retained template composition: the tab row, selection locator, preview visual, references split, metadata stack, and utility content/panel heights are all frame-locked by `asset_browser_projection_maps_bootstrap_asset_into_mount_nodes` before the retained host paints them. This keeps local container spacing in the authored asset instead of adding host-side layout exceptions for a single pane.
+The Asset Browser v2 pane remains fully authored in `asset_browser.zui`. Its bottom utility region now keeps Preview/References/Metadata/Plugins as a compact retained template composition: the tab row, selection locator, preview visual, references split, metadata stack, and utility content/panel heights are all frame-locked by `asset_browser_projection_maps_bootstrap_asset_into_mount_nodes` before the retained host paints them. This keeps local container spacing in the authored asset instead of adding host-side layout exceptions for a single pane.
 
 The shared workbench chrome projection now routes these root chrome assets to v2:
 
-- `workbench_menu_chrome.v2.ui.toml`
-- `workbench_menu_popup.v2.ui.toml`
-- `workbench_page_chrome.v2.ui.toml`
-- `workbench_dock_header.v2.ui.toml`
-- `workbench_status_bar.v2.ui.toml`
-- `workbench_activity_rail.v2.ui.toml`
+- `workbench_menu_chrome.zui`
+- `workbench_menu_popup.zui`
+- `workbench_page_chrome.zui`
+- `workbench_dock_header.zui`
+- `workbench_status_bar.zui`
+- `workbench_activity_rail.zui`
 
-The runtime component showcase is also now routed through `component_showcase.v2.ui.toml`. It no longer imports the old recursive `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` references on the builtin path. The v2 asset uses flat arena shell nodes while the demo-control sections live in imported `.zui` components, retaining existing control ids, event route ids, and Material measurement props so Rust callback dispatch and retained host projection continue to work. The showcase now imports `showcase_command_toolbar.zui#ShowcaseCommandToolbar`, `showcase_category_nav.zui#ShowcaseCategoryNav`, `showcase_visual_section.zui#ShowcaseVisualSection`, `showcase_input_section.zui#ShowcaseInputSection`, `showcase_selection_section.zui#ShowcaseSelectionSection`, `showcase_collections_section.zui#ShowcaseCollectionsSection`, `showcase_state_panel.zui#ShowcaseStatePanel`, and `showcase_bottom_log.zui#ShowcaseBottomLog`, proving the builtin runtime host can load `.zui` component prototypes from `res://` imports while the full view remains a `.v2.ui.toml` document. The category nav prototype keeps the `UiComponentShowcase.SelectCategory.*` event routes inside the reusable component asset, the Visual/Feedback prototype keeps display-control ids inside a reusable gallery section, the Input/Numeric prototype keeps button/text/numeric/vector event routes inside a reusable gallery section, the Selection/References prototype keeps option and reference-field routes inside a reusable gallery section, the Collections/Inspector prototype keeps collection/tree/menu/paging routes inside a reusable gallery section, and the state-panel prototype keeps the retained diagnostic `PropertyRow` control ids inside a reusable component asset. `ShowcaseSelectionSection` now also owns real `ContextMenuDemo` and `DropdownPopupDemo` nodes with opened popup rows; `showcase_demo_state` keeps them visible only under Selection/All, maps them back to `ContextMenu`/`DropdownPopup`, and the retained host projection test verifies the resulting structured menu-item and option rows before native popup painters consume them. `ShowcaseVisualSection` now also owns an opened `CommandPaletteDemo` sample with workbench command-source defaults, `build` query filtering, selected/focused command state, and a disabled command row; `showcase_demo_state` keeps it visible only under Feedback/All while mapping it back to the real `CommandPalette`, and retained host tests verify the resulting popup role, query, options text, and structured command rows. Category filtering, visual component projection, input/numeric event projection, selection/reference projection, collection/structure projection, and state projection therefore still pass through the generic template runtime path.
+The runtime component showcase is also now routed through `component_showcase.zui`. It no longer imports the old recursive `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` references on the builtin path. The v2 asset uses flat arena shell nodes while the demo-control sections live in imported `.zui` components, retaining existing control ids, event route ids, and Material measurement props so Rust callback dispatch and retained host projection continue to work. The showcase now imports `showcase_command_toolbar.zui#ShowcaseCommandToolbar`, `showcase_category_nav.zui#ShowcaseCategoryNav`, `showcase_visual_section.zui#ShowcaseVisualSection`, `showcase_input_section.zui#ShowcaseInputSection`, `showcase_selection_section.zui#ShowcaseSelectionSection`, `showcase_collections_section.zui#ShowcaseCollectionsSection`, `showcase_state_panel.zui#ShowcaseStatePanel`, and `showcase_bottom_log.zui#ShowcaseBottomLog`, proving the builtin runtime host can load `.zui` component prototypes from `res://` imports while the showcase root remains in the deprecated root-document suffix until the editor main asset M3 batch migrates it. The category nav prototype keeps the `UiComponentShowcase.SelectCategory.*` event routes inside the reusable component asset, the Visual/Feedback prototype keeps display-control ids inside a reusable gallery section, the Input/Numeric prototype keeps button/text/numeric/vector event routes inside a reusable gallery section, the Selection/References prototype keeps option and reference-field routes inside a reusable gallery section, the Collections/Inspector prototype keeps collection/tree/menu/paging routes inside a reusable gallery section, and the state-panel prototype keeps the retained diagnostic `PropertyRow` control ids inside a reusable component asset. `ShowcaseSelectionSection` now also owns real `ContextMenuDemo` and `DropdownPopupDemo` nodes with opened popup rows; `showcase_demo_state` keeps them visible only under Selection/All, maps them back to `ContextMenu`/`DropdownPopup`, and the retained host projection test verifies the resulting structured menu-item and option rows before native popup painters consume them. `ShowcaseVisualSection` now also owns an opened `CommandPaletteDemo` sample with workbench command-source defaults, `build` query filtering, selected/focused command state, and a disabled command row; `showcase_demo_state` keeps it visible only under Feedback/All while mapping it back to the real `CommandPalette`, and retained host tests verify the resulting popup role, query, options text, and structured command rows. Category filtering, visual component projection, input/numeric event projection, selection/reference projection, collection/structure projection, and state projection therefore still pass through the generic template runtime path.
 
 `ShowcaseVisualSection` also owns an opened `NotificationCenterDemo` sample with two visible structured notification rows, unread state, selected and focused row metadata, and `NotificationCenter` component mapping. `showcase_demo_state` keeps it visible only under Feedback/All, and retained host tests verify the resulting notification-center role, popup state, options text, tone/description/unread metadata, selected row, and focused row before the native notification painter consumes the same structured row projection.
 
 The top-level showcase asset also carries explicit Rust contract action-id markers for generated input actions such as `ui_component_showcase.number_field_drag_update` and `ui_component_showcase.input_field_changed`. Those markers keep the owned Rust metadata visible in the source bundle even though the routed `.zui` components still author their human-readable PascalCase event ids. `showcase_event_inputs.rs` keeps exact `AssetFieldClear`, `AssetFieldLocate`, and `AssetFieldOpen` suffix constants beside the normalized matching helper, so the callback-wiring guard can verify the asset-field controls stay Rust-wired after action id normalization.
 
-The UI Asset Editor bootstrap layout is now `ui_asset_editor.v2.ui.toml`. UI Asset Editor sessions detect v2 source through `UiV2AssetLoader`, keep the last valid v2 document resident on the session, and serialize edited/canonical source back as v2 instead of downgrading authoring output to the old recursive schema. The deleted `ui_asset_editor.ui.toml` path is covered by the asset boundary guard, so UI authoring can no longer quietly reopen the old bootstrap asset.
+The UI Asset Editor bootstrap layout is now `ui_asset_editor.zui`. UI Asset Editor sessions detect v2 source through `UiV2AssetLoader`, keep the last valid v2 document resident on the session, and serialize edited/canonical source back as v2 instead of downgrading authoring output to the old recursive schema. The deleted `ui_asset_editor.ui.toml` path is covered by the asset boundary guard, so UI authoring can no longer quietly reopen the old bootstrap asset.
 
 The UI Asset Editor authoring preview now mirrors the runtime v2 prototype path for registered imports. `v2_authoring.rs` builds a `UiV2PrototypeStore` from the current v2 document plus registered component/style imports, compiles through `compile_with_prototype_store`, and leaves the current asset source as a flat v2 view with import references. That gives authoring preview the same external component expansion, named slot fill, and props/state patch behavior as the runtime v2 path without re-entering the old recursive template builder.
 
 `pane_data_conversion` now builds a shared surface and computes layout before building the host model for template pane bodies. This lets v2 pane bodies contribute frame, clip, z-order, component metadata, and event bindings through the same host model path as older shared surfaces.
 
-The 2026-05-15 continuation closed the stale demo-front/template blocker that had been hiding behind the GPU command-stream validation. `workbench_shell.v2.ui.toml` now treats Hierarchy and Assets as the current activity-rail drawer entries, with `ActivityRail/HierarchyToggle` and `ActivityRail/AssetsToggle` resolving to the matching view instances through `template_bindings.rs`. Pane body assets that host Rust-projected content declare explicit root slots: hierarchy tree, animation sequence timeline, animation graph canvas, module plugins list, build/export targets, and the new performance timeline frame list. `PerformanceTimelinePaneBody/RefreshSnapshot` is a registered focus-view command, so the body asset and binding table no longer drift.
+The 2026-05-15 continuation closed the stale demo-front/template blocker that had been hiding behind the GPU command-stream validation. `workbench_shell.zui` now treats Hierarchy and Assets as the current activity-rail drawer entries, with `ActivityRail/HierarchyToggle` and `ActivityRail/AssetsToggle` resolving to the matching view instances through `template_bindings.rs`. Pane body assets that host Rust-projected content declare explicit root slots: hierarchy tree, animation sequence timeline, animation graph canvas, module plugins list, build/export targets, and the new performance timeline frame list. `PerformanceTimelinePaneBody/RefreshSnapshot` is a registered focus-view command, so the body asset and binding table no longer drift.
 
-The retained adapter maps v2 `HorizontalGroup` and `VerticalGroup` containers to the retained host box kinds, so v2 host-window and pane-body tests assert the current authored components rather than legacy `HorizontalBox` / `VerticalBox` source names. Repository asset tests now load the builtin v2 document table before registering `workbench_shell.v2.ui.toml`, which keeps v2 host-window projection, route IDs, and document tree IDs under one runtime host path. Full `zircon_editor --lib` validation now passes after these corrections.
+The retained adapter maps v2 `HorizontalGroup` and `VerticalGroup` containers to the retained host box kinds, so v2 host-window and pane-body tests assert the current authored components rather than legacy `HorizontalBox` / `VerticalBox` source names. Repository asset tests now load the builtin v2 document table before registering `workbench_shell.zui`, which keeps v2 host-window projection, route IDs, and document tree IDs under one runtime host path. Full `zircon_editor --lib` validation now passes after these corrections.
 
 `build_host_model_with_surface(...)` consumes the arranged surface tree as the spatial authority whenever layout has been computed. Host nodes use `UiArrangedNode.frame` and `UiArrangedNode.clip_frame`, so the retained host sees the same effective clip chain as shared rendering and hit testing. Metadata-only callers that pass an uncomputed surface still fall back to `UiTreeNode.layout_cache`, preserving the older route/property projection path. The arranged path is required for scroll panes such as the Component Showcase center gallery: descendants that are arranged below the visible `ScrollableBox` viewport still project their original frames for layout/debugging, but their `TemplatePaneNodeData.clip_frame` is bounded to the scroll viewport before native painting or template-node hit testing runs.
 
@@ -327,4 +327,4 @@ The componentized Workbench bridge uses that path for its current runtime route 
 
 ## Remaining Scope
 
-The runtime host still has tree-template support for assets kept only as migration/test inputs. `ui_asset_editor.ui.toml` is no longer an exception and has been deleted; the remaining historical inputs are Material meta-component and additional authoring fixtures, such as `editor_widgets.ui.toml`, `material_meta_components.ui.toml`, `asset_browser.ui.toml`, `binding_browser.ui.toml`, `layout_workbench.ui.toml`, `preview_state_lab.ui.toml`, and `theme_browser.ui.toml`. These fixtures now live under `zircon_editor/src/tests/fixtures/ui_legacy/**`, outside the deployable asset roots. Staged `ZirconEngine/assets/ui/**` includes v2 UI templates only, and the guard test `packaged_ui_asset_roots_contain_only_v2_schema_files` prevents historical `.ui.toml` files from returning to active editor/runtime asset roots.
+The runtime host still has tree-template support for assets kept only as migration/test inputs. `ui_asset_editor.ui.toml` is no longer an exception and has been deleted; the remaining historical inputs are Material meta-component and additional authoring fixtures, such as `editor_widgets.zui`, `material_meta_components.zui`, `asset_browser.zui`, `binding_browser.zui`, `layout_workbench.zui`, `preview_state_lab.zui`, and `theme_browser.zui`. These fixtures now live under `zircon_editor/src/tests/fixtures/ui_zui/**`, outside the deployable asset roots. Staged `ZirconEngine/assets/ui/**` includes `.zui` UI templates only, and the guard test `packaged_ui_asset_roots_contain_only_v2_schema_files` prevents historical `.ui.toml` files from returning to active editor/runtime asset roots.

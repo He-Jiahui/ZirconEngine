@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::binary::{decode_binary_asset, encode_binary_asset, AnimationBinaryAssetKind};
+use super::error::AnimationAssetResult;
 use crate::core::math::Real;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -19,11 +20,11 @@ pub struct AnimationSkeletonAsset {
 }
 
 impl AnimationSkeletonAsset {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset(AnimationBinaryAssetKind::Skeleton, bytes)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(AnimationBinaryAssetKind::Skeleton, self)
     }
 }

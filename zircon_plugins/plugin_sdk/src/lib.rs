@@ -27,8 +27,10 @@ pub mod test;
 pub use editor::EditorPluginDeclaration;
 #[cfg(feature = "runtime")]
 pub use manifest::{
-    default_export_packaging, default_supported_platforms, PluginFeatureBundleBuilder,
-    PluginManifestBuilder, PluginModuleBuilder, SDK_API_VERSION,
+    default_export_packaging, default_supported_platforms, importer_runtime_supported_platforms,
+    importer_runtime_supported_targets, ImporterRuntimeManifestBuilder, PluginFeatureBundleBuilder,
+    PluginManifestBuilder, PluginModuleBuilder, NATIVE_ABI_VERSION_V3, NATIVE_DESCRIPTOR_SYMBOL_V3,
+    SDK_API_VERSION,
 };
 #[cfg(feature = "runtime")]
 pub use registration::{
@@ -39,3 +41,7 @@ pub use registration::{
 pub use runtime::RuntimePluginDeclaration;
 #[cfg(feature = "runtime")]
 pub use test::{TestRuntime, TestRuntimeBaseModule, TestRuntimeBuilder, TestRuntimeError};
+#[cfg(feature = "runtime")]
+pub use zircon_runtime::core::framework::bridge::{BridgeError, PluginInterface};
+#[cfg(feature = "runtime")]
+pub use zircon_runtime::plugin::WeakBridge;

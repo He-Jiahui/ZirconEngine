@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    GBufferChannelMask, ShadingModelDescriptor, SHADING_MODEL_ID_BLINN_PHONG,
-    SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
+    GBufferChannelMask, ShadingModelDescriptor, ShadingModelRegistrationError,
+    SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
 };
 
 use super::registry::ShadingModelRegistry;
@@ -38,6 +38,16 @@ pub(crate) fn builtin_shading_model_registry() -> ShadingModelRegistry {
         ))
         .expect("builtin StandardPBR shading model must register");
     registry
+}
+
+pub(crate) fn shading_model_registry_with_plugin_descriptors(
+    plugin_descriptors: impl IntoIterator<Item = ShadingModelDescriptor>,
+) -> Result<ShadingModelRegistry, ShadingModelRegistrationError> {
+    let mut registry = builtin_shading_model_registry();
+    for descriptor in plugin_descriptors {
+        registry.register_plugin_descriptor(descriptor)?;
+    }
+    Ok(registry)
 }
 
 #[cfg(test)]

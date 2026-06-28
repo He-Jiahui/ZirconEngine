@@ -47,7 +47,7 @@ fn quest_log_runtime_v2_asset_preserves_runtime_semantic_golden() {
     let runtime_root = workspace_root.join("zircon_runtime");
 
     let runtime_surface = build_v2_surface(
-        &runtime_root.join("assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml"),
+        &runtime_root.join("assets/ui/runtime/fixtures/quest_log_dialog.zui"),
         "runtime.ui.quest_log_dialog",
     );
 
@@ -111,7 +111,7 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
     &[
         RuntimeUiSemanticGolden {
             name: "hud",
-            runtime_asset: "assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml",
+            runtime_asset: "assets/ui/runtime/fixtures/hud_overlay.zui",
             required_controls: &["HudRoot", "HealthPanel", "WeaponIcon", "AmmoPanel"],
             required_text: &["HP 87 / 100", "Reach the relay before sunrise", "24 / 120"],
             minimum_buttons: 0,
@@ -120,7 +120,7 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
         },
         RuntimeUiSemanticGolden {
             name: "pause",
-            runtime_asset: "assets/ui/runtime/fixtures/pause_menu.v2.ui.toml",
+            runtime_asset: "assets/ui/runtime/fixtures/pause_menu.zui",
             required_controls: &[
                 "PauseMenuRoot",
                 "PauseDialog",
@@ -135,7 +135,7 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
         },
         RuntimeUiSemanticGolden {
             name: "settings",
-            runtime_asset: "assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml",
+            runtime_asset: "assets/ui/runtime/fixtures/settings_dialog.zui",
             required_controls: &[
                 "SettingsRoot",
                 "SettingsDialog",
@@ -154,7 +154,7 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
         },
         RuntimeUiSemanticGolden {
             name: "inventory",
-            runtime_asset: "assets/ui/runtime/fixtures/inventory_list.v2.ui.toml",
+            runtime_asset: "assets/ui/runtime/fixtures/inventory_list.zui",
             required_controls: &[
                 "InventoryRoot",
                 "InventoryPanel",
@@ -174,7 +174,7 @@ fn runtime_ui_semantic_goldens() -> &'static [RuntimeUiSemanticGolden] {
         },
         RuntimeUiSemanticGolden {
             name: "quest_log",
-            runtime_asset: "assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml",
+            runtime_asset: "assets/ui/runtime/fixtures/quest_log_dialog.zui",
             required_controls: &[
                 "QuestLogRoot",
                 "QuestLogDialog",

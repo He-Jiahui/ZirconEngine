@@ -128,7 +128,7 @@ mod tests {
         RenderRectLightSnapshot {
             node_id: 1,
             light_id: 1,
-            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
             position: Vec3::ZERO,
             direction: Vec3::new(0.0, 0.0, -1.0),
             color: Vec3::ONE,

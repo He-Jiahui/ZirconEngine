@@ -17,7 +17,7 @@ use zircon_runtime_interface::ui::tree::{
 const TEMPLATE_WITH_RESOURCES: &str = r#"
 [asset]
 kind = "layout"
-id = "res://ui/views/main.v2.ui.toml"
+id = "res://ui/views/main.zui"
 version = 1
 
 [imports]

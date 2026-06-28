@@ -72,7 +72,7 @@ mod tests {
     };
 
     #[test]
-    fn extended_effect_stack_settings_enable_product_node_without_legacy_fields() {
+    fn extended_effect_stack_settings_enable_product_node_without_retired_fields() {
         let settings = RenderPostProcessEffectStackSettings {
             tonemap: RenderTonemapSettings {
                 operator: RenderTonemapOperator::Aces,

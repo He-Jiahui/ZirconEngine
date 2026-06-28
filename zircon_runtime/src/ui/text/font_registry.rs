@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::asset::assets::FontAsset;
+use crate::graphics::text::font::FontDatabase;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -56,13 +57,11 @@ impl Default for UiFontRegistry {
     fn default() -> Self {
         Self {
             families: Vec::new(),
-            fallback_chain: vec![
-                "Inter".to_string(),
-                "Noto Sans".to_string(),
-                "Noto Sans CJK SC".to_string(),
-                "Microsoft YaHei UI".to_string(),
-                "Segoe UI".to_string(),
-            ],
+            fallback_chain: FontDatabase::with_default_fallbacks()
+                .fallback_families()
+                .iter()
+                .map(|family| family.as_str().to_string())
+                .collect(),
             next_id: 1,
         }
     }
@@ -107,14 +106,18 @@ impl UiFontRegistry {
         let id = self.allocate_id();
         self.families.push(UiFontFamilyRecord {
             id,
-            family,
+            family: family.clone(),
             weight: 400,
             style: UiFontStyle::Normal,
-            render_mode: asset.render_mode,
+            render_mode: asset.effective_render_mode(),
             source: UiFontSource::Asset {
                 source: source.to_string(),
             },
         });
+        self.extend_fallback_chain(
+            std::iter::once(family.as_str())
+                .chain(asset.fallback_families.iter().map(String::as_str)),
+        );
         Ok(id)
     }
 
@@ -137,6 +140,24 @@ impl UiFontRegistry {
         self.next_id = self.next_id.saturating_add(1).max(1);
         id
     }
+
+    fn extend_fallback_chain<'a>(&mut self, families: impl IntoIterator<Item = &'a str>) {
+        for family in families {
+            let family = family.trim();
+            if family.is_empty() {
+                continue;
+            }
+            let key = normalized_family_key(family);
+            if self
+                .fallback_chain
+                .iter()
+                .any(|existing| normalized_family_key(existing) == key)
+            {
+                continue;
+            }
+            self.fallback_chain.push(family.to_string());
+        }
+    }
 }
 
 fn family_from_source(source: &str) -> String {
@@ -145,4 +166,8 @@ fn family_from_source(source: &str) -> String {
         .and_then(|stem| stem.to_str())
         .map(|stem| stem.replace(['_', '-'], " "))
         .unwrap_or_else(|| source.to_string())
+}
+
+fn normalized_family_key(family: &str) -> String {
+    family.trim().to_ascii_lowercase()
 }

@@ -6,7 +6,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
     WORKBENCH_POPUP_ROW_DANGER_TEXT,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_table_row::{
-    select_workbench_table_row_style, WorkbenchTableRowStyle,
+    is_hot_workbench_table_row_state, select_workbench_table_row_style, WorkbenchTableRowStyle,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_table_row::{

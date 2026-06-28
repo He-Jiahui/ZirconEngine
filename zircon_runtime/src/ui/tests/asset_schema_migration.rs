@@ -88,15 +88,15 @@ kind = "native"
 type = "VerticalBox"
 "##;
 
-const LEGACY_TEMPLATE_TOML: &str = r#"
+const SOURCE_TEMPLATE_FIXTURE_TOML: &str = r#"
 version = 1
 
 [root]
 component = "VerticalBox"
-control_id = "LegacyRoot"
+control_id = "SourceFixtureRoot"
 attributes = { layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } } }
 children = [
-  { component = "Button", control_id = "LegacyButton", attributes = { text = "Open" } }
+  { component = "Button", control_id = "SourceFixtureButton", attributes = { text = "Open" } }
 ]
 "#;
 
@@ -229,13 +229,13 @@ fn source_template_fixture_converts_through_schema_migrator() {
     let outcome = UiAssetSchemaMigrator::migrate_source_template_fixture_str(
         "source.workbench",
         "Source Workbench",
-        LEGACY_TEMPLATE_TOML,
+        SOURCE_TEMPLATE_FIXTURE_TOML,
     )
     .unwrap();
 
     assert_eq!(
         outcome.report.source_kind,
-        UiAssetSchemaSourceKind::LegacyTemplateFixture
+        UiAssetSchemaSourceKind::SourceTemplateFixture
     );
     assert_eq!(outcome.report.source_schema_version, Some(1));
     assert_eq!(outcome.document.asset.kind, UiAssetKind::Layout);
@@ -248,7 +248,7 @@ fn source_template_fixture_converts_through_schema_migrator() {
     assert!(outcome
         .report
         .steps
-        .contains(&UiAssetMigrationStep::LegacyTemplateConverted));
+        .contains(&UiAssetMigrationStep::SourceTemplateFixtureConverted));
 
     let root = outcome.document.root.as_ref().expect("source fixture root");
     assert_eq!(root.node_id, "root");

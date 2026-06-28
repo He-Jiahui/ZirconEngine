@@ -130,8 +130,8 @@ impl HubRuntimeSession {
             Ok(report) => report,
             Err(error) => {
                 let detail = error.to_string();
-                let detail_message = HubMessage::legacy(detail.clone());
-                let log_message = HubMessage::legacy(detail);
+                let detail_message = HubMessage::raw_text(detail.clone());
+                let log_message = HubMessage::raw_text(detail);
                 let recovery = HubMessage::new(HubMessageId::Engine(
                     EngineMessageId::CheckToolchainSettings,
                 ));
@@ -160,9 +160,9 @@ impl HubRuntimeSession {
         };
         if !report.succeeded() {
             let detail = report.summary_line();
-            let detail_message = HubMessage::legacy(detail);
-            let log_message = HubMessage::legacy(report.log_excerpt());
-            let history_recovery = HubMessage::legacy(report.recovery_hint());
+            let detail_message = HubMessage::raw_text(detail);
+            let log_message = HubMessage::raw_text(report.log_excerpt());
+            let history_recovery = HubMessage::raw_text(report.recovery_hint());
             let status_recovery =
                 HubMessage::new(HubMessageId::Engine(EngineMessageId::FixFirstBuildError));
             self.record_active_build(
@@ -192,7 +192,7 @@ impl HubRuntimeSession {
             HubMessage::new(HubMessageId::Engine(
                 EngineMessageId::StagedEditorRuntimePayload,
             )),
-            HubMessage::legacy(report.log_excerpt()),
+            HubMessage::raw_text(report.log_excerpt()),
             command_line.clone(),
         );
         self.record_action_and_persist(HubActionRecord {
@@ -203,7 +203,7 @@ impl HubRuntimeSession {
             detail: HubMessage::new(HubMessageId::Engine(
                 EngineMessageId::StagedEditorRuntimePayload,
             )),
-            log_excerpt: HubMessage::legacy(report.log_excerpt()),
+            log_excerpt: HubMessage::raw_text(report.log_excerpt()),
             recovery: None,
             process_id: None,
             command_line,
@@ -211,7 +211,7 @@ impl HubRuntimeSession {
         })?;
         self.task_status = TaskStatus::success(
             "Build complete",
-            HubMessage::legacy(staged_engine_dir.to_string_lossy().into_owned()),
+            HubMessage::raw_text(staged_engine_dir.to_string_lossy().into_owned()),
         )
         .with_operation(TaskOperationKind::Build, engine_target);
         Ok(())

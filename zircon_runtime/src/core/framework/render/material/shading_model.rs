@@ -147,6 +147,11 @@ pub enum ShadingModelRegistrationError {
         required: GBufferChannelMask,
         supported: GBufferChannelMask,
     },
+    PluginIdReserved {
+        token: String,
+        id: ShadingModelId,
+        minimum: u8,
+    },
 }
 
 impl Display for ShadingModelRegistrationError {
@@ -177,6 +182,10 @@ impl Display for ShadingModelRegistrationError {
                 "shading model {token} requires G-buffer channels {:#x}, but the current layout supports {:#x}",
                 required.bits(),
                 supported.bits()
+            ),
+            Self::PluginIdReserved { token, id, minimum } => write!(
+                f,
+                "plugin shading model {token} uses id {id}, but plugin shading model ids must be >= {minimum}"
             ),
         }
     }

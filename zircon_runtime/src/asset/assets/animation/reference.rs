@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::error::AnimationAssetError;
 use crate::asset::{AssetReference, AssetUri, AssetUuid};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -18,14 +19,21 @@ impl From<&AssetReference> for AnimationAssetReferenceBinary {
 }
 
 impl TryFrom<AnimationAssetReferenceBinary> for AssetReference {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationAssetReferenceBinary) -> Result<Self, Self::Error> {
-        let uuid = value
-            .uuid
-            .parse::<AssetUuid>()
-            .map_err(|error| error.to_string())?;
-        let locator = AssetUri::parse(&value.url).map_err(|error| error.to_string())?;
+        let uuid = value.uuid.parse::<AssetUuid>().map_err(|source| {
+            AnimationAssetError::InvalidReferenceUuid {
+                value: value.uuid.clone(),
+                source,
+            }
+        })?;
+        let locator = AssetUri::parse(&value.url).map_err(|source| {
+            AnimationAssetError::InvalidReferenceLocator {
+                value: value.url.clone(),
+                source,
+            }
+        })?;
         Ok(AssetReference::new(uuid, locator))
     }
 }

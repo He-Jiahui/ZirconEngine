@@ -6,13 +6,14 @@ use glyphon::{
     SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport, Weight, Wrap,
 };
 
-use super::font_asset::load_ui_font_manifest_with_asset_manager;
+use super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
 use super::render::ScreenSpaceUiTextBatch;
 use crate::asset::ProjectAssetManager;
+use crate::graphics::text::font::FontDatabase;
 use glyphon::cosmic_text::Align;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiTextAlign, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+    UiTextAlign, UiTextDirection, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
 };
 
 use super::sdf_atlas::{ScreenSpaceUiSdfAtlas, SdfAtlasCacheReport};
@@ -26,6 +27,7 @@ const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 pub(super) struct ScreenSpaceUiTextSystem {
     asset_manager: Arc<ProjectAssetManager>,
     font_system: FontSystem,
+    font_database: FontDatabase,
     swash_cache: SwashCache,
     font_assets: HashMap<String, LoadedUiFontAsset>,
     native: ScreenSpaceUiTextBackend,
@@ -107,9 +109,15 @@ impl ScreenSpaceUiTextSystem {
         target_format: wgpu::TextureFormat,
     ) -> Self {
         let mut font_system = FontSystem::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
+        font_database.load_system_fonts();
         let mut font_assets = HashMap::new();
-        let default_font =
-            load_font_asset_record(&mut font_system, DEFAULT_FONT_ASSET, &asset_manager);
+        let default_font = load_font_asset_record(
+            &mut font_system,
+            &mut font_database,
+            DEFAULT_FONT_ASSET,
+            &asset_manager,
+        );
         if let Some(record) = default_font.as_ref() {
             if let Some(family) = record.family.as_deref() {
                 font_system
@@ -125,6 +133,7 @@ impl ScreenSpaceUiTextSystem {
         Self {
             asset_manager,
             font_system,
+            font_database,
             swash_cache: SwashCache::new(),
             font_assets,
             native: ScreenSpaceUiTextBackend::new(device, queue, target_format),
@@ -145,6 +154,7 @@ impl ScreenSpaceUiTextSystem {
     ) {
         let resolved_texts = resolve_text_batches(
             &mut self.font_system,
+            &mut self.font_database,
             &mut self.font_assets,
             self.asset_manager.as_ref(),
             auto_texts,
@@ -160,6 +170,7 @@ impl ScreenSpaceUiTextSystem {
             resolved_texts.sdf_texts(),
             self.sdf_atlas.plan(),
             sdf_atlas_report,
+            &mut self.font_database,
             self.asset_manager.as_ref(),
         );
         let sdf_renderer_report = self.sdf_renderer.prepare_report();
@@ -169,6 +180,7 @@ impl ScreenSpaceUiTextSystem {
             viewport_size,
             resolved_texts.native_texts(),
             &mut self.font_system,
+            &mut self.font_database,
             &mut self.swash_cache,
             &mut self.font_assets,
             self.asset_manager.as_ref(),
@@ -220,6 +232,7 @@ impl ScreenSpaceUiTextBackend {
         viewport_size: crate::core::math::UVec2,
         texts: &[ScreenSpaceUiTextBatch],
         font_system: &mut FontSystem,
+        font_database: &mut FontDatabase,
         swash_cache: &mut SwashCache,
         font_assets: &mut HashMap<String, LoadedUiFontAsset>,
         asset_manager: &ProjectAssetManager,
@@ -241,6 +254,7 @@ impl ScreenSpaceUiTextBackend {
         for text in texts {
             let family_name = resolve_family_name(
                 font_system,
+                font_database,
                 font_assets,
                 asset_manager,
                 text.font.as_deref(),
@@ -267,11 +281,7 @@ impl ScreenSpaceUiTextBackend {
                 &text.text,
                 &attrs,
                 Shaping::Advanced,
-                Some(match text.text_align {
-                    UiTextAlign::Left => Align::Left,
-                    UiTextAlign::Center => Align::Center,
-                    UiTextAlign::Right => Align::Right,
-                }),
+                Some(native_text_align(text.text_align, text.text_direction)),
             );
             buffer.shape_until_scroll(font_system, false);
             buffers.push(buffer);
@@ -322,6 +332,7 @@ fn text_attrs<'a>(family_name: Option<&'a str>, style: UiTextRunPaintStyle) -> A
 
 fn resolve_family_name(
     font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
     font_assets: &mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     font_asset: Option<&str>,
@@ -329,7 +340,13 @@ fn resolve_family_name(
 ) -> Option<String> {
     if let Some(family) = preferred_family.filter(|family| !family.trim().is_empty()) {
         if let Some(asset) = font_asset.filter(|asset| !asset.trim().is_empty()) {
-            ensure_font_asset_record(font_system, font_assets, asset_manager, asset);
+            ensure_font_asset_record(
+                font_system,
+                font_database,
+                font_assets,
+                asset_manager,
+                asset,
+            );
         }
         return Some(family.to_string());
     }
@@ -337,13 +354,20 @@ fn resolve_family_name(
     let asset = font_asset
         .filter(|asset| !asset.trim().is_empty())
         .unwrap_or(DEFAULT_FONT_ASSET);
-    ensure_font_asset_record(font_system, font_assets, asset_manager, asset)
-        .family
-        .clone()
+    ensure_font_asset_record(
+        font_system,
+        font_database,
+        font_assets,
+        asset_manager,
+        asset,
+    )
+    .family
+    .clone()
 }
 
 fn resolve_text_batches(
     font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
     font_assets: &mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     auto_texts: &[ScreenSpaceUiTextBatch],
@@ -356,6 +380,7 @@ fn resolve_text_batches(
     for text in auto_texts {
         let font_asset = resolve_font_asset_record(
             font_system,
+            font_database,
             font_assets,
             asset_manager,
             text.font.as_deref(),
@@ -390,6 +415,7 @@ fn text_prepare_report(
 
 fn resolve_font_asset_record<'a>(
     font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
     font_assets: &'a mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     font_asset: Option<&str>,
@@ -399,6 +425,7 @@ fn resolve_font_asset_record<'a>(
         .unwrap_or(DEFAULT_FONT_ASSET);
     Some(ensure_font_asset_record(
         font_system,
+        font_database,
         font_assets,
         asset_manager,
         asset,
@@ -417,25 +444,49 @@ fn effective_text_render_mode(
 
 fn load_font_asset_record(
     font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
     asset_ref: &str,
     asset_manager: &ProjectAssetManager,
 ) -> Option<LoadedUiFontAsset> {
     let manifest = load_ui_font_manifest_with_asset_manager(asset_ref, Some(asset_manager))?;
-    let _ = font_system.db_mut().load_font_file(manifest.source_path);
+    let face = register_loaded_font_manifest(font_database, &manifest)?;
+    let _ = font_database.load_face_into_font_system(face, font_system);
     Some(LoadedUiFontAsset {
         family: manifest.family,
         render_mode: manifest.render_mode,
     })
 }
 
+fn register_loaded_font_manifest(
+    font_database: &mut FontDatabase,
+    manifest: &LoadedUiFontManifest,
+) -> Option<crate::core::framework::render::FontFaceId> {
+    if let Some(asset) = &manifest.asset {
+        return font_database
+            .register_font_asset(asset, &manifest.source_path)
+            .ok()
+            .and_then(|faces| faces.first().copied());
+    }
+
+    font_database
+        .register_font_file(
+            &manifest.source_path,
+            manifest.family.as_deref(),
+            manifest.face_index,
+        )
+        .ok()
+}
+
 fn ensure_font_asset_record<'a>(
     font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
     font_assets: &'a mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     asset_ref: &str,
 ) -> &'a LoadedUiFontAsset {
     font_assets.entry(asset_ref.to_string()).or_insert_with(|| {
-        load_font_asset_record(font_system, asset_ref, asset_manager).unwrap_or_default()
+        load_font_asset_record(font_system, font_database, asset_ref, asset_manager)
+            .unwrap_or_default()
     })
 }
 
@@ -469,6 +520,18 @@ fn pack_color(color: [f32; 4]) -> Color {
         (color[2].clamp(0.0, 1.0) * 255.0) as u8,
         (color[3].clamp(0.0, 1.0) * 255.0) as u8,
     )
+}
+
+fn native_text_align(align: UiTextAlign, direction: UiTextDirection) -> Align {
+    match align {
+        UiTextAlign::Left => Align::Left,
+        UiTextAlign::Center => Align::Center,
+        UiTextAlign::Right => Align::Right,
+        UiTextAlign::Start if matches!(direction, UiTextDirection::RightToLeft) => Align::Right,
+        UiTextAlign::Start => Align::Left,
+        UiTextAlign::End if matches!(direction, UiTextDirection::RightToLeft) => Align::Left,
+        UiTextAlign::End => Align::Right,
+    }
 }
 
 #[cfg(test)]
@@ -621,6 +684,26 @@ mod tests {
         assert_eq!(code_attrs.family, Family::Monospace);
     }
 
+    #[test]
+    fn native_text_align_maps_start_end_through_text_direction() {
+        assert_eq!(
+            native_text_align(UiTextAlign::Start, UiTextDirection::LeftToRight),
+            Align::Left
+        );
+        assert_eq!(
+            native_text_align(UiTextAlign::End, UiTextDirection::LeftToRight),
+            Align::Right
+        );
+        assert_eq!(
+            native_text_align(UiTextAlign::Start, UiTextDirection::RightToLeft),
+            Align::Right
+        );
+        assert_eq!(
+            native_text_align(UiTextAlign::End, UiTextDirection::RightToLeft),
+            Align::Left
+        );
+    }
+
     fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         ScreenSpaceUiTextBatch {
             text: text.to_string(),
@@ -632,6 +715,7 @@ mod tests {
             font_size: 16.0,
             line_height: 20.0,
             text_align: UiTextAlign::Left,
+            text_direction: UiTextDirection::LeftToRight,
             wrap: UiTextWrap::None,
             style: Default::default(),
         }

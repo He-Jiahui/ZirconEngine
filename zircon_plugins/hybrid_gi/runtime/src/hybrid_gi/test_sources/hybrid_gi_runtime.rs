@@ -1082,7 +1082,7 @@ fn hybrid_gi_runtime_state_ignores_disabled_extract_payloads() {
 }
 
 #[test]
-fn hybrid_gi_runtime_state_ignores_legacy_payloads_when_scene_representation_is_budgeted() {
+fn hybrid_gi_runtime_state_ignores_extract_payloads_when_scene_representation_is_budgeted() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
         enabled: true,
@@ -1318,7 +1318,7 @@ fn hybrid_gi_runtime_state_ignores_parent_probe_ids_without_live_payloads() {
             .hierarchy_rt_lighting(200)
             .map(|source| source[0] > 0.8 && source[1] > 0.25 && source[2] > 0.1)
             .unwrap_or(false),
-        "expected a dangling legacy parent id not to block standalone direct RT fallback for the live child probe"
+        "expected a dangling extract parent id not to block standalone direct RT fallback for the live child probe"
     );
 }
 
@@ -1354,7 +1354,7 @@ fn hybrid_gi_runtime_state_ignores_gpu_cache_entries_without_live_probe_payloads
 }
 
 #[test]
-fn hybrid_gi_runtime_state_breaks_legacy_probe_parent_cycles_on_registration() {
+fn hybrid_gi_runtime_state_breaks_extract_probe_parent_cycles_on_registration() {
     let mut state = HybridGiRuntimeState::default();
     let extract = RenderHybridGiExtract {
         enabled: true,
@@ -1390,11 +1390,11 @@ fn hybrid_gi_runtime_state_breaks_legacy_probe_parent_cycles_on_registration() {
     assert_eq!(
         runtime.parent_probe_count(),
         1,
-        "expected runtime registration to break cyclic legacy RenderHybridGiProbe parent topology instead of exporting both cycle edges"
+        "expected runtime registration to break cyclic extract-sourced RenderHybridGiProbe parent topology instead of exporting both cycle edges"
     );
     assert!(
         !prepare.pending_updates.is_empty(),
-        "expected cyclic legacy parent topology not to make every pending probe wait on another pending ancestor"
+        "expected cyclic extract parent topology not to make every pending probe wait on another pending ancestor"
     );
 }
 
@@ -1426,7 +1426,7 @@ fn hybrid_gi_runtime_state_rebuilds_parent_topology_from_current_extract_before_
     assert_eq!(
         runtime.parent_probe_id(200),
         Some(100),
-        "expected current legacy RenderHybridGiProbe payloads to rebuild runtime parent topology before cycle pruning, instead of letting a stale previous-frame parent edge suppress the new valid parent"
+        "expected current extract-sourced RenderHybridGiProbe payloads to rebuild runtime parent topology before cycle pruning, instead of letting a stale previous-frame parent edge suppress the new valid parent"
     );
     assert_eq!(
         runtime.parent_probe_id(100),
@@ -1707,7 +1707,7 @@ fn hybrid_gi_runtime_state_does_not_inflate_probe_budget_from_duplicate_resident
     assert_eq!(
         state.probe_slot(300),
         None,
-        "expected duplicate legacy resident RenderHybridGiProbe payloads not to inflate runtime probe budget and promote a pending probe without an evictable slot"
+        "expected duplicate extract resident RenderHybridGiProbe payloads not to inflate runtime probe budget and promote a pending probe without an evictable slot"
     );
     assert_eq!(
         state.probe_residency(300),
@@ -2835,7 +2835,7 @@ fn hybrid_gi_runtime_state_keeps_first_duplicate_trace_region_payload_for_lineag
 
     assert!(
         (duplicate_payload_weight - first_payload_weight).abs() <= 0.001,
-        "expected duplicate legacy RenderHybridGiTraceRegion payloads with the same id to keep the first live payload for runtime lineage support, matching renderer scheduled trace lookup instead of letting a later duplicate override it; first_payload_weight={first_payload_weight:.3}, duplicate_payload_weight={duplicate_payload_weight:.3}"
+        "expected duplicate extract-sourced RenderHybridGiTraceRegion payloads with the same id to keep the first live payload for runtime lineage support, matching renderer scheduled trace lookup instead of letting a later duplicate override it; first_payload_weight={first_payload_weight:.3}, duplicate_payload_weight={duplicate_payload_weight:.3}"
     );
 }
 
@@ -2866,7 +2866,7 @@ fn hybrid_gi_runtime_state_keeps_first_duplicate_probe_payload_for_parent_topolo
     assert_eq!(
         runtime.parent_probe_id(200),
         Some(100),
-        "expected duplicate legacy RenderHybridGiProbe payloads with the same id to keep the first parent topology, matching renderer source-probe lookup instead of letting a later duplicate override it"
+        "expected duplicate extract-sourced RenderHybridGiProbe payloads with the same id to keep the first parent topology, matching renderer source-probe lookup instead of letting a later duplicate override it"
     );
 }
 
@@ -2940,7 +2940,7 @@ fn hybrid_gi_runtime_state_limits_lineage_trace_support_to_live_payload_region_b
 
     assert!(
         (tail_supported_weight - flat_weight).abs() <= 0.001,
-        "expected runtime lineage trace support to ignore live trace payloads beyond the same region budget used by GPU trace encoding, instead of letting a 17th legacy scheduled payload strengthen runtime resolve; flat_weight={flat_weight:.3}, tail_supported_weight={tail_supported_weight:.3}"
+        "expected runtime lineage trace support to ignore live trace payloads beyond the same region budget used by GPU trace encoding, instead of letting a 17th extract scheduled payload strengthen runtime resolve; flat_weight={flat_weight:.3}, tail_supported_weight={tail_supported_weight:.3}"
     );
 }
 
@@ -3980,7 +3980,7 @@ fn mesh_at(
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
     }
 }
 
@@ -3988,7 +3988,7 @@ fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnap
     RenderDirectionalLightSnapshot {
         node_id,
         light_id: node_id,
-        layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
         direction: Vec3::new(-0.4, -1.0, -0.2),
         color: Vec3::new(1.0, 0.95, 0.9),
         intensity,

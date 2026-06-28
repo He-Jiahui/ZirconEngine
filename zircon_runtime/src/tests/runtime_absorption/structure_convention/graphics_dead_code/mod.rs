@@ -6,6 +6,8 @@ mod resource_streamer_cleanup;
 
 use super::{repo_path, runtime_src_path};
 
+pub(super) const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!("#[allow(", "dead_code", ")]");
+
 fn read_runtime_src(relative: &str) -> String {
     let path = runtime_src_path(relative);
     std::fs::read_to_string(&path).unwrap_or_else(|error| {

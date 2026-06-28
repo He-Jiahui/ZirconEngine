@@ -106,13 +106,13 @@ mod tests {
     }
 
     #[test]
-    fn camera_history_key_distinguishes_culling_layers_without_legacy_loss() {
+    fn camera_history_key_distinguishes_culling_layers_without_scene_schema_v1_loss() {
         let mut wide_layer = descriptor(13);
         wide_layer.culling_mask = RenderLayerSet::layer(40);
         let mut no_layers = descriptor(13);
         no_layers.culling_mask = RenderLayerSet::none();
 
-        assert_eq!(wide_layer.culling_mask.to_legacy_mask_lossy(), 0);
+        assert_eq!(wide_layer.culling_mask.to_scene_schema_v1_mask_lossy(), 0);
         assert_ne!(
             ViewportCameraHistoryKey::from_camera(&wide_layer),
             ViewportCameraHistoryKey::from_camera(&no_layers)
@@ -120,13 +120,13 @@ mod tests {
     }
 
     #[test]
-    fn camera_history_key_distinguishes_volume_layers_without_legacy_loss() {
+    fn camera_history_key_distinguishes_volume_layers_without_scene_schema_v1_loss() {
         let mut wide_layer = descriptor(17);
         wide_layer.volume_mask = RenderLayerSet::layer(41);
         let mut no_layers = descriptor(17);
         no_layers.volume_mask = RenderLayerSet::none();
 
-        assert_eq!(wide_layer.volume_mask.to_legacy_mask_lossy(), 0);
+        assert_eq!(wide_layer.volume_mask.to_scene_schema_v1_mask_lossy(), 0);
         assert_ne!(
             ViewportCameraHistoryKey::from_camera(&wide_layer),
             ViewportCameraHistoryKey::from_camera(&no_layers)

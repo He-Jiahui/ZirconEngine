@@ -54,20 +54,20 @@ related_code:
   - zircon_editor/src/tests/ui/project_overview/bootstrap_assets.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
@@ -105,20 +105,20 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 plan_sources:
   - user: 2026-05-07 继续里程碑直到完成所有里程碑，主界面表现与 JetBrains/Slate 风格一致
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
@@ -201,15 +201,15 @@ This document records the current accepted entry map for the M3 host cutover wor
 
 | Interface area | Canonical entry | Shared surface responsibility | Host responsibility |
 |---|---|---|---|
-| Top menu bar | `workbench_menu_chrome.v2.ui.toml` through `menu_chrome_nodes(...)` | Author top-row controls and stable `control_id` frames such as `WorkbenchMenuTopBar` and `MenuSlot*` | Inject current menu labels and expose hit frames at the host boundary |
-| Menu popup | `workbench_menu_popup.v2.ui.toml` through `menu_popup_nodes(...)` | Author popup rows, label/shortcut slots, icon-bearing menu item stencils | Expand rows beyond authored stencils, clamp popup in M3/M4, dispatch menu action bindings |
-| Page chrome | `workbench_page_chrome.v2.ui.toml` through `page_chrome_nodes(...)` | Author page strip, project-path label, and page tab frames | Copy current page data and expose tab hit/drag frames |
-| Document, side, bottom, floating headers | `workbench_dock_header.v2.ui.toml` through dock-header projection functions | Author common tab/header shape, close buttons, subtitle frames and icon metadata | Project document/side/bottom/floating tab data without a per-pane hit table |
-| Status bar | `workbench_status_bar.v2.ui.toml` through `status_bar_nodes(...)` | Author status labels and viewport label frames | Inject status text only |
-| Activity rail | `workbench_activity_rail.v2.ui.toml` through `activity_rail_nodes(...)` | Author activity buttons and icon stencils | Copy active tab state and icon keys |
-| Main shell and drawers | `host/workbench_shell.v2.ui.toml` plus `windows/workbench_window.v2.ui.toml` and the Workbench shell components | Author stable workbench regions, real drawer shell/header/content roots, document host root and dock routes | Fill `HostWindowSurfaceData` from `ShellPresentation::from_state(...)` and keep drawer frame constraints inside the Workbench window bridge |
-| Floating panel source | `host/floating_window_source.v2.ui.toml` plus `collect_floating_windows(...)` | Author floating panel source structure | Place native floating windows and keep current activation state |
-| Scene toolbar | `host/scene_viewport_toolbar.v2.ui.toml` through pane presentation | Author the toolbar as a template-backed pane body/control band | Bind current scene settings and dispatch toolbar actions |
+| Top menu bar | `workbench_menu_chrome.zui` through `menu_chrome_nodes(...)` | Author top-row controls and stable `control_id` frames such as `WorkbenchMenuTopBar` and `MenuSlot*` | Inject current menu labels and expose hit frames at the host boundary |
+| Menu popup | `workbench_menu_popup.zui` through `menu_popup_nodes(...)` | Author popup rows, label/shortcut slots, icon-bearing menu item stencils | Expand rows beyond authored stencils, clamp popup in M3/M4, dispatch menu action bindings |
+| Page chrome | `workbench_page_chrome.zui` through `page_chrome_nodes(...)` | Author page strip, project-path label, and page tab frames | Copy current page data and expose tab hit/drag frames |
+| Document, side, bottom, floating headers | `workbench_dock_header.zui` through dock-header projection functions | Author common tab/header shape, close buttons, subtitle frames and icon metadata | Project document/side/bottom/floating tab data without a per-pane hit table |
+| Status bar | `workbench_status_bar.zui` through `status_bar_nodes(...)` | Author status labels and viewport label frames | Inject status text only |
+| Activity rail | `workbench_activity_rail.zui` through `activity_rail_nodes(...)` | Author activity buttons and icon stencils | Copy active tab state and icon keys |
+| Main shell and drawers | `host/workbench_shell.zui` plus `windows/workbench_window.zui` and the Workbench shell components | Author stable workbench regions, real drawer shell/header/content roots, document host root and dock routes | Fill `HostWindowSurfaceData` from `ShellPresentation::from_state(...)` and keep drawer frame constraints inside the Workbench window bridge |
+| Floating panel source | `host/floating_window_source.zui` plus `collect_floating_windows(...)` | Author floating panel source structure | Place native floating windows and keep current activation state |
+| Scene toolbar | `host/scene_viewport_toolbar.zui` through pane presentation | Author the toolbar as a template-backed pane body/control band | Bind current scene settings and dispatch toolbar actions |
 
 ## Behavior Model
 

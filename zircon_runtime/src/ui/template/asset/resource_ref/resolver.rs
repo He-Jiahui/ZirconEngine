@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::core::resource::{
-    ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceScheme,
-    UntypedResourceHandle,
+    ResourceKind, ResourceLocator, ResourceLocatorError, ResourceManager, ResourceRecord,
+    ResourceScheme, UntypedResourceHandle,
 };
+use thiserror::Error;
 use zircon_runtime_interface::ui::template::{
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceKind, UiResourceRef,
 };
@@ -332,10 +333,18 @@ enum RuntimeResourceLookup {
     UiAssetScheme,
 }
 
+type UiResourceLookupResult<T> = std::result::Result<T, UiResourceLookupError>;
+
+#[derive(Debug, Error)]
+enum UiResourceLookupError {
+    #[error(transparent)]
+    ResourceLocator(#[from] ResourceLocatorError),
+}
+
 fn runtime_lookup_for_ui_uri(
     uri: &str,
     scheme_map: &UiResourceResolverSchemeMap,
-) -> Result<RuntimeResourceLookup, String> {
+) -> UiResourceLookupResult<RuntimeResourceLookup> {
     let trimmed = uri.trim();
     if let Some(remainder) = trimmed.strip_prefix("asset://") {
         return mapped_ui_locator(
@@ -352,16 +361,16 @@ fn runtime_lookup_for_ui_uri(
         );
     }
 
-    ResourceLocator::parse(trimmed)
-        .map(RuntimeResourceLookup::Locator)
-        .map_err(|error| error.to_string())
+    Ok(RuntimeResourceLookup::Locator(ResourceLocator::parse(
+        trimmed,
+    )?))
 }
 
 fn mapped_ui_locator(
     remainder: &str,
     scheme: Option<ResourceScheme>,
     project_package_id: Option<&str>,
-) -> Result<RuntimeResourceLookup, String> {
+) -> UiResourceLookupResult<RuntimeResourceLookup> {
     let Some(scheme) = scheme else {
         return Ok(RuntimeResourceLookup::UiAssetScheme);
     };
@@ -376,16 +385,14 @@ fn mapped_ui_locator(
         _ => remainder.to_string(),
     };
     let (path, label) = split_ui_locator_label(&path)?;
-    ResourceLocator::new(scheme, path, label)
-        .map(RuntimeResourceLookup::Locator)
-        .map_err(|error| error.to_string())
+    Ok(RuntimeResourceLookup::Locator(ResourceLocator::new(
+        scheme, path, label,
+    )?))
 }
 
-fn split_ui_locator_label(value: &str) -> Result<(String, Option<String>), String> {
+fn split_ui_locator_label(value: &str) -> UiResourceLookupResult<(String, Option<String>)> {
     match value.split_once('#') {
-        Some((_path, label)) if label.is_empty() => {
-            Err("resource locator label cannot be empty".to_string())
-        }
+        Some((_path, label)) if label.is_empty() => Err(ResourceLocatorError::EmptyLabel.into()),
         Some((path, label)) => Ok((path.to_string(), Some(label.to_string()))),
         None => Ok((value.to_string(), None)),
     }

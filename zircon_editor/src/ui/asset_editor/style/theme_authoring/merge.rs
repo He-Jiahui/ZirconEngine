@@ -301,7 +301,7 @@ pub(super) fn theme_base_name(source_asset_id: &str) -> String {
     let normalized = source_asset_id.replace('\\', "/");
     let file_name = normalized.rsplit('/').next().unwrap_or("theme");
     let stem = file_name
-        .strip_suffix(".ui.toml")
+        .strip_suffix(".zui")
         .or_else(|| file_name.strip_suffix(".toml"))
         .unwrap_or(file_name);
     let stem = stem.strip_suffix(".ui").unwrap_or(stem);

@@ -1,6 +1,8 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use super::error::{AnimationAssetError, AnimationAssetResult};
+
 const ANIMATION_BINARY_MAGIC: [u8; 8] = *b"ZRANIM01";
 const ANIMATION_BINARY_VERSION: u32 = 1;
 
@@ -12,6 +14,18 @@ pub(super) enum AnimationBinaryAssetKind {
     Sequence,
     Graph,
     StateMachine,
+}
+
+impl AnimationBinaryAssetKind {
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Self::Skeleton => "skeleton",
+            Self::Clip => "clip",
+            Self::Sequence => "sequence",
+            Self::Graph => "graph",
+            Self::StateMachine => "state_machine",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -32,7 +46,7 @@ struct AnimationBinaryHeader {
 pub(super) fn encode_binary_asset<T>(
     kind: AnimationBinaryAssetKind,
     payload: &T,
-) -> Result<Vec<u8>, String>
+) -> AnimationAssetResult<Vec<u8>>
 where
     T: Serialize + Clone,
 {
@@ -42,20 +56,27 @@ where
         kind,
         payload: payload.clone(),
     })
-    .map_err(|error| error.to_string())
+    .map_err(|source| AnimationAssetError::Serialize {
+        kind: kind.as_str(),
+        source,
+    })
 }
 
 pub(super) fn decode_binary_asset<T>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
-) -> Result<T, String>
+) -> AnimationAssetResult<T>
 where
     T: DeserializeOwned,
 {
     match decode_binary_document_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
         Err(document_error) => decode_binary_stream_asset(kind, bytes).map_err(|stream_error| {
-            format!("{document_error}; animation stream decode failed: {stream_error}")
+            AnimationAssetError::DocumentAndStreamDecode {
+                kind: kind.as_str(),
+                document: Box::new(document_error),
+                stream: Box::new(stream_error),
+            }
         }),
     }
 }
@@ -63,19 +84,21 @@ where
 pub(super) fn decode_binary_asset_with_v1_payload_fallback<T, V1>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
-) -> Result<T, String>
+) -> AnimationAssetResult<T>
 where
     T: DeserializeOwned,
     V1: DeserializeOwned + TryInto<T>,
-    <V1 as TryInto<T>>::Error: std::fmt::Display,
+    <V1 as TryInto<T>>::Error: Into<AnimationAssetError>,
 {
     match decode_binary_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
         Err(primary_error) => {
             let v1_payload = decode_binary_asset::<V1>(kind, bytes)
-                .and_then(|payload| payload.try_into().map_err(|error| error.to_string()))
-                .map_err(|v1_error| {
-                    format!("{primary_error}; v1 animation asset decode failed: {v1_error}")
+                .and_then(|payload| payload.try_into().map_err(Into::into))
+                .map_err(|v1_error| AnimationAssetError::CurrentAndV1PayloadDecode {
+                    kind: kind.as_str(),
+                    current: Box::new(primary_error),
+                    v1: Box::new(v1_error),
                 })?;
             Ok(v1_payload)
         }
@@ -85,26 +108,42 @@ where
 fn decode_binary_document_asset<T>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
-) -> Result<T, String>
+) -> AnimationAssetResult<T>
 where
     T: DeserializeOwned,
 {
     let document: AnimationBinaryDocument<T> =
-        bincode::deserialize(bytes).map_err(|error| error.to_string())?;
+        bincode::deserialize(bytes).map_err(|source| AnimationAssetError::DocumentDeserialize {
+            kind: kind.as_str(),
+            source,
+        })?;
     validate_binary_header(kind, document.magic, document.version, document.kind)?;
     Ok(document.payload)
 }
 
-fn decode_binary_stream_asset<T>(kind: AnimationBinaryAssetKind, bytes: &[u8]) -> Result<T, String>
+fn decode_binary_stream_asset<T>(
+    kind: AnimationBinaryAssetKind,
+    bytes: &[u8],
+) -> AnimationAssetResult<T>
 where
     T: DeserializeOwned,
 {
     let mut cursor = std::io::Cursor::new(bytes);
     let header: AnimationBinaryHeader =
-        bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())?;
+        bincode::deserialize_from(&mut cursor).map_err(|source| {
+            AnimationAssetError::StreamHeaderDeserialize {
+                kind: kind.as_str(),
+                source,
+            }
+        })?;
     validate_binary_header(kind, header.magic, header.version, header.kind)?;
 
-    bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())
+    bincode::deserialize_from(&mut cursor).map_err(|source| {
+        AnimationAssetError::StreamPayloadDeserialize {
+            kind: kind.as_str(),
+            source,
+        }
+    })
 }
 
 fn validate_binary_header(
@@ -112,18 +151,18 @@ fn validate_binary_header(
     magic: [u8; 8],
     version: u32,
     actual_kind: AnimationBinaryAssetKind,
-) -> Result<(), String> {
+) -> AnimationAssetResult<()> {
     if magic != ANIMATION_BINARY_MAGIC {
-        return Err("invalid animation asset magic".to_string());
+        return Err(AnimationAssetError::InvalidMagic);
     }
     if version != ANIMATION_BINARY_VERSION {
-        return Err(format!("unsupported animation asset version {}", version));
+        return Err(AnimationAssetError::UnsupportedVersion { version });
     }
     if actual_kind != kind {
-        return Err(format!(
-            "animation asset kind mismatch: expected {:?}, found {:?}",
-            kind, actual_kind
-        ));
+        return Err(AnimationAssetError::KindMismatch {
+            expected: kind.as_str(),
+            actual: actual_kind.as_str(),
+        });
     }
     Ok(())
 }

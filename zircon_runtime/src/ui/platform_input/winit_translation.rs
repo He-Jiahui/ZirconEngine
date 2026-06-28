@@ -16,10 +16,10 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::keyboard_map::{
-    keyboard_state, legacy_key_code, logical_key_name, native_scan_code, physical_key_name,
+    dom_key_code, keyboard_state, logical_key_name, native_scan_code, physical_key_name,
 };
 
-const PIXEL_SCROLL_LEGACY_LINE_SCALE: f32 = 0.1;
+const PIXEL_SCROLL_LINE_DELTA_SCALE: f32 = 0.1;
 
 pub fn translate_winit_window_event(
     context: UiWindowInputContext,
@@ -111,7 +111,7 @@ fn translate_keyboard_event(
     UiWindowPlatformInputEvent::keyboard(
         context,
         keyboard_state(event.state, event.repeat),
-        legacy_key_code(&event.logical_key),
+        dom_key_code(&event.logical_key),
         native_scan_code(event.physical_key),
         physical_key_name(event.physical_key),
         logical_key_name(&event.logical_key),
@@ -227,7 +227,7 @@ fn translate_mouse_wheel_event(
             let x = x as f32;
             let y = y as f32;
             (
-                y * PIXEL_SCROLL_LEGACY_LINE_SCALE,
+                y * PIXEL_SCROLL_LINE_DELTA_SCALE,
                 zircon_runtime_interface::ui::dispatch::UiPreciseScrollDelta::pixels(x, y),
             )
         }
@@ -361,7 +361,7 @@ mod tests {
     };
 
     #[test]
-    fn translate_winit_keyboard_matrix_matches_editor_baseline() {
+    fn translate_winit_keyboard_matrix_matches_runtime_input_baseline() {
         let event = KeyEvent {
             physical_key: PhysicalKey::Code(KeyCode::KeyA),
             logical_key: Key::Character("A".into()),
@@ -458,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn translate_winit_ime_preedit_commit_and_disable_match_editor_baseline() {
+    fn translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline() {
         let preedit = translate_ime_event(
             input_context(),
             &Ime::Preedit("a b".to_string(), Some((1, 3))),
@@ -513,7 +513,7 @@ mod tests {
     }
 
     #[test]
-    fn translate_winit_wheel_preserves_precise_delta_and_legacy_scalar() {
+    fn translate_winit_wheel_preserves_precise_delta_and_line_delta_scale() {
         let input = translate_mouse_wheel_event(
             input_context(),
             UiPoint::new(24.0, 36.0),

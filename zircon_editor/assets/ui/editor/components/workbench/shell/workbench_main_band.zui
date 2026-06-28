@@ -12,7 +12,7 @@ widgets = [
   "res://ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui#WorkbenchSceneTreePanel",
   "res://ui/editor/components/workbench/shell/workbench_viewport_panel.zui#WorkbenchViewportPanel",
 ]
-styles = ["res://ui/editor/theme/editor_tokens.v2.ui.toml"]
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchMainBand]
 root = "main_band"

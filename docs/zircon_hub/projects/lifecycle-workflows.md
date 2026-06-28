@@ -5,6 +5,7 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
@@ -48,6 +49,7 @@ implementation_files:
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
@@ -103,6 +105,8 @@ This document owns the React/MUI project lifecycle surface for local Hub v1. The
 `HubActionRequest` parses project lifecycle actions at the IPC boundary. `CreateProjectActionPayload` carries `name`, `location`, `template`, and `engineId`; `ImportProjectActionPayload` carries an optional project folder; `ProjectTargetActionPayload` carries `projectId` and `projectPath` for selected-project workflows.
 
 `HubRuntimeSession::apply_action()` is the runtime owner. Project creation routes to `create_project_from_payload`, import routes to `import_project_from_action`, and pin/unpin/remove/delete routes to project lifecycle helpers in `src/tauri_app/runtime_state/project_actions.rs`. Workflow buttons for build, package, install, and open-editor first call the shared target resolver in `action_targets.rs`.
+
+Runtime 15 M3 support Hub project-actions tests child-owner split (`runtime_15_support_hub_project_actions_tests_child_owner_split_static_passed_cargo_deferred`) keeps `zircon_hub/src/tauri_app/runtime_state/project_actions.rs` focused on the project-action runtime owner while `zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs` owns create/import/delete behavior coverage, `session_with_source`, and temp-dir fixtures. Guard `runtime_15_support_hub_project_actions_tests_are_child_owner` prevents those test fixtures from flowing back into the parent and locks the project-actions tests child-owner split docs/status anchors.
 
 React does not infer filesystem identity. `web/src/tauri/projectTarget.ts` exposes `projectTargetPayload(project)` and `quickActionProjectTargetPayload(project)`. Project Detail, Editor, Builds, Catalog, and Cloud pass `{ projectId, projectPath }` when a selected project is visible, while Rust target resolution prefers `projectPath` before the stable id and keeps `targetId` only as compatibility fallback.
 

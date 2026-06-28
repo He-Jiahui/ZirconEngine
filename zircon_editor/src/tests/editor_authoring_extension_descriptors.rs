@@ -185,7 +185,7 @@ fn authoring_registry_accepts_view_templates_but_keeps_drawers_component_only() 
     registry
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "authoring.material.panel",
-            "asset://material_editor/editor/panel.v2.ui.toml",
+            "asset://material_editor/editor/panel.zui",
         ))
         .unwrap();
     registry

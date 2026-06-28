@@ -8,7 +8,8 @@ mod vm_state_blob;
 
 pub use management_policy::{
     VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
-    VmPluginManagementPolicy, VmPluginMemoryPolicy,
+    VmPluginManagementPolicy, VmPluginManagementPolicyError, VmPluginManagementPolicyResult,
+    VmPluginMemoryPolicy,
 };
 pub use vm_plugin_instance::VmPluginInstance;
 pub use vm_plugin_manifest::VmPluginManifest;

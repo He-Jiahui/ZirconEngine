@@ -9,7 +9,6 @@ supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = [
     "runtime.plugin.asset_importer.audio",
-    "runtime.asset.importer.audio.codec",
 ]
 maturity = "experimental"
 asset_roots = []
@@ -59,7 +58,6 @@ crate_name = "zircon_plugin_asset_importer_audio_runtime"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.audio",
-    "runtime.asset.importer.audio.codec",
 ]
 
 [[modules]]
@@ -69,5 +67,4 @@ crate_name = "zircon_plugin_asset_importer_audio_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.audio",
-    "runtime.asset.importer.audio.codec",
 ]

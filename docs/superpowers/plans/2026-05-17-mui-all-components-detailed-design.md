@@ -28,7 +28,7 @@ Every component plan below follows the Button slice shape:
 3. **Typed Contract:** props, style fields, enums, state fields, and whether new shared DTOs are needed.
 4. **Runtime Behavior:** pointer/keyboard/accessibility/default action behavior, dirty domains, and `needs support` notes.
 5. **Editor Projection/Painter:** how `ViewTemplateNodeData` / `TemplatePaneNodeData` and `host_contract/painter` consume the resolved state.
-6. **Prototype Asset:** `.zui` file and `editor_material.v2.ui.toml` selectors/tokens to touch.
+6. **Prototype Asset:** `.zui` file and `editor_material.zui` selectors/tokens to touch.
 7. **Validation:** focused runtime/editor tests plus docs checks. Compile/build commands run in milestone testing stages, not after each small slice.
 8. **Docs:** update matrix, token audit, module docs, and any source-path docs when code modules change.
 
@@ -63,7 +63,7 @@ Every new or polished prototype should update this matrix only when it introduce
 - `zircon_runtime/src/ui/style.rs`: generic typed style resolver additions; keep component-specific parsing coherent and reusable.
 - `zircon_runtime/src/ui/v2/style.rs`: selector/runtime pseudo-state support and dirty-domain classification; avoid component-only special cases unless the key is a true visual style field.
 - `zircon_runtime/src/ui/component/catalog/material_foundation/**`: component descriptor props/default classes split by family.
-- `zircon_editor/assets/ui/theme/editor_material.v2.ui.toml`: shared dark Material tokens/selectors and state priority.
+- `zircon_editor/assets/ui/theme/editor_material.zui`: shared dark Material tokens/selectors and state priority.
 - `zircon_editor/assets/ui/editor/material_components/material_*.zui`: one visible prototype per component family, with state strip and representative feedback route where interactive.
 - `zircon_editor/src/ui/layouts/views/**`: editor/runtime projection only when new typed data must reach retained host models.
 - `zircon_editor/src/ui/retained_host/host_contract/**`: host DTO/painter/presenter support only when prototype metadata needs native rendering beyond existing quad/text/image primitives.

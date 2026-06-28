@@ -188,7 +188,7 @@ fn blur_particle_sprites() -> Vec<RenderParticleSpriteSnapshot> {
                 color,
                 intensity: 1.0,
                 depth_test: false,
-                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
                 material: None,
                 texture: None,
             });

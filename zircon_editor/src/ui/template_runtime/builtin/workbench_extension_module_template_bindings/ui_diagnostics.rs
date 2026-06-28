@@ -152,8 +152,8 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.icon_library.warning_table_row.select",
     ),
     click(
-        "IconLibraryLegacyTableRow",
-        "workbench.extension.icon_library.legacy_table_row.select",
+        "IconLibraryArchivedTableRow",
+        "workbench.extension.icon_library.archived_table_row.select",
     ),
     click(
         "IconLibraryOutput",

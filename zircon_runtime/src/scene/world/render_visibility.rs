@@ -32,7 +32,7 @@ pub(super) fn build_visibility_input(
                     .get(entity)
                     .cloned()
                     .unwrap_or_else(|| {
-                        RenderLayerSet::from_legacy_mask(default_render_layer_mask())
+                        RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask())
                     }),
             }
         }))

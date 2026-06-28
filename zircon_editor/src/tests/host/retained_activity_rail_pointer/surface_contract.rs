@@ -18,7 +18,7 @@ fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
     );
     let chrome_projection =
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
-    let activity_asset = source("assets/ui/editor/workbench_activity_rail.v2.ui.toml");
+    let activity_asset = source("assets/ui/editor/workbench_activity_rail.zui");
 
     assert!(globals.contains("on_activity_rail_pointer_clicked"));
     assert!(wiring.contains("host_shell.on_activity_rail_pointer_clicked("));

@@ -2,7 +2,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
 
 pub(super) const BUILTIN_ZUI_ASSET_ID_ALIASES: &[(&str, &str)] = &[(
     "res://ui/editor/host/activity_drawer_window.zui",
@@ -20,12 +21,47 @@ pub(super) fn runtime_asset_root() -> PathBuf {
         .join("zircon_runtime/assets")
 }
 
-pub(super) fn collect_v2_ui_toml_files(root: &Path) -> Vec<PathBuf> {
-    collect_files_with_suffix(root, ".v2.ui.toml")
+pub(super) fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
+    // Existing component-governance modules intentionally use the component-only .zui view.
+    collect_zui_component_files(root)
 }
 
-pub(super) fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
+pub(super) fn collect_zui_document_files(root: &Path) -> Vec<PathBuf> {
     collect_files_with_suffix(root, ".zui")
+}
+
+pub(super) fn collect_zui_component_files(root: &Path) -> Vec<PathBuf> {
+    collect_zui_document_files(root)
+        .into_iter()
+        .filter(|path| load_zui_document(path).asset.kind == UiV2AssetKind::Component)
+        .collect()
+}
+
+pub(super) fn collect_zui_view_style_files(root: &Path) -> Vec<PathBuf> {
+    collect_zui_document_files(root)
+        .into_iter()
+        .filter(|path| is_ui_root_kind(load_zui_document(path).asset.kind))
+        .collect()
+}
+
+pub(super) fn collect_ui_root_document_files(root: &Path) -> Vec<PathBuf> {
+    let mut files = collect_zui_view_style_files(root);
+    files.sort();
+    files
+}
+
+pub(super) fn load_zui_document(path: &Path) -> UiV2AssetDocument {
+    let source = fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+    UiZuiAssetLoader::load_zui_str(&source)
+        .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()))
+}
+
+pub(super) fn is_ui_root_kind(kind: UiV2AssetKind) -> bool {
+    matches!(
+        kind,
+        UiV2AssetKind::View | UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens
+    )
 }
 
 fn collect_files_with_suffix(root: &Path, suffix: &str) -> Vec<PathBuf> {
@@ -169,11 +205,8 @@ pub(super) fn pascal_case_file_stem(path: &Path) -> String {
 pub(super) fn production_widget_import_asset_ids(asset_roots: &[PathBuf]) -> BTreeSet<String> {
     let mut asset_ids = BTreeSet::new();
     for asset_root in asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 let asset_id = import
@@ -216,11 +249,8 @@ pub(super) fn production_widget_import_zui_locators(asset_roots: &[PathBuf]) -> 
     let mut locators = BTreeSet::new();
     let mut pending = Vec::new();
     for asset_root in asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 let Some((asset_id, _component_name)) = split_widget_component_import(import)
@@ -236,10 +266,7 @@ pub(super) fn production_widget_import_zui_locators(asset_roots: &[PathBuf]) -> 
         let Some(path) = resolve_res_locator(&locator, asset_roots) else {
             continue;
         };
-        let source = fs::read_to_string(&path)
-            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-        let document = UiZuiAssetLoader::load_zui_str(&source)
-            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let document = load_zui_document(&path);
 
         for import in &document.imports.widgets {
             let (asset_id, _fragment) = split_import_fragment(import);

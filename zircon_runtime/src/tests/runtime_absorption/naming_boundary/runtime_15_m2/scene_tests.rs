@@ -1,4 +1,4 @@
-﻿use std::path::Path;
+use std::path::Path;
 
 use super::super::{assert_contains_all, read_repo_text, read_text};
 
@@ -40,7 +40,7 @@ fn runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name() {
     let ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
     let status_rows = read_text(
         &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
         ),
         "Runtime 15 expected status row data should be readable",
     );

@@ -395,7 +395,7 @@ mod tests {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
         }
     }
 }

@@ -4,15 +4,27 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/mod.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_module_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_feature_bundle_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
+  - tools/zircon_build.py
+  - tools/zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_plugin_carriers.py
+  - tools/tests/test_zircon_build_shader_prewarm.py
+  - zircon_plugins/native_dynamic_fixture/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_asset_roots_auto_export.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
+  - zircon_runtime/src/plugin/extension_registry/register/metadata.rs
   - zircon_runtime/src/plugin/extension_registry/access.rs
+  - zircon_runtime/src/plugin/extension_registry/access/metadata.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
@@ -515,6 +527,8 @@ plan_sources:
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
+  - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
+  - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_bridge_interfaces
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_declarations
@@ -522,6 +536,25 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest/feature_modules.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_package_manifest.rs::runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/interfaces.rs
+  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_custom_shading_model_descriptors
+  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_custom_geometry_source_descriptors
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs::runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs::runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs::runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired
+  - python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shading-model descriptor registration: passed)
+  - python -m unittest tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin shading-model descriptor registration: passed, 3 tests)
+  - cargo check -q -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plan08-shading-model-descriptor-check --color never (2026-06-27 Plugin shading-model descriptor registration: passed with existing warnings)
+  - cargo test -q -p zircon_runtime --lib shading_model --no-default-features --features target-server --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plan08-shading-model-descriptor-check --color never -- --nocapture (2026-06-27 Plugin shading-model descriptor registration: blocked during lib-test compile by existing `UiInputMethodSurroundingTextError` / `StdError` thiserror source drift; not counted as passed)
+  - python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin geometry-source descriptor registration: passed)
+  - python -m unittest tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin geometry-source descriptor registration: passed, 4 tests)
+  - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir D:/cargo-targets/zircon-plan08-geometry-source-descriptor-check --message-format short --color never (2026-06-27 Plugin geometry-source descriptor registration: passed with existing warnings)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime --locked --jobs 1 --target-dir D:/cargo-targets/zircon-plan08-geometry-source-descriptor-plugin-check --message-format short --color never (2026-06-27 Plugin geometry-source descriptor registration: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired --no-default-features --features target-server --locked --jobs 1 --target-dir D:/cargo-targets/zircon-plan08-geometry-source-descriptor-check --message-format short --color never -- --nocapture (2026-06-27 Plugin geometry-source descriptor registration: timed out after 1204s during lib-test compile/link; no test result)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shader asset roots auto-export: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_plugin_carriers (2026-06-27 Plugin shader asset roots auto-export: passed, 20 tests)
+  - python tools/zircon_build.py --targets runtime,plugins --plugins native_dynamic_fixture --out target/codex-plan08-plugin-asset-roots-dry-run --mode debug --prewarm-shaders --dry-run (2026-06-27 Plugin shader asset roots auto-export: passed)
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_asset_roots_auto_export.rs::runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs::review_d13_native_fixture_importer_is_manifest_described
   - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui UI component descriptor suffix validation: planned for milestone testing stage)
   - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui plugin manifest boundary: planned for milestone testing stage)
   - cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1
@@ -738,6 +771,14 @@ doc_type: module-detail
 
 These fields are generic because sound is not the only plugin that needs optional feature gates, project-visible settings, or future event namespaces.
 
+2026-06-27 Plugins 13 Sound optional-feature dist rollout extended the feature bundle manifest builder with `PluginFeatureBundleManifest::with_native_module(...)`. Feature bundles can now declare native module rows alongside feature capabilities and default packaging, which lets `sound.timeline_animation_track` and `sound.ray_traced_convolution_reverb` advertise `NativeDynamic` feature-local dist wrappers without becoming new plugin roots or adding nested `plugin.toml` manifests. Focused validation passed for both feature runtime manifests, both feature dist wrappers, and the aggregated `zircon_plugin_sound_runtime optional_feature_manifest` lane.
+
+2026-06-27 Plugins 13 feature-provider build materialization extended `PluginFeatureBundleManifest` with serde-defaulted `provider_package_id` and feature-level `distribution` fields. Owner-embedded optional features can now declare their standalone provider package id and native distribution contract in the owner manifest, so `plugin build <feature-provider-id>` can materialize a `package_kind = "feature_extension"` package from `sound/plugin.toml` without adding nested plugin roots. Runtime package validation, descriptor project selection, builtin catalog projection, and static manifest schema guards consume these fields. Focused validation passed for `builtin_runtime_catalog_optional_features_match_static_plugin_manifests`, `runtime_plugin_catalog_features`, `export_build_plan_feature_provider`, and `plugin_tomls_declare_known_nested_fields`.
+
+2026-06-27 Plugins 13 static manifest and dot package-id convergence extended runtime package id validation to accept dot-namespaced package ids whose segments are still lowercase token segments. This keeps standalone importer-family ids such as `asset_importer.shader` valid in both static `plugin.toml` contracts and linked/native registration reports. `PluginPackageManifest::new(...)` now derives a default package coordinate name by replacing dots with underscores, so `asset_importer.shader` maps to `com.zircon.asset_importer_shader` unless a manifest explicitly overrides package coordinates. Asset importer `plugin_id` owner validation now uses the same package-id rule instead of the single-token rule, allowing importer descriptors to point back to their dot-namespaced owner package.
+
+2026-06-27 Plan 08 Plugin shader asset roots auto-export did not add a new manifest field; it made the build tool consume existing package asset-root metadata for shader prewarm. `PluginPackageManifest.asset_roots_or_default()` already treats an empty manifest value as `assets`; `tools/zircon_build.py` now mirrors that default when the package directory exists, also accepts explicit `asset_roots`, and preserves legacy `[distribution] assets = ["assets/**"]` as an asset-root hint for older native packages such as `native_dynamic_fixture`. Selected plugin roots are appended to the staged prewarm command as additional `--asset-root` values, so shader resource registry auto-export sees plugin WGSL payloads alongside engine assets. Status: `render_plan08_plugin_shader_asset_roots_auto_export_focused_tests_passed_cargo_deferred_renderdoc_deferred`; `test_build_command_includes_selected_plugin_asset_roots` and `runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired` lock the behavior.
+
 ## Behavior Model
 
 `PluginDependencyManifest` records another plugin, capability, or bridge interface that this package expects. `required = true` means the package cannot fully operate without that dependency. `required = false` means the package exposes a gated advanced path when the capability or interface exists. Capability dependencies keep using the optional `capability` field. Bridge dependencies use the serde-defaulted `interfaces` list, so dependency rows can be capability-only, interface-only, or both.
@@ -750,7 +791,7 @@ The runtime extension registry validates option rows before installation. Option
 
 Static manifest option contract tests are folder-backed to keep row traversal, key shape, and enum/default-value rules separate. `static_manifest_contracts/options.rs` is child-module wiring only. `options/rows.rs` owns the full option row contract and global key uniqueness, `options/keys.rs` owns the focused key namespace contract, `options/enums.rs` owns focused enum default/value tests, `options/shape.rs` owns shared trim, key namespace, value type, default parsing, and enum-value helpers, and `options/traversal.rs` owns TOML option array traversal. This mirrors the production validation boundaries without changing test names, diagnostics, or validation order.
 
-Static manifest schema tests are also folder-backed. `static_manifest_contracts/manifest_schema.rs` is child-module wiring only, `manifest_schema/field_sets.rs` owns the top-level and nested `PluginPackageManifest` field allow-lists, `manifest_schema/assertions.rs` owns shared unknown-field assertions plus component and feature-bundle row adapters, `manifest_schema/top_level.rs` owns the top-level unknown-field contract, and `manifest_schema/nested.rs` owns nested row-field coverage for dependencies, modules, options, components, UI components, asset importers, capability statuses, event catalogs, optional features, and feature-extension rows. The split keeps typo rejection visible before plugin-window, catalog projection, export selection, or native package loading consume static plugin TOML.
+Static manifest schema tests are also folder-backed. `static_manifest_contracts/manifest_schema.rs` is child-module wiring only, `manifest_schema/field_sets.rs` owns the top-level and nested `PluginPackageManifest` field allow-lists, `manifest_schema/assertions.rs` owns shared unknown-field assertions plus component and feature-bundle row adapters, `manifest_schema/top_level.rs` owns the top-level unknown-field contract, and `manifest_schema/nested.rs` owns nested row-field coverage for dependencies, modules, options, components, UI components, asset importers, capability statuses, event catalogs, optional features, feature-extension rows, geometry-source rows, shading-model rows, and shader permutation rows. The split keeps typo rejection visible before plugin-window, catalog projection, export selection, or native package loading consume static plugin TOML.
 
 Bridge interface manifest validation is folder-backed under `package_validation/interfaces.rs`. `interfaces/exports.rs` owns `provides_interfaces` namespace and uniqueness diagnostics. `interfaces/dependencies.rs` owns dependency `interfaces` namespace and per-dependency uniqueness diagnostics. Package dependency capability validation now treats `capability` and `interfaces` as alternative dependency payloads: a row must declare at least one, but an interface-only bridge dependency no longer needs a capability placeholder.
 
@@ -770,7 +811,7 @@ keeps the internal entry point, `asset_importers/rows.rs` owns list traversal,
 `asset_importers/row.rs` owns per-importer identity and required-capability dispatch,
 `asset_importers/identity.rs` owns the identity entry point, `identity/metadata.rs` owns
 metadata rule dispatch, `identity/metadata/namespace.rs` owns importer id namespace diagnostics,
-`identity/metadata/owner.rs` owns owner plugin-id token and package-match diagnostics,
+`identity/metadata/owner.rs` owns owner package-id shape and package-match diagnostics,
 `identity/metadata/version.rs` owns positive importer-version diagnostics,
 `identity/uniqueness.rs` owns package-local duplicate-id diagnostics,
 `asset_importers/required_capabilities.rs` owns
@@ -789,7 +830,7 @@ Runtime plugin default-packaging validation is folder-backed. `package_validatio
 
 Feature-manifest validation is folder-backed because package manifests can embed optional-feature and feature-extension rows. `feature_validation.rs` keeps the internal feature-manifest entry surface and provider package-id entry surface, while `feature_validation/identity.rs` owns feature id field/namespace diagnostics, display-name field diagnostics, owner plugin-id field/token diagnostics, and owner-prefix diagnostics before capability, dependency, module, and default-packaging validation run. `feature_validation/shape.rs` keeps the internal helper surface, while `shape/field.rs`, `shape/namespace.rs`, and `shape/token.rs` own trimmed field, feature namespace, and owner/provider token diagnostics before package-embedded feature rows feed catalog projection. Namespace validation is split so `shape/namespace.rs` keeps namespace entry dispatch, `shape/namespace/segments.rs` owns segment-rule dispatch, `shape/namespace/segments/count.rs` owns minimum two-segment diagnostics, and `shape/namespace/segments/tokens.rs` owns lowercase segment diagnostics. Token validation is itself folder-backed: `shape/token.rs` owns token rule orchestration, `shape/token/start.rs` owns lowercase-start diagnostics, `shape/token/charset.rs` owns lowercase ASCII letters/digits/underscore character-set diagnostics, and `shape/token/underscore.rs` owns trailing/repeated underscore diagnostics.
 
-Package-manifest shape validation uses the same folder-backed pattern. `package_validation/shape.rs` keeps the internal helper surface, `shape/field.rs` owns trimmed/non-empty field diagnostics, `shape/token.rs` owns package-token rule orchestration, `shape/token/charset.rs` owns package-token trim and lowercase ASCII character-set diagnostics, `shape/token/predicate.rs` owns the shared lowercase token predicate, `shape/identity.rs` owns package-id rule orchestration, `shape/identity/charset.rs` owns package-id lowercase ASCII character-set diagnostics, `shape/identity/start.rs` owns package-id leading-letter diagnostics, `shape/identity/underscore.rs` owns package-id trailing/repeated underscore diagnostics, `shape/namespace.rs` owns namespace field gating, `shape/namespace/segments.rs` owns segment-rule dispatch, `shape/namespace/segments/count.rs` owns minimum segment diagnostics, and `shape/namespace/segments/tokens.rs` owns lowercase segment diagnostics before descriptor, native package, package feature, and module validation consume the shared package-shape contract.
+Package-manifest shape validation uses the same folder-backed pattern. `package_validation/shape.rs` keeps the internal helper surface, `shape/field.rs` owns trimmed/non-empty field diagnostics, `shape/token.rs` owns package-token rule orchestration, `shape/token/charset.rs` owns package-token trim and lowercase ASCII character-set diagnostics, `shape/token/predicate.rs` owns the shared lowercase token predicate, `shape/identity.rs` owns package-id rule orchestration, `shape/identity/charset.rs` owns dot-namespaced package-id segment character-set diagnostics, `shape/identity/start.rs` owns package-id leading-letter diagnostics, `shape/identity/underscore.rs` owns per-segment trailing/repeated underscore diagnostics, `shape/namespace.rs` owns namespace field gating, `shape/namespace/segments.rs` owns segment-rule dispatch, `shape/namespace/segments/count.rs` owns minimum segment diagnostics, and `shape/namespace/segments/tokens.rs` owns lowercase segment diagnostics before descriptor, native package, package feature, and module validation consume the shared package-shape contract.
 
 Feature provider validation is also folder-backed. `feature_validation/provider.rs` owns `provider_package_id` field and token diagnostics consumed by native feature manifests and provider overrides, while `feature_validation.rs` keeps the internal provider entry surface.
 
@@ -1027,6 +1068,10 @@ with before/after constraints. These fields are serde-defaulted for existing man
 `RuntimePluginDescriptor`. Descriptor-owned values project into the generated `.runtime` module row
 so linked Rust plugins and static package manifests share the same public scheduler contract.
 
+Plugin shading-model descriptor registration is now a real package-manifest contribution instead of a dead graphics-side test surface. Static manifests can declare `[[shading_models]]` rows with `id`, `token`, `forward_include`, `gbuffer_encode_include`, `deferred_include`, and `required_channels`; the row serializes the same backend-neutral `ShadingModelDescriptor` used by runtime code. `RuntimeExtensionRegistry` installs those rows as owner-tracked `shading_models`, registration rejects non-`custom:<name>` tokens, built-in-range ids, untrimmed include names, and empty G-buffer masks, and catalog merge preserves the plugin owner so unload/revoke removes the descriptor. Build staging also derives selected-plugin `shader_shading_model_ids` from `[[shading_models]]`, which keeps the descriptor row authoritative instead of requiring a duplicate `shader_permutation.shading_model_ids` entry. Status: `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`; guard: `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`.
+
+Plugin geometry-source descriptor registration is also a real package-manifest contribution. Static manifests can declare `[[geometry_sources]]` rows with `id`, `token`, `wgsl_include`, `vertex_attributes`, `required_bindings`, and `shader_defines`; the row serializes the backend-neutral `GeometrySourceDescriptor` used by runtime code. `RuntimeExtensionRegistry` installs those rows as owner-tracked `geometry_sources`, registration rejects non-`custom:<name>` tokens, built-in-range ids, empty include names, missing vertex attributes, and untrimmed binding slot or shader define names, and catalog merge preserves the plugin owner so unload/revoke removes the descriptor. Build staging derives selected-plugin `shader_geometry_source_ids` from `[[geometry_sources]]` and dedupes with legacy `shader_permutation.geometry_source_ids`, which keeps the descriptor row authoritative while preserving the existing id-row input; `test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids` locks that build-tool carrier path. Status: `render_plan08_plugin_geometry_source_descriptor_registration_typecheck_python_cargo_check_passed_renderdoc_deferred`; guard: `runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired`.
+
 F8 RuntimePluginDescriptor builder scaffold is now the blessed construction path for runtime
 plugin descriptors. `RuntimePluginDescriptorBuilder` is exposed through
 `RuntimePluginDescriptor::builder(...).build()` and the runtime plugin facades. First-party runtime
@@ -1061,6 +1106,18 @@ the final `RuntimePluginDescriptorBuilder::build()` projection. Verification:
 zircon_plugins\Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir
 target\codex-runtime06-f8-public-constructor-0622` both passed with existing runtime warnings.
 
+Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup mirrors that completed descriptor state through
+`runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred`.
+The mirror guard
+`review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending` keeps
+Runtime 06, runtime index, review findings, structure convention, package-manifest docs, and
+status-output expectations aligned on RuntimePluginDescriptor private fields 15/15,
+RuntimePluginDescriptor public-field convergence complete, and RuntimePluginDescriptor::new retired.
+The 2026-06-28 `f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred`
+sync keeps the F8 top review row at
+`convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed` without changing descriptor
+runtime behavior.
+
 Package validation treats system sets and system anchors as module-owned namespace declarations.
 Each value must be non-empty, lowercase dot-namespaced, prefixed by the package id, and unique inside
 the declaring module row. Registration reports then check the dynamic side of the contract: every
@@ -1087,6 +1144,8 @@ owner-tracked runtime registration and avoids using manifest-only placeholders a
 - UI component descriptors must reference `.zui` documents; legacy `.ui.toml` and `.v2.ui.toml` are reserved for migration and fixture tests.
 - Runtime module `system_sets` and `system_anchors` must use the package id as their namespace prefix and must be unique within the module row.
 - Runtime module `system_anchors` are accepted only when the same runtime module owner registers a matching ECS system id during runtime extension registration.
+- `shading_models` rows must use `custom:<name>` tokens, plugin-range ids (`>= 16`), non-empty trimmed include names, and a non-empty `required_channels` G-buffer mask.
+- `geometry_sources` rows must use `custom:<name>` tokens, plugin-range ids (`>= 4`), non-empty trimmed `wgsl_include`, at least one `vertex_attributes` entry, and trimmed binding slot/define names.
 - `provides_interfaces` rows must declare unique, non-empty, trimmed, lowercase dot-namespaced interface ids.
 - Dependency `interfaces` entries must be unique within that dependency row and use the same lowercase dot-namespace shape.
 - A dependency row must declare a capability, at least one interface, or both.
@@ -1098,6 +1157,10 @@ owner-tracked runtime registration and avoids using manifest-only placeholders a
 The sound plugin registration test proves a real package can contribute dependencies, options, components, and a concrete event catalog through both its manifest and runtime extension registry.
 
 The independent plugin follow-up adds focused runtime coverage proving `RuntimePluginRegistrationReport::from_plugin(...)` collects manifest-declared options, event catalogs, component descriptors, UI component descriptors, and asset importer descriptors, and that `RuntimePluginCatalog::runtime_extensions()` preserves those contributions when merging registration reports.
+
+The 2026-06-28 D13 native_dynamic_fixture importer self-description (`D13 native_dynamic_fixture importer self-description` / `native_dynamic_fixture_importer_manifest_self_description_static_passed_cargo_deferred`) closes the fixture-specific importer manifest gap without declaring the broader D13 importer builder/selection rollout done. `zircon_plugins/native_dynamic_fixture/plugin.toml` now carries `runtime.asset.importer.native_dynamic_fixture.data_json` in package and runtime-module capabilities, and declares `[[asset_importers]] id = "native_dynamic_fixture.data_json"` with `source_extensions = ["json"]`, `output_kind = "Data"`, and matching `required_capabilities`. `review_d13_native_fixture_importer_is_manifest_described` locks this package-manifest state together with the native registration manifest and review record.
+
+The 2026-06-28 D-S7 static plugin manifest generation/parity review sync (`ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred`) records the static first-party package-manifest contract as closed: 36 non-native static plugin manifests are generated from Rust descriptor `package_manifest()` output and carry the generated marker, while `native_dynamic_fixture` remains the only hand-written manifest source. `plugins_12_static_plugin_manifest_is_generated`, `plugins_12_manifest_schema_uniform_audit_report_is_clean`, and `plugins_12_feature_enabled_runtime_descriptor_manifest_parity` lock generated headers, native single-source handling, and descriptor/static parity; `tools/audit_plugin_structure.py --json` reports `generated_manifest_count = 36`, `hand_written_native_manifest_count = 1`, and zero schema/header violations.
 
 The review follow-up adds package-manifest coverage for overriding `default_packaging` through the builder API and validates the plugin workspace with `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1`.
 

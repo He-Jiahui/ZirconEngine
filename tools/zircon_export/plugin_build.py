@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -41,6 +42,14 @@ PLUGIN_BUILD_DEFAULT_OUT = "zircon-plugin-build"
 PLUGIN_BUILD_DEFAULT_MODE = "debug"
 PLUGIN_BUILD_DIST_FORM = "dist"
 PLUGIN_BUILD_DIST_FEATURE = "dist"
+
+
+@dataclass(frozen=True)
+class PluginBuildSource:
+    package_id: str
+    plugin_manifest_path: Path
+    distribution: dict[str, Any] | None
+    package_manifest_text: str | None = None
 
 
 def parse_plugin_build_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -162,18 +171,19 @@ def run_plugin_build(args: argparse.Namespace) -> int:
     out_root = resolve_plugin_build_path("out", Path(args.out), diagnostics)
     plugin_root = repo_root / "zircon_plugins" if repo_root else None
     workspace_manifest = plugin_root / "Cargo.toml" if plugin_root else None
-    plugin_manifest_path = (
-        find_plugin_manifest(plugin_root, args.plugin_id, diagnostics)
+    build_source = (
+        resolve_plugin_build_source(plugin_root, args.plugin_id, diagnostics)
         if plugin_root is not None
         else None
     )
-    plugin_manifest = (
-        read_toml(plugin_manifest_path, diagnostics)
-        if plugin_manifest_path is not None
-        else None
+    plugin_manifest_path = (
+        build_source.plugin_manifest_path if build_source is not None else None
     )
-    package_id = plugin_package_id(plugin_manifest, args.plugin_id, diagnostics)
-    distribution = plugin_distribution(plugin_manifest, package_id, diagnostics)
+    package_id = build_source.package_id if build_source is not None else args.plugin_id
+    distribution = build_source.distribution if build_source is not None else None
+    package_manifest_text = (
+        build_source.package_manifest_text if build_source is not None else None
+    )
     dist_crate = plugin_distribution_dist_crate(distribution, package_id, diagnostics)
     abi_version = plugin_distribution_abi_version(distribution, package_id, diagnostics)
     features = plugin_build_features(args.build_feature, diagnostics)
@@ -256,7 +266,6 @@ def run_plugin_build(args: argparse.Namespace) -> int:
         repo_root is None
         or out_root is None
         or plugin_manifest_path is None
-        or plugin_manifest is None
         or distribution is None
         or dist_crate is None
         or abi_version is None
@@ -276,6 +285,7 @@ def run_plugin_build(args: argparse.Namespace) -> int:
         out_root=out_root,
         package_id=package_id,
         plugin_manifest_path=plugin_manifest_path,
+        package_manifest_text=package_manifest_text,
         repo_root=repo_root,
         target_dir=target_dir,
         dist_crate=dist_crate,
@@ -336,22 +346,126 @@ def default_target_dir(out_root: Path | None, plugin_id: str) -> Path:
     return base / ".target" / native_dynamic_package_directory(plugin_id)
 
 
-def find_plugin_manifest(
+def resolve_plugin_build_source(
     plugin_root: Path,
     plugin_id: str,
     diagnostics: list[str],
-) -> Path | None:
+) -> PluginBuildSource | None:
     direct = plugin_root / plugin_id / "plugin.toml"
     if direct.exists():
-        return direct
+        manifest = read_toml(direct, diagnostics)
+        return root_plugin_build_source(direct, manifest, plugin_id, diagnostics)
     for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
         manifest = read_toml(manifest_path, diagnostics)
         if manifest is None:
             continue
         if manifest.get("id") == plugin_id:
-            return manifest_path
+            return root_plugin_build_source(manifest_path, manifest, plugin_id, diagnostics)
+        feature_source = feature_provider_plugin_build_source(
+            manifest_path,
+            manifest,
+            plugin_id,
+            diagnostics,
+        )
+        if feature_source is not None:
+            return feature_source
     diagnostics.append(f"plugin {plugin_id} plugin.toml was not found under {plugin_root}")
     return None
+
+
+def root_plugin_build_source(
+    plugin_manifest_path: Path,
+    plugin_manifest: dict[str, Any] | None,
+    requested_plugin_id: str,
+    diagnostics: list[str],
+) -> PluginBuildSource | None:
+    package_id = plugin_package_id(plugin_manifest, requested_plugin_id, diagnostics)
+    distribution = plugin_distribution(plugin_manifest, package_id, diagnostics)
+    return PluginBuildSource(
+        package_id=package_id,
+        plugin_manifest_path=plugin_manifest_path,
+        distribution=distribution,
+    )
+
+
+def feature_provider_plugin_build_source(
+    plugin_manifest_path: Path,
+    plugin_manifest: dict[str, Any],
+    requested_plugin_id: str,
+    diagnostics: list[str],
+) -> PluginBuildSource | None:
+    owner_plugin_id = plugin_manifest.get("id")
+    optional_features = plugin_manifest.get("optional_features", [])
+    if not isinstance(owner_plugin_id, str) or not owner_plugin_id.strip():
+        return None
+    if not isinstance(optional_features, list):
+        return None
+    for feature in optional_features:
+        if not isinstance(feature, dict):
+            continue
+        feature_id = feature.get("id")
+        if not isinstance(feature_id, str) or not feature_id.strip():
+            continue
+        provider_package_id = feature_provider_package_id(feature, feature_id)
+        if requested_plugin_id not in {feature_id, provider_package_id}:
+            continue
+        if not provider_package_id:
+            diagnostics.append(
+                f"plugin feature {feature_id} provider_package_id must be a string"
+            )
+            return PluginBuildSource(
+                package_id=requested_plugin_id,
+                plugin_manifest_path=plugin_manifest_path,
+                distribution=None,
+            )
+        distribution = feature_provider_distribution(
+            feature,
+            provider_package_id,
+            diagnostics,
+        )
+        package_manifest_text = (
+            feature_provider_package_manifest_template(
+                owner_manifest=plugin_manifest,
+                feature=feature,
+                provider_package_id=provider_package_id,
+                distribution=distribution,
+            )
+            if distribution is not None
+            else None
+        )
+        return PluginBuildSource(
+            package_id=provider_package_id,
+            plugin_manifest_path=plugin_manifest_path,
+            distribution=distribution,
+            package_manifest_text=package_manifest_text,
+        )
+    return None
+
+
+def feature_provider_package_id(feature: dict[str, Any], feature_id: str) -> str | None:
+    provider_package_id = feature.get("provider_package_id")
+    if provider_package_id is None:
+        return native_dynamic_package_directory(feature_id)
+    if not isinstance(provider_package_id, str) or not provider_package_id.strip():
+        return None
+    if provider_package_id.strip() != provider_package_id:
+        return None
+    return provider_package_id
+
+
+def feature_provider_distribution(
+    feature: dict[str, Any],
+    provider_package_id: str,
+    diagnostics: list[str],
+) -> dict[str, Any] | None:
+    feature_id = feature.get("id")
+    distribution = feature.get("distribution")
+    if not isinstance(distribution, dict):
+        diagnostics.append(
+            f"plugin feature {feature_id} provider {provider_package_id} has no distribution table"
+        )
+        return None
+    return plugin_distribution_contract(distribution, provider_package_id, diagnostics)
 
 
 def plugin_package_id(
@@ -386,6 +500,14 @@ def plugin_distribution(
     if not isinstance(distribution, dict):
         diagnostics.append(f"plugin {package_id} has no [distribution] table")
         return None
+    return plugin_distribution_contract(distribution, package_id, diagnostics)
+
+
+def plugin_distribution_contract(
+    distribution: dict[str, Any],
+    package_id: str,
+    diagnostics: list[str],
+) -> dict[str, Any]:
     forms = distribution.get("forms", [])
     if not isinstance(forms, list) or PLUGIN_BUILD_DIST_FORM not in forms:
         diagnostics.append(f"plugin {package_id} distribution.forms must include dist")
@@ -488,6 +610,187 @@ def plugin_build_string_array(
     return values
 
 
+def feature_provider_package_manifest_template(
+    *,
+    owner_manifest: dict[str, Any],
+    feature: dict[str, Any],
+    provider_package_id: str,
+    distribution: dict[str, Any],
+) -> str:
+    feature_id = feature_string(feature, "id", provider_package_id)
+    display_name = feature_string(feature, "display_name", feature_id)
+    capabilities = feature_string_array(feature.get("capabilities"))
+    supported_targets = feature_provider_supported_targets(owner_manifest, feature)
+    supported_platforms = feature_string_array(owner_manifest.get("supported_platforms")) or [
+        "windows",
+        "linux",
+        "macos",
+    ]
+    default_packaging = feature_string_array(
+        distribution.get("default_packaging")
+    ) or ["native_dynamic"]
+    owner_plugin_id = feature_string(feature, "owner_plugin_id", owner_manifest.get("id", ""))
+    runtime_module = feature_provider_runtime_module(feature, distribution)
+    lines = [
+        "# Generated by Zircon export. Feature provider package manifest.",
+        f"id = {toml_string(provider_package_id)}",
+        f"version = {toml_string(feature_string(owner_manifest, 'version', '0.1.0'))}",
+        'package_kind = "feature_extension"',
+        f"display_name = {toml_string(display_name + ' Provider')}",
+        f"description = {toml_string(f'Native dynamic provider for optional feature {feature_id}.')}",
+        f"sdk_api_version = {toml_string(feature_string(owner_manifest, 'sdk_api_version', '0.1.0'))}",
+        f"category = {toml_string(feature_string(owner_manifest, 'category', 'runtime'))}",
+        f"maturity = {toml_string(feature_string(owner_manifest, 'maturity', 'beta'))}",
+        f"supported_targets = {toml_string_array(supported_targets)}",
+        f"supported_platforms = {toml_string_array(supported_platforms)}",
+        f"capabilities = {toml_string_array(capabilities)}",
+        f"default_packaging = {toml_string_array(default_packaging)}",
+        "",
+        "[distribution]",
+        f"forms = {toml_string_array(feature_string_array(distribution.get('forms')))}",
+        f"default_packaging = {toml_string_array(default_packaging)}",
+    ]
+    abi_version = distribution.get("abi_version")
+    if type(abi_version) is int:
+        lines.append(f"abi_version = {abi_version}")
+    for field in ("engine_compat", "dist_crate", "descriptor_symbol", "runtime_entry"):
+        lines.append(f"{field} = {toml_string(feature_string(distribution, field, ''))}")
+    editor_entry = distribution.get("editor_entry")
+    if isinstance(editor_entry, str) and editor_entry.strip():
+        lines.append(f"editor_entry = {toml_string(editor_entry)}")
+    assets = feature_string_array(distribution.get("assets"))
+    if assets:
+        lines.append(f"assets = {toml_string_array(assets)}")
+
+    lines.extend(
+        [
+            "",
+            "[[feature_extensions]]",
+            f"id = {toml_string(feature_id)}",
+            f"display_name = {toml_string(display_name)}",
+            f"owner_plugin_id = {toml_string(owner_plugin_id)}",
+            f"capabilities = {toml_string_array(capabilities)}",
+            f"default_packaging = {toml_string_array(default_packaging)}",
+            f"enabled_by_default = {toml_bool(feature.get('enabled_by_default'))}",
+            "",
+        ]
+    )
+    for dependency in feature_provider_dependencies(feature):
+        lines.extend(
+            [
+                "[[feature_extensions.dependencies]]",
+                f"plugin_id = {toml_string(dependency['plugin_id'])}",
+                f"capability = {toml_string(dependency['capability'])}",
+                f"primary = {toml_bool(dependency['primary'])}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "[[feature_extensions.modules]]",
+            f"name = {toml_string(runtime_module['name'])}",
+            'kind = "runtime"',
+            f"crate_name = {toml_string(runtime_module['crate_name'])}",
+            f"target_modes = {toml_string_array(runtime_module['target_modes'])}",
+            f"capabilities = {toml_string_array(runtime_module['capabilities'])}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def feature_provider_supported_targets(
+    owner_manifest: dict[str, Any],
+    feature: dict[str, Any],
+) -> list[str]:
+    runtime_module = first_feature_module(feature, "runtime")
+    if runtime_module is not None:
+        target_modes = feature_string_array(runtime_module.get("target_modes"))
+        if target_modes:
+            return target_modes
+    return feature_string_array(owner_manifest.get("supported_targets")) or [
+        "client_runtime",
+        "editor_host",
+    ]
+
+
+def feature_provider_runtime_module(
+    feature: dict[str, Any],
+    distribution: dict[str, Any],
+) -> dict[str, list[str] | str]:
+    feature_id = feature_string(feature, "id", "feature")
+    dist_crate = feature_string(distribution, "dist_crate", "")
+    feature_capabilities = feature_string_array(feature.get("capabilities"))
+    source_module = first_feature_module(feature, "runtime")
+    if source_module is None:
+        return {
+            "name": f"{feature_id}.runtime",
+            "crate_name": dist_crate,
+            "target_modes": ["client_runtime", "editor_host"],
+            "capabilities": feature_capabilities,
+        }
+    return {
+        "name": feature_string(source_module, "name", f"{feature_id}.runtime"),
+        "crate_name": dist_crate,
+        "target_modes": feature_string_array(source_module.get("target_modes"))
+        or ["client_runtime", "editor_host"],
+        "capabilities": feature_string_array(source_module.get("capabilities"))
+        or feature_capabilities,
+    }
+
+
+def first_feature_module(
+    feature: dict[str, Any],
+    module_kind: str,
+) -> dict[str, Any] | None:
+    modules = feature.get("modules")
+    if not isinstance(modules, list):
+        return None
+    for module in modules:
+        if isinstance(module, dict) and module.get("kind") == module_kind:
+            return module
+    return None
+
+
+def feature_provider_dependencies(feature: dict[str, Any]) -> list[dict[str, object]]:
+    dependencies = feature.get("dependencies")
+    if not isinstance(dependencies, list):
+        return []
+    output: list[dict[str, object]] = []
+    for dependency in dependencies:
+        if not isinstance(dependency, dict):
+            continue
+        plugin_id = dependency.get("plugin_id")
+        capability = dependency.get("capability")
+        if not isinstance(plugin_id, str) or not isinstance(capability, str):
+            continue
+        output.append(
+            {
+                "plugin_id": plugin_id,
+                "capability": capability,
+                "primary": dependency.get("primary") is True,
+            }
+        )
+    return output
+
+
+def feature_string(mapping: dict[str, Any], field: str, default: object) -> str:
+    value = mapping.get(field)
+    if isinstance(value, str) and value.strip():
+        return value
+    return str(default)
+
+
+def feature_string_array(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str) and item.strip() == item]
+
+
+def toml_string_array(values: Sequence[str]) -> str:
+    return "[" + ", ".join(toml_string(value) for value in values) + "]"
+
+
 def plugin_build_cargo_command(
     *,
     cargo: str,
@@ -551,6 +854,7 @@ def materialize_plugin_build_package(
     out_root: Path,
     package_id: str,
     plugin_manifest_path: Path,
+    package_manifest_text: str | None,
     repo_root: Path,
     target_dir: Path,
     dist_crate: str,
@@ -604,7 +908,14 @@ def materialize_plugin_build_package(
     try:
         native_loadable_dir = resolved_package_dir / "native"
         native_loadable_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(plugin_manifest_path, resolved_package_dir / "plugin.toml")
+        package_manifest_destination = resolved_package_dir / "plugin.toml"
+        if package_manifest_text is None:
+            shutil.copy2(plugin_manifest_path, package_manifest_destination)
+        else:
+            package_manifest_destination.write_text(
+                package_manifest_text,
+                encoding="utf-8",
+            )
         shutil.copy2(built_artifact, resolved_package_dir / loadable_name)
         shutil.copy2(
             built_artifact,

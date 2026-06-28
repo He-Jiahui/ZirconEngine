@@ -12,8 +12,8 @@ mod queue_capability;
 mod register_pipeline_asset;
 mod reload_pipeline;
 mod render_framework_backend_error;
-mod render_framework_impl;
 mod render_framework_state;
+mod render_framework_trait_binding;
 mod set_pipeline_asset;
 mod set_quality_profile;
 mod submit_frame_extract;
@@ -21,7 +21,7 @@ mod submit_runtime_frame;
 mod viewport_record;
 mod viewport_surface;
 mod wgpu_render_framework;
-mod wgpu_render_framework_new;
+mod wgpu_render_framework_construction;
 
 #[cfg(test)]
 pub(crate) use graphics_debugger_capture::renderdoc_capture_next_from_value;

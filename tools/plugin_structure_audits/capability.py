@@ -29,16 +29,24 @@ FIRST_PARTY_RUNTIME_CAPABILITY_ROOTS = [
     "zr_vm_language",
 ]
 
+FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS = [
+    "animation",
+    "physics",
+    "net",
+]
+
 
 @dataclass(frozen=True)
 class PluginCapabilityAudit:
     audited_runtime_roots: list[str]
+    editor_runtime_mirror_roots: list[str]
     missing_capability_owner_files: list[str]
     missing_runtime_capability_exports: list[str]
     root_capability_mismatches: list[str]
     module_capability_mismatches: list[str]
     lib_capability_literal_sites: list[str]
     sdk_builder_mirror_violations: list[str]
+    editor_runtime_mirror_violations: list[str]
 
     def to_json(self) -> dict[str, Any]:
         mismatch_details = [
@@ -52,6 +60,10 @@ class PluginCapabilityAudit:
         return {
             "audited_runtime_roots": self.audited_runtime_roots,
             "audited_runtime_root_count": len(self.audited_runtime_roots),
+            "editor_runtime_mirror_roots": self.editor_runtime_mirror_roots,
+            "editor_runtime_mirror_root_count": len(
+                self.editor_runtime_mirror_roots
+            ),
             "missing_capability_owner_files": len(
                 self.missing_capability_owner_files
             ),
@@ -72,6 +84,12 @@ class PluginCapabilityAudit:
             "lib_capability_literal_site_details": self.lib_capability_literal_sites,
             "sdk_builder_mirror_violations": len(self.sdk_builder_mirror_violations),
             "sdk_builder_mirror_violation_details": self.sdk_builder_mirror_violations,
+            "editor_runtime_mirror_violations": len(
+                self.editor_runtime_mirror_violations
+            ),
+            "editor_runtime_mirror_violation_details": (
+                self.editor_runtime_mirror_violations
+            ),
             "capability_source_mismatches": len(mismatch_details),
             "capability_source_mismatch_details": mismatch_details,
             "m4_runtime_capability_gate_status": (
@@ -83,6 +101,11 @@ class PluginCapabilityAudit:
                 "sdk-builder-mirror-clean"
                 if not self.sdk_builder_mirror_violations
                 else "sdk-builder-mirror-debt-present"
+            ),
+            "d9_editor_runtime_mirror_gate_status": (
+                "editor-runtime-mirror-clean"
+                if not self.editor_runtime_mirror_violations
+                else "editor-runtime-mirror-debt-present"
             ),
         }
 
@@ -148,12 +171,16 @@ def audit_plugin_capability_conformance(repo_root: Path) -> PluginCapabilityAudi
 
     return PluginCapabilityAudit(
         audited_runtime_roots=FIRST_PARTY_RUNTIME_CAPABILITY_ROOTS,
+        editor_runtime_mirror_roots=FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS,
         missing_capability_owner_files=missing_capability_owner_files,
         missing_runtime_capability_exports=missing_runtime_capability_exports,
         root_capability_mismatches=root_capability_mismatches,
         module_capability_mismatches=module_capability_mismatches,
         lib_capability_literal_sites=lib_capability_literal_sites,
         sdk_builder_mirror_violations=collect_sdk_builder_mirror_violations(
+            repo_root
+        ),
+        editor_runtime_mirror_violations=collect_editor_runtime_mirror_violations(
             repo_root
         ),
     )
@@ -318,3 +345,86 @@ def collect_sdk_builder_mirror_violations(repo_root: Path) -> list[str]:
                     f"{path.relative_to(repo_root).as_posix()}: missing `{pattern}`"
                 )
     return violations
+
+
+def collect_editor_runtime_mirror_violations(repo_root: Path) -> list[str]:
+    violations: list[str] = []
+    plugin_workspace = repo_root / "zircon_plugins"
+    for root in FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS:
+        editor_root = plugin_workspace / root / "editor"
+        plugin_path = editor_root / "src" / "plugin.rs"
+        cargo_path = editor_root / "Cargo.toml"
+        runtime_crate = f"zircon_plugin_{root}_runtime"
+
+        if not plugin_path.exists():
+            violations.append(
+                f"{plugin_path.relative_to(repo_root).as_posix()}: missing editor plugin owner"
+            )
+            continue
+
+        plugin_text = plugin_path.read_text(encoding="utf-8")
+        if "EditorPluginDeclaration" not in plugin_text:
+            violations.append(
+                f"{plugin_path.relative_to(repo_root).as_posix()}: editor plugin must be declared through EditorPluginDeclaration"
+            )
+        expected_manifest_mirror = (
+            f".mirrors_runtime_manifest({runtime_crate}::package_manifest())"
+        )
+        expected_manifest_macro = (
+            f"mirrors_runtime_manifest: {runtime_crate}::package_manifest()"
+        )
+        expected_declaration_mirror = f".mirrors_runtime(&{runtime_crate}::"
+        if (
+            expected_manifest_mirror not in plugin_text
+            and expected_manifest_macro not in plugin_text
+            and expected_declaration_mirror not in plugin_text
+        ):
+            violations.append(
+                f"{plugin_path.relative_to(repo_root).as_posix()}: missing explicit SDK mirror to `{runtime_crate}`"
+            )
+        if "EditorPluginRegistrationReport::from_plugin(" in plugin_text:
+            violations.append(
+                f"{plugin_path.relative_to(repo_root).as_posix()}: registration must flow through EditorPluginDeclaration::registration_report"
+            )
+
+        sdk_dependency = load_dependency(cargo_path, "zircon_plugin_sdk")
+        if not (
+            isinstance(sdk_dependency, dict)
+            and sdk_dependency.get("workspace") is True
+            and "editor" in as_string_list(sdk_dependency.get("features"))
+        ):
+            violations.append(
+                f"{cargo_path.relative_to(repo_root).as_posix()}: missing workspace zircon_plugin_sdk dependency with editor feature"
+            )
+
+        tests_text = collect_editor_test_text(editor_root / "src")
+        if "mirrored_runtime_package_id()" not in tests_text:
+            violations.append(
+                f"{(editor_root / 'src').relative_to(repo_root).as_posix()}: tests must assert mirrored_runtime_package_id()"
+            )
+        if runtime_crate not in tests_text or ".package_manifest" not in tests_text:
+            violations.append(
+                f"{(editor_root / 'src').relative_to(repo_root).as_posix()}: tests must assert mirrored runtime package capabilities"
+            )
+    return violations
+
+
+def load_dependency(cargo_path: Path, name: str) -> Any:
+    if not cargo_path.exists():
+        return None
+    manifest = tomllib.loads(cargo_path.read_text(encoding="utf-8"))
+    dependencies = manifest.get("dependencies")
+    if not isinstance(dependencies, dict):
+        return None
+    return dependencies.get(name)
+
+
+def collect_editor_test_text(src_root: Path) -> str:
+    test_files: list[Path] = []
+    tests_rs = src_root / "tests.rs"
+    if tests_rs.exists():
+        test_files.append(tests_rs)
+    tests_dir = src_root / "tests"
+    if tests_dir.exists():
+        test_files.extend(sorted(tests_dir.rglob("*.rs")))
+    return "\n".join(path.read_text(encoding="utf-8") for path in test_files)

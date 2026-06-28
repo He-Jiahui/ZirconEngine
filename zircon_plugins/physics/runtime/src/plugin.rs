@@ -1,12 +1,16 @@
+use std::sync::Arc;
+
 use crate::capability::{
     PHYSICS_CONSTRAINTS_CAPABILITY, PHYSICS_OVERLAP_CAPABILITY, PHYSICS_RAYCAST_CAPABILITY,
     PHYSICS_RUNTIME_CAPABILITY, PHYSICS_SHAPE_CAST_CAPABILITY, PHYSICS_SKELETAL_JOINTS_CAPABILITY,
     PHYSICS_TRIGGER_EVENTS_CAPABILITY, RUNTIME_CAPABILITIES,
 };
-use crate::module::module_descriptor;
+use crate::manager::DefaultPhysicsManager;
+use crate::module::module_descriptor_with_manager;
 use crate::runtime_system::{register_runtime_system, PHYSICS_STEP_SYSTEM, PHYSICS_SYSTEM_SET};
 use crate::PLUGIN_ID;
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
     PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
@@ -75,9 +79,15 @@ impl RuntimePlugin for PhysicsRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
-        registry.register_module(module_descriptor())?;
-        register_runtime_system(registry, owner)
+        let shared_manager = Arc::new(DefaultPhysicsManager::new(None));
+        let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
+            .module(
+                PLUGIN_RUNTIME_MODULE_NAME,
+                module_descriptor_with_manager(Some(shared_manager.clone())),
+            )?;
+        let manager: Arc<dyn PhysicsQueryInterface> = shared_manager;
+        module.export_interface::<dyn PhysicsQueryInterface>(manager)?;
+        register_runtime_system(&mut module)
     }
 }
 
@@ -130,6 +140,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         PHYSICS_SKELETAL_JOINTS_CAPABILITY,
         CapabilityStatus::Partial,
     ))
+    .with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)
     .with_system_sets([PHYSICS_SYSTEM_SET])
     .with_system_anchors([PHYSICS_STEP_SYSTEM])
     .build()

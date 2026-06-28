@@ -1,4 +1,5 @@
 mod args;
+mod error;
 mod run;
 
 use std::process::ExitCode;

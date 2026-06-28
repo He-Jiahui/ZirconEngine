@@ -57,7 +57,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_new.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
@@ -67,6 +68,13 @@ related_code:
   - zircon_runtime/src/graphics/material/shading_models/mod.rs
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
@@ -237,7 +245,9 @@ tests:
   - zircon_runtime/src/graphics/material/shading_models/registry.rs::tests::shading_model_registry_rejects_unsupported_required_channels
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f11_shading_model_registry_has_no_dead_plugin_registration_surface
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_unregistered_custom_shading_model
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/material_custom_shading_model_runtime.rs::runtime_15_material_custom_shading_model_runtime_registry_is_wired
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_samples_standard_pbr_texture_set
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_dispatches_builtin_shading_models
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs::tests::pipeline_key_derives_material_shader_variant_key
@@ -601,6 +611,8 @@ Render material management tests owner split keeps the module-local test root st
 Render material readiness report tests owner split keeps the readiness DTO module structural. `readiness_report.rs` owns only material readiness report DTOs, derived summaries, issue/prepared state projection, management snapshot/record helpers, and the test child mount. `readiness_report/tests.rs` owns diagnostic de-duplication, status severity, summary/prepared-state, and management record-set assertions. `runtime_15_render_material_readiness_report_tests_are_child_owner` locks both owners below the 800-line R4.3 budget and records the status anchor `render_plan08_material_readiness_report_tests_owner_split_static_passed_cargo_deferred_active_compile_lane` in Plan 08, the render index, structure convention, review findings, and this module document.
 
 Mesh pipeline creation consumes `PipelineKey`: `double_sided` disables back-face culling, `alpha_blend` controls transparent blend/depth-write behavior, `alpha_mask` and cutoff bits keep mask variants distinct, `shading_model_id` selects the material model branch, and PBR texture slots select authored material variants. Alpha-mask materials are not treated as transparent; only blend mode reports `PipelineKey::is_transparent()`. `MaterialRuntime.alpha_cutoff` now stores the production mask cutoff as well, so the renderer-owned standard material uniform can carry that value instead of leaving it only in the pipeline key/test capture path. The forward, deferred geometry, normal-prepass, and alpha-mask shadow pipeline layouts now include material group 3, and mesh draws bind the prepared standard material uniform after model and texture bindings. The standard material uniform keeps `data0` metallic/roughness/occlusion/unlit and `data1.xyz` emissive unchanged, then packs base-color, normal, metallic-roughness, occlusion, and emissive UV transforms into `data2..data6` as `(scale.x, scale.y, offset.x, offset.y)`. UV channel selectors share the same 144-byte ABI without adding another binding: `data7.x/y/z/w` carry base-color, normal, metallic-roughness, and occlusion channels, while `data1.w` carries the emissive channel. The standard material uniform also uses `data8.x` for the TAA reactive mask strength, `data8.y` for the normalized 8-bit `ShadingModelId`, and `data8.z` for the clamped alpha-mask cutoff consumed by shader-template alpha clip; the deferred geometry shader writes the shading model id to `gbuffer_material.a`, and the deferred lighting shader decodes it before dispatching Unlit, BlinnPhong, or StandardPBR. Built-in fallback, deferred, normal-prepass, shadow alpha-mask, and motion-vector alpha-discard WGSL paths select `uv0` or `uv1` before applying the per-slot transform and sampling their standard material texture slots. The current forward fallback shader consumes the same `data8.y` id directly: Unlit returns albedo plus emissive, BlinnPhong uses its own diffuse/specular branch, and StandardPBR remains the default lit path. Custom material shaders are still diagnosed against the fixed group 1/2/3 renderer ABI rather than executed through automatic WGSL reflection.
+
+Material custom shading-model runtime registry closes the Plan 08 runtime-consumption side under status `render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred`. Plugin descriptors still originate in `RuntimeExtensionRegistry::shading_models()`, but module assembly now carries them through `GraphicsModule`, the WGPU render framework, and `SceneRenderer::new_with_plugin_render_extensions_and_shading_models(...)` into `ResourceStreamer::new_with_plugin_shading_models(...)`. `ResourceStreamer` owns a `ShadingModelRegistry` seeded by built-ins and the selected plugin descriptors; material preparation and material capture seeds both resolve `RenderMaterialLightingModel::Custom` through that same registry. `render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key` locks that `lighting_model = "custom:subsurface"` produces the plugin `ShadingModelId` in `PipelineKey.shading_model_id` and capture output without adding an `UnregisteredShadingModel` validation error. `runtime_15_material_custom_shading_model_runtime_registry_is_wired` keeps the assembly, renderer-constructor, streamer-owner, docs, and status anchors synchronized.
 
 Standard material uniform alpha cutoff foundation records the same contract under status `render_plan08_standard_material_uniform_alpha_cutoff_static_passed_cargo_deferred_implementation_cadence`. The shader-template counterpart is `standard_material_alpha_cutoff()`, which reads `standard_material_properties.data8.z` before falling back to the descriptor constant, while `standard_material_uniform_packs_alpha_cutoff_for_template_clip` covers the uniform slot's None, negative, finite, clamped, and NaN cases.
 

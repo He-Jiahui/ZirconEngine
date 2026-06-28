@@ -5,14 +5,22 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-22")
     } else if slice == "Runtime 15 M5 production dead-code suppression global gate" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 F12 dead-code review status sync" {
+        Some("2026-06-28")
+    } else if slice == "Runtime 15 F12 dead-code runtime/editor boundary status guard" {
+        Some("2026-06-28")
+    } else if slice == "Runtime 15 F12 UI text edit-state dead-code suppression cleanup" {
+        Some("2026-06-27")
     } else if slice == "Runtime 15 UI boundary runtime-host forbidden attribute literal cleanup" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 F1 native host callback panic guard" {
+        Some("2026-06-27")
     } else if slice == "Runtime 15 M3 lock poison policy guard folder split" {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 core runtime lock poison guard child-owner split" {
         Some("2026-06-25")
     } else if slice == "Runtime 15 M3 F2 lock poison recovery guard" {
-        Some("2026-06-24")
+        Some("2026-06-27")
     } else if slice == "Runtime 15 M3 production direct lock unwrap global gate" {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 config store lock poison recovery" {
@@ -65,6 +73,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 script VM registry lock poison recovery" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 M3 ZrVM real backend runtime lock poison recovery" {
+        Some("2026-06-27")
     } else if slice == "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery" {
         Some("2026-06-24")
     } else if slice == "Runtime 15 graphics facade visibility note" {
@@ -75,6 +85,30 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F5 animation manager typed errors" {
         Some("2026-06-25")
+    } else if slice == "Runtime 15 F5 animation asset binary typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 profile export typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 gameplay host typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 script scene hook typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 VM plugin management policy typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 UI surface input effect typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 UI input surrounding-text error source" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 UI template resource resolver typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 UI asset document typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 export CLI typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 host reflection docs CLI typed errors" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 dynamic API session typed errors" {
+        Some("2026-06-27")
     } else if slice == "Runtime 15 F5 typed API residual typed errors" {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F5 fixed world mutation typed errors" {
@@ -97,6 +131,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F8 texture descriptor typed errors" {
         Some("2026-06-25")
+    } else if slice == "Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup" {
+        Some("2026-06-27")
     } else if slice == "Runtime 15 F13 provider registration shared owner" {
         Some("2026-06-22")
     } else if slice == "Runtime 15 F13 provider update shared stats owner" {

@@ -116,7 +116,9 @@ fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
         RenderCameraTarget::Texture(_)
     ));
     assert_eq!(
-        texture_descriptor.culling_mask.to_legacy_mask_lossy(),
+        texture_descriptor
+            .culling_mask
+            .to_scene_schema_v1_mask_lossy(),
         0b0010
     );
     let report = extract
@@ -146,7 +148,7 @@ fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
         texture_report_camera
             .camera
             .culling_mask
-            .to_legacy_mask_lossy(),
+            .to_scene_schema_v1_mask_lossy(),
         0b0010
     );
     assert!(report.has_ambiguities());
@@ -183,7 +185,9 @@ fn explicit_camera_render_frame_extract_has_no_scene_camera_order_report() {
     assert_eq!(extract.view.cameras[0].entity, None);
     assert_eq!(extract.view.cameras[0].render_order, 42);
     assert_eq!(
-        extract.view.cameras[0].culling_mask.to_legacy_mask_lossy(),
+        extract.view.cameras[0]
+            .culling_mask
+            .to_scene_schema_v1_mask_lossy(),
         0b0100
     );
 }
@@ -223,7 +227,10 @@ fn render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views(
         .iter()
         .any(|mesh| mesh.node_id == custom_target_mesh));
     assert_eq!(
-        extract.view.selected_camera_layers().to_legacy_mask_lossy(),
+        extract
+            .view
+            .selected_camera_layers()
+            .to_scene_schema_v1_mask_lossy(),
         0b0001,
         "main camera layer remains unchanged; the layer union is only an extract candidate set"
     );

@@ -6,6 +6,7 @@ use crate::core::framework::render::{
     RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
 };
 use crate::core::resource::ResourceId;
+use crate::graphics::material::ShadingModelRegistry;
 
 use super::super::prepared::{
     PreparedMaterial, PreparedMesh, PreparedModel, PreparedOutputTargetTexture,
@@ -17,6 +18,7 @@ use super::super::{
 
 pub(crate) struct ResourceStreamer {
     pub(super) asset_manager: Arc<ProjectAssetManager>,
+    pub(super) shading_model_registry: ShadingModelRegistry,
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,

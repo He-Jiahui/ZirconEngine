@@ -20,7 +20,7 @@ use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTreeNode};
 const COMPILED_TEMPLATE: &str = r#"
 [asset]
 kind = "layout"
-id = "res://ui/views/main.v2.ui.toml"
+id = "res://ui/views/main.zui"
 version = 1
 
 [imports]
@@ -47,7 +47,7 @@ fn executor_evicts_cache_applies_theme_and_marks_registered_surface_dirty() {
 
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/theme/base.theme.toml"),
             asset_ref("res://fonts/inter.font.toml"),
@@ -66,7 +66,7 @@ fn executor_evicts_cache_applies_theme_and_marks_registered_surface_dirty() {
         ),
         AssetChange::new(
             AssetChangeKind::Modified,
-            uri("res://ui/views/main.v2.ui.toml"),
+            uri("res://ui/views/main.zui"),
             None,
         ),
     ]);
@@ -77,7 +77,7 @@ fn executor_evicts_cache_applies_theme_and_marks_registered_surface_dirty() {
     surface_index.record_surface_assets(
         tree_id.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/theme/base.theme.toml",
             "res://fonts/inter.font.toml",
         ],
@@ -141,7 +141,7 @@ fn executor_evicts_cache_applies_theme_and_marks_registered_surface_dirty() {
 fn executor_reports_resource_refresh_without_theme_reload_when_no_theme_document_is_supplied() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/icons/run.svg")],
     );
     let report = dependency_index.apply_watch_changes(&[AssetChange::new(
@@ -155,7 +155,7 @@ fn executor_reports_resource_refresh_without_theme_reload_when_no_theme_document
     let mut surface_index = UiAssetSurfaceIndex::new();
     surface_index.record_surface_assets(
         tree_id.clone(),
-        ["res://ui/views/main.v2.ui.toml", "res://ui/icons/run.svg"],
+        ["res://ui/views/main.zui", "res://ui/icons/run.svg"],
     );
     let mut surfaces = BTreeMap::from([(tree_id.clone(), dirty_test_surface(&tree_id))]);
     let mut cache = UiAssetCompileCache::new();
@@ -221,7 +221,7 @@ fn executor_invalidates_resource_resolver_cache_for_refreshed_resources() {
 
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/icons/run.svg"),
             asset_ref("res://ui/icons/fallback.svg"),
@@ -238,7 +238,7 @@ fn executor_invalidates_resource_resolver_cache_for_refreshed_resources() {
     surface_index.record_surface_assets(
         tree_id.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/icons/run.svg",
             "res://ui/icons/fallback.svg",
         ],

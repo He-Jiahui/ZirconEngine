@@ -8067,6 +8067,7 @@ dependencies = [
  "gltf",
  "serde_json",
  "toml 1.1.2+spec-1.1.0",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8240,6 +8241,9 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracing-tracy",
+ "ttf-parser 0.25.1",
+ "unicode-linebreak",
+ "unicode-script",
  "unicode-segmentation",
  "uuid",
  "wgpu",

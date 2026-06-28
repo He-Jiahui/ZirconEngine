@@ -40,30 +40,30 @@ mod tests {
             .renderer
             .features
             .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-                "legacy-virtual-geometry-without-submission-capability",
+                "fallback-virtual-geometry-without-submission-capability",
                 Vec::new(),
                 Vec::new(),
                 vec![RenderFeaturePassDescriptor::new(
                     RenderPassStage::DepthPrepass,
-                    "legacy-virtual-geometry-without-submission-capability",
+                    "fallback-virtual-geometry-without-submission-capability",
                     QueueLane::Graphics,
                 )
-                .with_executor_id("legacy.virtual-geometry.without-submission-capability")
+                .with_executor_id("fallback.virtual-geometry.without-submission-capability")
                 .with_side_effects()],
             )));
         pipeline
             .renderer
             .features
             .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-                "legacy-hybrid-gi-without-submission-capability",
+                "fallback-hybrid-gi-without-submission-capability",
                 Vec::new(),
                 Vec::new(),
                 vec![RenderFeaturePassDescriptor::new(
                     RenderPassStage::Lighting,
-                    "legacy-hybrid-gi-without-submission-capability",
+                    "fallback-hybrid-gi-without-submission-capability",
                     QueueLane::Graphics,
                 )
-                .with_executor_id("legacy.hybrid-gi.without-submission-capability")
+                .with_executor_id("fallback.hybrid-gi.without-submission-capability")
                 .with_side_effects()],
             )));
 

@@ -7,7 +7,11 @@ description = "Real dynamic library fixture for ABI v3 native plugin loading wit
 maturity = "experimental"
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
-capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
+capabilities = [
+    "runtime.plugin.native_dynamic_fixture",
+    "runtime.asset.importer.native_dynamic_fixture.data_json",
+    "editor.extension.native_dynamic_fixture",
+]
 default_packaging = ["native_dynamic"]
 
 [distribution]
@@ -21,12 +25,24 @@ runtime_entry = "zircon_native_dynamic_fixture_runtime_entry_v3"
 editor_entry = "zircon_native_dynamic_fixture_editor_entry_v3"
 assets = ["assets/**"]
 
+[[asset_importers]]
+id = "native_dynamic_fixture.data_json"
+plugin_id = "native_dynamic_fixture"
+priority = 100
+source_extensions = ["json"]
+output_kind = "Data"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.native_dynamic_fixture.data_json"]
+
 [[modules]]
 name = "native_dynamic_fixture.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_native_dynamic_fixture_native"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
-capabilities = ["runtime.plugin.native_dynamic_fixture"]
+capabilities = [
+    "runtime.plugin.native_dynamic_fixture",
+    "runtime.asset.importer.native_dynamic_fixture.data_json",
+]
 
 [[modules]]
 name = "native_dynamic_fixture.editor"

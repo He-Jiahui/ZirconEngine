@@ -8,9 +8,9 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 
-const HIERARCHY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/hierarchy.v2.ui.toml";
-const HIERARCHY_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const HIERARCHY_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
+const HIERARCHY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/hierarchy.zui";
+const HIERARCHY_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const HIERARCHY_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn hierarchy_pane_nodes(
     entries: &[SceneEntry],

@@ -52,7 +52,7 @@ impl ExportAssetPackManifest {
             .collect()
     }
 
-    pub fn pack_inputs(&self, manifest_dir: &Path) -> Result<ExportPackInputs, String> {
+    pub fn pack_inputs(&self, manifest_dir: &Path) -> ExportPackInputs {
         let trim_report = ZrPackTrimPlanner::trim(self.trim_config(), self.trim_inputs());
         let mut diagnostics = trim_report.diagnostics.clone();
         if trim_report.has_missing_dependencies() {
@@ -89,12 +89,12 @@ impl ExportAssetPackManifest {
             pack_assets.push(ZrPackInputAsset::new(path.clone(), bytes));
         }
 
-        Ok(ExportPackInputs {
+        ExportPackInputs {
             trim_report,
             pack_assets,
             diagnostics,
             asset_source_errors,
-        })
+        }
     }
 }
 

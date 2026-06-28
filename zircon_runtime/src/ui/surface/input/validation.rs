@@ -2,14 +2,15 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use super::super::surface::UiSurface;
 use super::super::ui_surface_node_disabled;
+use super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 
 pub(crate) fn require_valid_input_owner(
     surface: &UiSurface,
     node_id: UiNodeId,
-) -> Result<(), String> {
+) -> UiSurfaceInputEffectResult<()> {
     is_valid_input_owner(surface, node_id)
         .then_some(())
-        .ok_or_else(|| format!("invalid input owner {node_id:?}"))
+        .ok_or(UiSurfaceInputEffectError::InvalidInputOwner { node_id })
 }
 
 pub(crate) fn is_valid_input_owner(surface: &UiSurface, node_id: UiNodeId) -> bool {

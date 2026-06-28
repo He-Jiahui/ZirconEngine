@@ -30,7 +30,7 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
         tint: Vec4::new(1.0, 1.0, 1.0, 0.5),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
     };
     let sprite = RenderSpriteSnapshot {
         entity: 301,
@@ -46,7 +46,7 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.0, 1.0, 0.0, 1.0),
         z_order: 0,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
@@ -141,7 +141,7 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
         tint: Vec4::new(1.0, 1.0, 1.0, 0.5),
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
     };
     let world_space_ui_panel = RenderSpriteSnapshot {
         entity: 311,
@@ -157,7 +157,7 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.0, 1.0, 1.0, 1.0),
         z_order: 0,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});

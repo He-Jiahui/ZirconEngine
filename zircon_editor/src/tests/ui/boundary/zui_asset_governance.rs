@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::{UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION};
 
 mod support;
@@ -27,11 +27,13 @@ mod workbench_shell;
 
 use self::metadata::string_metadata_offender;
 use self::support::{
-    builtin_zui_asset_id_alias_for, collect_v2_ui_toml_files, collect_zui_files, editor_asset_root,
-    is_component_directory_path, is_zui_component_import_asset_id, pascal_case_file_stem,
-    production_widget_import_asset_ids, production_widget_import_zui_locators, resolve_res_locator,
-    resource_locator_for_path, runtime_asset_root, split_import_fragment,
-    split_widget_component_import, zui_component_import_path, BUILTIN_ZUI_ASSET_ID_ALIASES,
+    builtin_zui_asset_id_alias_for, collect_ui_root_document_files, collect_zui_document_files,
+    collect_zui_files, collect_zui_view_style_files, editor_asset_root,
+    is_component_directory_path, is_ui_root_kind, is_zui_component_import_asset_id,
+    load_zui_document, pascal_case_file_stem, production_widget_import_asset_ids,
+    production_widget_import_zui_locators, resolve_res_locator, resource_locator_for_path,
+    runtime_asset_root, split_import_fragment, split_widget_component_import,
+    zui_component_import_path, BUILTIN_ZUI_ASSET_ID_ALIASES,
 };
 use crate::ui::workbench::FloatingWindow;
 
@@ -284,17 +286,14 @@ fn production_zui_component_names_match_file_stems() {
 }
 
 #[test]
-fn production_v2_zui_widget_imports_resolve_to_named_components() {
+fn production_ui_root_zui_widget_imports_resolve_to_named_components() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut checked_imports = 0usize;
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 let Some((asset_id, component_name)) = split_widget_component_import(import) else {
@@ -348,7 +347,7 @@ fn production_v2_zui_widget_imports_resolve_to_named_components() {
 
     assert!(
         checked_imports > 0,
-        "production v2 UI assets should import .zui component prototypes"
+        "production UI root assets should import .zui component prototypes"
     );
     assert!(
         offenders.is_empty(),
@@ -357,17 +356,14 @@ fn production_v2_zui_widget_imports_resolve_to_named_components() {
 }
 
 #[test]
-fn production_v2_widget_imports_use_zui_component_assets_only() {
+fn production_ui_root_widget_imports_use_zui_component_assets_only() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut checked_imports = 0usize;
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
+            let document = load_zui_document(&path);
 
             for import in &document.imports.widgets {
                 checked_imports += 1;
@@ -394,11 +390,11 @@ fn production_v2_widget_imports_use_zui_component_assets_only() {
 
     assert!(
         checked_imports > 0,
-        "production v2 UI assets should import .zui widget prototypes"
+        "production UI root assets should import .zui widget prototypes"
     );
     assert!(
         offenders.is_empty(),
-        "production v2 widget imports must point at .zui component assets or registered builtin .zui aliases: {offenders:#?}"
+        "production UI root widget imports must point at .zui component assets or registered builtin .zui aliases: {offenders:#?}"
     );
 }
 
@@ -410,12 +406,9 @@ fn production_ui_import_entries_are_non_empty_and_trimmed() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
 
             for (import_section, imports) in [
                 ("imports.widgets", document.imports.widgets.as_slice()),
@@ -469,12 +462,9 @@ fn production_ui_import_lists_do_not_repeat_dependencies() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+            let document = load_zui_document(&path);
             checked_imports += document.imports.widgets.len() + document.imports.styles.len();
 
             let duplicate_widgets = duplicate_entries(&document.imports.widgets);
@@ -535,52 +525,67 @@ fn production_ui_import_lists_do_not_repeat_dependencies() {
 }
 
 #[test]
-fn production_v2_ui_toml_assets_are_view_or_style_roots_only() {
+fn production_view_style_roots_are_zui_documents() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
-    let mut checked_assets = 0usize;
+    let mut zui_root_assets = 0usize;
     let mut view_assets = 0usize;
     let mut style_assets = 0usize;
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
-
+        for path in collect_zui_view_style_files(&asset_root.join("ui")) {
+            zui_root_assets += 1;
+            let file_name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default();
+            if !file_name.ends_with(".zui") {
+                offenders.push(format!(
+                    "{} was collected as a .zui view/style root without the .zui suffix",
+                    path.display()
+                ));
+            }
+            let document = load_zui_document(&path);
             match document.asset.kind {
                 UiV2AssetKind::View => view_assets += 1,
                 UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => style_assets += 1,
-                UiV2AssetKind::Component => offenders.push(format!(
-                    "{} declares component kind; production component assets must use .zui",
-                    path.display()
-                )),
+                UiV2AssetKind::Component => {
+                    offenders.push(format!(
+                        "{} was collected as a .zui view/style root but declares component kind",
+                        path.display()
+                    ));
+                }
+            }
+            if !is_ui_root_kind(document.asset.kind) {
+                offenders.push(format!(
+                    "{} was collected as a .zui view/style root but declares {:?}",
+                    path.display(),
+                    document.asset.kind
+                ));
             }
         }
     }
 
     assert!(
-        checked_assets > 0,
-        "production asset roots should contain .v2.ui.toml assets"
+        zui_root_assets > 0,
+        "production UI roots should exist as .zui documents"
     );
     assert!(
         view_assets > 0,
-        "production .v2.ui.toml roots should include view assets"
+        "production .zui root documents should include view assets"
     );
     assert!(
         style_assets > 0,
-        "production .v2.ui.toml roots should include style assets"
+        "production .zui root documents should include style assets"
     );
     assert!(
         offenders.is_empty(),
-        "production .v2.ui.toml files are reserved for view/style roots; component prototypes must use .zui: {offenders:#?}"
+        "view/style roots must be recognized as .zui documents: {offenders:#?}"
     );
 }
 
 #[test]
-fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
+fn production_zui_component_assets_are_reachable_from_ui_root_widget_imports() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut referenced_zui_locators = production_widget_import_zui_locators(&asset_roots);
     referenced_zui_locators.extend(workbench_design_contract_zui_locators());
@@ -593,7 +598,7 @@ fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
             let expected_locator = resource_locator_for_path(asset_root, &path);
             if !referenced_zui_locators.contains(&expected_locator) {
                 offenders.push(format!(
-                    "{} is not reachable from any production .v2.ui.toml widget import or Workbench design contract",
+                    "{} is not reachable from any production UI root widget import or Workbench design contract",
                     path.display()
                 ));
             }
@@ -606,7 +611,7 @@ fn production_zui_component_assets_are_reachable_from_v2_widget_imports() {
     );
     assert!(
         !referenced_zui_locators.is_empty(),
-        "production .v2.ui.toml roots should reference .zui component assets"
+        "production UI roots should reference .zui component assets"
     );
     assert!(
         offenders.is_empty(),
@@ -631,11 +636,8 @@ fn production_v2_style_imports_resolve_to_style_assets() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
+            let document = load_zui_document(&path);
 
             for import in &document.imports.styles {
                 checked_imports += 1;
@@ -667,13 +669,7 @@ fn production_v2_style_imports_resolve_to_style_assets() {
                     continue;
                 };
 
-                let style_source = fs::read_to_string(&style_path).unwrap_or_else(|error| {
-                    panic!("read style `{}`: {error}", style_path.display())
-                });
-                let style_document =
-                    UiV2AssetLoader::load_toml_str(&style_source).unwrap_or_else(|error| {
-                        panic!("parse style `{}`: {error}", style_path.display())
-                    });
+                let style_document = load_zui_document(&style_path);
                 if !is_style_import_kind(style_document.asset.kind) {
                     offenders.push(format!(
                         "{} imports style `{}` but `{}` declares {:?}",
@@ -689,11 +685,11 @@ fn production_v2_style_imports_resolve_to_style_assets() {
 
     assert!(
         checked_imports > 0,
-        "production v2 UI assets should import shared style assets"
+        "production UI root assets should import shared style assets"
     );
     assert!(
         offenders.is_empty(),
-        "production v2 style imports must resolve to style assets: {offenders:#?}"
+        "production UI root style imports must resolve to style assets: {offenders:#?}"
     );
 }
 
@@ -705,7 +701,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -788,13 +784,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
                     ));
                     continue;
                 };
-                let style_source = fs::read_to_string(&style_path).unwrap_or_else(|error| {
-                    panic!("read style `{}`: {error}", style_path.display())
-                });
-                let style_document =
-                    UiV2AssetLoader::load_toml_str(&style_source).unwrap_or_else(|error| {
-                        panic!("parse style `{}`: {error}", style_path.display())
-                    });
+                let style_document = load_zui_document(&style_path);
                 if !is_style_import_kind(style_document.asset.kind) {
                     offenders.push(format!(
                         "{} imports style `{}` but `{}` declares {:?}",
@@ -810,7 +800,7 @@ fn production_zui_internal_imports_follow_component_and_style_boundaries() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         checked_imports == 0 || offenders.is_empty(),
@@ -826,7 +816,7 @@ fn production_zui_widget_imports_do_not_self_reference() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let current_locator = resource_locator_for_path(asset_root, &path);
             let current_alias = builtin_zui_asset_id_alias_for(&current_locator);
@@ -855,11 +845,11 @@ fn production_zui_widget_imports_do_not_self_reference() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         checked_imports == 0 || offenders.is_empty(),
-        "production .zui widget imports must not self-reference the component asset being expanded: {offenders:#?}"
+        "production .zui widget imports must not self-reference the document being expanded: {offenders:#?}"
     );
 }
 
@@ -873,7 +863,7 @@ fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_asset_ids += 1;
             let expected_locator = resource_locator_for_path(asset_root, &path);
             let source = fs::read_to_string(&path)
@@ -891,7 +881,7 @@ fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
                 observed_alias_locators.insert(expected_locator.clone());
                 if !referenced_widget_asset_ids.contains(actual_asset_id) {
                     offenders.push(format!(
-                        "{} declares builtin alias `{}` but no production .v2.ui.toml widget import references it",
+                        "{} declares builtin alias `{}` but no production UI root widget import references it",
                         path.display(),
                         actual_asset_id
                     ));
@@ -916,46 +906,33 @@ fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
         }
         if !referenced_widget_asset_ids.contains(*asset_id) {
             offenders.push(format!(
-                "builtin .zui alias `{asset_id}` for `{locator}` is registered but no production .v2.ui.toml widget import references it"
+                "builtin .zui alias `{asset_id}` for `{locator}` is registered but no production UI root widget import references it"
             ));
         }
     }
 
     assert!(
         checked_asset_ids > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         locator_asset_ids > 0,
-        "production .zui assets should primarily use res:// asset ids"
+        "production .zui documents should primarily use res:// asset ids"
     );
     assert!(
         offenders.is_empty(),
-        ".zui asset ids must match their res:// locator unless an explicit builtin alias is registered and referenced: {offenders:#?}"
+        ".zui document asset ids must match their res:// locator unless an explicit builtin alias is registered and referenced: {offenders:#?}"
     );
 }
 
 #[test]
-fn production_ui_asset_ids_are_unique_across_v2_roots_and_zui_components() {
+fn production_ui_asset_ids_are_unique_across_zui_documents() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut checked_assets = 0usize;
     let mut asset_ids = BTreeMap::<String, Vec<PathBuf>>::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
-
-            asset_ids
-                .entry(document.asset.id.clone())
-                .or_default()
-                .push(path);
-        }
-
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -983,11 +960,11 @@ fn production_ui_asset_ids_are_unique_across_v2_roots_and_zui_components() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain UI v2 or .zui assets"
+        "production asset roots should contain .zui assets"
     );
     assert!(
         offenders.is_empty(),
-        "production UI asset ids must be globally unique across .v2.ui.toml view/style roots and .zui component assets: {offenders:#?}"
+        "production UI asset ids must be globally unique across .zui documents: {offenders:#?}"
     );
 }
 
@@ -998,30 +975,7 @@ fn production_ui_asset_headers_are_authorable_and_current() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_v2_ui_toml_files(&asset_root.join("ui")) {
-            checked_assets += 1;
-            let source = fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
-            let document = UiV2AssetLoader::load_toml_str(&source)
-                .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
-
-            if document.asset.version != UI_V2_ASSET_SCHEMA_VERSION {
-                offenders.push(format!(
-                    "{} declares schema version {}, expected {}",
-                    path.display(),
-                    document.asset.version,
-                    UI_V2_ASSET_SCHEMA_VERSION
-                ));
-            }
-            push_asset_header_metadata_offenders(
-                &path,
-                &document.asset.id,
-                &document.asset.display_name,
-                &mut offenders,
-            );
-        }
-
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -1060,16 +1014,22 @@ fn builtin_template_registry_does_not_register_zui_component_assets() {
     let offenders = crate::ui::template_runtime::builtin::builtin_template_documents()
         .into_iter()
         .filter_map(|(document_id, path)| {
-            path.file_name()
+            let is_zui = path
+                .file_name()
                 .and_then(|value| value.to_str())
-                .is_some_and(|file_name| file_name.ends_with(".zui"))
+                .is_some_and(|file_name| file_name.ends_with(".zui"));
+            if !is_zui {
+                return None;
+            }
+            let document = load_zui_document(&path);
+            (document.asset.kind == UiV2AssetKind::Component)
                 .then(|| format!("{document_id} -> {}", path.display()))
         })
         .collect::<Vec<_>>();
 
     assert!(
         offenders.is_empty(),
-        ".zui files are component prototypes imported by v2 view/style documents, not directly registered builtin template documents: {offenders:#?}"
+        "builtin template documents may register .zui view/style roots after suffix migration, but must not directly register .zui component prototypes: {offenders:#?}"
     );
 }
 

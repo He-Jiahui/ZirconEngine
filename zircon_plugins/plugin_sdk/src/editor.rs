@@ -151,9 +151,10 @@ macro_rules! authoring_plugin {
             description: $description:expr,
             maturity: $maturity:expr,
             $(mirrors_runtime: $runtime_declaration:expr,)?
+            $(mirrors_runtime_manifest: $runtime_manifest:expr,)?
             capabilities: $capabilities:expr,
-            asset_root: $asset_root:expr,
-            content_root: $content_root:expr,
+            $(asset_root: $asset_root:expr,)?
+            $(content_root: $content_root:expr,)?
             register_extensions: $register_extensions:path $(,)?
         }
     ) => {
@@ -202,12 +203,17 @@ macro_rules! authoring_plugin {
                 $(
                     let declaration = declaration.mirrors_runtime(&$runtime_declaration);
                 )?
-                Self {
-                    declaration: declaration
-                        .with_capabilities(($capabilities).iter().copied())
-                        .with_asset_root($asset_root)
-                        .with_content_root($content_root),
-                }
+                $(
+                    let declaration = declaration.mirrors_runtime_manifest($runtime_manifest);
+                )?
+                let declaration = declaration.with_capabilities(($capabilities).iter().copied());
+                $(
+                    let declaration = declaration.with_asset_root($asset_root);
+                )?
+                $(
+                    let declaration = declaration.with_content_root($content_root);
+                )?
+                Self { declaration }
             }
         }
 

@@ -126,17 +126,17 @@ related_code:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 implementation_files:
@@ -239,17 +239,17 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 plan_sources:
@@ -509,9 +509,9 @@ Builtin editor host templates now enter the runtime through [`EditorUiHostRuntim
 
 `zircon_editor` boundary tests now guard every production `.zui` asset under `zircon_editor/assets/ui` and `zircon_runtime/assets/ui` through [`production_zui_assets_are_single_component_documents()`](/E:/Git/ZirconEngine/zircon_editor/src/tests/ui/boundary/template_assets.rs). The check recursively scans both roots, parses each `.zui` document with `UiZuiAssetLoader`, enforces one component per asset with an existing root node in the node table, and rejects duplicate `.zui` asset ids. This converts `.zui` governance from a hand-picked allowlist to a full production-coverage invariant.
 
-The asset activity and asset browser panes now expose their tree/source columns as template-owned mount nodes in [`assets_activity.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml) and [`asset_browser.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml). The retained host projection consumes those nodes directly instead of falling back to a legacy hard-coded `FolderTreeView`, while still routing pointer facts into the shared asset tree dispatch path.
+The asset activity and asset browser panes now expose their tree/source columns as template-owned mount nodes in [`assets_activity.zui`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/assets_activity.zui) and [`asset_browser.zui`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/asset_browser.zui). The retained host projection consumes those nodes directly instead of falling back to a legacy hard-coded `FolderTreeView`, while still routing pointer facts into the shared asset tree dispatch path.
 
-`TemplatePaneNodeData` is the retained host's generic retained node bridge for editor-authored UI documents and future plugin component drawers. Runtime component projection now preserves row state that would otherwise be lost at the host boundary: `selected`, `focused`, `hovered`, `expanded`, `tree_depth`, and `tree_indent_px` all survive from document props or runtime component flags into Rust-owned host-contract template node data. The showcase runtime overlay only writes transient flags when they are active, so declarative visual state in [`component_showcase.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml) is not erased by an inactive default `UiComponentState`; tree rows use explicit `tree_indent_px` when present and otherwise derive indentation from `tree_depth`. This matters for plugin-provided UI drawers because custom inspectors need ListRow/TreeRow selection and hierarchy affordances to be first-class data, not hard-coded host styling.
+`TemplatePaneNodeData` is the retained host's generic retained node bridge for editor-authored UI documents and future plugin component drawers. Runtime component projection now preserves row state that would otherwise be lost at the host boundary: `selected`, `focused`, `hovered`, `expanded`, `tree_depth`, and `tree_indent_px` all survive from document props or runtime component flags into Rust-owned host-contract template node data. The showcase runtime overlay only writes transient flags when they are active, so declarative visual state in [`component_showcase.zui`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.zui) is not erased by an inactive default `UiComponentState`; tree rows use explicit `tree_indent_px` when present and otherwise derive indentation from `tree_depth`. This matters for plugin-provided UI drawers because custom inspectors need ListRow/TreeRow selection and hierarchy affordances to be first-class data, not hard-coded host styling.
 
 Asset surface controls also use explicit generic routes for each template control. Kind chips call `root.control_changed("SetKindFilter", "...")`, view buttons call `root.control_changed("SetViewMode", "...")`, utility tabs call `root.control_changed("SetUtilityTab", "...")`, and commands such as `OpenAssetBrowser`, `LocateSelectedAsset`, and `ImportModel` call `root.control_clicked(...)`. No asset-specific business callback is exposed from the retained host shell.
 

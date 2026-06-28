@@ -1,5 +1,5 @@
 mod docks;
-mod legacy;
+mod host_window;
 mod menus;
 mod native_panes;
 mod root_frames;
@@ -9,8 +9,8 @@ mod style;
 mod text;
 mod welcome;
 
-pub(in crate::ui::retained_host::host_contract) use legacy::{
-    draw_legacy_workbench_window, draw_legacy_workbench_window_profiled,
+pub(in crate::ui::retained_host::host_contract) use host_window::{
+    draw_host_workbench_window, draw_host_workbench_window_profiled,
 };
 pub(in crate::ui::retained_host::host_contract) use scene_layers::{
     draw_componentized_workbench_window, draws_componentized_workbench_window,

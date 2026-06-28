@@ -6,12 +6,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/document_tab_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
 implementation_files:
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/constants.rs
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/engine-code-structure-convention.md
@@ -47,7 +47,7 @@ The module is intentionally narrow. It does not own document state, tab activati
 
 `document_tab_pointer/constants.rs` aliases the same shared values for the retained pointer bridge. This keeps close hit frames aligned with the visible close button and avoids the earlier split where paint used one tab width while pointer routing used another.
 
-`workbench_dock_header.v2.ui.toml` remains the authored template seed for the static dock-header asset. Its document-tab widths now match the shared metric defaults: closeable tabs are wide enough for `Asset Browser`, and the close controls use a clean icon-only frame rather than a permanent inset button surface.
+`workbench_dock_header.zui` remains the authored template seed for the static dock-header asset. Its document-tab widths now match the shared metric defaults: closeable tabs are wide enough for `Asset Browser`, and the close controls use a clean icon-only frame rather than a permanent inset button surface.
 
 ## Edge Cases and Constraints
 

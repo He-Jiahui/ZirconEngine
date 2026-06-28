@@ -115,8 +115,8 @@ related_code:
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_lab_style.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
-  - zircon_editor/assets/ui/editor/fyrox_panel_demo_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/fyrox_panel_demo_window.zui
+  - zircon_editor/assets/ui/editor/layout_demo_window.zui
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
@@ -200,8 +200,8 @@ implementation_files:
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/command_palette.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
-  - zircon_editor/assets/ui/editor/fyrox_panel_demo_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/fyrox_panel_demo_window.zui
+  - zircon_editor/assets/ui/editor/layout_demo_window.zui
 plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md

@@ -61,7 +61,7 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert_eq!(extract.view.camera.aspect_ratio, 1920.0 / 1080.0);
     assert_eq!(
         *extract.view.selected_camera_layers(),
-        RenderLayerSet::from_legacy_mask(0b0111)
+        RenderLayerSet::from_scene_schema_v1_mask(0b0111)
     );
 
     let dynamic_index = extract
@@ -79,7 +79,12 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     );
     assert_eq!(dynamic_row.morph_weights, vec![0.25, 0.75]);
     assert_eq!(dynamic_row.tint, Vec4::new(0.2, 0.4, 0.6, 1.0));
-    assert_eq!(dynamic_row.render_layer_mask.to_legacy_mask_lossy(), 0b0010);
+    assert_eq!(
+        dynamic_row
+            .render_layer_mask
+            .to_scene_schema_v1_mask_lossy(),
+        0b0010
+    );
 
     let static_index = extract
         .geometry
@@ -375,7 +380,7 @@ fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers()
         .iter()
         .all(|renderable| renderable
             .render_layer_mask
-            .intersects(&RenderLayerSet::from_legacy_mask(0b0010))));
+            .intersects(&RenderLayerSet::from_scene_schema_v1_mask(0b0010))));
     assert!(extract.visibility.static_entities.contains(&visible_mesh));
     assert!(extract
         .visibility

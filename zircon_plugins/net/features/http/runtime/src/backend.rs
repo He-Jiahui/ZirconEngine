@@ -8,6 +8,7 @@ use zircon_runtime::core::framework::net::{
 };
 
 mod client;
+mod http1_client_policy;
 mod method;
 mod security;
 mod server;

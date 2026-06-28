@@ -10,8 +10,8 @@ default = []
 cpal-backend = ["dep:cpal"]
 
 [dependencies]
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
-zircon_runtime_interface = { path = "../../../zircon_runtime_interface" }
+zircon_runtime = { workspace = true }
+zircon_runtime_interface = { workspace = true }
 cpal = { version = "0.15", optional = true }
 
 [dev-dependencies]

@@ -6,17 +6,18 @@ related_code:
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_v2_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/asset/project/manager/asset_kind.rs
   - zircon_runtime/src/asset/artifact/store.rs
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -201,11 +202,11 @@ implementation_files:
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -286,11 +287,11 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib runtime_fixture_assets_live_under_crate_assets --jobs 1 -- --nocapture --test-threads=1
-  - cargo test -p zircon_runtime --lib runtime_ui_asset_root_contains_only_v2_ui_toml_entries --jobs 1 -- --nocapture --test-threads=1
-  - cargo test -p zircon_runtime --lib importer_registry_routes_v2_ui_toml_to_v2_document_backend --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib runtime_ui_asset_root_contains_only_zui_entries --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib importer_registry_routes_zui_to_document_backend --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib ui_v2_asset_wrappers_parse_and_validate_kind --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib ui_v2_asset_direct_references_include_imports_and_resources --jobs 1 -- --nocapture --test-threads=1
-  - cargo test -p zircon_runtime --lib importer_decodes_ui_v2_view_component_and_style_assets_from_v2_ui_toml --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib importer_decodes_zui_view_and_style_assets_from_zui --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib project_manager_scans_ui_v2_assets_and_restores_v2_payloads --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib asset::tests::assets::ui --jobs 1 -- --nocapture --test-threads=1
@@ -339,10 +340,10 @@ doc_type: module-detail
 这份文档记录 runtime UI 在本轮 cutover 后的正式加载边界：
 
 - 运行时 builtin fixture 的入口资源已经迁出 `src/`
-- runtime 只从 crate `assets/` 读取生产 `.v2.ui.toml` 入口
+- runtime 只从 crate `assets/` 读取生产 `.zui` 入口
 - runtime builtin fixture 现在走 UI v2 flat arena asset 和 heap-resident prototype file cache
 
-本篇强调的是“运行时入口资源位置”和“加载路径”。旧 tree `.ui.toml` 与新 v2 `.v2.ui.toml` 的本体协议见 [`UI Asset Documents And Editor Protocol`](../ui-and-layout/ui-asset-documents-and-editor-protocol.md)。
+本篇强调的是“运行时入口资源位置”和“加载路径”。UI v2 文档的生产入口后缀已经收敛为 `.zui`；旧 tree `.ui.toml` 与 `.v2.ui.toml` 只保留为历史迁移语境，协议细节见 [`UI Asset Documents And Editor Protocol`](../ui-and-layout/ui-asset-documents-and-editor-protocol.md)。
 
 ## Production Entry Assets Must Live Under `assets/`
 
@@ -351,17 +352,17 @@ doc_type: module-detail
 对 runtime UI 来说，直接变化是：
 
 - 旧位置：`zircon_runtime/src/ui/runtime_ui/fixtures/*.ui.toml`
-- 新位置：`zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml`
+- 新位置：`zircon_runtime/assets/ui/runtime/fixtures/*.zui`
 
 目前 builtin fixture 包括：
 
-- `hud_overlay.v2.ui.toml`
-- `pause_menu.v2.ui.toml`
-- `settings_dialog.v2.ui.toml`
-- `inventory_list.v2.ui.toml`
-- `quest_log_dialog.v2.ui.toml`
+- `hud_overlay.zui`
+- `pause_menu.zui`
+- `settings_dialog.zui`
+- `inventory_list.zui`
+- `quest_log_dialog.zui`
 
-editor 侧曾经保留的 `zircon_editor/assets/ui/runtime/*.ui.toml` 旧 runtime preview 资产已经删除。runtime UI 的真源统一收口到 `zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml`，editor 预览和 host metadata 测试也从这些 v2 fixture 构建。
+editor 侧曾经保留的 `zircon_editor/assets/ui/runtime/*.ui.toml` 旧 runtime preview 资产已经删除。runtime UI 的真源统一收口到 `zircon_runtime/assets/ui/runtime/fixtures/*.zui`，editor 预览和 host metadata 测试也从这些 v2 fixture 构建。
 
 ## Runtime Fixture Contract
 
@@ -386,11 +387,11 @@ M4.3 的同源验收已经收束为 runtime v2 资产自身的语义 golden，�
 
 [`runtime_ui_golden.rs`](../../zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs) 覆盖五个 runtime v2 fixture：
 
-- `hud_overlay.v2.ui.toml`
-- `pause_menu.v2.ui.toml`
-- `settings_dialog.v2.ui.toml`
-- `inventory_list.v2.ui.toml`
-- `quest_log_dialog.v2.ui.toml`
+- `hud_overlay.zui`
+- `pause_menu.zui`
+- `settings_dialog.zui`
+- `inventory_list.zui`
+- `quest_log_dialog.zui`
 
 每组 golden 都检查 semantic control ids、可见文字 payload、按钮数量、runtime quad/text render payload。Quest Log 还检查 v2 fixture 保留 `QuestLog/Track`、`QuestLog/Close` click binding id 与 `RuntimeAction.*` route。这样可以防止 runtime fixture 只编译出空树，也避免测试继续把旧 `.ui.toml` 资产当成 runtime UI 的长期 fallback。
 
@@ -413,14 +414,14 @@ runtime fixture 和 editor bootstrap 资产现在在最终 `UiSurface`/render ex
 
 ## Tree TOML Is Also The Runtime Fixture Authority
 
-运行时 fixture 已经全部迁成 UI v2 flat arena `.v2.ui.toml`。因此 runtime UI 现在同时满足两条规则：
+运行时 fixture 已经全部迁成 UI v2 flat arena `.zui`。因此 runtime UI 现在同时满足两条规则：
 
 - 资源位置规则：入口文件在 crate `assets/`
 - 资产格式规则：入口文件是 v2 `root + nodes + component/classes/props/state/layout/slots/events/children` graph，而不是旧递归 `UiTemplateNode`
 
 旧 recursive/flat asset 迁移逻辑只存在于 shared UI 的 test support 和 editor legacy preview support；它不属于 runtime fixture 的正式读取，也不是 `RuntimeUiManager` 加载失败时的 fallback。
 
-Asset importer matching now has the same boundary: `.v2.ui.toml` is registered as its own v2 UI document suffix before the legacy `.ui.toml` suffix. The default runtime importer parses that suffix through `UiV2AssetLoader` and emits first-class `UiV2ViewAsset`, `UiV2ComponentAsset`, or `UiV2StyleAsset` payloads; the first-wave fixture importer selects the same suffix at higher priority for plugin-boundary tests. This prevents v2 files from being parsed through the legacy recursive `UiAssetDocument` loader and lets project scan/artifact restore preserve the v2 payload variant.
+Asset importer matching now has the same boundary: `.zui` is the only production UI document suffix and is registered through the built-in `zircon.builtin.ui_document.zui` importer. That importer parses with `UiZuiAssetLoader`, then `ui_v2_document_import.rs` materializes first-class `UiV2ViewAsset`, `UiV2ComponentAsset`, or `UiV2StyleAsset` payloads by `asset.kind`. `.ui.toml` and `.v2.ui.toml` registrations are rejected by the importer registry and by build staging guards instead of remaining as read paths.
 
 ## Runtime Frame Boundary
 
@@ -445,7 +446,7 @@ The 2026-05-08 retained render-cache slice was validated at the runtime surface 
 
 `runtime-ui-integration-tests` feature 下的 all-fixture 验收现在会遍历 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList`、`QuestLogDialog`，逐个通过 `RuntimeUiManager::load_builtin_fixture(...) -> build_frame() -> WgpuRenderFramework::submit_runtime_frame(...)` 提交，并检查 `RenderStats` 中的 UI command 与 quad/text payload 计数。这条测试只证明所有 builtin fixture 都进入同一 screen-space UI pass，不为某个 fixture 增加专用 renderer 分支。
 
-所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 v2 `.v2.ui.toml` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
+所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 v2 `.zui` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
 
 ## Product Graph Placement
 
@@ -467,7 +468,7 @@ The 2026-05-06 icon pass hardens both editor preview projection and runtime visu
 
 The painter now enters that path through `UiPaintElement` / `UiPaintPayload` derived from each shared render command. This keeps image, brush, border, and text handling aligned with the new shared DTOs while preserving the previous fallback behavior for missing assets and host-only RGBA painting.
 
-`render_commands.rs` keeps the placeholder path only as the missing-asset fallback. When decode succeeds, runtime `UiPaintPayload` image/vector brushes and template-node preview images emit host image-pixel commands and `primitives.rs::draw_rgba_image_clipped(...)` clips and alpha-blends those pixels into the retained native host frame. SVG commands now ask `visual_assets.rs` for pixels at the target frame size before issuing the command, so resizing a toolbar, tab, menu, or runtime vector brush causes a fresh vector rasterization instead of stretching a cached intrinsic bitmap. Icon references are tinted in the painter-local decoded-pixel cache, while ordinary image references preserve source colors. Template-node icons use the same decoded pixel path, but their tint can now reflect Material interaction state: default, active/selected/pressed, and disabled icon colors are resolved before alpha blending. This keeps the `.ui.toml -> UiSurface.render_extract -> UiRenderCommand` path as the renderer authority; the native host does not add a generated Slint UI or a second image schema.
+`render_commands.rs` keeps the placeholder path only as the missing-asset fallback. When decode succeeds, runtime `UiPaintPayload` image/vector brushes and template-node preview images emit host image-pixel commands and `primitives.rs::draw_rgba_image_clipped(...)` clips and alpha-blends those pixels into the retained native host frame. SVG commands now ask `visual_assets.rs` for pixels at the target frame size before issuing the command, so resizing a toolbar, tab, menu, or runtime vector brush causes a fresh vector rasterization instead of stretching a cached intrinsic bitmap. Icon references are tinted in the painter-local decoded-pixel cache, while ordinary image references preserve source colors. Template-node icons use the same decoded pixel path, but their tint can now reflect Material interaction state: default, active/selected/pressed, and disabled icon colors are resolved before alpha blending. This keeps the `.zui -> UiSurface.render_extract -> UiRenderCommand` path as the renderer authority; the native host does not add a generated Slint UI or a second image schema.
 
 The cache stores successful image pixels for the editor process. SVG cache keys include asset path, tint, and requested raster size, while bitmap cache keys remain intrinsic-size oriented. That preserves SVG's scale-without-quality-loss contract during pointer damage, pane resizing, and viewport-image region redraws. There is no hot-reload invalidation for this cache yet; file edits are picked up on process restart or a future explicit cache-busting path.
 
@@ -596,7 +597,7 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 - `clip_frame` 会继续约束文本采样区域，不会沿整条文本带泄漏
 - `wrap = "word"` 会把 glyph footprint 实际分配到多行，而不是仍然挤成单条占位带
 - `opacity` 会继续进入 glyph 颜色/采样链路，capture frame 上能看到稳定的可见变暗，而不是只停留在 shared command 元数据里
-- 同一个回归文件现在还额外覆盖正式模板资产链；runtime builtin path 已收口到 `.v2.ui.toml -> UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> UiSurface.render_extract -> RenderFramework capture_frame(...)`
+- 同一个回归文件现在还额外覆盖正式模板资产链；runtime builtin path 已收口到 `.zui -> UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> UiSurface.render_extract -> RenderFramework capture_frame(...)`
 - 这意味着 template/surface 驱动的 runtime 文本也已经有最终像素证据，而不再只有手写 `UiRenderCommand` 和 editor HUD 提交路径的 capture 证明
 
 ## Font Asset Entry
@@ -728,7 +729,7 @@ M1 这里再补了一条最小默认策略：
 - `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo check -p zircon_editor --lib --locked --jobs 1 --color never`
   - 2026-05-18 editor lib pass: shared UI/render contracts still type-check for `zircon_editor` after the graph-owned runtime UI placement changes.
 - `cargo test -p zircon_runtime production_ui_entry_assets_live_under_crate_assets_not_src --locked`
-  - 证明生产入口 `.ui.toml` 没有回流到 `src/`
+  - 证明生产入口 `.ui.toml` / `.v2.ui.toml` 没有回流到 `src/`
 - `cargo test -p zircon_runtime default_runtime_font_manifest_stays_inside_runtime_assets --locked`
   - 证明默认字体 manifest 解析后的真实 TTF 仍位于 `zircon_runtime/assets/` 内部，而不是继续穿透到 `dev/` 开发树
 - `cargo test -p zircon_runtime --test font_asset_manifest_contract --locked`
@@ -736,7 +737,7 @@ M1 这里再补了一条最小默认策略：
 - `cargo test -p zircon_runtime --test font_asset_manifest_contract project_font_manifest_resolves_through_project_asset_manager --locked`
   - 证明当前打开项目里的 `res://fonts/project.font.toml` 会优先经 `ProjectAssetManager` 解析，并把 `project.ttf` 当成字体 source auxiliary，而不是把项目 scan 过程炸成 unsupported format
 - `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`
-  - 2026-04-29 fresh capture contract 通过 7 passed / 0 failed；证明 runtime UI 文本在最终 capture frame 上已经是 glyph 输出而不是矩形占位，并同时覆盖 `Native`、centered `Sdf` side margins、clip-bound glyph sampling、多行 wrap、opacity dimming，以及正式 `.ui.toml -> compiled surface -> render extract` 链上的 wrap/opacity glyph capture
+  - 2026-04-29 fresh capture contract 通过 7 passed / 0 failed；证明 runtime UI 文本在最终 capture frame 上已经是 glyph 输出而不是矩形占位，并同时覆盖 `Native`、centered `Sdf` side margins、clip-bound glyph sampling、多行 wrap、opacity dimming，以及正式 `.zui -> compiled surface -> render extract` 链上的 wrap/opacity glyph capture
 - `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-sdf-font-bake --message-format short --color never -- --test-threads=1 --nocapture`
   - 2026-05-01 fresh capture contract 通过 8 passed / 0 failed；新增 SDF/background delta 证明真实 bake 后的 `AIO` glyph footprint 保持稀疏，且不再是旧 placeholder block
 - `cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked`

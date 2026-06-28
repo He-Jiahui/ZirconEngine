@@ -2,6 +2,7 @@
 related_code:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
@@ -13,19 +14,20 @@ related_code:
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
   - zircon_editor/src/ui/layouts/views/animation_editor.rs
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/theme/editor_material.zui
+  - zircon_editor/assets/ui/theme/editor_base.zui
 implementation_files:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
@@ -37,16 +39,16 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
   - zircon_editor/src/ui/layouts/views/animation_editor.rs
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/theme/editor_material.zui
+  - zircon_editor/assets/ui/theme/editor_base.zui
 plan_sources:
   - user: 2026-05-11 hard-cut editor first screen and core panes to UI v2 schema
   - user: 2026-05-12 continue removing old schema fallback from editor UI v2 projection
@@ -97,16 +99,18 @@ tests:
   - cargo test -p zircon_editor --lib asset_browser --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: passed, 16 passed after compact utility duplicate projection collapse)
   - cargo build -p zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never (2026-06-26: passed with existing warning noise after compact utility duplicate projection collapse)
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-06-26: passed, refreshed `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`; no repo target; collapsed utility Preview residual hidden)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs zircon_editor/src/ui/layouts/views/asset_browser/tests.rs zircon_editor/src/ui/asset_editor/node_projection.rs zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs (2026-06-28 logical text-align support gate: passed)
+  - cargo test -q -p zircon_editor --lib aligned_text_x_resolves_logical_start_end_against_text_direction --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-badge-muted -- --test-threads=1 --nocapture (2026-06-28: passed, 1/1)
 doc_type: module-detail
 ---
 
 # View Projection
 
-`view_projection` is the editor bridge that turns retained runtime UI surfaces into Slint-facing `ViewTemplateNodeData`. It now routes editor pane assets exclusively through `.v2.ui.toml` and `zircon_runtime::ui::v2`. Non-v2 asset paths return `ViewTemplateProjectionError::NonV2AssetPath` instead of falling back to `UiPrototypeStoreFileCache`, `UiDocumentCompiler`, or `UiTemplateSurfaceBuilder`.
+`view_projection` is the editor bridge that turns retained runtime UI surfaces into Slint-facing `ViewTemplateNodeData`. It now routes editor pane assets through `.zui` / `.v2.ui.toml` and `zircon_runtime::ui::v2`. Non-v2 asset paths return `ViewTemplateProjectionError::NonV2AssetPath` instead of falling back to `UiPrototypeStoreFileCache`, `UiDocumentCompiler`, or `UiTemplateSurfaceBuilder`.
 
 ## v2 Path
 
-For `.v2.ui.toml` assets, the projection loader:
+For `.zui` and `.v2.ui.toml` assets, the projection loader:
 
 - resolves the asset and style source list through the v2 source-path helper,
 - loads and reuses the heap-backed `UiV2PrototypeStoreFileCache`,
@@ -117,7 +121,9 @@ For `.v2.ui.toml` assets, the projection loader:
 
 There is no fallback from a v2 asset to the legacy recursive document path. If a v2 asset is malformed, projection fails for that pane instead of silently reparsing with the old schema.
 
-The projection module also hard-rejects old `.ui.toml` view paths before attempting any load. This keeps editor view panes on the v2 heap-resident prototype cache and prevents accidental reintroduction of the recursive schema during later pane work.
+The projection module also hard-rejects old `.ui.toml` view paths before attempting any load. `.zui` is accepted by the same v2 gate as `.v2.ui.toml`, which keeps active editor pane templates on the v2 heap-resident prototype cache and prevents Asset Browser base template nodes such as `AssetBrowserContentPanel` from being dropped when callers request `.zui` panes.
+
+For render text metadata, `view_projection.rs` and `ui/asset_editor/node_projection.rs` preserve the runtime interface's `UiTextAlign::Start` and `UiTextAlign::End` values as `"start"` and `"end"` instead of collapsing them to physical left/right. Retained painting resolves those logical values later against `UiTextDirection`, so projection remains a semantic DTO bridge and does not own direction policy.
 
 The same-name v1 production assets for the converted editor panes, workbench chrome surfaces, host shell fragments, and editor window shells have been removed. Remaining v1 editor assets are restricted to UI Asset Editor authoring fixtures and old-schema component libraries that still have explicit tests, not the active host projection path.
 
@@ -125,14 +131,14 @@ The same-name v1 production assets for the converted editor panes, workbench chr
 
 These top-level editor pane projections now load from v2 assets:
 
-- `ProjectOverview`: `zircon_editor/assets/ui/editor/project_overview.v2.ui.toml`
-- `AssetBrowser`: `zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml`
-- `Console`: `zircon_editor/assets/ui/editor/console.v2.ui.toml`
-- `Hierarchy`: `zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml`
-- `Inspector`: `zircon_editor/assets/ui/editor/inspector.v2.ui.toml`
-- `AssetsActivity`: `zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml`
-- `AnimationEditor`: `zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml`
-- `Welcome`: `zircon_editor/assets/ui/editor/welcome.v2.ui.toml`
+- `ProjectOverview`: `zircon_editor/assets/ui/editor/project_overview.zui`
+- `AssetBrowser`: `zircon_editor/assets/ui/editor/asset_browser.zui`
+- `Console`: `zircon_editor/assets/ui/editor/console.zui`
+- `Hierarchy`: `zircon_editor/assets/ui/editor/hierarchy.zui`
+- `Inspector`: `zircon_editor/assets/ui/editor/inspector.zui`
+- `AssetsActivity`: `zircon_editor/assets/ui/editor/assets_activity.zui`
+- `AnimationEditor`: `zircon_editor/assets/ui/editor/animation_editor.zui`
+- `Welcome`: `zircon_editor/assets/ui/editor/welcome.zui`
 
 The conversions preserve existing authored control IDs and geometry semantics so host presenters and pointer routes continue to locate the same controls while loading through the v2 prototype cache and surface builder.
 
@@ -160,7 +166,7 @@ Short-viewport layout now lives in `asset_browser/compact_layout.rs` instead of 
 
 The compact toolbar/search/import stack now lives in `asset_browser/toolbar_layout.rs`, a sibling owner to the short-viewport content layout. It collapses the old title/subtitle rows, places search and Locate In Assets in one 28px row, places kind chips and List/Thumb view buttons in a second 24px row, hides low-priority kind chips when width runs out, and keeps Quick Import as a single 32px strip with label, path field, and Import command. The main content y is derived from the import strip bottom plus a root gap, so the slice stays relative/adaptive instead of relying on screenshot-specific absolute coordinates.
 
-The Quick Import path field now follows the same display/value split as other component-owned controls. `asset_browser.v2.ui.toml` authors a placeholder for `AssetBrowserImportPathField`; `view_projection.rs` uses that placeholder as the visible text when no label or value is present, while `resolve_node_value_text` keeps `value_text` empty when the display text equals the placeholder. This gives the retained painter a real text payload for the empty field without turning placeholder copy into dispatch state.
+The Quick Import path field now follows the same display/value split as other component-owned controls. `asset_browser.zui` authors a placeholder for `AssetBrowserImportPathField`; `view_projection.rs` uses that placeholder as the visible text when no label or value is present, while `resolve_node_value_text` keeps `value_text` empty when the display text equals the placeholder. This gives the retained painter a real text payload for the empty field without turning placeholder copy into dispatch state.
 
 The same compact owner now lays out the primary content stack directly: a 20px content header row with padded title/path text, a 4px header-to-table gap, a table stack limited to the header plus four visible asset rows with rows clamped to 30px, and a selected-preview summary card anchored inside the content panel below the table. Duplicate projected `AssetBrowserContentPanel` and `AssetBrowserAssetTablePanel` containers are collapsed to zero-size `frame_only` nodes so stale high-z surfaces cannot draw narrow content or table frames over the rows and preview.
 

@@ -64,8 +64,8 @@ mod tests {
                 profile: "debug".to_string(),
                 jobs: Some(1),
                 output_dir: PathBuf::from("E:/out"),
-                detail: HubMessage::legacy(format!("run {index}")),
-                log_excerpt: HubMessage::legacy(format!("log {index}")),
+                detail: HubMessage::raw_text(format!("run {index}")),
+                log_excerpt: HubMessage::raw_text(format!("log {index}")),
                 command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
             });
         }

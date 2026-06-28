@@ -5,7 +5,7 @@ const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const expectedGeneratedBottomControlEvents = 48;
 const generatedBottomComponentUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui";
 const generatedBottomDrawerUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui";
-const generatedBottomBodyUrl = "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml";
+const generatedBottomBodyUrl = "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.zui";
 const moduleWorkspaceUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui";
 const generatedBottomBindingsUrl =
   "../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs";
@@ -27,14 +27,20 @@ const descriptorContentKindUrl =
 const panePayloadKindUrl = "../../../../zircon_editor/src/ui/workbench/view/pane_payload_kind.rs";
 const panePayloadUrl = "../../../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs";
 const paneProjectionUrl = "../../../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs";
-const applyPresentationUrl = "../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation.rs";
-const hostContractPanesUrl = "../../../../zircon_editor/src/ui/retained_host/host_contract/data/panes.rs";
+const applyPresentationUrl =
+  "../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs";
+const hostContractPanesUrl =
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs";
 const paneDataConversionUrl = "../../../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs";
-const hostContractWindowUrl = "../../../../zircon_editor/src/ui/retained_host/host_contract/window.rs";
+const hostContractWindowUrl =
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/window/template_hover/panes.rs";
 const profilingArtifactsUrl = "../../../../zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs";
+const profilingPaneNodesUrl =
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/template_nodes/source.rs";
 const hitTestTemplateNodeUrl =
-  "../../../../zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs";
-const painterWorkbenchUrl = "../../../../zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs";
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs";
+const painterWorkbenchUrl =
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs";
 const generatedBottomBodyTestUrl =
   "../../../../zircon_editor/src/tests/host/retained_generated_bottom_template_body.rs";
 const generatedBottomNavigationUrl =
@@ -82,6 +88,7 @@ const sources = {
   paneDataConversion: readRepo(paneDataConversionUrl),
   hostContractWindow: readRepo(hostContractWindowUrl),
   profilingArtifacts: readRepo(profilingArtifactsUrl),
+  profilingPaneNodes: readRepo(profilingPaneNodesUrl),
   hitTestTemplateNode: readRepo(hitTestTemplateNodeUrl),
   painterWorkbench: readRepo(painterWorkbenchUrl),
   generatedBottomBodyTest: readRepo(generatedBottomBodyTestUrl),
@@ -147,7 +154,7 @@ for (const route of webGeneratedBottomRoutes) {
 
 check(sources.matrix.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui"), "matrix mentions generated bottom component");
 check(sources.matrix.includes("workbench/modules/generated/workbench_generated_bottom_drawer.zui"), "matrix mentions generated bottom drawer host");
-check(sources.matrix.includes("generated_bottom_body.v2.ui.toml"), "matrix mentions generated bottom shell pane body");
+check(sources.matrix.includes("generated_bottom_body.zui"), "matrix mentions generated bottom shell pane body");
 check(sources.matrix.includes("generated_bottom_view_descriptor.rs"), "matrix mentions generated bottom activity view descriptor");
 check(sources.matrix.includes("builtin_shell_view_instances.rs"), "matrix mentions generated bottom shell view instance");
 check(sources.matrix.includes("layout_drawers.rs"), "matrix mentions generated bottom bottom-drawer tab");
@@ -184,7 +191,7 @@ check(
 );
 check(
   sources.templateDocuments.includes('PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID: &str = "pane.generated_bottom.body"') &&
-    sources.templateDocuments.includes("generated_bottom_body.v2.ui.toml"),
+    sources.templateDocuments.includes("generated_bottom_body.zui"),
   "builtin template documents register generated bottom shell body",
 );
 check(
@@ -261,7 +268,7 @@ check(
     sources.applyPresentation.includes("GeneratedBottomV1"),
   "host contract projection converts generated bottom panes into retained data",
 );
-for (const sourceName of ["hostContractWindow", "profilingArtifacts", "hitTestTemplateNode", "painterWorkbench"]) {
+for (const sourceName of ["hostContractWindow", "profilingPaneNodes", "hitTestTemplateNode", "painterWorkbench"]) {
   check(
     sources[sourceName].includes('"GeneratedBottom"') &&
       sources[sourceName].includes("pane.generated_bottom.nodes"),

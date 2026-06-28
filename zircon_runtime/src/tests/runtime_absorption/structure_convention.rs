@@ -8,6 +8,8 @@ mod facade_surface;
 mod graphics_dead_code;
 #[path = "structure_convention/lock_poison_policy.rs"]
 mod lock_poison_policy;
+#[path = "structure_convention/module_convention_gate.rs"]
+mod module_convention_gate;
 #[path = "structure_convention/native_live_host_lock_poison.rs"]
 mod native_live_host_lock_poison;
 #[path = "structure_convention/production_file_budget.rs"]

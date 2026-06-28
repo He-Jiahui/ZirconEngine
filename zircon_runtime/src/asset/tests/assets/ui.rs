@@ -4,14 +4,15 @@ use crate::asset::assets::{ui_asset_references, ui_v2_asset_references};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
-    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiIconAsset, UiIconSource, UiIconSourceKind,
-    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
-    UiWidgetAsset,
+    AssetImportError, AssetImporter, AssetKind, AssetUri, ImportedAsset, UiAssetDocumentError,
+    UiIconAsset, UiIconAssetDocumentError, UiIconSource, UiIconSourceKind, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiThemeAssetDocumentError, UiV2AssetDocumentError,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use zircon_runtime_interface::resource::{ResourceKind, ResourceMarker};
 use zircon_runtime_interface::ui::style::UiRgbaColor;
-use zircon_runtime_interface::ui::template::UiAssetKind;
-use zircon_runtime_interface::ui::v2::UiV2AssetKind;
+use zircon_runtime_interface::ui::template::{UiAssetError, UiAssetKind};
+use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2AssetKind};
 
 const LAYOUT_UI_TOML: &str = r#"
 [asset]
@@ -154,7 +155,7 @@ display_name = "Runtime Panel"
 
 [imports]
 widgets = ["res://ui/common/button.v2.ui.toml#ToolbarButton"]
-styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+styles = ["res://ui/theme/editor_material.zui"]
 resources = [
   { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },
 ]
@@ -221,6 +222,8 @@ default_size = 18.0
 kind = "svg_asset"
 uri = "res://ui/icons/run.svg"
 "##;
+
+const INVALID_UI_TOML: &str = "not = [";
 
 mod fixture_validation;
 mod importer;

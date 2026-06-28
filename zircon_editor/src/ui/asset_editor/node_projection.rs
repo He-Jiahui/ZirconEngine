@@ -29,8 +29,8 @@ use crate::ui::layouts::views::{
     ViewTemplateFrameData, ViewTemplateNodeData,
 };
 
-const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.v2.ui.toml";
-const UI_ASSET_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.v2.ui.toml";
+const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.zui";
+const UI_ASSET_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
 
 const CENTER_COLUMN_CONTROL_ID: &str = "CenterColumn";
 const DESIGNER_PANEL_CONTROL_ID: &str = "DesignerPanel";
@@ -442,5 +442,7 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
         UiTextAlign::Left => "left",
         UiTextAlign::Center => "center",
         UiTextAlign::Right => "right",
+        UiTextAlign::Start => "start",
+        UiTextAlign::End => "end",
     }
 }

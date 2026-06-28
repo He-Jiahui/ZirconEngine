@@ -9,6 +9,7 @@ const EXPECTED_RUNTIME_13_SOURCE_FILES: &[&str] = &[
     "src/script/vm/gameplay_host.rs",
     "src/script/vm/gameplay_host/combat.rs",
     "src/script/vm/gameplay_host/components.rs",
+    "src/script/vm/gameplay_host/error.rs",
     "src/script/vm/gameplay_host/input.rs",
     "src/script/vm/gameplay_host/lifecycle.rs",
     "src/script/vm/gameplay_host/navigation.rs",
@@ -33,6 +34,7 @@ const GAMEPLAY_HOST_OWNER_FILES: &[&str] = &[
     "src/script/vm/gameplay_host.rs",
     "src/script/vm/gameplay_host/combat.rs",
     "src/script/vm/gameplay_host/components.rs",
+    "src/script/vm/gameplay_host/error.rs",
     "src/script/vm/gameplay_host/input.rs",
     "src/script/vm/gameplay_host/lifecycle.rs",
     "src/script/vm/gameplay_host/navigation.rs",
@@ -43,7 +45,7 @@ const GAMEPLAY_HOST_OWNER_FILES: &[&str] = &[
 
 #[test]
 fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 18);
+    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 19);
     assert_eq!(EXPECTED_RUNTIME_13_TEST_FILES.len(), 3);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -140,7 +142,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "script_binding_boundary",
-            "expected_source_file_count = 18",
+            "expected_source_file_count = 19",
             "expected_test_file_count = 3",
             "fixed_host_module_count = 6",
             "fixed_host_function_count = 52",
@@ -185,6 +187,7 @@ fn runtime_13_gameplay_host_owner_split_keeps_domain_files() {
     for module_anchor in [
         "mod combat;",
         "mod components;",
+        "mod error;",
         "mod input;",
         "mod lifecycle;",
         "mod navigation;",

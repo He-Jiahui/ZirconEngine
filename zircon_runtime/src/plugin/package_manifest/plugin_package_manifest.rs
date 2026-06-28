@@ -2,15 +2,20 @@ use serde::{Deserialize, Serialize};
 
 use crate::builtin::RuntimeTargetMode;
 use crate::{
-    asset::AssetImporterDescriptor, plugin::CapabilityStatusManifest,
-    plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginMaturity, plugin::UiComponentDescriptor,
+    asset::AssetImporterDescriptor,
+    core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor},
+    plugin::CapabilityStatusManifest,
+    plugin::ComponentTypeDescriptor,
+    plugin::ExportPackagingStrategy,
+    plugin::ExportTargetPlatform,
+    plugin::PluginMaturity,
+    plugin::UiComponentDescriptor,
 };
 
 use super::{
     PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
     PluginFeatureBundleManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
-    PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginModuleManifest, PluginOptionManifest, PluginPackageKind, PluginShaderPermutationManifest,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +71,15 @@ pub struct PluginPackageManifest {
     pub optional_features: Vec<PluginFeatureBundleManifest>,
     #[serde(default)]
     pub feature_extensions: Vec<PluginFeatureBundleManifest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub geometry_sources: Vec<GeometrySourceDescriptor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shading_models: Vec<ShadingModelDescriptor>,
+    #[serde(
+        default,
+        skip_serializing_if = "PluginShaderPermutationManifest::is_empty"
+    )]
+    pub shader_permutation: PluginShaderPermutationManifest,
     #[serde(default)]
     pub default_packaging: Vec<ExportPackagingStrategy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

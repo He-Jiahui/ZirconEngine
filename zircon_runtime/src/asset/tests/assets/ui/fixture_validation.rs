@@ -14,6 +14,13 @@ fn fixture_v2_toml_importer_rejects_component_kind_in_favor_of_zui() {
         )
         .unwrap_err();
 
+    assert!(matches!(
+        &error,
+        AssetImportError::UiV2Document {
+            source: UiV2AssetDocumentError::ComponentRequiresZui,
+            ..
+        }
+    ));
     assert!(
         error
             .to_string()

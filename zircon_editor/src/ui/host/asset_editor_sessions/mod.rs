@@ -15,7 +15,7 @@ use crate::ui::{
     asset_editor::UiAssetEditorRoute,
     asset_editor::{UiAssetEditorSession, UiAssetEditorSessionError},
 };
-use zircon_runtime::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind, v2::UiV2AssetKind};
 
@@ -52,11 +52,7 @@ pub(super) fn ui_asset_editor_route_from_source(
 ) -> Result<UiAssetEditorRoute, UiAssetEditorSessionError> {
     let asset_id = asset_id.into();
     let asset_kind = if is_v2_backed_ui_asset_id(&asset_id) {
-        let document = if is_zui_asset_id(&asset_id) {
-            UiZuiAssetLoader::load_zui_str(source)?
-        } else {
-            UiV2AssetLoader::load_toml_str(source)?
-        };
+        let document = UiZuiAssetLoader::load_zui_str(source)?;
         legacy_asset_kind_for_v2(document.asset.kind)
     } else {
         let document = parse_ui_asset_document_source(source)?;
@@ -67,11 +63,7 @@ pub(super) fn ui_asset_editor_route_from_source(
 
 pub(super) fn is_v2_backed_ui_asset_id(asset_id: &str) -> bool {
     let asset_id = asset_id.trim().to_ascii_lowercase();
-    asset_id.ends_with(".zui") || asset_id.ends_with(".v2.ui.toml")
-}
-
-fn is_zui_asset_id(asset_id: &str) -> bool {
-    asset_id.trim().to_ascii_lowercase().ends_with(".zui")
+    asset_id.ends_with(".zui")
 }
 
 const fn legacy_asset_kind_for_v2(kind: UiV2AssetKind) -> UiAssetKind {

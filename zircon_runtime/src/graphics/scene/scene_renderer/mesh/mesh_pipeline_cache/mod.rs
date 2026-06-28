@@ -1,3 +1,4 @@
+mod construct;
 mod ensure_depth_prepass_pipeline;
 mod ensure_gbuffer_pipeline;
 mod ensure_pipeline;
@@ -7,7 +8,6 @@ mod ensure_velocity_pipeline;
 mod forward_shadow_receiver;
 mod mesh_pipeline_cache;
 mod mesh_pipeline_variant_registry;
-mod new;
 mod shader_source;
 
 pub(crate) use mesh_pipeline_cache::MeshPipelineCache;

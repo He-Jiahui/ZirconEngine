@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 const INSPECTOR_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/inspector.v2.ui.toml"
+    "/assets/ui/editor/inspector.zui"
 ));
 
 #[test]

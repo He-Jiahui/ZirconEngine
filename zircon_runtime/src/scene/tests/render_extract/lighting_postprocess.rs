@@ -179,7 +179,7 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
     assert!(extract
         .view
         .selected_camera_layers()
-        .intersects_legacy_mask(0b0100));
+        .intersects_scene_schema_v1_mask(0b0100));
     assert!(extract
         .visibility
         .renderable_entities
@@ -259,7 +259,7 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
     assert_eq!(extract.post_process.volumes.len(), 1);
     let volume = &extract.post_process.volumes[0];
     assert_eq!(volume.priority, 8.0);
-    assert!(volume.volume_mask.intersects_legacy_mask(0b0010));
+    assert!(volume.volume_mask.intersects_scene_schema_v1_mask(0b0010));
     let resolved = extract
         .post_process
         .resolved_settings_for_camera(

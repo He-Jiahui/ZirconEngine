@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/retained_host/asset_control_ids.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
@@ -14,7 +14,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/retained_host/asset_control_ids.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
@@ -84,7 +84,7 @@ doc_type: module-detail
 
 The 2026-06-25 S15.1 hard cutover moved chrome atomic consumers onto `METRICS` directly: button content/glyph/text, text fields, dropdown labels/chevrons, icon-button radius and border width, axis value fields, and inspector row primitives no longer own local font, radius, inset, or chevron constants. The same slice added `retained_host/asset_control_ids.rs` so asset dispatch source and asset surface action/control-id normalization are shared by retained-host activation, text-input dispatch, and asset control callbacks instead of being duplicated in multiple leaves.
 
-The 2026-06-25 S15.6 palette cutover extended `EditorPaletteTokens` with retained-host semantic surface, state, separator, popup, track, focus, shadow, and semantic-container roles, mirrored those names in `editor_tokens.v2.ui.toml`, and made `PALETTE` come from `DEFAULT_HOST_PALETTE` in `palette_projection.rs`. Workbench style selector palettes now consume `PALETTE` roles instead of local handwritten RGBA values; the previous retained-host drift in border, primary text, muted text, disabled text, and error colors intentionally converges to the central workbench token values.
+The 2026-06-25 S15.6 palette cutover extended `EditorPaletteTokens` with retained-host semantic surface, state, separator, popup, track, focus, shadow, and semantic-container roles, mirrored those names in `editor_tokens.zui`, and made `PALETTE` come from `DEFAULT_HOST_PALETTE` in `palette_projection.rs`. Workbench style selector palettes now consume `PALETTE` roles instead of local handwritten RGBA values; the previous retained-host drift in border, primary text, muted text, disabled text, and error colors intentionally converges to the central workbench token values.
 
 The 2026-06-26 S15.6d/S15.6e command-button passes keep prominent Workbench command styling in `style_selector/workbench_button/command.rs`. Compile and asset import controls retain accent text and glyph color, but their surface and border come from the muted Workbench palette ladder instead of authored accent fill. This keeps command emphasis available without reintroducing a second color table or large cyan blocks in the module toolbar and Asset Browser command row.
 

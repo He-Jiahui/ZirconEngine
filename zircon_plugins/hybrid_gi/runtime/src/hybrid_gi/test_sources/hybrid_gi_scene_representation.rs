@@ -61,7 +61,7 @@ fn hybrid_gi_scene_representation_separates_public_settings_from_internal_fixtur
 }
 
 #[test]
-fn hybrid_gi_scene_representation_counts_duplicate_legacy_fixture_payloads_once() {
+fn hybrid_gi_scene_representation_counts_duplicate_extract_fixture_payloads_once() {
     let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
         enabled: true,
         quality: RenderHybridGiQuality::High,
@@ -98,17 +98,17 @@ fn hybrid_gi_scene_representation_counts_duplicate_legacy_fixture_payloads_once(
     assert_eq!(
         representation.fixture_probe_count(),
         1,
-        "expected legacy fixture probe stats to count unique ids after the old authored probe path is demoted"
+        "expected extract fixture probe stats to count unique ids after the old authored probe path is demoted"
     );
     assert_eq!(
         representation.fixture_trace_region_count(),
         1,
-        "expected legacy fixture trace-region stats to count unique ids after the old authored trace path is demoted"
+        "expected extract fixture trace-region stats to count unique ids after the old authored trace path is demoted"
     );
 }
 
 #[test]
-fn hybrid_gi_scene_representation_ignores_disabled_legacy_fixture_payloads() {
+fn hybrid_gi_scene_representation_ignores_disabled_extract_fixture_payloads() {
     let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
         enabled: false,
         quality: RenderHybridGiQuality::High,
@@ -558,6 +558,6 @@ fn mesh_at(node_id: u64, translation: Vec3, uniform_scale: f32) -> RenderMeshSna
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
     }
 }

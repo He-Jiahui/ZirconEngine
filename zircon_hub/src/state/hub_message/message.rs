@@ -11,7 +11,7 @@ pub enum HubMessage {
         id: HubMessageId,
         params: Vec<String>,
     },
-    Legacy(String),
+    RawText(String),
 }
 
 impl HubMessage {
@@ -32,17 +32,17 @@ impl HubMessage {
         }
     }
 
-    pub fn legacy(text: impl Into<String>) -> Self {
-        Self::Legacy(text.into())
+    pub fn raw_text(text: impl Into<String>) -> Self {
+        Self::RawText(text.into())
     }
 
     pub fn empty() -> Self {
-        Self::Legacy(String::new())
+        Self::RawText(String::new())
     }
 
     pub fn is_empty(&self) -> bool {
         match self {
-            Self::Legacy(text) => text.trim().is_empty(),
+            Self::RawText(text) => text.trim().is_empty(),
             Self::Structured { .. } => false,
         }
     }
@@ -53,7 +53,7 @@ impl HubMessage {
 
     pub fn render(&self, language: HubLanguage) -> String {
         match self {
-            Self::Legacy(text) => text.clone(),
+            Self::RawText(text) => text.clone(),
             Self::Structured { id, params } => render_template(id.template(language), params),
         }
     }
@@ -99,17 +99,17 @@ enum HubMessageRepr {
         #[serde(default)]
         params: Vec<String>,
     },
-    Legacy(String),
+    ArchivedRawText(String),
 }
 
 impl From<HubMessageRepr> for HubMessage {
     fn from(repr: HubMessageRepr) -> Self {
         match repr {
-            HubMessageRepr::Legacy(text) => Self::Legacy(text),
+            HubMessageRepr::ArchivedRawText(text) => Self::RawText(text),
             HubMessageRepr::Structured { id, params } => match HubMessageId::from_str_id(&id) {
                 Some(id) => Self::Structured { id, params },
-                None if params.is_empty() => Self::Legacy(id),
-                None => Self::Legacy(format!("{id}: {}", params.join(", "))),
+                None if params.is_empty() => Self::RawText(id),
+                None => Self::RawText(format!("{id}: {}", params.join(", "))),
             },
         }
     }
@@ -120,7 +120,7 @@ impl Serialize for HubMessage {
         use serde::ser::SerializeStruct;
 
         match self {
-            Self::Legacy(text) => serializer.serialize_str(text),
+            Self::RawText(text) => serializer.serialize_str(text),
             Self::Structured { id, params } => {
                 let mut row = serializer.serialize_struct("HubMessage", 2)?;
                 row.serialize_field("id", id.as_str())?;
@@ -145,14 +145,14 @@ mod tests {
     use crate::state::{HubMessage, HubMessageId, ShellMessageId};
 
     #[test]
-    fn legacy_string_deserializes_into_legacy_branch() {
+    fn archived_string_deserializes_into_raw_text_branch() {
         let message: HubMessage = serde_json::from_str("\"old detail\"").unwrap();
 
         assert_eq!(message, "old detail");
     }
 
     #[test]
-    fn unknown_id_degrades_to_legacy_instead_of_failing_file_load() {
+    fn unknown_id_degrades_to_raw_text_instead_of_failing_file_load() {
         let message: HubMessage =
             serde_json::from_str(r#"{"id":"future.message","params":["a","b"]}"#).unwrap();
 

@@ -1,5 +1,11 @@
 use crate::asset::AssetImporterDescriptor;
 use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::render::{
+    GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
+};
 use crate::plugin::{
     ComponentTypeDescriptor, PluginEventCatalogManifest, PluginEventManifest, PluginOptionManifest,
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
@@ -47,6 +53,16 @@ fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contri
         registration.extensions.asset_importers().descriptors()[0].id,
         "weather.data"
     );
+    assert_eq!(registration.extensions.geometry_sources().len(), 1);
+    assert_eq!(
+        registration.extensions.geometry_sources()[0].token,
+        "custom:weather_gpu"
+    );
+    assert_eq!(registration.extensions.shading_models().len(), 1);
+    assert_eq!(
+        registration.extensions.shading_models()[0].token,
+        "custom:weather_toon"
+    );
 
     let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
     let report = catalog.runtime_extensions();
@@ -57,6 +73,8 @@ fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contri
     assert_eq!(report.registry.components().len(), 1);
     assert_eq!(report.registry.ui_components().len(), 1);
     assert_eq!(report.registry.asset_importers().descriptors().len(), 1);
+    assert_eq!(report.registry.geometry_sources().len(), 1);
+    assert_eq!(report.registry.shading_models().len(), 1);
 }
 
 #[test]
@@ -99,12 +117,20 @@ fn runtime_extension_registry_tracks_manifest_contribution_owners() {
             }],
         })
         .unwrap();
+    registry
+        .register_geometry_source("weather", weather_gpu_geometry_source())
+        .unwrap();
+    registry
+        .register_shading_model("weather", weather_toon_shading_model())
+        .unwrap();
 
     let ownership = registry.ownership_for(owner);
     assert_eq!(ownership.components.len(), 1);
     assert_eq!(ownership.ui_components.len(), 1);
     assert_eq!(ownership.plugin_options.len(), 1);
     assert_eq!(ownership.plugin_event_catalogs.len(), 1);
+    assert_eq!(ownership.geometry_sources.len(), 1);
+    assert_eq!(ownership.shading_models.len(), 1);
 }
 
 #[test]
@@ -170,6 +196,12 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
         )
         .unwrap();
     registry
+        .register_geometry_source("weather", weather_gpu_geometry_source())
+        .unwrap();
+    registry
+        .register_shading_model("weather", weather_toon_shading_model())
+        .unwrap();
+    registry
         .register_native_system::<(), _>(weather, "weather.tick", SystemStage::Update, |()| {})
         .register()
         .unwrap();
@@ -186,6 +218,8 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
     assert_eq!(removed.plugin_event_catalogs.len(), 1);
     assert_eq!(removed.plugin_resources.len(), 1);
     assert_eq!(removed.plugin_systems.len(), 1);
+    assert_eq!(removed.geometry_sources.len(), 1);
+    assert_eq!(removed.shading_models.len(), 1);
     assert_eq!(removed.asset_importers.len(), 1);
     assert_eq!(removed.asset_importers[0].id, "weather.data");
     assert!(registry.ownership_for(weather).is_empty());
@@ -200,6 +234,8 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
         .plugin_systems()
         .all(|(_, system)| system.id != "weather.tick"));
     assert_eq!(registry.asset_importers().descriptors()[0].id, "storm.data");
+    assert!(registry.geometry_sources().is_empty());
+    assert!(registry.shading_models().is_empty());
     registry
         .register_component(ComponentTypeDescriptor::new(
             "weather.Component.CloudLayer",
@@ -217,6 +253,12 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
             )
             .with_source_extensions(["weather"]),
         )
+        .unwrap();
+    registry
+        .register_geometry_source("weather", weather_gpu_geometry_source())
+        .unwrap();
+    registry
+        .register_shading_model("weather", weather_toon_shading_model())
         .unwrap();
 }
 
@@ -278,5 +320,39 @@ impl RuntimePlugin for ManifestDeclaredRuntimePlugin {
                 )
                 .with_source_extensions(["weather"]),
             )
+            .with_geometry_source_descriptor(weather_gpu_geometry_source())
+            .with_shading_model_descriptor(weather_toon_shading_model())
     }
+}
+
+fn weather_gpu_geometry_source() -> GeometrySourceDescriptor {
+    GeometrySourceDescriptor {
+        id: GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START),
+        token: "custom:weather_gpu".to_string(),
+        wgsl_include: "zr_geometry_weather_gpu.wgsl".to_string(),
+        vertex_attributes: vec![
+            GeometrySourceVertexAttribute::Position,
+            GeometrySourceVertexAttribute::Normal,
+            GeometrySourceVertexAttribute::Uv0,
+        ],
+        required_bindings: vec![GeometrySourceBindingRequirement::new(
+            GeometrySourceBindingKind::GpuSceneInstance,
+            "weather.gpu_scene",
+        )],
+        shader_defines: vec![RenderShaderDefinitionValue::bool(
+            "ZR_GEOMETRY_SOURCE_WEATHER_GPU",
+            true,
+        )],
+    }
+}
+
+fn weather_toon_shading_model() -> ShadingModelDescriptor {
+    ShadingModelDescriptor::new(
+        ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START),
+        "custom:weather_toon",
+        "zr_shading_weather_toon",
+        "zr_gbuffer_encode_weather_toon",
+        "zr_shade_deferred_weather_toon",
+        GBufferChannelMask::standard_lit(),
+    )
 }

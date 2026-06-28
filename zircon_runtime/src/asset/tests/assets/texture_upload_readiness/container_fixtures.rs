@@ -5,7 +5,7 @@ pub(super) fn ktx1_bc1_level_bytes() -> Vec<u8> {
     ktx1_compressed_level_bytes(0x83f1, 8)
 }
 
-pub(super) fn dds_legacy_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
+pub(super) fn dds_classic_fourcc_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
     let mut bytes = vec![0_u8; 128];
     bytes[0..4].copy_from_slice(b"DDS ");
     write_u32_le(&mut bytes, 4, 124);
@@ -21,8 +21,8 @@ pub(super) fn dds_legacy_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
     bytes
 }
 
-pub(super) fn dds_legacy_mip_bytes(fourcc: &str, mip_count: u32, payload_bytes: usize) -> Vec<u8> {
-    let mut bytes = dds_legacy_bytes(fourcc, payload_bytes);
+pub(super) fn dds_classic_mip_bytes(fourcc: &str, mip_count: u32, payload_bytes: usize) -> Vec<u8> {
+    let mut bytes = dds_classic_fourcc_bytes(fourcc, payload_bytes);
     write_u32_le(
         &mut bytes,
         8,
@@ -37,15 +37,15 @@ pub(super) fn dds_legacy_mip_bytes(fourcc: &str, mip_count: u32, payload_bytes: 
     bytes
 }
 
-pub(super) fn dds_legacy_cubemap_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
-    let mut bytes = dds_legacy_bytes(fourcc, payload_bytes);
+pub(super) fn dds_classic_cubemap_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
+    let mut bytes = dds_classic_fourcc_bytes(fourcc, payload_bytes);
     write_u32_le(&mut bytes, 108, DDSCAPS_TEXTURE | DDSCAPS_COMPLEX);
     write_u32_le(&mut bytes, 112, DDSCAPS2_CUBEMAP_ALL_FACES);
     bytes
 }
 
 pub(super) fn dds_dx10_bytes(dxgi_format: u32, payload_bytes: usize) -> Vec<u8> {
-    let mut bytes = dds_legacy_bytes("DX10", 0);
+    let mut bytes = dds_classic_fourcc_bytes("DX10", 0);
     bytes.resize(148, 0);
     write_u32_le(&mut bytes, 20, payload_bytes as u32);
     write_u32_le(&mut bytes, 128, dxgi_format);

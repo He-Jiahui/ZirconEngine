@@ -27,7 +27,7 @@ pub(crate) fn default_external_widget_draft(
     let component_name = selected_local_component_name(document, selection)?;
     let slug = widget_slug(&component_name);
     Some(UiAssetExternalWidgetDraft {
-        asset_id: format!("res://ui/widgets/{slug}.ui.toml"),
+        asset_id: format!("res://ui/widgets/{slug}.zui"),
         component_name,
         document_id: format!("ui.widgets.{slug}"),
     })

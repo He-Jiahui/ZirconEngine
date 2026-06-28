@@ -33,7 +33,7 @@ mod particles;
 fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
     let mut camera =
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
-    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.culling_mask = RenderLayerSet::from_scene_schema_v1_mask(mask);
     camera.volume_mask = camera.culling_mask.clone();
     camera
 }

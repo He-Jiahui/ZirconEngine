@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn collect_inputs_treats_disabled_legacy_trace_schedule_as_empty_for_scene_truth_skips() {
+    fn collect_inputs_treats_disabled_extract_trace_schedule_as_empty_for_scene_truth_skips() {
         let resident_probe_id = 300;
         let pending_probe_id = 400;
         let stale_region_id = 900;
@@ -446,27 +446,27 @@ mod tests {
         assert_eq!(
             inputs.resident_probe_inputs[0].skip_scene_prepare_for_irradiance_q,
             1,
-            "stale scheduled trace ids from a disabled legacy extract must not block runtime scene-truth irradiance reuse for resident probes"
+            "stale scheduled trace ids from a disabled extract input must not block runtime scene-truth irradiance reuse for resident probes"
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].skip_scene_prepare_for_trace_q,
             1,
-            "stale scheduled trace ids from a disabled legacy extract must not block runtime scene-truth trace reuse for resident probes"
+            "stale scheduled trace ids from a disabled extract input must not block runtime scene-truth trace reuse for resident probes"
         );
         assert_eq!(
             inputs.pending_probe_inputs[0].skip_scene_prepare_for_irradiance_q,
             1,
-            "stale scheduled trace ids from a disabled legacy extract must not block runtime scene-truth irradiance reuse for pending probes"
+            "stale scheduled trace ids from a disabled extract input must not block runtime scene-truth irradiance reuse for pending probes"
         );
         assert_eq!(
             inputs.pending_probe_inputs[0].skip_scene_prepare_for_trace_q,
             1,
-            "stale scheduled trace ids from a disabled legacy extract must not block runtime scene-truth trace reuse for pending probes"
+            "stale scheduled trace ids from a disabled extract input must not block runtime scene-truth trace reuse for pending probes"
         );
     }
 
     #[test]
-    fn collect_inputs_treats_legacy_trace_schedule_as_empty_when_scene_prepare_owns_frame() {
+    fn collect_inputs_treats_extract_trace_schedule_as_empty_when_scene_prepare_owns_frame() {
         let resident_probe_id = 300;
         let stale_region_id = 900;
         let prepare = HybridGiPrepareFrame {
@@ -487,7 +487,7 @@ mod tests {
             )]))
             .with_probe_scene_driven_hierarchy_irradiance_ids(BTreeSet::from([resident_probe_id]))
             .build();
-        let legacy_extract = RenderHybridGiExtract {
+        let extract_input = RenderHybridGiExtract {
             enabled: true,
             trace_budget: 1,
             probes: vec![RenderHybridGiProbe {
@@ -518,7 +518,7 @@ mod tests {
         let inputs = collect_inputs(
             &prepare,
             Some(&runtime),
-            Some(&legacy_extract),
+            Some(&extract_input),
             Some(&scene_prepare),
             &[],
             &[],
@@ -532,21 +532,21 @@ mod tests {
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].lineage_trace_support_q, 0,
-            "scene prepare ownership must not let stale legacy trace schedules feed probe lineage support"
+            "scene prepare ownership must not let stale extract trace schedules feed probe lineage support"
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].lineage_trace_lighting_rgb, 0,
-            "scene prepare ownership must not let stale legacy trace schedules feed probe lineage lighting"
+            "scene prepare ownership must not let stale extract trace schedules feed probe lineage lighting"
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].skip_scene_prepare_for_irradiance_q,
             1,
-            "stale legacy trace schedules must not block runtime scene-truth irradiance reuse once scene prepare owns the frame"
+            "stale extract trace schedules must not block runtime scene-truth irradiance reuse once scene prepare owns the frame"
         );
     }
 
     #[test]
-    fn collect_inputs_filters_scene_prepare_runtime_trace_data_backed_by_legacy_payload() {
+    fn collect_inputs_filters_scene_prepare_runtime_trace_data_backed_by_extract_payload() {
         let resident_probe_id = 300;
         let stale_region_id = 900;
         let prepare = HybridGiPrepareFrame {
@@ -570,17 +570,17 @@ mod tests {
                 runtime_trace_region_scene_data([240, 96, 48]),
             )]))
             .build();
-        let legacy_extract = RenderHybridGiExtract {
+        let extract_input = RenderHybridGiExtract {
             enabled: true,
             trace_budget: 1,
-            trace_regions: vec![legacy_trace_region(stale_region_id)],
+            trace_regions: vec![extract_trace_region(stale_region_id)],
             ..Default::default()
         };
 
         let inputs = collect_inputs(
             &prepare,
             Some(&runtime),
-            Some(&legacy_extract),
+            Some(&extract_input),
             Some(&HybridGiScenePrepareFrame::default()),
             &[],
             &[],
@@ -594,15 +594,15 @@ mod tests {
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].lineage_trace_support_q, 0,
-            "legacy-backed runtime trace scene data must not feed prepare-time probe lineage support during scene prepare"
+            "extract-backed runtime trace scene data must not feed prepare-time probe lineage support during scene prepare"
         );
     }
 
     #[test]
-    fn collect_inputs_keeps_scene_prepare_runtime_only_trace_data_when_legacy_payload_is_scheduled()
-    {
+    fn collect_inputs_keeps_scene_prepare_runtime_only_trace_data_when_extract_payload_is_scheduled(
+    ) {
         let resident_probe_id = 300;
-        let legacy_region_id = 900;
+        let extract_region_id = 900;
         let runtime_only_region_id = 901;
         let prepare = HybridGiPrepareFrame {
             resident_probes: vec![HybridGiPrepareProbe {
@@ -613,7 +613,7 @@ mod tests {
             }],
             pending_updates: Vec::new(),
             scheduled_trace_region_ids: vec![
-                legacy_region_id,
+                extract_region_id,
                 runtime_only_region_id,
                 runtime_only_region_id,
             ],
@@ -626,7 +626,7 @@ mod tests {
             )]))
             .with_trace_region_scene_data(BTreeMap::from([
                 (
-                    legacy_region_id,
+                    extract_region_id,
                     runtime_trace_region_scene_data([240, 96, 48]),
                 ),
                 (
@@ -635,17 +635,17 @@ mod tests {
                 ),
             ]))
             .build();
-        let legacy_extract = RenderHybridGiExtract {
+        let extract_input = RenderHybridGiExtract {
             enabled: true,
             trace_budget: 1,
-            trace_regions: vec![legacy_trace_region(legacy_region_id)],
+            trace_regions: vec![extract_trace_region(extract_region_id)],
             ..Default::default()
         };
 
         let inputs = collect_inputs(
             &prepare,
             Some(&runtime),
-            Some(&legacy_extract),
+            Some(&extract_input),
             Some(&HybridGiScenePrepareFrame::default()),
             &[],
             &[],
@@ -656,7 +656,7 @@ mod tests {
         assert_eq!(
             inputs.trace_region_inputs.len(),
             1,
-            "scene prepare runtime ownership should filter only legacy-backed trace ids and keep runtime-only trace scene data"
+            "scene prepare runtime ownership should filter only extract-backed trace ids and keep runtime-only trace scene data"
         );
         assert_eq!(
             inputs.trace_region_inputs[0].region_id,
@@ -669,7 +669,7 @@ mod tests {
     }
 
     #[test]
-    fn collect_inputs_filters_stripped_runtime_trace_data_backed_by_legacy_payload() {
+    fn collect_inputs_filters_stripped_runtime_trace_data_backed_by_extract_payload() {
         let resident_probe_id = 300;
         let stale_region_id = 900;
         let prepare = HybridGiPrepareFrame {
@@ -690,16 +690,16 @@ mod tests {
                 runtime_trace_region_scene_data([240, 96, 48]),
             )]),
         );
-        let legacy_extract = RenderHybridGiExtract {
+        let extract_input = RenderHybridGiExtract {
             enabled: true,
-            trace_regions: vec![legacy_trace_region(stale_region_id)],
+            trace_regions: vec![extract_trace_region(stale_region_id)],
             ..Default::default()
         };
 
         let inputs = collect_inputs(
             &prepare,
             Some(&runtime),
-            Some(&legacy_extract),
+            Some(&extract_input),
             None,
             &[],
             &[],
@@ -713,14 +713,14 @@ mod tests {
         );
         assert_eq!(
             inputs.resident_probe_inputs[0].lineage_trace_support_q, 0,
-            "legacy-backed runtime trace scene data must not feed prepare-time probe lineage support after scene-prepare has been stripped"
+            "extract-backed runtime trace scene data must not feed prepare-time probe lineage support after scene-prepare has been stripped"
         );
     }
 
     #[test]
-    fn collect_inputs_keeps_stripped_runtime_only_trace_data_when_legacy_payload_is_scheduled() {
+    fn collect_inputs_keeps_stripped_runtime_only_trace_data_when_extract_payload_is_scheduled() {
         let resident_probe_id = 300;
-        let legacy_region_id = 900;
+        let extract_region_id = 900;
         let runtime_only_region_id = 901;
         let prepare = HybridGiPrepareFrame {
             resident_probes: vec![HybridGiPrepareProbe {
@@ -731,7 +731,7 @@ mod tests {
             }],
             pending_updates: Vec::new(),
             scheduled_trace_region_ids: vec![
-                legacy_region_id,
+                extract_region_id,
                 runtime_only_region_id,
                 runtime_only_region_id,
             ],
@@ -741,7 +741,7 @@ mod tests {
             resident_probe_id,
             BTreeMap::from([
                 (
-                    legacy_region_id,
+                    extract_region_id,
                     runtime_trace_region_scene_data([240, 96, 48]),
                 ),
                 (
@@ -750,16 +750,16 @@ mod tests {
                 ),
             ]),
         );
-        let legacy_extract = RenderHybridGiExtract {
+        let extract_input = RenderHybridGiExtract {
             enabled: true,
-            trace_regions: vec![legacy_trace_region(legacy_region_id)],
+            trace_regions: vec![extract_trace_region(extract_region_id)],
             ..Default::default()
         };
 
         let inputs = collect_inputs(
             &prepare,
             Some(&runtime),
-            Some(&legacy_extract),
+            Some(&extract_input),
             None,
             &[],
             &[],
@@ -770,7 +770,7 @@ mod tests {
         assert_eq!(
             inputs.trace_region_inputs.len(),
             1,
-            "stripped runtime scene truth should filter only legacy-backed trace ids and keep runtime-only trace scene data"
+            "stripped runtime scene truth should filter only extract-backed trace ids and keep runtime-only trace scene data"
         );
         assert_eq!(
             inputs.trace_region_inputs[0].region_id,
@@ -807,7 +807,7 @@ mod tests {
         HybridGiResolveTraceRegionSceneData::new(2048, 2048, 2048, 96, 128, rt_lighting_rgb)
     }
 
-    fn legacy_trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
+    fn extract_trace_region(region_id: u32) -> RenderHybridGiTraceRegion {
         RenderHybridGiTraceRegion {
             region_id,
             bounds_center: Vec3::ZERO,

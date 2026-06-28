@@ -18,20 +18,20 @@
 - Reference only: `docs/superpowers/specs/2026-05-21-editor-svg-polish-ui-mapping-design.md`
 - Reference only: `docs/zircon_editor/assets/icon-resource-audit.md`
 - Read-only mapping inputs under `zircon_editor/assets/ui/editor/**`:
-  - `host/workbench_shell.v2.ui.toml`
-  - `host/scene_viewport_toolbar.v2.ui.toml`
-  - `host/asset_surface_controls.v2.ui.toml`
-  - `host/startup_welcome_controls.v2.ui.toml`
-  - `workbench_activity_rail.v2.ui.toml`
-  - `workbench_dock_header.v2.ui.toml`
-  - `host/console_body.v2.ui.toml`
-  - `host/hierarchy_body.v2.ui.toml`
-  - `host/animation_graph_body.v2.ui.toml`
-  - `host/animation_sequence_body.v2.ui.toml`
-  - `host/performance_timeline_body.v2.ui.toml`
-  - `host/runtime_diagnostics_body.v2.ui.toml`
-  - `host/build_export_desktop_body.v2.ui.toml`
-  - `host/module_plugins_body.v2.ui.toml`
+  - `host/workbench_shell.zui`
+  - `host/scene_viewport_toolbar.zui`
+  - `host/asset_surface_controls.zui`
+  - `host/startup_welcome_controls.zui`
+  - `workbench_activity_rail.zui`
+  - `workbench_dock_header.zui`
+  - `host/console_body.zui`
+  - `host/hierarchy_body.zui`
+  - `host/animation_graph_body.zui`
+  - `host/animation_sequence_body.zui`
+  - `host/performance_timeline_body.zui`
+  - `host/runtime_diagnostics_body.zui`
+  - `host/build_export_desktop_body.zui`
+  - `host/module_plugins_body.zui`
 
 ## Shared Rules
 

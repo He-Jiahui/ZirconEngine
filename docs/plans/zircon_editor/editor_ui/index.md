@@ -78,7 +78,7 @@ plan_sources:
 - **布局**：Taffy 已是布局后端（taffy_bridge）；引擎选择/13 种 fallback reason 枚举已在 interface；增量布局、滚动、虚拟化模块存在。
 - **输入**：`UiDispatchReply`/`UiDispatchEffect`/`UiInputRoutePolicy`（含 PreviewTunnel/Direct/FocusPath/PointerCapture）/批入口/reply 应用器已在 interface + runtime；缺统一 manager 门面、触摸指针表与 editor 桥收编。
 - **唯一事实**：`UiSurfaceFrame` 同时驱动布局、命中、渲染提取；`UiSurface` 已暴露 mutate_property/reflector_snapshot/dispatch 全套宿主 API。
-- **资产**：`.zui` + `.v2.ui.toml` 双轨资产类型已注册；依赖失效 graph/fingerprint、resource_ref 路径级解析、watcher 全模块已存在；缺 theme/icon 类型、消费级 resolver、persistent cache。
+- **资产**：生产 UI 资产后缀已硬切为唯一 `.zui`，并按 `asset.kind` 分派 component/view/style/theme token 文档 profile；依赖失效 graph/fingerprint、resource_ref 路径级解析、watcher 全模块已存在；缺 theme/icon 类型、消费级 resolver、persistent cache。
 - **样式**：`UiPainterStyleSelector` 已在 interface 按 family 折叠（优先级单源已成立）；缺中央 theme 文档、v2 伪状态、组件内联分支清理。
 - **渲染**：GPU Command Stream 已接管 editor UI 渲染（software_fallback_count=0 验收过），编辑器无 raw wgpu 依赖。
 - **编辑器壳**：Rust-owned retained host；shell 区域 L4 `.zui` 已有 8 件；view registry / window registry / preset / autolayout 模块齐备；11 个 core module workspace 存在。
@@ -107,10 +107,37 @@ plan_sources:
 | ------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
 | UI 契约（DTO、事件、布局 spine、render 命令）                 | `zircon_runtime_interface/src/ui/**`                            | ABI 安全值与序列化载荷，不过 trait object |
 | UI 运行时（树、布局、命中、分发、文本、提取、模板编译、动画） | `zircon_runtime/src/ui/**`                                      | 计划 01–04、07 主战场                    |
-| UI 资产管理（.zui/.ui.toml 加载、缓存、热重载、依赖、包验证） | `zircon_runtime/src/asset/**` + `ui/template`、`ui/v2`      | 计划 05                                   |
+| UI 资产管理（`.zui` 加载、缓存、热重载、依赖、包验证） | `zircon_runtime/src/asset/**` + `ui/template`、`ui/v2`      | 计划 05 / 11                              |
 | 组件库（material_foundation catalog +`.zui` 组件资产）      | runtime catalog +`zircon_editor/assets/ui/editor/components/**` | 计划 06                                   |
 | 编辑器工作台（workbench 模型、docking、窗口、模块）           | `zircon_editor/src/ui/**` + 业务归 `core/`/`scene/`         | 计划 08、09                               |
 | UI 渲染                                                       | runtime GPU command stream + scene renderer UI pass               | 已闭环，本计划不改其路径                  |
+
+### 3.1 与 `editor_layout/` / `zircon_runtime` / `render` 的关系(职责链单源)
+
+四层职责链单向、不重叠;本目录(`editor_ui/`)是**运行时 UI 能力层**,夹在规范层与引擎层之间:
+
+```
+editor_layout/  规范/契约层 —— 设计语言 + 声明接口 + 约束/样式/输入/导航/提交契约(纯规范,DTO 落 zircon_runtime_interface)
+      ↓ 约束(本目录据其契约实现)
+editor_ui/      运行时 UI 能力 —— 本目录:Slate 输入内核(01)、Taffy 布局后端(02)、文本栈(03)、样式 resolver(04)、资产(05)、组件库(06)、动画(07)、壳承载(08/09)
+      ↓ 落在
+zircon_runtime  引擎 UI 子系统 —— `zircon_runtime/src/ui/**`(layout pass、taffy_bridge、style_mapping、surface、render extract);见 `docs/plans/zircon_runtime/runtime/09`
+      ↓ 提交
+render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `docs/plans/zircon_runtime/render/14`(2D/UI stack)
+```
+
+子计划与 `editor_layout/` 契约的对应(本目录实现 ← 规范定义):
+
+| 本目录子计划 | 实现的 `editor_layout/` 契约 |
+| --- | --- |
+| 01 Slate 输入内核 | 18 输入响应(命中单源/三相/捕获/cursor) + 19 焦点导航(Tab/方向/作用域) |
+| 02 布局 Taffy/容器 | 13 类 CSS 约束语言 + 02 声明式布局接口(family/measure/arrange/虚拟化) |
+| 03 文本与字体栈 | 17 文本渲染与排版(测量=绘制/DPI 重栅格/换行) |
+| 04 样式主题与选择器 | 20 USS 级联样式(选择器/specificity/级联/var/computed) + 01 token |
+| 05/06 资产/组件库 | 12 组件化 + 01 token + 02 声明接口 |
+| 08/09 壳承载 | 03 停靠架构 + 05 页面模板 + 07 窗口化 |
+
+硬规则:`editor_ui/` **只实现 `editor_layout/` 已定的契约**,不在运行时层另立设计语言/约束语义;契约 DTO 统一落 `zircon_runtime_interface`(规范单源);引擎内部(布局 pass、光栅、wgpu)归 `zircon_runtime`/`render`。三方文档相互勾稽:`editor_layout/index §6.1` ↔ 本节 ↔ `zircon_runtime/runtime/09`、`render/14`。
 
 ## 4. 子计划地图与阶段
 
@@ -126,6 +153,7 @@ plan_sources:
 | 08 Workbench Shell 切到 Runtime UI | `08-workbench-shell-on-runtime-ui.md`         | M1–M6   |
 | 09 编辑器模块与设计图对齐          | `09-editor-modules-and-design-parity.md`      | M1–M5   |
 | 10 代码结构与模块规范              | `10-code-structure-and-module-conventions.md` | M1–M4   |
+| 11 `.zui` 后缀统一与 `.ui.toml` 退役 | `11-zui-suffix-convergence-and-ui-toml-retirement.md` | M1–M5   |
 
 阶段划分（与「先等 runtime 大模块完成」的 gating 对应）：
 
@@ -143,7 +171,7 @@ plan_sources:
 3. Taffy 是 Flex/Grid/Block/Wrap 的权威布局；任何 fallback 必须记录 reason，不允许静默退回。
 4. 事件路由不允许 host 按控件名称特判；热路径走编译后 route id，不解析 nativeBinding 字符串。
 5. 组件视觉状态只由样式选择器决定，组件逻辑只产出语义状态。
-6. 不新建平行 UI 系统：组件来源是现有 `.zui` 资产与 component catalog；`.zui` 只允许单组件 profile。
+6. 不新建平行 UI 系统：组件、view、style 与 theme token 文档统一来源于 `.zui` 资产和 component catalog；组件 profile 仍只作用于 `asset.kind = "component"`，view/style root 走 root-document profile。
 7. 硬切换：新 owner 路径落地的同一变更内迁移调用方并删除旧路径，不留兼容 re-export。
 8. 根部 wiring 文件（`lib.rs`/`mod.rs`）保持薄；深行为进 owner 模块。
 9. 视觉验收以「结构正确、组件统一、主要控件可交互」为准；逐像素差异修正只是后期 polish，不是设计回路。

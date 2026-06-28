@@ -7,9 +7,9 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 
-const CONSOLE_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/console.v2.ui.toml";
-const CONSOLE_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const CONSOLE_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
+const CONSOLE_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/console.zui";
+const CONSOLE_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const CONSOLE_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn console_pane_nodes(status_text: &str, size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();

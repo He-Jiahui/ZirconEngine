@@ -11,6 +11,7 @@ use crate::pack::{
 use crate::plugin::ExportPipelineStage;
 
 use super::args::{parse, usage};
+use super::error::{ExportPackError, ExportPackResult};
 use super::manifest::ExportAssetPackManifest;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -43,22 +44,22 @@ pub struct ExportPackReport {
     pub delta_apply_verified: bool,
 }
 
-pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String> {
+pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCode> {
     let Some(args) = parse(args)? else {
         println!("{}", usage("zircon export pack writer"));
         return Ok(ExitCode::SUCCESS);
     };
 
     let manifest_dir = args.manifest.parent().unwrap_or_else(|| Path::new("."));
-    let asset_manifest_text = fs::read_to_string(&args.manifest).map_err(|error| {
-        format!(
-            "failed to read asset pack manifest {}: {error}",
-            args.manifest.display()
-        )
+    let asset_manifest_text = fs::read_to_string(&args.manifest).map_err(|source| {
+        ExportPackError::ReadAssetManifest {
+            path: args.manifest.clone(),
+            source,
+        }
     })?;
     let asset_manifest = serde_json::from_str::<ExportAssetPackManifest>(&asset_manifest_text)
-        .map_err(|error| format!("failed to decode asset pack manifest: {error}"))?;
-    let pack_inputs = asset_manifest.pack_inputs(manifest_dir)?;
+        .map_err(|source| ExportPackError::DecodeAssetManifest { source })?;
+    let pack_inputs = asset_manifest.pack_inputs(manifest_dir);
     let mut diagnostics = pack_inputs.diagnostics.clone();
     let fatal_preflight = pack_inputs.trim_report.has_missing_dependencies()
         || pack_inputs.trim_report.has_duplicate_assets()
@@ -108,16 +109,19 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
                 )?;
                 if let Some(parent) = args.pack.parent() {
                     if !parent.as_os_str().is_empty() {
-                        fs::create_dir_all(parent).map_err(|error| {
-                            format!(
-                                "failed to create pack directory {}: {error}",
-                                parent.display()
-                            )
+                        fs::create_dir_all(parent).map_err(|source| {
+                            ExportPackError::CreatePackDirectory {
+                                path: parent.to_path_buf(),
+                                source,
+                            }
                         })?;
                     }
                 }
-                fs::write(&args.pack, &write_report.bytes).map_err(|error| {
-                    format!("failed to write pack {}: {error}", args.pack.display())
+                fs::write(&args.pack, &write_report.bytes).map_err(|source| {
+                    ExportPackError::WritePack {
+                        path: args.pack.clone(),
+                        source,
+                    }
                 })?;
                 let delta_report = write_delta_pack_if_requested(&args, &write_report.bytes)?;
                 ExportPackReport {
@@ -216,24 +220,22 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     } else {
         serde_json::to_string(&report)
     }
-    .map_err(|error| format!("failed to encode export pack report: {error}"))?;
+    .map_err(|source| ExportPackError::EncodeReport { source })?;
 
     if let Some(report_path) = &args.report {
         if let Some(parent) = report_path.parent() {
             if !parent.as_os_str().is_empty() {
-                fs::create_dir_all(parent).map_err(|error| {
-                    format!(
-                        "failed to create export pack report directory {}: {error}",
-                        parent.display()
-                    )
+                fs::create_dir_all(parent).map_err(|source| {
+                    ExportPackError::CreateReportDirectory {
+                        path: parent.to_path_buf(),
+                        source,
+                    }
                 })?;
             }
         }
-        fs::write(report_path, &json).map_err(|error| {
-            format!(
-                "failed to write export pack report {}: {error}",
-                report_path.display()
-            )
+        fs::write(report_path, &json).map_err(|source| ExportPackError::WriteReport {
+            path: report_path.clone(),
+            source,
         })?;
     }
 
@@ -248,54 +250,56 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
 fn write_delta_pack_if_requested(
     args: &super::args::PackArgs,
     target_pack_bytes: &[u8],
-) -> Result<Option<VerifiedDeltaWriteReport>, String> {
+) -> ExportPackResult<Option<VerifiedDeltaWriteReport>> {
     let Some(previous_pack) = &args.previous_pack else {
         return Ok(None);
     };
     let Some(delta_pack) = &args.delta_pack else {
         return Ok(None);
     };
-    let previous_bytes = fs::read(previous_pack).map_err(|error| {
-        format!(
-            "failed to read previous pack {}: {error}",
-            previous_pack.display()
-        )
-    })?;
+    let previous_bytes =
+        fs::read(previous_pack).map_err(|source| ExportPackError::ReadPreviousPack {
+            path: previous_pack.clone(),
+            source,
+        })?;
     let base = ZrPackReader::from_bytes(previous_bytes)
-        .map_err(|error| format!("failed to read previous zrpack: {error}"))?;
+        .map_err(|source| ExportPackError::ReadPreviousZrPack { source })?;
     let target = ZrPackReader::from_bytes(target_pack_bytes.to_vec())
-        .map_err(|error| format!("failed to read newly written zrpack: {error}"))?;
+        .map_err(|source| ExportPackError::ReadNewlyWrittenZrPack { source })?;
     let delta_report = ZrPackDeltaWriter::write(&base, &target)
-        .map_err(|error| format!("failed to write delta zrpack: {error}"))?;
+        .map_err(|source| ExportPackError::WriteDeltaZrPack { source })?;
     if let Some(parent) = delta_pack.parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|error| {
-                format!(
-                    "failed to create delta pack directory {}: {error}",
-                    parent.display()
-                )
+            fs::create_dir_all(parent).map_err(|source| {
+                ExportPackError::CreateDeltaPackDirectory {
+                    path: parent.to_path_buf(),
+                    source,
+                }
             })?;
         }
     }
-    fs::write(delta_pack, &delta_report.bytes).map_err(|error| {
-        format!(
-            "failed to write delta pack {}: {error}",
-            delta_pack.display()
-        )
+    fs::write(delta_pack, &delta_report.bytes).map_err(|source| {
+        ExportPackError::WriteDeltaPack {
+            path: delta_pack.clone(),
+            source,
+        }
     })?;
     let delta_reader = ZrPackDeltaReader::from_bytes(delta_report.bytes.clone())
-        .map_err(|error| format!("failed to verify written delta zrpack: {error}"))?;
+        .map_err(|source| ExportPackError::VerifyWrittenDeltaZrPack { source })?;
     if let Some(asset) = delta_report.changed_assets.first() {
-        let _ = delta_reader
-            .read_changed_asset(asset)
-            .map_err(|error| format!("failed to verify delta asset {asset}: {error}"))?;
+        let _ = delta_reader.read_changed_asset(asset).map_err(|source| {
+            ExportPackError::VerifyDeltaAsset {
+                asset: asset.clone(),
+                source,
+            }
+        })?;
     }
     let rebuilt = delta_reader
         .apply_to_base(&base)
-        .map_err(|error| format!("failed to apply delta pack to previous zrpack: {error}"))?;
+        .map_err(|source| ExportPackError::ApplyDeltaPack { source })?;
     let apply_verified = rebuilt.bytes == target_pack_bytes;
     if !apply_verified {
-        return Err("delta pack apply verification did not reconstruct target zrpack".to_string());
+        return Err(ExportPackError::DeltaApplyVerificationMismatch);
     }
     Ok(Some(VerifiedDeltaWriteReport {
         manifest: delta_report.manifest,
@@ -311,12 +315,12 @@ fn deterministic_double_run(
     pack_assets: &[ZrPackInputAsset],
     first_bytes: &[u8],
     diagnostics: &mut Vec<String>,
-) -> Result<bool, String> {
+) -> ExportPackResult<bool> {
     if !enabled {
         return Ok(false);
     }
     let second = ZrPackWriter::write(pack_assets.to_vec())
-        .map_err(|error| format!("failed to write deterministic comparison pack: {error}"))?;
+        .map_err(|source| ExportPackError::DeterministicComparisonWrite { source })?;
     if second.bytes != first_bytes {
         diagnostics.push("deterministic pack double-run byte comparison failed".to_string());
         return Ok(false);

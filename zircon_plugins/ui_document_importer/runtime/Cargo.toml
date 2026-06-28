@@ -6,5 +6,6 @@ license.workspace = true
 description = "UI document importer runtime plugin package for Zircon."
 
 [dependencies]
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
-zircon_runtime_interface = { path = "../../../zircon_runtime_interface" }
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
+zircon_runtime = { workspace = true }
+zircon_runtime_interface = { workspace = true }

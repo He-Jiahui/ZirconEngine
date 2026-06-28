@@ -7,6 +7,7 @@ use crate::core::manager::resolve_navigation_manager;
 use crate::core::math::Vec3;
 use crate::script::current_script_runtime_call_context;
 
+use super::error::{GameplayHostError, GameplayHostResult};
 use super::values::{
     expect_entity, expect_float, expect_vec3_json, script_core_error, to_json_string, vec3_to_array,
 };
@@ -27,7 +28,7 @@ pub(super) fn nav_next_point_json(
             agent_type: DEFAULT_AGENT_TYPE.to_string(),
             area_mask: DEFAULT_AREA_MASK,
         })
-        .map_err(|error| ScriptHostError::new(error.to_string()))?;
+        .map_err(GameplayHostError::from)?;
     if matches!(result.status, NavPathStatus::NoPath) || result.points.is_empty() {
         return Ok(ScriptHostValue::String("null".to_string()));
     }
@@ -64,40 +65,41 @@ pub(super) fn move_entity_with_navigation(
             .map(|transform| transform.translation)
     });
     let Some(target) = target else {
-        return Err(ScriptHostError::new(format!(
-            "target entity {target_entity} is missing"
-        )));
+        return Err(GameplayHostError::missing_entity("navigation target", target_entity).into());
     };
-    let result = runtime.level.with_world_mut(|world| {
-        if world.world_transform(entity).is_none() {
-            return Err(format!("entity {entity} is missing"));
-        }
-        let mut agent = world
-            .dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE)
-            .and_then(|value| serde_json::from_value::<NavMeshAgentDescriptor>(value.clone()).ok())
-            .unwrap_or_else(NavMeshAgentDescriptor::default);
-        agent.agent_type = DEFAULT_AGENT_TYPE.to_string();
-        agent.speed = speed.max(0.0);
-        agent.acceleration = agent.acceleration.max(agent.speed * 3.0).max(8.0);
-        agent.radius = agent.radius.max(0.38);
-        agent.height = agent.height.max(1.4);
-        agent.stopping_distance = agent.stopping_distance.max(0.92);
-        agent.avoidance_quality = crate::core::framework::navigation::NavAvoidanceQuality::High;
-        agent.area_mask = DEFAULT_AREA_MASK;
-        agent.update_position = true;
-        agent.update_rotation = true;
-        agent.destination = Some(target.to_array());
-        let value = serde_json::to_value(agent).map_err(|error| error.to_string())?;
-        world
-            .set_dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE, value)
-            .map_err(|error| error.to_string())?;
-        navigation
-            .tick_world_agent(world, entity, dt)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<_> {
+            if world.world_transform(entity).is_none() {
+                return Err(GameplayHostError::missing_entity(
+                    "navigation source",
+                    entity,
+                ));
+            }
+            let mut agent = world
+                .dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE)
+                .and_then(|value| {
+                    serde_json::from_value::<NavMeshAgentDescriptor>(value.clone()).ok()
+                })
+                .unwrap_or_else(NavMeshAgentDescriptor::default);
+            agent.agent_type = DEFAULT_AGENT_TYPE.to_string();
+            agent.speed = speed.max(0.0);
+            agent.acceleration = agent.acceleration.max(agent.speed * 3.0).max(8.0);
+            agent.radius = agent.radius.max(0.38);
+            agent.height = agent.height.max(1.4);
+            agent.stopping_distance = agent.stopping_distance.max(0.92);
+            agent.avoidance_quality = crate::core::framework::navigation::NavAvoidanceQuality::High;
+            agent.area_mask = DEFAULT_AREA_MASK;
+            agent.update_position = true;
+            agent.update_rotation = true;
+            agent.destination = Some(target.to_array());
+            let value = serde_json::to_value(agent)?;
+            world.set_dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE, value)?;
+            Ok(navigation.tick_world_agent(world, entity, dt)?)
+        });
     result
         .map(|report| ScriptHostValue::Bool(report.moved_agents > 0))
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn navigation_next_point(

@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 const UI_ASSET_EDITOR_PROJECTION_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/ui_asset_editor.v2.ui.toml"
+    "/assets/ui/editor/ui_asset_editor.zui"
 ));
 
 const V2_IMPORTED_CARD_TOML: &str = r#"
@@ -142,7 +142,7 @@ fn ui_asset_editor_v2_projection_asset_self_hosts_shell_regions() {
         .imports
         .styles
         .iter()
-        .any(|reference| reference == "res://ui/theme/editor_material.v2.ui.toml"));
+        .any(|reference| reference == "res://ui/theme/editor_material.zui"));
 
     for required_node in [
         "header_panel",

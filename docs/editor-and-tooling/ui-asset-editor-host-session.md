@@ -85,16 +85,16 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/source/mod.rs
-  - zircon_editor/src/tests/fixtures/ui_legacy/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
+  - zircon_editor/src/tests/fixtures/ui_zui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
@@ -118,15 +118,15 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
@@ -199,7 +199,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/asset_editor/contract.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
@@ -247,16 +247,16 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/source/mod.rs
-  - zircon_editor/src/tests/fixtures/ui_legacy/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
-  - zircon_editor/assets/ui/editor/console.v2.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.v2.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_editor/src/tests/fixtures/ui_zui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/ui_asset_editor.zui
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
@@ -280,15 +280,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
@@ -459,7 +459,7 @@ doc_type: module-detail
 - `core` 不再拥有 workbench/layout/window/session 的真实实现
 - `UI Asset Editor` 相关代码不再分裂在 `core/editing/ui_asset` 和 `core/host/manager/ui_asset_sessions`
 
-本篇重点说明 ownership、会话边界和 Rust-owned retained host 约束，而不是重复 shared `.ui.toml` 资产格式本身。资产格式见 [`UI Asset Documents And Editor Protocol`](../ui-and-layout/ui-asset-documents-and-editor-protocol.md)。
+本篇重点说明 ownership、会话边界和 Rust-owned retained host 约束，而不是重复 shared `.zui` 资产格式本身。资产格式见 [`UI Asset Documents And Editor Protocol`](../ui-and-layout/ui-asset-documents-and-editor-protocol.md)。
 
 ## Ownership After Cutover
 
@@ -533,12 +533,12 @@ doc_type: module-detail
 
 M5 的 workspace owner 现在也收口在 host 层，而不是塞回 `UiAssetEditorSession`：
 
-- `EditorUiHost` 在 project open/save 后重启 `UiAssetWorkspaceWatcher`，watch `project_root/assets` 下的 `.ui.toml` 文件，并把路径规整成 `res://...` asset id
+- `EditorUiHost` 在 project open/save 后重启 `UiAssetWorkspaceWatcher`，watch `project_root/assets` 下的 `.zui` 文件，并把路径规整成 `res://...` asset id
 - `refresh_ui_asset_workspace_for_changes(...)` 是 deterministic refresh 入口；真实 watcher poll、保存后的 dependent refresh、promotion undo/redo 外部 effect 都走同一条入口
 - `UiAssetWorkspaceEntry` 持有 disk baseline、external conflict、diff snapshot 和 stale import diagnostics；`UiAssetEditorSession` 仍只负责 source/document/preview 与 authoring state
 - clean direct asset change 会从磁盘重建 session、更新 baseline、清理 conflict，并重新 hydrate imports
 - dirty direct asset change 不覆盖本地 source，而是记录 `UiAssetExternalConflict`；pane/reflection 暴露 `has_external_conflict`、reload/keep-local/save-local-copy/diff snapshot affordance
-- save-local-copy 只把当前本地 canonical source 写入显式路径或原文件旁的 `*.local-copy.toml`，不更新 disk baseline、不清理 dirty/conflict，也不覆盖外部变更
+- save-local-copy 只把当前本地 canonical source 写入显式路径或原文件旁保留源扩展名的 `*.local-copy.zui`，不更新 disk baseline、不清理 dirty/conflict，也不覆盖外部变更
 - removed direct asset change 也进入 conflict state，而不是让 promotion undo 或外部删除因为 `NotFound` 中断 session 流程
 - import asset change 会尝试重新收集 imported widget/style documents；解析失败、kind mismatch 或 missing file 会变成 stale import diagnostic，并保留 last-good preview/session，直到 import 恢复后清空 stale state
 
@@ -617,7 +617,7 @@ The session keeps two diagnostic surfaces intentionally:
 
 Binding inspector schema projection is also runtime-report driven. `binding/schema_projection.rs` imports `UiBindingDiagnostic`, `UiBindingTarget`, and `UiBindingTargetKind` from `zircon_runtime_interface::ui::template`, lists authored target assignments as `target[index] [kind.name] = expression`, then appends matching runtime diagnostic rows for that target index. The projection intentionally uses `collect_asset_binding_report(...)` rather than reimplementing value-kind or descriptor-prop rules in editor code.
 
-Template-node projection keeps render extraction as runtime behavior. `asset_editor/node_projection.rs` and `layouts/views/view_projection.rs` now call runtime extraction when they need command/style/text rows for host projection; they do not call an interface-owned `UiRenderExtract::from_tree(...)` constructor. This preserves `zircon_runtime_interface::ui::surface::UiRenderExtract` as a data-only DTO while letting editor host projection reuse the canonical runtime extraction path. The UI Asset Editor shell projection now uses `ui_asset_editor.v2.ui.toml` as its production projection source: the first call hydrates the flat v2 document through `UiV2PrototypeStoreFileCache`, stores the compiled document handles in heap-backed session state, and builds a retained `UiSurface`; later size-only calls mark retained roots layout dirty and use `UiSurface::rebuild_dirty(size)` instead of reloading old layout/widget/style TOML or rebuilding from recursive `UiCompiledDocument`.
+Template-node projection keeps render extraction as runtime behavior. `asset_editor/node_projection.rs` and `layouts/views/view_projection.rs` now call runtime extraction when they need command/style/text rows for host projection; they do not call an interface-owned `UiRenderExtract::from_tree(...)` constructor. This preserves `zircon_runtime_interface::ui::surface::UiRenderExtract` as a data-only DTO while letting editor host projection reuse the canonical runtime extraction path. The UI Asset Editor shell projection now uses `ui_asset_editor.zui` as its production projection source: the first call hydrates the flat v2 document through `UiV2PrototypeStoreFileCache`, stores the compiled document handles in heap-backed session state, and builds a retained `UiSurface`; later size-only calls mark retained roots layout dirty and use `UiSurface::rebuild_dirty(size)` instead of reloading old layout/widget/style TOML or rebuilding from recursive `UiCompiledDocument`.
 
 Direct v2 view projection now preserves interaction metadata all the way into retained-host template nodes. `layouts/views/view_projection.rs` classifies v2 `TextField`/`InputField`, number, range, toggle, combo, table, tree, and editor reference widgets before quad fallback, carries `component_role`, `value_text`, binding id, edit action id, and commit action id through `ViewTemplateNodeData`, and `retained_host/ui/template_node_conversion.rs` forwards those fields into the native host contract. UI Asset Editor preview projection uses the same resolver helpers in `asset_editor/node_projection.rs`, so authored v2 controls no longer become passive mounts when inspected or previewed. Asset Browser and Assets Activity search boxes now stay authored as placeholder-driven `TextField` nodes; empty queries show the placeholder with an empty input buffer, while non-empty queries project the query into both visible text and `value_text`. Asset Browser uses `dispatch_kind = "asset:browser"` so native text focus edits report the browser source, and Assets Activity keeps the `asset` activity default.
 
@@ -654,13 +654,13 @@ The current host-contract entry points are:
 
 The retained boundary deliberately keeps `workbench_host_window` on editor-owned Rust data. Pane selection and scene projection stay in [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs), [`pane_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs), and [`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs); those modules pass `UiAssetEditorPanePresentation`, `AnimationEditorPaneViewData`, neutral template nodes, and host shell-layout data into retained host contracts rather than rebuilding deleted generated DTOs.
 
-Editor panes get their structural frames from `.ui.toml` assets and runtime/shared UI projection, not from generated source files. `ui_asset_editor.v2.ui.toml`, the pane assets under `zircon_editor/assets/ui/editor`, and host assets under `zircon_editor/assets/ui/editor/host` are the current structure authorities; retained host projection consumes their shared-surface frames.
+Editor panes get their structural frames from `.zui` assets and runtime/shared UI projection, not from generated source files. `ui_asset_editor.zui`, the pane assets under `zircon_editor/assets/ui/editor`, and host assets under `zircon_editor/assets/ui/editor/host` are the current structure authorities; retained host projection consumes their shared-surface frames.
 
 The focused retained evidence for this boundary lives in `workbench_projection_cutover.rs`, `template_assets.rs`, the pane-specific `bootstrap_assets.rs` tests, `retained_host/ui/tests/host_scene_projection.rs`, `retained_detail_pointer`, `retained_list_pointer`, and the `workbench_retained*` integration-contract readers.
 
 ## Historical Slint Entry Boundary
 
-The following section is retained only as historical cutover context for reviewers reading older validation logs. It does not define current owner paths; current implementation and tests must use `retained_host`, `.ui.toml`, and Rust-owned `host_contract` paths above.
+The following section is retained only as historical cutover context for reviewers reading older validation logs. It does not define current owner paths; current implementation and tests must use `retained_host`, `.zui`, and Rust-owned `host_contract` paths above.
 
 `.slint` cutover 在 editor 侧先冻结了入口边界：
 
@@ -697,20 +697,20 @@ This keeps `workbench_host_window` from importing retained host DTO declarations
 
 ## Bootstrap Shell Layout Authority
 
-All pane shell topology now comes from `.ui.toml` assets and shared runtime UI projection. The retained host can render or route the resulting frames, but it does not invent page-level panel geometry.
+All pane shell topology now comes from `.zui` assets and shared runtime UI projection. The retained host can render or route the resulting frames, but it does not invent page-level panel geometry.
 
-- [`ui_asset_editor.v2.ui.toml`](../../zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml) is now both the retained host projection authority and the UI Asset Editor bootstrap authoring fixture. Header rows, left/center/right columns, palette, hierarchy, designer, action bar, source, inspector, stylesheet, emergency, and render-stack regions are authored as flat v2 nodes with Material classes and fixed `control_id` values. The older `ui_asset_editor.ui.toml` bootstrap asset has been deleted; session tests now open the v2 document through `UiAssetEditorSession::from_v2_source(...)`, and schema-aware serialization keeps edited/canonical source on v2 instead of downgrading to recursive legacy TOML. [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) extracts the projected regions into `UiAssetEditorShellLayout`; scene projection injects the layout back into `UiAssetEditorPanePresentation`; retained pane conversion publishes it through host-contract `UiAssetEditorShellLayoutData`.
-- [`asset_browser.v2.ui.toml`](../../zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml) owns the Asset Browser toolbar/import/main/utility/reference shell on the production path. The old `asset_browser.ui.toml` input now lives only under `zircon_editor/src/tests/fixtures/ui_legacy/editor/` for UI Asset Editor authoring/migration tests. [`asset_browser_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs) extracts `AssetBrowserShellLayout`; host projection and retained conversion keep it as pane data instead of local coordinate formulas.
-- [`animation_editor.v2.ui.toml`](../../zircon_editor/assets/ui/editor/animation_editor.v2.ui.toml) owns animation header/body and sequence/graph/state-machine mode regions. [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs) extracts `AnimationEditorShellLayout`; `retained_host/ui/pane_data_conversion/mod.rs` carries it into `AnimationEditorPaneData`.
-- [`assets_activity.v2.ui.toml`](../../zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml) and [`assets_activity.rs`](../../zircon_editor/src/ui/layouts/views/assets_activity.rs) use neutral `ViewTemplateNodeData` mount nodes rather than a bespoke shell-layout DTO. Scene projection injects current frames during host projection.
-- [`project_overview.v2.ui.toml`](../../zircon_editor/assets/ui/editor/project_overview.v2.ui.toml) and [`project_overview.rs`](../../zircon_editor/src/ui/layouts/views/project_overview.rs) route Project Overview through generic template nodes with snapshot text overrides.
-- [`welcome.v2.ui.toml`](../../zircon_editor/assets/ui/editor/welcome.v2.ui.toml), [`welcome_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/welcome_shell_layout.rs), and [`welcome_presentation.rs`](../../zircon_editor/src/ui/layouts/views/welcome_presentation.rs) keep Welcome page shell bands in assets and pass visible-surface sizing through retained presentation apply.
-- [`hierarchy.v2.ui.toml`](../../zircon_editor/assets/ui/editor/hierarchy.v2.ui.toml), [`inspector.v2.ui.toml`](../../zircon_editor/assets/ui/editor/inspector.v2.ui.toml), and [`console.v2.ui.toml`](../../zircon_editor/assets/ui/editor/console.v2.ui.toml) own the remaining tool-pane shell frames, extracted by the corresponding `*_shell_layout.rs` modules and carried as Rust-owned pane data.
+- [`ui_asset_editor.zui`](../../zircon_editor/assets/ui/editor/ui_asset_editor.zui) is now both the retained host projection authority and the UI Asset Editor bootstrap authoring fixture. Header rows, left/center/right columns, palette, hierarchy, designer, action bar, source, inspector, stylesheet, emergency, and render-stack regions are authored as flat v2 nodes with Material classes and fixed `control_id` values. The older `ui_asset_editor.ui.toml` bootstrap asset has been deleted; session tests now open the v2 document through `UiAssetEditorSession::from_v2_source(...)`, and schema-aware serialization keeps edited/canonical source on v2 instead of downgrading to recursive legacy TOML. [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) extracts the projected regions into `UiAssetEditorShellLayout`; scene projection injects the layout back into `UiAssetEditorPanePresentation`; retained pane conversion publishes it through host-contract `UiAssetEditorShellLayoutData`.
+- [`asset_browser.zui`](../../zircon_editor/assets/ui/editor/asset_browser.zui) owns the Asset Browser toolbar/import/main/utility/reference shell on the production path. The authoring fixture now lives as `zircon_editor/src/tests/fixtures/ui_zui/editor/asset_browser.zui` for UI Asset Editor authoring/migration tests. [`asset_browser_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs) extracts `AssetBrowserShellLayout`; host projection and retained conversion keep it as pane data instead of local coordinate formulas.
+- [`animation_editor.zui`](../../zircon_editor/assets/ui/editor/animation_editor.zui) owns animation header/body and sequence/graph/state-machine mode regions. [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs) extracts `AnimationEditorShellLayout`; `retained_host/ui/pane_data_conversion/mod.rs` carries it into `AnimationEditorPaneData`.
+- [`assets_activity.zui`](../../zircon_editor/assets/ui/editor/assets_activity.zui) and [`assets_activity.rs`](../../zircon_editor/src/ui/layouts/views/assets_activity.rs) use neutral `ViewTemplateNodeData` mount nodes rather than a bespoke shell-layout DTO. Scene projection injects current frames during host projection.
+- [`project_overview.zui`](../../zircon_editor/assets/ui/editor/project_overview.zui) and [`project_overview.rs`](../../zircon_editor/src/ui/layouts/views/project_overview.rs) route Project Overview through generic template nodes with snapshot text overrides.
+- [`welcome.zui`](../../zircon_editor/assets/ui/editor/welcome.zui), [`welcome_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/welcome_shell_layout.rs), and [`welcome_presentation.rs`](../../zircon_editor/src/ui/layouts/views/welcome_presentation.rs) keep Welcome page shell bands in assets and pass visible-surface sizing through retained presentation apply.
+- [`hierarchy.zui`](../../zircon_editor/assets/ui/editor/hierarchy.zui), [`inspector.zui`](../../zircon_editor/assets/ui/editor/inspector.zui), and [`console.zui`](../../zircon_editor/assets/ui/editor/console.zui) own the remaining tool-pane shell frames, extracted by the corresponding `*_shell_layout.rs` modules and carried as Rust-owned pane data.
 
 The current source guards lock this authority split instead of preserving old generated names:
 
 - [`workbench_projection_cutover.rs`](../../zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs) rejects workbench-host imports of retained/generated pane DTO families and checks direct owner paths.
-- [`template_assets.rs`](../../zircon_editor/src/tests/ui/boundary/template_assets.rs) rejects fallback to deleted hardcoded pane geometry by checking the `.ui.toml` shell regions that each pane must consume.
+- [`template_assets.rs`](../../zircon_editor/src/tests/ui/boundary/template_assets.rs) rejects fallback to deleted hardcoded pane geometry by checking the `.zui` shell regions that each pane must consume.
 - Pane bootstrap tests under `src/tests/ui/*/bootstrap_assets.rs` assert each authored asset exports the required shell regions or mount nodes.
 - [`retained_host/ui/tests/host_scene_projection.rs`](../../zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs) checks host-scene projection into host-contract panes.
 - Retained pointer tests under `src/tests/host/retained_detail_pointer` and `src/tests/host/retained_list_pointer` keep scroll/list/detail surfaces on shared pointer/template callback contracts rather than restoring pane-specific callback ABI.
@@ -728,7 +728,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 - component root 也不再通过旧的根节点字符串索引消费，而是直接把内嵌树根当成正式节点数据处理
 - preview mock subject 的默认回退现在按 UI 实际展示顺序选首项，不再因为树遍历顺序和 subject 列表排序不同而出现“初始选中项错位”
 
-剩余 legacy 兼容只留在 runtime 模板层的 `#[cfg(test)]` 迁移 helper，以及 editor 自己的 `src/tests/fixtures/ui_legacy/**` 夹具和测试迁移 helper；production editor authoring path 只接受 tree authority，它已经不再是 editor authoring session 的内部工作模型，`assets/ui/**` 也不再保存旧 schema 输入。
+剩余旧形状兼容只留在 runtime 模板层的 `#[cfg(test)]` 迁移 helper，以及 editor 自己的 `src/tests/fixtures/ui_zui/**` `.zui` 夹具和测试迁移 helper；production editor authoring path 只接受 tree authority，它已经不再是 editor authoring session 的内部工作模型，`assets/ui/**` 也不再保存旧 schema 输入。
 
 ## Acceptance Evidence
 
@@ -773,7 +773,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 - `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap_assets_parse_and_compile_with_imports --locked`
   - 证明 editor bootstrap 资产仍能经 shared loader/compiler 打开
 - `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`
-  - 证明 `ui_asset_editor.v2.ui.toml` 的 tool-mode row、diagnostic overlay 和 emergency shell band 能经 v2 loader/compiler/surface projection 导出有效 frame；当前 bootstrap authoring 路径不再依赖旧 `ui_asset_editor.ui.toml`
+  - 证明 `ui_asset_editor.zui` 的 tool-mode row、diagnostic overlay 和 emergency shell band 能经 v2 loader/compiler/surface projection 导出有效 frame；当前 bootstrap authoring 路径不再依赖旧 `ui_asset_editor.ui.toml`
 - `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked workbench_retained_shell`
   - 证明 retained workbench shell 合同稳定收敛到 Rust-owned `host_contract` scene/native split，不会回退到旧的散装 surface passthrough
 - `cargo test -p zircon_editor --locked workbench_host_window_keeps_retained_shell_dtos_at_ui_boundary_only`
@@ -815,7 +815,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-hot-reload-m5 --message-format short --color never`
   - 证明 M5 hot reload/conflict façade、retained/native action dispatch 和 pane presentation surface 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warning
 - `cargo test -p zircon_editor --lib ui_asset_reference_and_promotion --locked -- --nocapture`
-  - 追加验证 12 个 reference/promotion host 回归，确认 promotion undo/redo 删除或恢复外部 `.ui.toml` 时 dependent refresh 不再把 missing file 当作 fatal host error
+  - 追加验证 reference/promotion host 回归，确认 promotion undo/redo 删除或恢复外部 `.zui` 时 dependent refresh 不再把 missing file 当作 fatal host error；旧 `.ui.toml` 覆盖仅作为历史日志语境保留
 - `cargo test -p zircon_editor --lib ui_asset_replay --locked -- --nocapture`
   - 追加验证 17 个 replay 回归，确认 workspace refresh wiring 没有破坏 external effect replay source maps 与 undo/redo 合同
 - `cargo test -p zircon_editor --lib contract_diagnostics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-productization-contract --message-format short --color never`
@@ -827,7 +827,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 - `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never`
   - 作为 Milestone 0 editor closeout package gate 通过，当前结果为 876 passed / 0 failed / 1 ignored；runtime/workspace broad green 仍未声明
 - `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-designer-m6 --message-format short --color never -- --nocapture --test-threads=1`
-  - 追加验证 UI Asset Editor bootstrap/projection 回归，确认 `ui_asset_editor.v2.ui.toml` authored shell、header rows、panel columns 和 route 能打开并投影，且 v2 authoring edit/canonical save 不会回退成旧 schema
+  - 追加验证 UI Asset Editor bootstrap/projection 回归，确认 `ui_asset_editor.zui` authored shell、header rows、panel columns 和 route 能打开并投影，且 v2 authoring edit/canonical save 不会回退成旧 schema
 - `cargo test -p zircon_editor --lib ui_asset_editor_v2_authoring_keeps_v2_source_on_edit_and_canonical_save --jobs 1 -- --nocapture --test-threads=1`
   - 追加验证 v2 source edit 后 canonical save 仍输出 `kind = "view"`、`version = 2` 和 flat `[nodes.*]`，不会降级成旧 `kind = "layout"` / recursive `node_id` schema
 - `cargo test -p zircon_editor --lib ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_preview --jobs 1 -- --nocapture --test-threads=1`
@@ -867,7 +867,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
 
 UI Asset Editor 的 v2 authoring preview 现在有独立的 import compiler state。`UiAssetEditorSession` 保存 `last_valid_v2_document` 之外，还保存 `UiAssetV2CompilerImports`；host 或测试可以用 `register_v2_widget_import(...)` / `register_v2_style_import(...)` 把已经加载好的 v2 component/style asset 注册进会话。会话重新校验时不会重新反序列化整棵旧 UI 树，而是把当前 view 文档、style tokens/rules 和已注册的 component prototype 放入堆上的 v2 prototype store，再编译成 preview surface。
 
-Host 层的 UI Asset Editor session 构造现在按 source schema 分流。`editor_event_execution::asset_event` 只把 `.v2.ui.toml` 交给 `OpenAsset -> UI Asset Editor` 生产入口；layout `.ui.toml` 保持普通资产打开状态行，不创建 `editor.ui_asset` view instance。`asset_editor_sessions::mod` 提供集中 helper：v2 source 通过 `UiV2AssetLoader` 推导 route kind 并走 `UiAssetEditorSession::from_v2_source(...)`，layout source 才走 `UiAssetEditorSession::from_source(...)` 和 `UiAssetDocument` parser。首次打开、workspace restore、从磁盘 reload、clean external-change hot reload 共用这个 helper，所以 v2 authoring session 不会在刷新路径回退到 layout parser。
+Host 层的 UI Asset Editor session 构造现在只接收 `.zui` source schema。`editor_event_execution::asset_event` 只把 `.zui` 交给 `OpenAsset -> UI Asset Editor` 生产入口；`.ui.toml` 和 `.v2.ui.toml` 不再创建 `editor.ui_asset` view instance。`asset_editor_sessions::mod` 提供集中 helper：source 通过 `UiZuiAssetLoader` 推导 route kind 并走 `UiAssetEditorSession::from_v2_source(...)`。首次打开、workspace restore、从磁盘 reload、clean external-change hot reload 共用这个 helper，所以 authoring session 不会在刷新路径回退到 retired layout parser。
 
 The 2026-06-24 visual-layout pass tightened this helper boundary. `UiV2AssetKind::ThemeTokens` is routed as an editor Style asset anywhere the legacy UI Asset Editor route kind is needed, matching the runtime v2 loader and authoring preview behavior for style/theme-token documents. The helper return type also preserves `UiAssetEditorSessionError` until the host API boundary instead of collapsing parse/session failures into `Result<_, String>` inside `asset_editor_sessions::mod`; `lifecycle.rs`, `open.rs`, and `refresh.rs` stringify only when converting into the existing host-facing `EditorError::UiAsset`.
 
@@ -887,13 +887,13 @@ v2 component authoring projection 也不再吞掉坏图。`lifecycle.rs` 在把 
 
 M6 designer canvas tools now have a focused behavior closure inside the UI Asset Editor session. `UiDesignerToolMode` is part of the shared editor contract and is projected through the reflection model, pane presentation, retained/native DTO conversion, and action dispatch IDs for Select, Resize Slot, and Preview Interact.
 
-`designer_state.rs` owns the session behavior: it reports resize/interact capability from the selected node and preview host, changes the active tool mode without dirtying source, resizes selected slot preferred width/height through one replay-aware document edit labeled `Resize Slot`, and dispatches preview canvas interactions by selecting the preview node and projecting the matched `.ui.toml` binding/action payload into `UiDesignerPreviewInteractDispatch`.
+`designer_state.rs` owns the session behavior: it reports resize/interact capability from the selected node and preview host, changes the active tool mode without dirtying source, resizes selected slot preferred width/height through one replay-aware document edit labeled `Resize Slot`, and dispatches preview canvas interactions by selecting the preview node and projecting the matched `.zui` binding/action payload into `UiDesignerPreviewInteractDispatch`.
 
 This is intentionally editor authoring behavior. It does not replace runtime input dispatch or add RHI/rendering dependencies. Remaining UI productization can now build recovery UX, policy/locale inspector projection, resource UX, and runtime/editor parity on top of a tested designer command surface instead of treating the canvas as a read-only projection.
 
 ## Runtime Report Productization Status
 
-M21/M14 editor productization now has a focused UI Asset Editor closure. `runtime_report_state.rs` is the session owner for runtime-owned report projection: it validates the last-valid `.ui.toml` document against both `UiActionHostPolicy::runtime_default()` and `UiActionHostPolicy::editor_authoring()`, collects localization dependency/extraction/diagnostic rows, collects resource dependency/diagnostic rows, and exposes locale preview selection state through `UiAssetEditorPanePresentation`.
+M21/M14 editor productization now has a focused UI Asset Editor closure. `runtime_report_state.rs` is the session owner for runtime-owned report projection: it validates the last-valid `.zui` document against both `UiActionHostPolicy::runtime_default()` and `UiActionHostPolicy::editor_authoring()`, collects localization dependency/extraction/diagnostic rows, collects resource dependency/diagnostic rows, and exposes locale preview selection state through `UiAssetEditorPanePresentation`.
 
 For action safety, the pane now carries four distinct report groups. `action_policy_items` keeps the editor-authoring diagnostics used by the existing action report; `capability_explanation_items` keeps the static side-effect allow/block summary; `host_enforcement_items` shows runtime-default and editor-authoring profile enforcement side by side; and `unsafe_action_guidance_items` gives per-binding authoring guidance for editor-only asset IO and side effects that require an explicit host capability, such as network or external process work.
 
@@ -913,7 +913,7 @@ The accepted scope is intentionally narrow: action policy rows, capability expla
 
 M15 now has a resolver-backed editor session view in addition to the runtime-report pane rows. `UiAssetEditorSession` stores `Vec<UiResourceDependency>` and `Vec<UiResourceDiagnostic>` from the latest preview compile and exposes them through `resource_dependencies()` and `resource_diagnostics()`. The vectors are refreshed after a successful preview rebuild or source edit, can be refreshed when configured resolver roots or files change, and are cleared when parse/resource validation fails so stale dependency rows cannot survive a bad compile.
 
-This remains a read-only editor boundary. The editor does not infer resource references, watch resources, load GPU resources, or rescan `.ui.toml` independently; it consumes `UiCompiledDocument::resource_dependencies()` and `UiCompiledDocument::resource_diagnostics()` from the runtime-owned compiler surface, then asks runtime `UiResourcePathResolver` to validate configured roots.
+This remains a read-only editor boundary. The editor does not infer resource references, watch resources, load GPU resources, or rescan `.zui` independently; it consumes `UiCompiledDocument::resource_dependencies()` and `UiCompiledDocument::resource_diagnostics()` from the runtime-owned compiler surface, then asks runtime `UiResourcePathResolver` to validate configured roots.
 
 ## Dual Host Parity
 
@@ -927,7 +927,7 @@ Accepted focused evidence is `dual_host_parity` passing 2 tests, `template_runti
 
 The 2026-05-02 UI runtime-interface audit separates remaining editor `zircon_runtime` usage into two groups.
 
-Concrete runtime services still intentionally come from `zircon_runtime::ui`: `UiSurface`, `UiEventManager`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, runtime pointer/surface dispatchers, and runtime layout/render behavior exposed through those services. `EditorTemplateRuntimeService` now owns the high-level editor façade for `.ui.toml` parsing, document compilation, registry registration/instantiation, surface construction, render extraction, and binding diagnostic collection; that façade is the editor-owned boundary around `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, and `extract_ui_render_tree(...)`. These dependencies are runtime behavior APIs, not neutral DTO ownership.
+Concrete runtime services still intentionally come from `zircon_runtime::ui`: `UiSurface`, `UiEventManager`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, runtime pointer/surface dispatchers, and runtime layout/render behavior exposed through those services. `EditorTemplateRuntimeService` now owns the high-level editor façade for `.zui` parsing, document compilation, registry registration/instantiation, surface construction, render extraction, and binding diagnostic collection; that façade is the editor-owned boundary around `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, and `extract_ui_render_tree(...)`. These dependencies are runtime behavior APIs, not neutral DTO ownership.
 
 The latest Milestone 4 audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits under `zircon_editor/src`. The editor is already broadly consuming interface DTOs for IDs, layout geometry, component values, binding reports, dispatch records, and template asset records, but the remaining runtime hits cannot be treated as one mechanical import rewrite.
 

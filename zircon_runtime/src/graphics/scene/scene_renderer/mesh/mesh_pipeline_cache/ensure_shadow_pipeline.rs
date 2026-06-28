@@ -23,7 +23,7 @@ impl MeshPipelineCache {
         ) {
             Ok(source) => source,
             Err(_) => {
-                self.record_shader_variant_disk_error();
+                self.record_shader_variant_disk_error(shader_variant_key);
                 return None;
             }
         };

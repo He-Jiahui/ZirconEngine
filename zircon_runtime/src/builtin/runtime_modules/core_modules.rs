@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::AssetImporterRegistry;
+use crate::core::framework::render::ShadingModelDescriptor;
 use crate::engine_module::EngineModule;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -27,6 +28,7 @@ pub(super) fn runtime_core_modules_for_target(
         &[],
         &[],
         &[],
+        &[],
     )
 }
 
@@ -44,6 +46,7 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
     target: RuntimeTargetMode,
     asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
+    shading_models: &[ShadingModelDescriptor],
     render_pass_executors: &[RenderPassExecutorRegistration],
     runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
@@ -63,6 +66,7 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
         modules.push(Arc::new(
             graphics::GraphicsModule::with_render_extensions_and_runtime_providers(
                 render_features.iter().cloned(),
+                shading_models.iter().cloned(),
                 render_pass_executors.iter().cloned(),
                 runtime_prepare_collectors.iter().cloned(),
                 hybrid_gi_runtime_providers.iter().cloned(),

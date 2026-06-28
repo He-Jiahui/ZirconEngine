@@ -677,7 +677,7 @@ mod tests {
                 tint: Vec4::ONE,
                 mobility: Mobility::Static,
                 static_state: RenderMeshStaticState::from_transform_static(true),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+                render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
             },
             center,
             1.0,

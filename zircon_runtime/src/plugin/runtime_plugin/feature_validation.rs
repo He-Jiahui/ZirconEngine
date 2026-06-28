@@ -20,6 +20,12 @@ pub(super) fn validate_runtime_plugin_feature_manifest(
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_feature_identity(feature, diagnostics);
+    if let Some(provider_package_id) = feature.provider_package_id.as_deref() {
+        provider::validate_runtime_plugin_feature_provider_package_id(
+            provider_package_id,
+            diagnostics,
+        );
+    }
     validate_runtime_plugin_feature_capabilities(&feature.capabilities, diagnostics);
     validate_runtime_plugin_feature_dependencies(feature, diagnostics);
     validate_runtime_plugin_feature_modules(feature, diagnostics);

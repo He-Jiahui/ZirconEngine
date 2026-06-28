@@ -2,7 +2,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::framework::render::RenderMaterialPropertyUniformPayload;
+use crate::core::framework::render::{
+    RenderMaterialPropertyUniformPayload, ShadingModelDescriptor,
+};
+use crate::graphics::material::{
+    builtin_shading_model_registry, shading_model_registry_with_plugin_descriptors,
+    ShadingModelRegistry,
+};
+use crate::graphics::GraphicsError;
 
 use super::super::fallback::{create_fallback_normal_texture, create_fallback_texture};
 use super::super::{GpuMaterialUniformResource, OutputTargetWritebackConverter};
@@ -15,8 +22,45 @@ impl ResourceStreamer {
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
     ) -> Self {
+        Self::new_with_shading_model_registry(
+            asset_manager,
+            device,
+            queue,
+            texture_layout,
+            builtin_shading_model_registry(),
+        )
+    }
+
+    pub(crate) fn new_with_plugin_shading_models(
+        asset_manager: Arc<ProjectAssetManager>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Result<Self, GraphicsError> {
+        let shading_model_registry =
+            shading_model_registry_with_plugin_descriptors(plugin_shading_models).map_err(
+                |error| GraphicsError::Asset(format!("shading model registration failed: {error}")),
+            )?;
+        Ok(Self::new_with_shading_model_registry(
+            asset_manager,
+            device,
+            queue,
+            texture_layout,
+            shading_model_registry,
+        ))
+    }
+
+    fn new_with_shading_model_registry(
+        asset_manager: Arc<ProjectAssetManager>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        shading_model_registry: ShadingModelRegistry,
+    ) -> Self {
         Self {
             asset_manager,
+            shading_model_registry,
             models: HashMap::new(),
             meshes: HashMap::new(),
             materials: HashMap::new(),
@@ -65,5 +109,22 @@ impl ResourceStreamer {
         texture_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         Self::new(asset_manager, device, queue, texture_layout)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_plugin_shading_models(
+        asset_manager: Arc<ProjectAssetManager>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_shading_models(
+            asset_manager,
+            device,
+            queue,
+            texture_layout,
+            plugin_shading_models,
+        )
     }
 }

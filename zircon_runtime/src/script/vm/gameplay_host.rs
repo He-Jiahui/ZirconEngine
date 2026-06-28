@@ -9,6 +9,7 @@ use crate::script::{
 
 mod combat;
 mod components;
+mod error;
 mod input;
 mod lifecycle;
 mod navigation;

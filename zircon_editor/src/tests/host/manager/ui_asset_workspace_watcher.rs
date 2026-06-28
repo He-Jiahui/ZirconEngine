@@ -8,12 +8,12 @@ use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::support::*;
 
-const SIMPLE_V2_UI_VIEW_ASSET: &str = r#"
+const SIMPLE_ZUI_VIEW_ASSET: &str = r#"
 [asset]
 kind = "view"
-id = "editor.tests.asset.v2"
+id = "editor.tests.asset.zui"
 version = 2
-display_name = "Test UI Asset V2"
+display_name = "Test UI Asset ZUI"
 
 [root]
 node = "root"
@@ -23,6 +23,53 @@ component = "Label"
 control_id = "Status"
 props = { text = "Ready" }
 "#;
+
+const DETACH_THEME_ZUI_VIEW_ASSET: &str = r##"
+[asset]
+kind = "view"
+id = "editor.tests.asset.detach_theme"
+version = 2
+display_name = "Detach Theme UI Asset"
+
+[imports]
+styles = ["res://ui/theme/shared_theme.zui"]
+
+[tokens]
+accent = "#4488ff"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Container"
+control_id = "Root"
+
+[[stylesheets]]
+id = "local_theme"
+
+[[stylesheets.rules]]
+selector = "#SaveButton"
+set = { self = { text = "Local Save" } }
+"##;
+
+const IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET: &str = r##"
+[asset]
+kind = "style"
+id = "ui.theme.shared_theme"
+version = 2
+display_name = "Shared Theme"
+
+[tokens]
+accent = "#223344"
+panel = "$accent"
+
+[[stylesheets]]
+id = "local_theme"
+
+[[stylesheets.rules]]
+selector = "Button"
+set = { self = { text = "$panel" } }
+"##;
 
 fn write_project(project_root: &std::path::Path) {
     let world = DefaultLevelManager::default()
@@ -39,27 +86,27 @@ fn manager_for(path: &std::path::Path) -> std::sync::Arc<EditorManager> {
 }
 
 #[test]
-fn editor_manager_refreshes_clean_v2_ui_asset_session_from_external_file_change() {
+fn editor_manager_refreshes_clean_zui_asset_session_from_external_file_change() {
     let _guard = env_lock().lock().unwrap();
-    let path = unique_temp_path("zircon_editor_v2_asset_hot_reload_clean");
+    let path = unique_temp_path("zircon_editor_zui_asset_hot_reload_clean");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_v2_asset_hot_reload_clean_file").join("test.v2.ui.toml");
+        unique_temp_dir("zircon_editor_zui_asset_hot_reload_clean_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    fs::write(&ui_asset_path, SIMPLE_V2_UI_VIEW_ASSET).unwrap();
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
-    let changed = SIMPLE_V2_UI_VIEW_ASSET.replace("Ready", "External V2");
+    let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External ZUI");
     fs::write(&ui_asset_path, &changed).unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
-        .expect("refresh external v2 change");
+        .expect("refresh external zui change");
 
     let pane = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .unwrap();
-    assert!(pane.source_text.contains("External V2"));
+    assert!(pane.source_text.contains("External ZUI"));
     assert!(!pane.source_dirty);
     assert!(!pane.has_external_conflict);
 
@@ -73,15 +120,15 @@ fn editor_manager_refreshes_clean_ui_asset_session_from_external_file_change() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_hot_reload_clean");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_hot_reload_clean_file").join("test.ui.toml");
+        unique_temp_dir("zircon_editor_asset_hot_reload_clean_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
-    let changed = SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External");
-    write_ui_asset(&ui_asset_path, &changed);
+    let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External");
+    fs::write(&ui_asset_path, &changed).unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .expect("refresh external change");
@@ -103,23 +150,24 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_hot_reload_conflict");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_hot_reload_conflict_file").join("test.ui.toml");
+        unique_temp_dir("zircon_editor_asset_hot_reload_conflict_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
             &instance_id,
-            SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Local"),
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Local"),
         )
         .unwrap();
 
-    write_ui_asset(
+    fs::write(
         &ui_asset_path,
-        &SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External"),
-    );
+        SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External"),
+    )
+    .unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .unwrap();
@@ -152,24 +200,25 @@ fn editor_manager_saves_dirty_conflict_local_source_as_copy_without_resolving_co
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_hot_reload_save_copy");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_file").join("test.ui.toml");
+        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_file").join("test.zui");
     let copy_path =
-        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_output").join("copy.ui.toml");
+        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_output").join("copy.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
             &instance_id,
-            SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Local Copy"),
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Local Copy"),
         )
         .unwrap();
-    write_ui_asset(
+    fs::write(
         &ui_asset_path,
-        &SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External Copy"),
-    );
+        SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External Copy"),
+    )
+    .unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .unwrap();
@@ -217,13 +266,13 @@ fn editor_manager_emergency_shell_reverts_invalid_ui_asset_source_to_last_valid(
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_emergency_revert");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_emergency_revert_file").join("test.ui.toml");
+        unique_temp_dir("zircon_editor_asset_emergency_revert_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
-    let edited = SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Edited");
+    let edited = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Edited");
     manager
         .update_ui_asset_editor_source(&instance_id, edited.clone())
         .unwrap();
@@ -261,22 +310,23 @@ fn editor_manager_resolves_conflict_by_reloading_from_disk_or_keeping_local() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_hot_reload_resolution");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_hot_reload_resolution_file").join("test.ui.toml");
+        unique_temp_dir("zircon_editor_asset_hot_reload_resolution_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
-    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
     let manager = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
             &instance_id,
-            SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Local"),
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Local"),
         )
         .unwrap();
-    write_ui_asset(
+    fs::write(
         &ui_asset_path,
-        &SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External"),
-    );
+        SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External"),
+    )
+    .unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .unwrap();
@@ -293,13 +343,14 @@ fn editor_manager_resolves_conflict_by_reloading_from_disk_or_keeping_local() {
     manager
         .update_ui_asset_editor_source(
             &instance_id,
-            SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Local Again"),
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Local Again"),
         )
         .unwrap();
-    write_ui_asset(
+    fs::write(
         &ui_asset_path,
-        &SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External Again"),
-    );
+        SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External Again"),
+    )
+    .unwrap();
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .unwrap();
@@ -329,21 +380,21 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     let theme_path = project_root
         .join("assets")
         .join("ui")
         .join("theme")
-        .join("shared_theme.ui.toml");
+        .join("shared_theme.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     fs::create_dir_all(theme_path.parent().unwrap()).unwrap();
-    write_ui_asset(&layout_path, DETACH_THEME_UI_LAYOUT_ASSET);
-    write_ui_asset(&theme_path, IMPORTED_THEME_COLLISION_ASSET);
+    fs::write(&layout_path, DETACH_THEME_ZUI_VIEW_ASSET).unwrap();
+    fs::write(&theme_path, IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET).unwrap();
 
     let manager = manager_for(&path);
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .unwrap();
     assert!(
         manager
@@ -354,9 +405,7 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
 
     fs::write(&theme_path, "not = [valid").unwrap();
     manager
-        .refresh_ui_asset_workspace_for_changes(vec![
-            "res://ui/theme/shared_theme.ui.toml".to_string()
-        ])
+        .refresh_ui_asset_workspace_for_changes(vec!["res://ui/theme/shared_theme.zui".to_string()])
         .unwrap();
     let stale = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -365,13 +414,11 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
     assert!(stale
         .stale_import_items
         .iter()
-        .any(|item| item.contains("res://ui/theme/shared_theme.ui.toml")));
+        .any(|item| item.contains("res://ui/theme/shared_theme.zui")));
 
-    write_ui_asset(&theme_path, IMPORTED_THEME_COLLISION_ASSET);
+    fs::write(&theme_path, IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET).unwrap();
     manager
-        .refresh_ui_asset_workspace_for_changes(vec![
-            "res://ui/theme/shared_theme.ui.toml".to_string()
-        ])
+        .refresh_ui_asset_workspace_for_changes(vec!["res://ui/theme/shared_theme.zui".to_string()])
         .unwrap();
     let recovered = manager
         .ui_asset_editor_pane_presentation(&instance_id)

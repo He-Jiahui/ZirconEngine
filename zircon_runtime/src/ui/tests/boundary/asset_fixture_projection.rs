@@ -4,11 +4,11 @@ use super::*;
 fn runtime_ui_entry_assets_do_not_live_under_src() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let src_root = manifest_dir.join("src");
-    let offending = collect_ui_toml_files(&src_root);
+    let offending = collect_ui_document_files(&src_root);
 
     assert!(
         offending.is_empty(),
-        "production runtime ui entry assets must not live under `src/`: {}",
+        "production runtime ui document assets must not live under `src/`: {}",
         format_paths(&offending, manifest_dir)
     );
 }
@@ -28,20 +28,26 @@ fn legacy_runtime_fixture_source_directory_is_removed() {
 fn runtime_fixture_assets_live_under_crate_assets() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixture_root = manifest_dir.join("assets/ui/runtime/fixtures");
-    let actual_files = collect_ui_toml_files(&fixture_root);
+    let old_suffix_files = collect_ui_toml_files(&fixture_root);
+    let actual_files = collect_zui_files(&fixture_root);
 
     let expected_files = vec![
-        "assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/inventory_list.v2.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/pause_menu.v2.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/hud_overlay.zui".to_string(),
+        "assets/ui/runtime/fixtures/inventory_list.zui".to_string(),
+        "assets/ui/runtime/fixtures/pause_menu.zui".to_string(),
+        "assets/ui/runtime/fixtures/quest_log_dialog.zui".to_string(),
+        "assets/ui/runtime/fixtures/settings_dialog.zui".to_string(),
     ];
 
+    assert!(
+        old_suffix_files.is_empty(),
+        "runtime fixtures should not keep deprecated .ui.toml files: {}",
+        format_paths(&old_suffix_files, manifest_dir)
+    );
     assert_eq!(
         rel_paths(&actual_files, manifest_dir),
         expected_files,
-        "runtime fixtures should live exclusively under crate assets/"
+        "runtime fixtures should live under crate assets/ as .zui documents"
     );
 }
 

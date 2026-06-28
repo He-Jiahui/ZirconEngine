@@ -9,6 +9,7 @@ pub(super) fn project_feature_selection(
     let mut selection =
         ProjectPluginFeatureSelection::new(feature.id.clone()).enabled(feature.enabled_by_default);
     selection.packaging = feature_project_selection_packaging(feature);
+    selection.provider_package_id = feature.provider_package_id.clone();
     assign_feature_module_crates(feature, &mut selection);
     selection
 }

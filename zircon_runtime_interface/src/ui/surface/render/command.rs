@@ -255,10 +255,13 @@ impl UiRenderCommand {
             );
             let font_key = text_font_resource_key(&self.style);
             let atlas_resource = text_atlas_resource_key(&self.style, &font_key);
-            shaped.font_key = Some(font_key);
+            shaped.font_key = Some(font_key.clone());
             shaped.atlas_resource = Some(atlas_resource.clone());
             for line in &mut shaped.lines {
                 for glyph in &mut line.glyphs {
+                    if glyph.font_id.is_none() {
+                        glyph.font_id = Some(font_key.clone());
+                    }
                     if glyph.atlas_resource.is_none() {
                         glyph.atlas_resource = Some(atlas_resource.clone());
                     }
@@ -462,9 +465,29 @@ fn caret_frame(layout: &UiResolvedTextLayout, offset: usize) -> Option<UiFrame> 
 fn visual_x(line: &UiResolvedTextLine, visual_offset: usize) -> f32 {
     let text = line.text.as_str();
     let offset = grapheme_floor(text, visual_offset.min(text.len()));
-    let total_units = text.graphemes(true).count().max(1) as f32;
-    let before_units = text[..offset].graphemes(true).count() as f32;
+    let total_units = text.graphemes(true).count();
+    let before_units = text[..offset].graphemes(true).count();
+    if line.glyph_advances.len() == total_units {
+        return line.frame.x
+            + line
+                .glyph_advances
+                .iter()
+                .take(before_units)
+                .map(|advance| sanitized_advance(*advance))
+                .sum::<f32>();
+    }
+
+    let total_units = total_units.max(1) as f32;
+    let before_units = before_units as f32;
     line.frame.x + (line.frame.width.max(0.0) * before_units / total_units)
+}
+
+fn sanitized_advance(advance: f32) -> f32 {
+    if advance.is_finite() {
+        advance.max(0.0)
+    } else {
+        0.0
+    }
 }
 
 fn grapheme_floor(text: &str, offset: usize) -> usize {

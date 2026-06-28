@@ -21,14 +21,15 @@ pub(super) fn variant_surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         | "asset-tree-row"
         | "reference-row"
         | "asset-table"
+        | "asset-content"
+        | "content-panel"
         | "asset-placeholder"
         | "asset-placeholder-visual" => PALETTE.surface_inset,
+        "asset-thumbnail-card" => [0, 0, 0, 0],
+        "asset-thumbnail-name-area" => PALETTE.surface,
+        "asset-type-badge" => PALETTE.surface_hover,
         "popup" | "elevated" => PALETTE.popup,
-        "panel"
-        | "component-panel"
-        | "asset-preview"
-        | "asset-preview-visual"
-        | "asset-content" => PALETTE.surface,
+        "panel" | "component-panel" | "asset-preview" | "asset-preview-visual" => PALETTE.surface,
         "shell" => PALETTE.shell_background,
         _ => match node.role.as_str() {
             "Button" if node.surface_variant.is_empty() && is_explicit_text_button(node) => {

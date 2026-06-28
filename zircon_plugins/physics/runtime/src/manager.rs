@@ -25,7 +25,7 @@ pub type PhysicsTickPlan = PhysicsWorldStepPlan;
 
 #[derive(Clone, Debug)]
 pub struct DefaultPhysicsManager {
-    core: Option<CoreHandle>,
+    core: Arc<Mutex<Option<CoreHandle>>>,
     settings: Arc<Mutex<PhysicsSettings>>,
     default_material: PhysicsMaterialMetadata,
     accumulators: Arc<Mutex<HashMap<WorldHandle, f32>>>,

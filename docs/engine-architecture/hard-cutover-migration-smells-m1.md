@@ -39,6 +39,8 @@ related_code:
   - zircon_hub/src/state/hub_message/message.rs
   - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
   - zircon_plugins/net/features/http/runtime/src/backend/client.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
   - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/document/read.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -74,6 +76,8 @@ implementation_files:
   - docs/engine-architecture/runtime-interface-convergence.md
   - docs/engine-architecture/index.md
   - docs/engine-architecture/runtime-reference-engine-evidence.md
+  - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
@@ -89,6 +93,8 @@ tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - hard_cutover_migration_smells gate status, explicit count fields, classification count, migration debt, allowed bridge count, and unclassified reference checks
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated
+  - rustfmt --edition 2021 --check zircon_plugins/net/features/http/runtime/src/backend.rs zircon_plugins/net/features/http/runtime/src/backend/client.rs zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\schema\mod.rs zircon_runtime\src\ui\template\asset\schema\source_template_fixture.rs zircon_runtime\src\ui\template\asset\schema\migrator.rs zircon_runtime\src\ui\template\asset\schema\flat_nodes.rs zircon_runtime\src\ui\template\asset\compiler\style_apply.rs zircon_runtime\src\ui\tests\asset_schema_migration.rs zircon_runtime\src\ui\tests\asset.rs zircon_runtime\src\ui\tests\asset_contract_spine.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\layout\pass\taffy_arrange.rs
   - rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\pipeline\stage.rs zircon_runtime_interface\src\tests\pipeline_contracts.rs
@@ -113,30 +119,27 @@ The structural audit now reports `hard_cutover_migration_smells.hard_cutover_gat
 
 Current evidence:
 
-- `source_file_count = 8520`
-- `legacy_reference_count = 152`
+- `source_file_count = 9593`
+- `legacy_reference_count = 85`
 - `compat_reference_count = 0`
 - `shim_reference_count = 0`
-- `bridge_reference_count = 316`
-- `allowed_business_bridge_reference_count = 316`
+- `bridge_reference_count = 326`
+- `allowed_business_bridge_reference_count = 326`
 - `migration_bridge_smell_count = 0`
-- `smell_decision_count = 152`
-- `smell_decision_group_count = 6`
-- `classification_count = 6`
-- `hard_cutover_migration_debt_count = 6`
+- `smell_decision_count = 85`
+- `smell_decision_group_count = 3`
+- `classification_count = 3`
+- `hard_cutover_migration_debt_count = 2`
 - `unclassified_location_count = 0`
 - `unclassified_locations = []`
 
 Current classification:
 
 - `legacy-hybrid-gi-render-debt = 56`
-- `legacy-runtime-graphics-debt = 30`
-- `legacy-hub-message-archived-text-debt = 58`
-- `legacy-net-hyper-client-api-debt = 1`
-- `legacy-runtime-scene-document-debt = 2`
-- `legacy-editor-ui-fixture-debt = 5`
+- `legacy-runtime-graphics-debt = 28`
+- `external-hyper-http1-client-policy = 1`
 
-The classification means every current hard-cutover smell has an explicit owner group. It does not mean the runtime is converged.
+The classification means every current hard-cutover reference has an explicit owner group. `external-hyper-http1-client-policy` is an allowed third-party API policy owner, not migration debt. The remaining legacy classifications still mean the runtime is not converged.
 
 ## M1 Decision Rules
 
@@ -154,15 +157,17 @@ Any future `unclassified-hard-cutover-smell` is a review blocker. Classify it wi
 
 `legacy-runtime-graphics-debt` belongs to the M6 graphics/RHI slice. It covers viewport packet wording, render feature fallback labels, runtime feature conversion, render graph execution records, and render-product test fixtures.
 
-`legacy-hub-message-archived-text-debt` belongs to the Hub message archived-text compatibility owner. The target language should rename Hub message text constructors, enum variants, fixtures, and build-action helpers to explicit archived/raw text policy terminology during the Hub support slice instead of keeping generic legacy labels.
-
-`legacy-net-hyper-client-api-debt` belongs to the Net plugin HTTP backend dependency owner. The current hit is the third-party `hyper_util::client::legacy::Client` API path in the HTTP backend; wrap or rename that dependency edge as an explicit HTTP backend policy when the Net plugin backend is next touched.
-
-`legacy-runtime-scene-document-debt` belongs to the Runtime 05 dynamic scene document owner. The current hits are the `legacy` module declaration and import for older project documents; the follow-up should rename that surface to explicit archived or v1 project document policy terminology during the scene serialization cutover.
-
-`legacy-editor-ui-fixture-debt` belongs to editor retained-host fixture and projection owners. These are stale labels and view IDs, not runtime compatibility contracts.
+`external-hyper-http1-client-policy` belongs to the Net plugin HTTP backend dependency owner and is allowed. `zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs` is the only production owner allowed to spell the third-party `hyper_util::client::legacy` API path; `zircon_plugins/net/features/http/runtime/src/backend/client.rs` must consume it through `http1_client_policy::plain_http_client()`.
 
 ## Resolved Owner Cuts
+
+`legacy-editor-ui-fixture-debt` was cleared on 2026-06-27 by Runtime 15 M2 editor Workbench archived fixture naming hard cutover with status `runtime_15_editor_workbench_archived_fixture_naming_hard_cutover_static_passed_cargo_deferred`. The old `zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/legacy.rs` private renderer module became `zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs`, the entry points became `draw_host_workbench_window(...)` and `draw_host_workbench_window_profiled(...)`, table row text fallback became `split_archived_table_text(...)`, and Workbench extension fixture rows now use `ArchivedRow` / `archived_table_row` / `icon-archive` wording across ZUI assets, builtin bindings, navigation specs, preview action lists, and feedback dispatch. `runtime_15_editor_workbench_archived_fixtures_use_current_names` guards these retired fixture names from returning.
+
+`legacy-hub-message-archived-text-debt` was cleared on 2026-06-27 by Runtime 15 M2 Hub message raw text policy hard cutover with status `runtime_15_hub_message_raw_text_policy_hard_cutover_static_passed_cargo_deferred`. `zircon_hub/src/state/hub_message/message.rs` now names the unstructured message branch as `RawText(String)`, exposes `HubMessage::raw_text(...)`, and names old string wire payload deserialization as `ArchivedRawText(String)`. `zircon_hub/src/tauri_app/runtime_state/build_actions.rs` and other Hub callers consume the raw-text policy through `HubMessage::raw_text`, and `runtime_15_hub_message_raw_text_policy_uses_current_names` guards that `zircon_hub/src` does not reintroduce generic legacy wording.
+
+`legacy-net-hyper-client-api-debt` was cleared on 2026-06-27 by Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover with status `runtime_15_net_http_hyper_http1_client_policy_hard_cutover_static_passed_cargo_deferred`. `zircon_plugins/net/features/http/runtime/src/backend/client.rs` no longer imports `hyper_util::client::legacy::Client`; the third-party Hyper HTTP/1 policy is isolated in `zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs`, classified as allowed `external-hyper-http1-client-policy`, and guarded by `runtime_15_net_http_hyper_http1_client_policy_is_isolated`.
+
+`legacy-runtime-scene-document-debt` was cleared on 2026-06-27 by Runtime 15 M2 scene dynamic document v1 owner naming hard cutover. The old `scene/dynamic_scene/document/legacy.rs` owner became `scene/dynamic_scene/document/v1_project_document.rs`, `LegacyProjectDocument` became `V1ProjectDocument`, and the audit now reads the explicit v1 project document policy owner.
 
 `legacy-runtime-interface-diagnostics-debt` was cleared on 2026-06-04. `UiPipelineStage` now names the stored-report policy directly with `ARCHIVED_DIAGNOSTIC_FORMAT_VERSION`, `ARCHIVED_DIAGNOSTIC_STAGES`, `is_runtime_schedule_stage()`, and `is_archived_diagnostic_stage()`. The archived names remain deserializable for stored diagnostics, but they are excluded from `UiPipelineStage::ORDER` and must not drive current runtime/editor scheduling.
 
@@ -176,7 +181,7 @@ The editor view-projection rejection path was narrowed on 2026-06-05. `ViewTempl
 
 The animation asset binary migration path was narrowed on 2026-06-05 and then split on 2026-06-14. `zircon_runtime/src/asset/assets/animation/binary.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)`, while `clip.rs`, `sequence.rs`, and `graph.rs` own the `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
 
-Runtime asset importer source-template suffix guards were narrowed on 2026-06-05. `AssetImporterRegistryError::{UiTomlSourceImporter,V2UiTomlSourceImporter}` now reject `.ui.toml` and `.v2.ui.toml` production registration with current source-template policy language, while exact test fixture allowances use `ui_toml_source_importer_allowed_for_tests(...)` and `v2_ui_toml_source_importer_allowed_for_tests(...)`. The production runtime asset importer files no longer use generic `legacy` wording.
+Runtime asset importer source-template suffix guards were cut over again on 2026-06-28. `AssetImporterRegistryError::DeprecatedUiDocumentSuffixImporter` now rejects both `.ui.toml` and `.v2.ui.toml` registration with a single `.zui`-only policy, and the old test fixture allowance helpers were removed with `import_ui_asset.rs` / `import_ui_v2_asset.rs`. The production runtime asset importer files no longer keep legacy UI document suffix importers alive.
 
 The runtime UI input dispatch debt was cleared by the Runtime 09 input owner rename slices. Pointer routing, navigation replies, capture fallback, table-row label fallback, template component-name fallback, property visibility, responsive visibility, accessibility open state, layout backend, and default interaction fallback wording now use current-route/current-fallback policy names instead of the old migration label, so `legacy-runtime-ui-input-debt` is absent from the current hard-cutover gate output.
 

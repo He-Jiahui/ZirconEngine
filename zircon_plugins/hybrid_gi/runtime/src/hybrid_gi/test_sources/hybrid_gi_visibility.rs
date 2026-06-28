@@ -911,7 +911,7 @@ fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancest
 }
 
 #[test]
-fn visibility_context_deduplicates_legacy_hybrid_gi_probe_payloads_first_payload_wins() {
+fn visibility_context_deduplicates_extract_hybrid_gi_probe_payloads_first_payload_wins() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -961,7 +961,7 @@ fn visibility_context_deduplicates_legacy_hybrid_gi_probe_payloads_first_payload
 }
 
 #[test]
-fn visibility_context_deduplicates_legacy_hybrid_gi_trace_region_payloads_first_payload_wins() {
+fn visibility_context_deduplicates_extract_hybrid_gi_trace_region_payloads_first_payload_wins() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -1005,7 +1005,7 @@ fn visibility_context_deduplicates_legacy_hybrid_gi_trace_region_payloads_first_
 }
 
 #[test]
-fn visibility_context_ignores_legacy_hybrid_gi_payloads_when_scene_representation_is_budgeted() {
+fn visibility_context_ignores_extract_hybrid_gi_payloads_when_scene_representation_is_budgeted() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -1041,7 +1041,7 @@ fn visibility_context_ignores_legacy_hybrid_gi_payloads_when_scene_representatio
 
     assert!(
         context.hybrid_gi_active_probes.is_empty(),
-        "scene-representation budgets should keep legacy RenderHybridGiProbe payloads out of visibility active probes"
+        "scene-representation budgets should keep extract-sourced RenderHybridGiProbe payloads out of visibility active probes"
     );
     assert_eq!(
         context.hybrid_gi_update_plan,
@@ -1051,7 +1051,7 @@ fn visibility_context_ignores_legacy_hybrid_gi_payloads_when_scene_representatio
     assert_eq!(
         context.hybrid_gi_feedback,
         VisibilityHybridGiFeedback::default(),
-        "scene-representation budgets should prevent legacy RenderHybridGiTraceRegion payloads from reaching feedback"
+        "scene-representation budgets should prevent extract-sourced RenderHybridGiTraceRegion payloads from reaching feedback"
     );
     assert!(
         context
@@ -1110,7 +1110,7 @@ fn visibility_context_ignores_disabled_hybrid_gi_extract_payloads() {
 }
 
 #[test]
-fn visibility_context_breaks_legacy_hybrid_gi_probe_parent_cycles_before_frontier_selection() {
+fn visibility_context_breaks_extract_hybrid_gi_probe_parent_cycles_before_frontier_selection() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -1144,7 +1144,7 @@ fn visibility_context_breaks_legacy_hybrid_gi_probe_parent_cycles_before_frontie
     assert_eq!(
         context.hybrid_gi_feedback.active_probe_ids,
         vec![10],
-        "expected cyclic legacy parent topology to be broken before frontier selection so at least one resident probe remains active"
+        "expected cyclic extract parent topology to be broken before frontier selection so at least one resident probe remains active"
     );
     assert_eq!(
         context.hybrid_gi_update_plan,

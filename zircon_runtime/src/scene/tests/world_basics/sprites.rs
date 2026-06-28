@@ -160,11 +160,9 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         .sprites
         .iter()
         .all(|sprite| sprite.entity != hidden_sprite));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .all(|sprite| sprite.render_layer_mask.intersects_legacy_mask(0b0010)));
+    assert!(extract.sprites.sprites.iter().all(|sprite| sprite
+        .render_layer_mask
+        .intersects_scene_schema_v1_mask(0b0010)));
     assert!(extract
         .visibility
         .dynamic_entities

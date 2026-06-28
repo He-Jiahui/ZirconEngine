@@ -21,29 +21,12 @@ use crate::asset::{
     ImportedAsset, ImportedAssetEntry,
 };
 use crate::core::resource::ResourceState;
-use zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 mod library_imports;
 mod restore_failure_migration;
 mod subassets_errors;
-
-fn version_one_ui_layout_toml() -> &'static str {
-    r#"
-[asset]
-kind = "layout"
-id = "legacy.layout"
-version = 1
-display_name = "Legacy Layout"
-
-[root]
-node_id = "legacy_root"
-kind = "native"
-type = "VerticalBox"
-control_id = "LegacyRoot"
-"#
-}
 
 fn counted_data_importer() -> FunctionAssetImporter {
     FunctionAssetImporter::new(

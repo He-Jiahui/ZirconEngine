@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 const repoRoot = new URL("../../../../", import.meta.url);
 const sources = {
-  root: readRepo("zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml"),
+  root: readRepo("zircon_editor/assets/ui/editor/component_showcase.zui"),
   commandToolbar: readRepo("zircon_editor/assets/ui/editor/components/showcase/showcase_command_toolbar.zui"),
   bottomLog: readRepo("zircon_editor/assets/ui/editor/components/showcase/showcase_bottom_log.zui"),
   categoryNav: readRepo("zircon_editor/assets/ui/editor/components/showcase/showcase_category_nav.zui"),

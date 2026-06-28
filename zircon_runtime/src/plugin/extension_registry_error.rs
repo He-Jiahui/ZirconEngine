@@ -14,6 +14,14 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateRenderFeature(String),
     #[error("render pass executor {0} already registered")]
     DuplicateRenderPassExecutor(String),
+    #[error("geometry source {0} already registered")]
+    DuplicateGeometrySource(String),
+    #[error("invalid geometry source contribution: {0}")]
+    InvalidGeometrySource(String),
+    #[error("shading model {0} already registered")]
+    DuplicateShadingModel(String),
+    #[error("invalid shading model contribution: {0}")]
+    InvalidShadingModel(String),
     #[error("runtime prepare collector {0} already registered")]
     DuplicateRuntimePrepareCollector(String),
     #[error("virtual geometry runtime provider {0} already registered")]

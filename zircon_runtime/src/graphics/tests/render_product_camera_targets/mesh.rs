@@ -57,7 +57,7 @@ pub(super) fn sampled_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
     }
 }
 
@@ -95,7 +95,7 @@ pub(super) fn sampled_fullscreen_mesh(
         node_id,
         model,
         material,
-        RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
     )
 }
 

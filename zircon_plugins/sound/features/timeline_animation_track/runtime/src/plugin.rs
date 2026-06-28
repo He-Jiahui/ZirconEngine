@@ -1,9 +1,17 @@
 use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginModuleManifest,
+    ExportPackagingStrategy, PluginDistributionManifest, PluginFeatureBundleManifest,
+    PluginModuleManifest,
 };
 
-use crate::capability::{DIST_CRATE_NAME, EDITOR_CAPABILITY, FEATURE_ID, RUNTIME_CAPABILITY};
+use crate::capability::{
+    DIST_CRATE_NAME, DIST_PROVIDER_PACKAGE_ID, DIST_RUNTIME_ENTRY, EDITOR_CAPABILITY, FEATURE_ID,
+    RUNTIME_CAPABILITY,
+};
+
+const DIST_DESCRIPTOR_SYMBOL: &str = "zircon_native_plugin_descriptor_v3";
+const DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
+const DIST_ABI_VERSION: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct SoundTimelineAnimationRuntimeFeature;
@@ -37,6 +45,8 @@ pub fn plugin_feature_registration(
 
 pub fn feature_manifest() -> PluginFeatureBundleManifest {
     PluginFeatureBundleManifest::new(FEATURE_ID, "Sound Timeline Animation Track", "sound")
+        .with_provider_package_id(DIST_PROVIDER_PACKAGE_ID)
+        .with_distribution(sound_timeline_animation_dist_distribution_manifest())
         .with_default_packaging([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,
@@ -79,4 +89,17 @@ pub fn sound_timeline_animation_dist_module_manifest() -> PluginModuleManifest {
             RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities([RUNTIME_CAPABILITY.to_string()])
+}
+
+pub fn sound_timeline_animation_dist_distribution_manifest() -> PluginDistributionManifest {
+    PluginDistributionManifest {
+        forms: vec!["dist".to_string()],
+        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
+        abi_version: Some(DIST_ABI_VERSION),
+        engine_compat: DIST_ENGINE_COMPAT.to_string(),
+        dist_crate: DIST_CRATE_NAME.to_string(),
+        descriptor_symbol: DIST_DESCRIPTOR_SYMBOL.to_string(),
+        runtime_entry: DIST_RUNTIME_ENTRY.to_string(),
+        ..PluginDistributionManifest::default()
+    }
 }

@@ -1,4 +1,4 @@
-mod new;
+mod construct;
 mod particle_renderer;
 mod record;
 mod record_velocity;

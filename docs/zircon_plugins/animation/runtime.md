@@ -25,6 +25,13 @@ related_code:
   - zircon_plugins/animation/runtime/src/scene_hook/sequences.rs
   - zircon_plugins/animation/runtime/src/scene_hook/state_machine.rs
   - zircon_plugins/animation/runtime/src/scene_hook/tick.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_runtime/src/core/framework/physics/query_interface.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
@@ -66,6 +73,9 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/scene_hook/sequences.rs
   - zircon_plugins/animation/runtime/src/scene_hook/state_machine.rs
   - zircon_plugins/animation/runtime/src/scene_hook/tick.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
@@ -86,6 +96,8 @@ plan_sources:
 tests:
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - runtime_physics_animation_tick_contract::level_tick_emits_animation_clip_event_tracks_crossed_by_player_time
   - runtime_physics_animation_tick_contract::clip_event_sampling_reports_loop_boundary_occurrences_in_playback_order
   - runtime_physics_animation_tick_contract::graph_player_emits_clip_events_using_graph_clip_playback_speed
@@ -116,8 +128,11 @@ doc_type: module-detail
 ## Runtime Boundary
 
 - The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
-- The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_runtime_scene_system(...)` as `animation.evaluate` in `SystemStage::PostUpdate`, in set `animation.evaluation`, after `zircon.scene.world_transform`.
+- The plugin contributes tick behavior through `RuntimePluginModuleRegistration::runtime_scene_system(...)` as `animation.evaluate` in `SystemStage::PostUpdate`, in set `animation.evaluation`, after `zircon.scene.world_transform`.
 - `runtime_plugin_descriptor()` is the linked package-manifest source for the Animation runtime crate. It mirrors the static `zircon_plugins/animation/plugin.toml` and built-in catalog metadata: category `runtime`, maturity `beta`, `runtime.plugin.animation` status `partial` with Bevy `bevy_animation` source traceability, and `runtime.feature.animation.timeline_event_track` status `partial`.
+- D5 editor authoring macro consumer guard keeps the editor package on the SDK macro path: `zircon_plugins/animation/editor/src/plugin.rs` uses `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest: zircon_plugin_animation_runtime::package_manifest()` and only keeps the Animation-specific extension registration body outside the macro. Status `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` is locked by `review_d5_editor_authoring_plugins_use_sdk_macro`.
+- D9 editor/runtime mirror consumer guard keeps the editor package tied to this runtime package manifest through the SDK declaration projection: editor tests assert `mirrored_runtime_package_id()`, and the package manifest carries both `zircon_plugin_animation_runtime::ANIMATION_RUNTIME_CAPABILITY` and the Animation authoring capability. `tools/audit_plugin_structure.py --json` reports `editor_runtime_mirror_violations = 0` and `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`; status `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` is locked by `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`.
+- D10 animation/physics bridge call migration keeps cross-plugin physics queries on the Plugins 11 bridge path. The runtime contract test resolves `physics.query.v1` from `runtime.extension_report().registry.frozen_bridge_table()` as `WeakBridge<dyn PhysicsQueryInterface>` and calls ray, overlap, and shape-cast through that weak bridge instead of concrete physics manager lookup. Guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred`.
 - `AnimationRuntimeSystem` resolves `AnimationManagerHandle`, advances scene player clocks, loads animation assets through `ProjectAssetManager`, blends graph/state-machine pose output, and records pose/playback runtime state on `LevelSystem`.
 - `AnimationRuntimeSystem` publishes `AnimationClipEvent` values when direct clip players, graph players, state-machine active graphs, or state-machine transition graphs advance across `AnimationClipAsset.event_tracks`, matching Bevy's clip-event precedent for timeline-authored gameplay hooks.
 - `runtime_system.rs` is the scheduling entry. The existing `scene_hook/` child directory is now an internal tick implementation subtree loaded by path attributes: `tick.rs` owns tick orchestration, `scan.rs` walks scene animation players into pending sample requests, `pending.rs` carries those request DTOs, `sequences.rs` applies property-track sequences, `pose.rs` samples direct clip poses, `graph.rs` owns graph clip-event sampling and additive/masked graph blending, `state_machine.rs` owns state-machine transition pose/event resolution, and `events.rs` publishes typed clip events into the scene world.
@@ -169,6 +184,7 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 
 ## Validation Evidence
 
+- Current D10 animation/physics bridge call migration: the contract test now uses `WeakBridge<dyn PhysicsQueryInterface>` / `physics.query.v1` for physics ray, shape-overlap, and shape-cast calls after ticking the level. Static guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred`; Cargo remains deferred for this implementation slice.
 - The 2026-06-04 scene hook boundary split reduced `zircon_plugins/animation/runtime/src/scene_hook.rs` from a mixed 867-line file to a structural 32-line entry plus `scene_hook/{tick,scan,pending,events,sequences,pose,graph,state_machine}.rs`. `rustfmt --edition 2021 --check --config skip_children=true` passed over the split files. A focused `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-animation-scene-hook-split-0604 --message-format short --color never` attempt timed out after two minutes while other workspace/Hub/editor Cargo lanes were active and did not return Rust diagnostics; compile acceptance for this structural split remains pending.
 - The 2026-06-12 plugin-architecture slice replaces the old root `scene_hook.rs` scheduling entry with `runtime_system.rs`, keeps `scene_hook/` as internal tick child modules, declares `system_sets = ["animation.evaluation"]` and `system_anchors = ["animation.evaluate"]` in `plugin.toml`, and installs physics/animation world runtime extensions through `CoreRuntime::install_world_runtime_extensions(...)`. The obsolete plugin-local `clip_event.rs` duplicate is removed; `scene_hook/events.rs` and `graph.rs` now sample and publish the shared `zircon_runtime::animation::AnimationClipEvent` type. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never` passes with existing warnings. `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never` also passes with existing warnings; a follow-up `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --lib --offline ...` timed out after 10 minutes during compile/link, so no fresh animation plugin test pass is claimed for this slice yet.
 - The 2026-06-04 manager boundary split reduced `zircon_plugins/animation/runtime/src/manager.rs` from a 599-line mixed evaluator/sampler into a 128-line facade plus `manager/{parameters,graph,state_machine,pose,sampling}.rs`. The split preserves `DefaultAnimationManager` and `AnimationManager` behavior while aligning graph, state-machine, clip-pose, parameter, and finite-sampling responsibilities with engine-scale animation runtime boundaries.
@@ -188,3 +204,9 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 - `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --offline --jobs 1 --target-dir target\codex-animation-event --test runtime_physics_animation_tick_contract state_machine_transition_emits_from_and_to_graph_clip_events -- --nocapture` passed the state-machine transition clip-event test with `zircon_plugins/Cargo.lock` protected and restored after the run.
 - A repeat aggregate `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --offline --jobs 1 --target-dir target\codex-animation-event --test runtime_physics_animation_tick_contract event -- --nocapture` attempt was stopped after it blocked on the shared Cargo package cache and left orphaned local cargo/rustc processes; the earlier protected targeted tests for direct, graph, and state-machine event paths had already passed.
 - Direct `--locked` validation remains blocked by the pre-existing `zircon_plugins/Cargo.lock` delta; the current lockfile diff is still limited to the existing `zircon_runtime_reflection_macros` entry.
+
+## D11 animation/physics TestRuntime fixture migration
+
+状态：`d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred`。
+
+The animation/physics contract test now uses `zircon_plugin_sdk::TestRuntime` instead of rebuilding CoreRuntime, foundation/asset/scene modules, fixed-step clocks, scene hooks, and world runtime extensions inside the test. `runtime_physics_animation_tick_contract/runtime_helpers.rs` owns `TestRuntime::builder()` setup for the physics and animation plugins plus manager lookup helpers; `runtime_physics_animation_tick_contract/animation_assets.rs` owns the large animation asset fixtures. The main test file stays focused on behavior and calls `runtime.create_default_level()` / `runtime.tick_level_seconds(...)`. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` locks this migration; Cargo is deferred for this status slice.

@@ -291,7 +291,7 @@ mod tests {
         VisibilityBvhInstance {
             entity,
             key: VisibilityBatchKey {
-                render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
                 material_id: ResourceId::from_stable_label("tests/material"),
                 model_id: ResourceId::from_stable_label("tests/model"),
                 mobility: Mobility::Static,

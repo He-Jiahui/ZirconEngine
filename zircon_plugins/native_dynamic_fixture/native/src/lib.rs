@@ -5,15 +5,15 @@ use serde_json::json;
 use zircon_plugin_sdk::native::{
     self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginBridgeMethodCallV3,
     NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3,
-    NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
 #[cfg(feature = "abi_unknown_version")]
 const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = 99;
 #[cfg(not(feature = "abi_unknown_version"))]
-const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
+const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 =
+    zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
 const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
@@ -24,8 +24,9 @@ const PLUGIN_ID: &[u8] = b"native_dynamic_fixture\0";
 const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v3\0";
 const EDITOR_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v3\0";
 const REQUESTED_CAPABILITIES: &[u8] =
-    b"runtime.plugin.native_dynamic_fixture\neditor.extension.native_dynamic_fixture\0";
-const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] = b"runtime.plugin.native_dynamic_fixture\0";
+    b"runtime.plugin.native_dynamic_fixture\nruntime.asset.importer.native_dynamic_fixture.data_json\neditor.extension.native_dynamic_fixture\0";
+const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] =
+    b"runtime.plugin.native_dynamic_fixture\nruntime.asset.importer.native_dynamic_fixture.data_json\0";
 const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.native_dynamic_fixture\0";
 const EDITOR_DIAGNOSTICS_V3: &[u8] =
     b"editor entry reached with v3 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
@@ -33,7 +34,34 @@ const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated 
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3: &[u8] = b"runtime v3 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
 const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
-const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.native_dynamic_fixture\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[systems]]\nid = \"native_dynamic_fixture.runtime_tick\"\nmodule = \"runtime\"\nstage = \"Update\"\norder = 0\nsets = [\"native_dynamic_fixture\"]\naccess = [\"read:scene.time\"]\nbridge_interface = \"native_dynamic_fixture.runtime\"\nbridge_method = \"tick\"\n[[events]]\nnamespace = \"native_dynamic_fixture\"\nname = \"echoed\"\nstable_hash = 0\nschema = \"bytes\"\n\0";
+const RUNTIME_REGISTRATION_MANIFEST_TEXT: &str = concat!(
+    r#"schema = "zircon.native.registration-manifest/3"
+capabilities = ["runtime.plugin.native_dynamic_fixture", "runtime.asset.importer.native_dynamic_fixture.data_json"]
+[[modules]]
+name = "runtime"
+kind = "runtime"
+[[systems]]
+id = "native_dynamic_fixture.runtime_tick"
+module = "runtime"
+stage = "Update"
+order = 0
+sets = ["native_dynamic_fixture"]
+access = ["read:scene.time"]
+bridge_interface = "native_dynamic_fixture.runtime"
+bridge_method = "tick"
+[[events]]
+namespace = "native_dynamic_fixture"
+name = "echoed"
+stable_hash = 0
+schema = "bytes"
+[[extensions]]
+point = "runtime.asset.importer.data"
+contribution = "plugin.native_dynamic_fixture.data_json"
+schema = "zircon.runtime.asset-importer.data/1"
+"#,
+    "\0"
+);
+const RUNTIME_REGISTRATION_MANIFEST: &[u8] = RUNTIME_REGISTRATION_MANIFEST_TEXT.as_bytes();
 const RUNTIME_BRIDGE_INTERFACE: &[u8] = b"native_dynamic_fixture.runtime\0";
 const RUNTIME_BRIDGE_METHOD_TICK: &[u8] = b"tick\0";
 const RUNTIME_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.runtime\0";

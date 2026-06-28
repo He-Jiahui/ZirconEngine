@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn material_demo_window_compiles_and_resolves_material_dark_states() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../../zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/material_demo_window.zui"
     ))
     .unwrap();
 
@@ -68,7 +68,7 @@ fn material_demo_window_compiles_and_resolves_material_dark_states() {
 #[test]
 fn editor_base_theme_tokens_drive_workbench_chrome_assets() {
     let activity_surface = editor_v2_theme_surface(
-        "workbench_activity_rail.v2.ui.toml",
+        "workbench_activity_rail.zui",
         "runtime.ui.v2.editor_base_activity_rail",
     );
     let activity_root = node_id_by_control_id(&activity_surface, "ActivityRailRoot");
@@ -91,7 +91,7 @@ fn editor_base_theme_tokens_drive_workbench_chrome_assets() {
     );
 
     let status_surface = editor_v2_theme_surface(
-        "workbench_status_bar.v2.ui.toml",
+        "workbench_status_bar.zui",
         "runtime.ui.v2.editor_base_status_bar",
     );
     let status_root = node_id_by_control_id(&status_surface, "WorkbenchStatusBarRoot");
@@ -217,7 +217,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
 #[test]
 fn layout_demo_window_compiles_with_window_drawer_and_data_view_components() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../../zircon_editor/assets/ui/editor/layout_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/layout_demo_window.zui"
     ))
     .unwrap();
 
@@ -269,7 +269,7 @@ fn layout_demo_window_compiles_with_window_drawer_and_data_view_components() {
 #[test]
 fn fyrox_panel_demo_window_compiles_with_all_panel_role_components() {
     let document = UiV2AssetLoader::load_toml_str(include_str!(
-        "../../../../../zircon_editor/assets/ui/editor/fyrox_panel_demo_window.v2.ui.toml"
+        "../../../../../zircon_editor/assets/ui/editor/fyrox_panel_demo_window.zui"
     ))
     .unwrap();
 

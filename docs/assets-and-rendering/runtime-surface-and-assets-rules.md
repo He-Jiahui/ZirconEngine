@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/v2/surface_tree
-  - zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/*.zui
 implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs
@@ -26,6 +26,7 @@ implementation_files:
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
   - .codex/plans/ZirconEngine 全仓结构硬切换与规范固化计划.md
+  - docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md
 tests:
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs
@@ -36,6 +37,9 @@ tests:
   - cargo test -p zircon_runtime --lib ui_v2 --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 direct-surface rerun: passed, 12 passed)
   - cargo test -p zircon_runtime --lib runtime_ui --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed)
   - cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed, 1 passed)
+  - rustfmt --edition 2021 --check M3 runtime fixture path/update files (2026-06-28 Editor UI 11 M3 runtime fixtures: passed)
+  - python tomllib parse zircon_runtime/assets/ui/runtime/fixtures/*.zui (2026-06-28 Editor UI 11 M3 runtime fixtures: passed, 5 parsed)
+  - cargo test -p zircon_runtime --lib runtime_fixture_assets_live_under_crate_assets --locked --jobs 1 --target-dir E:\cargo-targets\zircon-zui-m2 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-28 Editor UI 11 M3 runtime fixtures: blocked by external runtime compile errors, no test result)
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir target\codex-shared-b (2026-05-12 runtime package validator: passed build and test)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-external-binding-contract-0617 --message-format short --color never (2026-06-17 render graph required External/root-surface direct-import follow-up: passed)
 doc_type: module-detail
@@ -55,10 +59,10 @@ This document captures the runtime-side structure rules introduced by the worksp
 
 ## Runtime UI Asset Rules
 
-- Production runtime UI resources live under `zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml`.
+- Production runtime UI resources live under `zircon_runtime/assets/ui/runtime/fixtures/*.zui`.
 - Runtime code must load fixture assets from crate `assets/`, not from `src/`.
 - Runtime fixture loading must use the v2 prototype file cache, `UiV2SurfaceBuilder`, and direct `ui::v2::surface_tree` arena projection; `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateTreeBuilder`, and `UiTemplateSurfaceBuilder` are not the runtime fixture main path anymore.
-- Any old `src/.../fixtures` path, non-v2 fixture filename, or compatibility branch is migration debt.
+- Any old `src/.../fixtures` path, non-`.zui` fixture filename, or compatibility branch is migration debt.
 
 ## Test Tree Rules
 

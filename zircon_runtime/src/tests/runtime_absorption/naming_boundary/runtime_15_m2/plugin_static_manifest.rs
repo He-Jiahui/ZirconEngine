@@ -148,7 +148,7 @@ fn runtime_15_plugin_static_manifest_contract_owners_use_domain_names() {
     );
     let status_rows = read_text(
         &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
         ),
         "Runtime 15 status rows should be readable",
     );

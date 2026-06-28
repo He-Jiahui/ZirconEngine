@@ -9,7 +9,7 @@ fn surface_index_tracks_assets_and_replaces_stale_surface_edges() {
     index.record_surface_assets(
         main.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/theme/base.theme.toml",
             "res://ui/theme/base.theme.toml",
         ],
@@ -17,7 +17,7 @@ fn surface_index_tracks_assets_and_replaces_stale_surface_edges() {
     index.record_surface_assets(
         inspector.clone(),
         [
-            "res://ui/views/inspector.v2.ui.toml",
+            "res://ui/views/inspector.zui",
             "res://ui/theme/base.theme.toml",
         ],
     );
@@ -26,7 +26,7 @@ fn surface_index_tracks_assets_and_replaces_stale_surface_edges() {
     assert_eq!(
         index.assets_for_surface(&main),
         &[
-            "res://ui/views/main.v2.ui.toml".to_string(),
+            "res://ui/views/main.zui".to_string(),
             "res://ui/theme/base.theme.toml".to_string(),
         ]
     );
@@ -69,7 +69,7 @@ fn surface_index_records_compiled_document_resource_dependencies() {
     assert_eq!(
         index.assets_for_surface(&main),
         &[
-            "res://ui/views/main.v2.ui.toml".to_string(),
+            "res://ui/views/main.zui".to_string(),
             "res://fonts/inter.font.toml".to_string(),
             "res://fonts/system.ttf".to_string(),
             "res://ui/icons/run.svg".to_string(),
@@ -88,14 +88,14 @@ fn surface_index_records_compiled_document_resource_dependencies() {
 fn hot_reload_plan_maps_template_theme_and_resource_targets_to_surfaces() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/theme/base.theme.toml"),
             asset_ref("res://ui/icons/run.svg"),
         ],
     );
     dependency_index.record_compiled(
-        "res://ui/views/inspector.v2.ui.toml",
+        "res://ui/views/inspector.zui",
         &[asset_ref("res://ui/theme/base.theme.toml")],
     );
 
@@ -105,7 +105,7 @@ fn hot_reload_plan_maps_template_theme_and_resource_targets_to_surfaces() {
     surface_index.record_surface_assets(
         main.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/theme/base.theme.toml",
             "res://ui/icons/run.svg",
         ],
@@ -113,7 +113,7 @@ fn hot_reload_plan_maps_template_theme_and_resource_targets_to_surfaces() {
     surface_index.record_surface_assets(
         inspector.clone(),
         [
-            "res://ui/views/inspector.v2.ui.toml",
+            "res://ui/views/inspector.zui",
             "res://ui/theme/base.theme.toml",
         ],
     );

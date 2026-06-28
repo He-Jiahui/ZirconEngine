@@ -3,8 +3,9 @@ use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
+use crate::graphics::text::font::FontDatabase;
 use zircon_runtime_interface::ui::layout::UiFrame;
-use zircon_runtime_interface::ui::surface::UiTextAlign;
+use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection};
 
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_atlas::{SdfAtlasCacheReport, SdfAtlasPlan, SdfAtlasRect};
@@ -171,6 +172,7 @@ impl ScreenSpaceUiSdfRenderer {
         texts: &[ScreenSpaceUiTextBatch],
         atlas_plan: &SdfAtlasPlan,
         atlas_cache: SdfAtlasCacheReport,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) {
         let atlas_resized = atlas_plan.atlas_size != self.atlas_size;
@@ -187,7 +189,9 @@ impl ScreenSpaceUiSdfRenderer {
             self.atlas_size = atlas_plan.atlas_size;
         }
 
-        let atlas_bake = self.font_bake.build_atlas(atlas_plan, asset_manager);
+        let atlas_bake = self
+            .font_bake
+            .build_atlas(atlas_plan, font_database, asset_manager);
         queue.write_texture(
             self.atlas_texture.as_image_copy(),
             &atlas_bake.pixels,
@@ -208,6 +212,7 @@ impl ScreenSpaceUiSdfRenderer {
             atlas_plan,
             &atlas_bake,
             &mut self.font_bake,
+            font_database,
             asset_manager,
             viewport_size,
         );
@@ -322,6 +327,7 @@ fn build_sdf_vertices(
     plan: &SdfAtlasPlan,
     atlas_bake: &SdfAtlasBake,
     font_bake: &mut SdfFontBakeCache,
+    font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
     viewport_size: UVec2,
 ) -> Vec<ScreenSpaceUiSdfVertex> {
@@ -343,7 +349,14 @@ fn build_sdf_vertices(
             clip = clipped;
         }
 
-        let glyphs = resolve_run_glyphs(text, run, atlas_bake, font_bake, asset_manager);
+        let glyphs = resolve_run_glyphs(
+            text,
+            run,
+            atlas_bake,
+            font_bake,
+            font_database,
+            asset_manager,
+        );
         let text_width = glyphs.iter().map(|glyph| glyph.metrics.advance).sum();
         let line_ascent = glyphs
             .iter()
@@ -401,6 +414,7 @@ fn resolve_run_glyphs(
     run: &super::sdf_atlas::SdfAtlasRun,
     atlas_bake: &SdfAtlasBake,
     font_bake: &mut SdfFontBakeCache,
+    font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
 ) -> Vec<RunGlyph> {
     text.text
@@ -411,8 +425,10 @@ fn resolve_run_glyphs(
                 .glyphs
                 .get(slot_index)
                 .map(|baked| run_glyph_from_bake(slot_index, baked))
-                .unwrap_or_else(|| measured_run_glyph(glyph, text, font_bake, asset_manager)),
-            None => measured_run_glyph(glyph, text, font_bake, asset_manager),
+                .unwrap_or_else(|| {
+                    measured_run_glyph(glyph, text, font_bake, font_database, asset_manager)
+                }),
+            None => measured_run_glyph(glyph, text, font_bake, font_database, asset_manager),
         })
         .collect()
 }
@@ -429,6 +445,7 @@ fn measured_run_glyph(
     glyph: char,
     text: &ScreenSpaceUiTextBatch,
     font_bake: &mut SdfFontBakeCache,
+    font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
 ) -> RunGlyph {
     RunGlyph {
@@ -438,6 +455,7 @@ fn measured_run_glyph(
             text.font.as_deref(),
             text.font_family.as_deref(),
             text.font_size,
+            font_database,
             asset_manager,
         ),
         visible: false,
@@ -450,6 +468,12 @@ fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, text_width: f32) -> f32 {
         UiTextAlign::Left => 0.0,
         UiTextAlign::Center => free_width * 0.5,
         UiTextAlign::Right => free_width,
+        UiTextAlign::Start if matches!(text.text_direction, UiTextDirection::RightToLeft) => {
+            free_width
+        }
+        UiTextAlign::Start => 0.0,
+        UiTextAlign::End if matches!(text.text_direction, UiTextDirection::RightToLeft) => 0.0,
+        UiTextAlign::End => free_width,
     };
     text.frame.x + offset
 }

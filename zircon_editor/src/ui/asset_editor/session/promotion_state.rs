@@ -436,12 +436,12 @@ pub(super) fn normalized_promote_asset_id(asset_id: &str) -> Option<String> {
     } else {
         format!("res://{}", normalized.trim_start_matches('/'))
     };
-    if normalized.ends_with(".ui.toml") {
+    if normalized.ends_with(".zui") {
         Some(normalized)
     } else if let Some(base) = normalized.strip_suffix(".toml") {
-        Some(format!("{base}.ui.toml"))
+        Some(format!("{base}.zui"))
     } else {
-        Some(format!("{normalized}.ui.toml"))
+        Some(format!("{normalized}.zui"))
     }
 }
 

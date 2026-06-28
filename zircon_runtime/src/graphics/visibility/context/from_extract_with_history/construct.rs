@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::render::{ProjectionMode, RenderFrameExtract, ViewportCameraSnapshot};
+use crate::core::framework::render::{
+    ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderVirtualGeometryExtract,
+    ViewportCameraSnapshot,
+};
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{is_finite_vec3, Real};
 use crate::core::TaskPool;
@@ -55,6 +58,24 @@ impl VisibilityContext {
         previous_static_index: Option<&VisibilityStaticIndex>,
         task_pool: Option<&TaskPool>,
     ) -> Self {
+        Self::from_extract_with_history_static_index_task_pool_and_feature_payloads(
+            value,
+            previous,
+            previous_static_index,
+            task_pool,
+            value.lighting.hybrid_global_illumination.as_ref(),
+            value.geometry.virtual_geometry.as_ref(),
+        )
+    }
+
+    pub(crate) fn from_extract_with_history_static_index_task_pool_and_feature_payloads(
+        value: &RenderFrameExtract,
+        previous: Option<&VisibilityHistorySnapshot>,
+        previous_static_index: Option<&VisibilityStaticIndex>,
+        task_pool: Option<&TaskPool>,
+        hybrid_global_illumination: Option<&RenderHybridGiExtract>,
+        virtual_geometry: Option<&RenderVirtualGeometryExtract>,
+    ) -> Self {
         let BatchingResult {
             renderable_entities,
             static_entities,
@@ -107,7 +128,7 @@ impl VisibilityContext {
             hybrid_gi_feedback,
             hybrid_gi_requested_probes,
         ) = build_hybrid_gi_plan(
-            value.lighting.hybrid_global_illumination.as_ref(),
+            hybrid_global_illumination,
             &main_view_visible_entities,
             &value.view.camera,
             previous,
@@ -120,7 +141,7 @@ impl VisibilityContext {
             virtual_geometry_requested_pages,
             virtual_geometry_history_visible_cluster_ids,
         ) = build_virtual_geometry_plan(
-            value.geometry.virtual_geometry.as_ref(),
+            virtual_geometry,
             &main_view_visible_entities,
             &value.view.camera,
             previous,

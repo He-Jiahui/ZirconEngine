@@ -52,16 +52,15 @@ impl RuntimePlugin for NetRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
-        registry.register_module(module_descriptor())?;
+        let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
+            .module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())?;
         for option in net_options() {
-            registry.register_plugin_option(option)?;
+            module.plugin_option(option)?;
         }
         for event_catalog in net_event_catalogs() {
-            registry.register_plugin_event_catalog(event_catalog)?;
+            module.plugin_event_catalog(event_catalog)?;
         }
-        register_runtime_systems(registry, owner)?;
-        Ok(())
+        register_runtime_systems(&mut module)
     }
 }
 

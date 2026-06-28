@@ -11,6 +11,20 @@ supported_platforms = ["windows", "linux", "macos"]
 default_packaging = ["source_template", "library_embed", "native_dynamic"]
 capabilities = ["runtime.plugin.virtual_geometry", "runtime.render.advanced.virtual_geometry"]
 
+[[geometry_sources]]
+id = 4
+token = "custom:virtual_geometry"
+wgsl_include = "zr_geometry_virtual_geometry.wgsl"
+vertex_attributes = ["position", "normal", "tangent", "uv0"]
+required_bindings = [{ kind = "virtual_geometry_pages", slot_token = "virtual_geometry.pages" }]
+shader_defines = [{ kind = "bool", name = "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY", value = true }]
+
+[shader_permutation]
+
+[[shader_permutation.geometry_source_ids]]
+token = "custom:virtual_geometry"
+id = 4
+
 [distribution]
 forms = ["dist"]
 default_packaging = ["native_dynamic"]

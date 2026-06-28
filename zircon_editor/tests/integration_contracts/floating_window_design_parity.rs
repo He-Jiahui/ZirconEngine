@@ -156,7 +156,7 @@ fn floating_assets_use_tokenized_flat_workbench_chrome() {
         ),
     ] {
         assert!(
-            source.contains("res://ui/editor/theme/editor_tokens.v2.ui.toml"),
+            source.contains("res://ui/editor/theme/editor_tokens.zui"),
             "{name} must import the editor token asset"
         );
         assert!(

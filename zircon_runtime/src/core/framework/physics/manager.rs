@@ -1,5 +1,6 @@
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
+use crate::core::CoreError;
 use crate::scene::World;
 
 use super::{
@@ -12,6 +13,12 @@ use super::{
 pub trait PhysicsManager: Send + Sync {
     fn backend_name(&self) -> String;
     fn settings(&self) -> PhysicsSettings;
+    fn store_settings(&self, _settings: PhysicsSettings) -> Result<(), CoreError> {
+        Err(CoreError::Initialization(
+            "PhysicsManager".to_string(),
+            "settings are read-only for this backend".to_string(),
+        ))
+    }
     fn default_material(&self) -> PhysicsMaterialMetadata;
     fn backend_status(&self) -> PhysicsBackendStatus;
     fn plan_world_step(&self, world: WorldHandle, delta_seconds: Real) -> PhysicsWorldStepPlan;

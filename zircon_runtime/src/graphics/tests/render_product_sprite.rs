@@ -34,7 +34,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.5, 0.75, 1.0, 0.6),
         z_order: 7,
-        render_layer_mask: RenderLayerSet::from_legacy_mask(0b10),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(0b10),
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let particle = RenderParticleSpriteSnapshot {

@@ -34,6 +34,10 @@ pub struct UiResolvedTextLine {
     pub source_range: UiTextRange,
     pub visual_range: UiTextRange,
     pub measured_width: f32,
+    /// One visual advance per grapheme cluster in `text`, populated by the
+    /// runtime text layout owner before shaped/render DTO projection.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub glyph_advances: Vec<f32>,
     pub baseline: f32,
     pub direction: UiTextDirection,
     pub runs: Vec<UiResolvedTextRun>,

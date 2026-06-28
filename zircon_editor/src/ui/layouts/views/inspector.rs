@@ -8,9 +8,9 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 
-const INSPECTOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/inspector.v2.ui.toml";
-const INSPECTOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const INSPECTOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
+const INSPECTOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/inspector.zui";
+const INSPECTOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const INSPECTOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn inspector_pane_nodes(
     inspector: Option<&InspectorSnapshot>,

@@ -10,7 +10,7 @@ pub(crate) use particle_renderer::ParticleRenderer;
 mod tests {
     #[test]
     fn particle_pipeline_keeps_world_hud_billboards_transparent_and_depth_read_only() {
-        let source = include_str!("particle_renderer/new.rs");
+        let source = include_str!("particle_renderer/construct.rs");
 
         assert!(
             source.contains("depth_write_enabled: Some(false)"),

@@ -4,7 +4,7 @@ use super::*;
 fn hot_reload_plan_marks_target_surface_roots_dirty_and_reports_missing_surfaces() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://fonts/inter.font.toml")],
     );
 
@@ -13,10 +13,7 @@ fn hot_reload_plan_marks_target_surface_roots_dirty_and_reports_missing_surfaces
     let stale = tree_id("runtime.ui.stale");
     surface_index.record_surface_assets(
         main.clone(),
-        [
-            "res://ui/views/main.v2.ui.toml",
-            "res://fonts/inter.font.toml",
-        ],
+        ["res://ui/views/main.zui", "res://fonts/inter.font.toml"],
     );
     surface_index.record_surface_assets(stale.clone(), ["res://fonts/inter.font.toml"]);
 
@@ -55,7 +52,7 @@ fn hot_reload_plan_marks_target_surface_roots_dirty_and_reports_missing_surfaces
 fn hot_reload_plan_marks_precise_resource_nodes_and_reports_missing_nodes() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/icons/run.svg")],
     );
 
@@ -63,7 +60,7 @@ fn hot_reload_plan_marks_precise_resource_nodes_and_reports_missing_nodes() {
     let main = tree_id("runtime.ui.main");
     surface_index.record_surface_assets(
         main.clone(),
-        ["res://ui/views/main.v2.ui.toml", "res://ui/icons/run.svg"],
+        ["res://ui/views/main.zui", "res://ui/icons/run.svg"],
     );
     surface_index.record_node_assets(main.clone(), UiNodeId::new(2), ["res://ui/icons/run.svg"]);
     surface_index.record_node_assets(main.clone(), UiNodeId::new(99), ["res://ui/icons/run.svg"]);
@@ -123,7 +120,7 @@ fn hot_reload_plan_marks_precise_resource_nodes_and_reports_missing_nodes() {
 fn mixed_surface_and_node_targets_fall_back_to_root_dirty() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/theme/base.theme.toml"),
             asset_ref("res://ui/icons/run.svg"),
@@ -135,7 +132,7 @@ fn mixed_surface_and_node_targets_fall_back_to_root_dirty() {
     surface_index.record_surface_assets(
         main.clone(),
         [
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/theme/base.theme.toml",
             "res://ui/icons/run.svg",
         ],
@@ -176,7 +173,7 @@ fn mixed_surface_and_node_targets_fall_back_to_root_dirty() {
 fn template_rebuild_still_uses_surface_level_dirty_even_when_node_edges_exist() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -184,10 +181,7 @@ fn template_rebuild_still_uses_surface_level_dirty_even_when_node_edges_exist() 
     let main = tree_id("runtime.ui.main");
     surface_index.record_surface_assets(
         main.clone(),
-        [
-            "res://ui/views/main.v2.ui.toml",
-            "res://ui/components/button.zui",
-        ],
+        ["res://ui/views/main.zui", "res://ui/components/button.zui"],
     );
     surface_index.record_node_assets(
         main.clone(),
@@ -217,7 +211,7 @@ fn template_rebuild_still_uses_surface_level_dirty_even_when_node_edges_exist() 
 fn template_plan_targets_surface_that_owns_compiled_asset() {
     let mut dependency_index = UiAssetDependencyIndex::new();
     dependency_index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -225,10 +219,7 @@ fn template_plan_targets_surface_that_owns_compiled_asset() {
     let main = tree_id("runtime.ui.main");
     surface_index.record_surface_assets(
         main.clone(),
-        [
-            "res://ui/views/main.v2.ui.toml",
-            "res://ui/components/button.zui",
-        ],
+        ["res://ui/views/main.zui", "res://ui/components/button.zui"],
     );
 
     let report = dependency_index.apply_watch_changes(&[AssetChange::new(

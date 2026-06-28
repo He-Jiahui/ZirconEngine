@@ -27,6 +27,7 @@ mod solari;
 mod sprite;
 mod surface;
 mod temporal_jitter;
+mod text;
 mod view_matrix_pair;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -70,9 +71,9 @@ pub use camera_ordering::{
     RenderCameraOrderReport, RenderCameraTargetOrderKey, SortedRenderCamera,
 };
 pub use camera_stack::{
-    resolve_camera_sequence, CameraRenderDescriptor, CameraRenderType, CameraSequenceEntry,
-    CameraSequenceReport, CameraSequenceViolation, CameraSequenceViolationReason,
-    RenderCameraClear,
+    resolve_camera_sequence, resolve_camera_sequence_borrowed, CameraRenderDescriptor,
+    CameraRenderType, CameraSequenceEntry, CameraSequenceReport, CameraSequenceViolation,
+    CameraSequenceViolationReason, RenderCameraClear,
 };
 pub use capture::{CapturedFrame, RenderCaptureReport, RenderCaptureSource};
 pub use core_pipeline::{
@@ -203,12 +204,17 @@ pub use scene_extract::{
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
     builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
-    GeometrySourceDescriptor, GeometrySourceId, RenderShaderBindGroupLayoutDescriptor,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderBindGroupLayoutDescriptor,
     RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
     RenderShaderDependency, RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor,
     RenderShaderStage, RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType,
-    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport, ShaderVariantPrewarmFailure,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmDimensionSummary,
+    ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSourceProvenanceEntry,
+    ShaderVariantPrewarmSourceProvenanceSummary, ShaderVariantPrewarmWgpuModuleValidationSummary,
+    ShaderVariantRuntimeDimensionCount, ShaderVariantRuntimeDimensionSummary,
     GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
     GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
     GEOMETRY_SOURCE_PLUGIN_ID_START, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
@@ -227,6 +233,15 @@ pub use sprite::{
 };
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
+pub use text::font::{
+    CompositeFontDescriptor, FaceIndex, FontFaceDescriptor, FontFaceId, FontFamilyDescriptor,
+    FontFamilyName, FontMatch, FontQuery, FontScript, FontStretch, FontStyle, FontWeight,
+    InstancedFaceId, SubFontRange, VariationCoords,
+};
+pub use text::{
+    ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
+    ShapedTextLine, TextOrientation, TextShapeRequest, TextShapingService, VerticalMode,
+};
 pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,

@@ -1,12 +1,12 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::super::cells::{split_legacy_table_text, table_cells};
+use super::super::cells::{split_archived_table_text, table_cells};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 
 #[test]
-fn table_cells_prefer_declared_options_over_legacy_text() {
+fn table_cells_prefer_declared_options_over_archived_text() {
     let node = TemplatePaneNodeData {
-        text: "Legacy Row".into(),
+        text: "Archived Row".into(),
         options: model_rc(vec![
             SharedString::from("Item_02"),
             SharedString::from("Material"),
@@ -39,9 +39,9 @@ fn table_cells_ignore_options_that_look_like_complete_rows() {
 }
 
 #[test]
-fn legacy_table_text_keeps_size_and_modified_units_together() {
+fn archived_table_text_keeps_size_and_modified_units_together() {
     assert_eq!(
-        split_legacy_table_text("Item_03     Texture     1.2 MB      1h ago"),
+        split_archived_table_text("Item_03     Texture     1.2 MB      1h ago"),
         vec!["Item_03", "Texture", "1.2 MB", "1h ago"]
     );
 }

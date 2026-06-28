@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
-use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
     AssetWorkspaceSnapshot,
@@ -12,16 +12,30 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 use compact_layout::apply_asset_browser_compact_layout;
+use stack_layout::apply_asset_browser_standard_stack_layout;
+use summary_nodes::sync_asset_browser_summary_nodes;
+use table_nodes::{
+    apply_asset_browser_table_cells, asset_table_row_text, asset_table_rows, mark_asset_table_rows,
+};
+use thumbnail_nodes::{append_asset_browser_thumbnail_nodes, asset_thumbnail_icon_name};
+use toolbar_layout::apply_asset_browser_toolbar_layout;
 
 mod compact_layout;
+mod stack_layout;
+mod summary_layout;
+mod summary_nodes;
+mod table_nodes;
+#[cfg(test)]
+mod tests;
+mod thumbnail_layout;
+mod thumbnail_nodes;
 mod toolbar_layout;
 
-const ASSET_BROWSER_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/asset_browser.v2.ui.toml";
-const ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.v2.ui.toml";
-const ASSET_BROWSER_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.v2.ui.toml";
-const ASSET_BROWSER_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
-const ASSET_TABLE_HEADER_CELLS: [&str; 4] = ["Name", "Type", "Size", "Rev"];
+const ASSET_BROWSER_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/asset_browser.zui";
+const ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
+const ASSET_BROWSER_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
+const ASSET_BROWSER_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn asset_browser_pane_nodes(
     snapshot: &AssetWorkspaceSnapshot,
@@ -297,15 +311,7 @@ pub(crate) fn asset_browser_pane_nodes(
         );
         text_overrides.insert(
             "AssetBrowserContentPreviewMeta".to_string(),
-            format!(
-                "{} | {} | {}",
-                resource_kind_label(asset.kind),
-                asset_state_label(asset),
-                asset
-                    .resource_revision
-                    .map(|revision| format!("rev {revision}"))
-                    .unwrap_or_else(|| "untracked".to_string())
-            ),
+            asset_state_label(asset).to_string(),
         );
     } else {
         text_overrides.insert(
@@ -376,10 +382,21 @@ pub(crate) fn asset_browser_pane_nodes(
         &text_overrides,
     )
     .unwrap_or_default();
+    let toolbar_layout = apply_asset_browser_toolbar_layout(&mut nodes, size.width);
     apply_asset_browser_visual_state(&mut nodes, snapshot);
     apply_asset_browser_table_cells(&mut nodes, &asset_table_rows);
+    append_asset_browser_thumbnail_nodes(&mut nodes, snapshot);
+    sync_asset_browser_summary_nodes(&mut nodes, snapshot);
     retain_active_utility_tab_nodes(&mut nodes, snapshot.utility_tab);
-    apply_asset_browser_compact_layout(&mut nodes, size);
+    if let Some(toolbar_layout) = toolbar_layout.as_ref() {
+        apply_asset_browser_standard_stack_layout(&mut nodes, size, toolbar_layout);
+    }
+    apply_asset_browser_compact_layout(
+        &mut nodes,
+        size,
+        snapshot.view_mode,
+        toolbar_layout.map(|layout| layout.main_y),
+    );
     model_rc(nodes)
 }
 
@@ -481,7 +498,8 @@ fn apply_asset_browser_visual_state(
     mark_asset_table_rows(nodes, snapshot);
 
     let has_selection = has_asset_selection(snapshot);
-    let has_content_preview = selected_asset(snapshot).is_some();
+    let selected_asset = selected_asset(snapshot);
+    let has_content_preview = selected_asset.is_some();
     update_panel_surface(
         nodes,
         "AssetBrowserContentPreviewCard",
@@ -502,6 +520,7 @@ fn apply_asset_browser_visual_state(
         },
         if has_content_preview { 1.0 } else { 0.0 },
     );
+    update_asset_preview_visual_icon(nodes, "AssetBrowserContentPreviewVisual", selected_asset);
     mark_panel_selected(nodes, "AssetBrowserContentPreviewCard", has_content_preview);
     update_panel_surface(
         nodes,
@@ -514,6 +533,11 @@ fn apply_asset_browser_visual_state(
         "AssetBrowserDetailsPreviewVisualPanel",
         "asset-placeholder-visual",
         0.0,
+    );
+    update_asset_preview_visual_icon(
+        nodes,
+        "AssetBrowserDetailsPreviewVisualPanel",
+        selected_asset,
     );
     update_panel_surface(
         nodes,
@@ -535,6 +559,7 @@ fn apply_asset_browser_visual_state(
         },
         if has_selection { 1.0 } else { 0.0 },
     );
+    update_asset_preview_visual_icon(nodes, "AssetBrowserPreviewVisualPanel", selected_asset);
     mark_panel_selected(
         nodes,
         "AssetBrowserSourcesRowPanel",
@@ -677,69 +702,6 @@ fn selection_diagnostics_text(
     }
 }
 
-fn asset_table_rows(snapshot: &AssetWorkspaceSnapshot) -> Vec<[String; 4]> {
-    let mut rows = snapshot
-        .visible_assets
-        .iter()
-        .take(4)
-        .map(asset_table_row_cells)
-        .collect::<Vec<_>>();
-    while rows.len() < 4 {
-        rows.push([
-            "Empty Asset".to_string(),
-            "Asset".to_string(),
-            "0KB".to_string(),
-            "pending".to_string(),
-        ]);
-    }
-    rows
-}
-
-fn asset_table_row_cells(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> [String; 4] {
-    [
-        compact_asset_table_name(&asset.display_name).to_string(),
-        compact_resource_kind_label(asset.kind).to_string(),
-        asset_size_hint(asset).to_string(),
-        asset
-            .resource_revision
-            .map(|revision| format!("r{revision}"))
-            .unwrap_or_else(|| "new".to_string()),
-    ]
-}
-
-fn asset_table_row_text(row: &[String; 4]) -> String {
-    row.join(" ")
-}
-
-fn asset_size_hint(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> &'static str {
-    match asset.kind {
-        ResourceKind::Texture => "1.2M",
-        ResourceKind::Material | ResourceKind::MaterialGraph | ResourceKind::Shader => "512K",
-        ResourceKind::Scene | ResourceKind::Prefab | ResourceKind::UiLayout => "64K",
-        ResourceKind::Model | ResourceKind::Mesh | ResourceKind::AnimationClip => "2.4M",
-        _ => "16K",
-    }
-}
-
-fn compact_asset_table_name(display_name: &str) -> &'static str {
-    let lower = display_name.to_ascii_lowercase();
-    if lower.contains("workbench_host") {
-        "Host"
-    } else if lower.contains("editor_base") {
-        "Base"
-    } else if lower.contains("folder") {
-        "Folder"
-    } else if lower.contains("accessibility") {
-        "A11y"
-    } else if lower.contains("material") {
-        "Mat"
-    } else if lower.contains("scene") {
-        "Scene"
-    } else {
-        "Asset"
-    }
-}
-
 fn compact_resource_kind_label(kind: ResourceKind) -> &'static str {
     match kind {
         ResourceKind::Texture => "Tex",
@@ -761,49 +723,6 @@ fn asset_state_label(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) 
     } else {
         "Diagnostics"
     }
-}
-
-fn mark_asset_table_rows(nodes: &mut [ViewTemplateNodeData], snapshot: &AssetWorkspaceSnapshot) {
-    let selected_uuid = snapshot.selected_asset_uuid.as_deref();
-    for index in 0..4 {
-        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
-        if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-            let selected = snapshot
-                .visible_assets
-                .get(index)
-                .map(|asset| asset.selected || selected_uuid == Some(asset.uuid.as_str()))
-                .unwrap_or(false);
-            node.selected = selected;
-            node.focused = selected;
-        }
-    }
-}
-
-fn apply_asset_browser_table_cells(nodes: &mut [ViewTemplateNodeData], rows: &[[String; 4]]) {
-    if let Some(header) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == "WorkbenchAssetBrowserTableHeader")
-    {
-        header.options = shared_string_options(
-            ASSET_TABLE_HEADER_CELLS
-                .iter()
-                .map(|cell| (*cell).to_string())
-                .collect(),
-        );
-        header.text = ASSET_TABLE_HEADER_CELLS.join(" ").into();
-    }
-
-    for (index, row) in rows.iter().enumerate() {
-        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
-        if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-            node.options = shared_string_options(row.iter().cloned().collect());
-            node.text = asset_table_row_text(row).into();
-        }
-    }
-}
-
-fn shared_string_options(values: Vec<String>) -> ModelRc<SharedString> {
-    model_rc(values.into_iter().map(SharedString::from).collect())
 }
 
 fn mark_toggle_state(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
@@ -855,6 +774,22 @@ fn update_panel_surface(
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.surface_variant = surface_variant.into();
         node.border_width = border_width;
+    }
+}
+
+fn update_asset_preview_visual_icon(
+    nodes: &mut [ViewTemplateNodeData],
+    control_id: &str,
+    asset: Option<&AssetItemSnapshot>,
+) {
+    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
+        if let Some(asset) = asset {
+            node.component_role = "asset-thumbnail-visual".into();
+            node.component_variant = asset_thumbnail_icon_name(asset.kind).into();
+        } else {
+            node.component_role = "".into();
+            node.component_variant = "".into();
+        }
     }
 }
 

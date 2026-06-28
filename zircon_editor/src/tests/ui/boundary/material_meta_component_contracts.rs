@@ -461,11 +461,8 @@ const REQUIRED_VISUAL_DENSITY_TOKEN_ALIASES: &[(&str, &str)] = &[
 #[test]
 fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let material_theme = load_document(&legacy_ui_fixture(&repo, "theme/editor_material.ui.toml"));
-    let material_meta = load_document(&legacy_ui_fixture(
-        &repo,
-        "editor/material_meta_components.ui.toml",
-    ));
+    let material_theme = load_document(&zui_fixture(&repo, "theme/editor_material.zui"));
+    let material_meta = load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"));
     let tokens = material_theme
         .get("tokens")
         .and_then(Value::as_table)
@@ -477,7 +474,7 @@ fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
         .collect::<Vec<_>>();
     assert!(
         missing_tokens.is_empty(),
-        "editor_material.ui.toml missing M2 Material role tokens: {}",
+        "editor_material.zui missing M2 Material role tokens: {}",
         missing_tokens.join(", ")
     );
 
@@ -493,7 +490,7 @@ fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
     }
     assert!(
         missing_rules.is_empty(),
-        "editor_material.ui.toml must style every material_meta_components class: {}",
+        "editor_material.zui must style every material_meta_components class: {}",
         missing_rules.join(", ")
     );
 }
@@ -627,16 +624,11 @@ fn material_meta_components_carry_shared_style_defaults_on_root_nodes() {
 #[test]
 fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let material_meta = load_document(&legacy_ui_fixture(
-        &repo,
-        "editor/material_meta_components.ui.toml",
-    ));
-    let activity_rail =
-        load_document(&repo.join("assets/ui/editor/workbench_activity_rail.v2.ui.toml"));
-    let workbench_shell =
-        load_document(&repo.join("assets/ui/editor/host/workbench_shell.v2.ui.toml"));
+    let material_meta = load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"));
+    let activity_rail = load_document(&repo.join("assets/ui/editor/workbench_activity_rail.zui"));
+    let workbench_shell = load_document(&repo.join("assets/ui/editor/host/workbench_shell.zui"));
     let inspector_controls =
-        load_document(&repo.join("assets/ui/editor/host/inspector_surface_controls.v2.ui.toml"));
+        load_document(&repo.join("assets/ui/editor/host/inspector_surface_controls.zui"));
     let tokens = material_meta
         .get("tokens")
         .and_then(Value::as_table)
@@ -710,10 +702,7 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
 
 fn material_meta_document() -> Value {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    load_document(&legacy_ui_fixture(
-        &repo,
-        "editor/material_meta_components.ui.toml",
-    ))
+    load_document(&zui_fixture(&repo, "editor/material_meta_components.zui"))
 }
 
 fn material_components(document: &Value) -> &toml::map::Map<String, Value> {
@@ -744,8 +733,8 @@ fn load_document(path: &std::path::Path) -> Value {
     toml::from_str(source).expect("ui asset parses as toml")
 }
 
-fn legacy_ui_fixture(repo: &std::path::Path, relative: &str) -> PathBuf {
-    repo.join("src/tests/fixtures/ui_legacy").join(relative)
+fn zui_fixture(repo: &std::path::Path, relative: &str) -> PathBuf {
+    repo.join("src/tests/fixtures/ui_zui").join(relative)
 }
 
 fn stylesheet_selectors(document: &Value) -> Vec<String> {

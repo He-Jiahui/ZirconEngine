@@ -53,6 +53,124 @@ fn review_f11_shading_model_registry_has_no_dead_plugin_registration_surface() {
 }
 
 #[test]
+fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
+    let pane_mod = include_str!(
+        "../../../../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs"
+    );
+    let template_node_projection = include_str!(
+        "../../../../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs"
+    );
+    let animation_projection = include_str!(
+        "../../../../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/animation_projection.rs"
+    );
+    let apply_pane_conversion = include_str!(
+        "../../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs"
+    );
+    let review_findings =
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_15 = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    );
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let module_doc =
+        include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let editor_workbench_doc =
+        include_str!("../../../../../docs/editor-and-tooling/editor-workbench-shell.md");
+    let f15_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F15 |"))
+        .expect("engine-code-review findings should keep a top-level F15 row");
+
+    for required in [
+        "editor `pane_data_conversion` 投影函数样板复制已由 child projection owners 收束",
+        "pane_data_conversion/mod.rs",
+        "template_node_projection.rs",
+        "animation_projection.rs",
+        "apply_presentation/pane_conversion.rs",
+        "runtime_15_editor_retained_host_pane_data_conversion_owner_guard_static_passed_cargo_deferred",
+        "runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_owners",
+    ] {
+        assert!(
+            f15_row.contains(required),
+            "F15 top review row should record current projection-owner state `{required}`"
+        );
+    }
+    for stale_finding in [
+        "editor/.../pane_data_conversion/mod.rs:74",
+        "to_host_contract_pane` ~228 行",
+        "animation_template_projection` ~326 行",
+        "抽 `project_nodes<T>()` 泛型 helper + 按 header/body/fields 拆",
+    ] {
+        assert!(
+            !f15_row.contains(stale_finding),
+            "F15 top review row should not keep stale unresolved finding text `{stale_finding}`"
+        );
+    }
+
+    for required in [
+        "mod animation_projection;",
+        "mod template_node_projection;",
+        "pub(crate) use self::animation_projection::",
+        "use self::template_runtime_projection::",
+    ] {
+        assert!(
+            pane_mod.contains(required),
+            "pane_data_conversion root should retain child projection-owner wiring `{required}`"
+        );
+    }
+    for moved_owner in [
+        "fn animation_template_projection(",
+        "fn to_host_contract_animation_editor_pane(",
+        "fn to_host_contract_pane(",
+        "pub(super) fn project_nodes<",
+    ] {
+        assert!(
+            !pane_mod.contains(moved_owner),
+            "pane_data_conversion root should not regain moved owner `{moved_owner}`"
+        );
+    }
+    for required in [
+        "pub(super) fn project_nodes<T, F>(",
+        "pub(super) fn project_node_vec<T, F>(",
+    ] {
+        assert!(
+            template_node_projection.contains(required),
+            "template node projection should own shared node helper `{required}`"
+        );
+    }
+    assert!(
+        animation_projection.contains("fn animation_template_projection(")
+            && animation_projection.contains("PanePayload::AnimationSequenceV1")
+            && animation_projection.contains("PanePayload::AnimationGraphV1"),
+        "animation projection owner should retain sequence and graph payload conversion"
+    );
+    assert!(
+        apply_pane_conversion.contains("pub(super) fn to_host_contract_pane(")
+            && apply_pane_conversion.contains("has_animation_payload")
+            && apply_pane_conversion.contains("to_host_contract_animation_editor_pane("),
+        "apply presentation owner should retain pane routing"
+    );
+
+    for doc_anchor in [
+        "Runtime 15 M3 editor retained-host pane data conversion projection owner guard",
+        "runtime_15_editor_retained_host_pane_data_conversion_owner_guard_static_passed_cargo_deferred",
+        "review_f15_editor_pane_data_conversion_top_row_uses_projection_owners",
+        "runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_owners",
+    ] {
+        assert!(
+            review_findings.contains(doc_anchor)
+                || convention.contains(doc_anchor)
+                || runtime_15.contains(doc_anchor)
+                || runtime_index.contains(doc_anchor)
+                || module_doc.contains(doc_anchor)
+                || editor_workbench_doc.contains(doc_anchor),
+            "F15 docs should record `{doc_anchor}`"
+        );
+    }
+}
+
+#[test]
 fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let path_resolution = include_str!("../../../scene/world/property_access/path_resolution.rs");
     let runtime_apply = include_str!("../../../animation/sequence/apply.rs");
@@ -61,7 +179,9 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
         include_str!("../../../../../zircon_plugins/animation/runtime/src/sequence/apply.rs");
     let plugin_target =
         include_str!("../../../../../zircon_plugins/animation/runtime/src/sequence/target.rs");
-    let property_paths = include_str!("../../../scene/tests/property_paths.rs");
+    let property_paths_runtime_mutation =
+        include_str!("../../../scene/tests/property_paths/runtime_mutation.rs");
+    let property_paths_read = include_str!("../../../scene/tests/property_paths/read_paths.rs");
     let review_findings =
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
@@ -75,6 +195,17 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     );
     let editor_boundary_doc =
         include_str!("../../../../../docs/editor-and-tooling/runtime-editor-boundary-cleanup.md");
+    let f17_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F17 |"))
+        .expect("F17 review findings top row");
+
+    assert!(
+        f17_row
+            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred")
+            && f17_row.ends_with("| convention + Runtime 08 / review closed |"),
+        "F17 top row should record lookup review closed status"
+    );
 
     let old_option_lookup = ["resolve", "entity", "path"].join("_");
     assert!(
@@ -92,7 +223,11 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
         ("runtime animation target", runtime_target),
         ("plugin animation apply", plugin_apply),
         ("plugin animation target", plugin_target),
-        ("property path tests", property_paths),
+        (
+            "property path runtime mutation tests",
+            property_paths_runtime_mutation,
+        ),
+        ("property path read tests", property_paths_read),
     ] {
         assert!(
             source.contains("get_entity_by_path("),
@@ -107,6 +242,7 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     for doc_anchor in [
         "F17 entity path Option lookup verb rename",
         "runtime_08_entity_path_lookup_getter_rename_coremin_check_passed",
+        "f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred",
         "review_f17_entity_path_option_lookup_uses_get_verb",
         "get_entity_by_path",
         "old resolve-verb entity path method absent",
@@ -143,6 +279,17 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let dynamic_session_doc =
         include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
     let asset_facade_doc = include_str!("../../../../../docs/zircon_runtime/asset/facade.md");
+    let f18_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F18 |"))
+        .expect("F18 review findings top row");
+
+    assert!(
+        f18_row
+            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred")
+            && f18_row.ends_with("| Runtime 10 / review closed |"),
+        "F18 top row should record manager-resolution review closed status"
+    );
 
     for generic_manager_anchor in [
         "pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError>",
@@ -191,6 +338,7 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     for doc_anchor in [
         "F18 asset manager resolution return shape",
         "runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed",
+        "f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred",
         "review_f18_asset_manager_resolution_returns_registered_handle",
         "Result<Arc<AssetManagerHandle>, CoreError>",
     ] {
@@ -220,8 +368,9 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     );
     let renderer_construct_mod =
         include_str!("../../../graphics/scene/scene_renderer/core/scene_renderer_construct/mod.rs");
-    let renderer_construct_new =
-        include_str!("../../../graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs");
+    let renderer_construct = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs"
+    );
     let renderer_construct_new_with_icon_source = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs"
     );
@@ -234,6 +383,17 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     );
     let shadow_doc =
         include_str!("../../../../../docs/zircon_runtime/graphics/scene/scene_renderer/shadow.md");
+    let f19_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F19 |"))
+        .expect("F19 review findings top row");
+
+    assert!(
+        f19_row.contains(
+            "f19_scene_renderer_construction_top_row_closed_status_static_passed_cargo_deferred"
+        ) && f19_row.ends_with("| convention + render index / review closed |"),
+        "F19 top row should record scene renderer construction naming review closed status"
+    );
 
     let core_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src/graphics/scene/scene_renderer/core");
@@ -272,7 +432,7 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
             core_construct_scene_bind_group,
         ),
         ("scene_renderer_construct/mod.rs", renderer_construct_mod),
-        ("scene_renderer_construct/new.rs", renderer_construct_new),
+        ("scene_renderer_construct/construct.rs", renderer_construct),
         (
             "scene_renderer_construct/new_with_icon_source.rs",
             renderer_construct_new_with_icon_source,
@@ -289,6 +449,7 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     for doc_anchor in [
         "F19 scene renderer construction module rename",
         "render_scene_renderer_construct_modules_coremin_passed",
+        "f19_scene_renderer_construction_top_row_closed_status_static_passed_cargo_deferred",
         "review_f19_scene_renderer_construction_modules_use_construct_names",
         "scene_renderer_core_construct",
         "scene_renderer_construct",

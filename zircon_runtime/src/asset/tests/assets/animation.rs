@@ -5,9 +5,9 @@ use crate::asset::tests::support::{
     sample_animation_skeleton_asset, sample_animation_state_machine_asset,
 };
 use crate::asset::{
-    AnimationChannelAsset, AnimationClipAsset, AnimationEventTrackAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationSequenceAsset, AnimationSequenceTrackAsset,
-    AnimationSkeletonAsset, AnimationStateMachineAsset,
+    AnimationAssetError, AnimationChannelAsset, AnimationClipAsset, AnimationEventTrackAsset,
+    AnimationGraphAsset, AnimationGraphNodeAsset, AnimationSequenceAsset,
+    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
 };
 
 #[test]
@@ -52,8 +52,21 @@ fn animation_binary_assets_roundtrip_and_sequence_exposes_shared_track_paths() {
 fn animation_binary_assets_reject_kind_mismatch() {
     let graph_bytes = sample_animation_graph_asset().to_bytes().unwrap();
     let error = AnimationSequenceAsset::from_bytes(&graph_bytes).unwrap_err();
+    let message = error.to_string();
 
-    assert!(error.contains("kind mismatch"), "unexpected error: {error}");
+    assert!(
+        message.contains("kind mismatch"),
+        "unexpected error: {message}"
+    );
+    assert!(
+        matches!(
+            error,
+            AnimationAssetError::DocumentAndStreamDecode { .. }
+                | AnimationAssetError::CurrentAndV1PayloadDecode { .. }
+                | AnimationAssetError::KindMismatch { .. }
+        ),
+        "kind mismatch should stay on the typed animation asset error surface"
+    );
 }
 
 #[test]

@@ -14,7 +14,7 @@ use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::super::build_frame_submission_context::{
     build_frame_submission_context_from_runtime_frame_extract,
-    validate_camera_surface_present_target,
+    validate_camera_surface_present_target, FrameSubmissionSourcePayloads,
 };
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_present_submission;
@@ -80,6 +80,7 @@ fn present_selected_camera_frame(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
+    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
     ui: Option<UiRenderExtract>,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
@@ -93,6 +94,7 @@ fn present_selected_camera_frame(
             viewport,
             extract,
             ui.as_ref(),
+            source_payloads,
         ) {
             Ok(context) => context,
             Err(error) => {

@@ -6,7 +6,7 @@ use zircon_runtime::core::framework::render::{
     builtin_geometry_source_descriptors, GeometrySourceId, ShaderQualityTier, ShadingModelId,
     GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
     GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    SHADING_MODEL_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -16,11 +16,15 @@ pub struct ShaderPrewarmArgs {
     pub asset_roots: Vec<PathBuf>,
     pub quality_tiers: Vec<ShaderQualityTier>,
     pub geometry_sources: Vec<GeometrySourceId>,
+    pub geometry_source_ids: BTreeMap<String, GeometrySourceId>,
     pub shading_model_ids: BTreeMap<String, ShadingModelId>,
+    pub permutation_registries: Vec<PathBuf>,
     pub resource_registry: Option<PathBuf>,
+    pub export_resource_registry: Option<PathBuf>,
     pub cache_dir: Option<PathBuf>,
     pub report: Option<PathBuf>,
     pub builtin_fallback: bool,
+    pub validate_wgpu_modules: bool,
     pub pretty: bool,
 }
 
@@ -32,11 +36,15 @@ pub fn parse(
     let mut asset_roots = Vec::new();
     let mut quality_tiers = Vec::new();
     let mut geometry_sources = Vec::new();
+    let mut geometry_source_ids = Vec::new();
     let mut shading_model_ids = Vec::new();
+    let mut permutation_registries = Vec::new();
     let mut resource_registry = None;
+    let mut export_resource_registry = None;
     let mut cache_dir = None;
     let mut report = None;
     let mut builtin_fallback = false;
+    let mut validate_wgpu_modules = false;
     let mut pretty = false;
 
     let mut args = args.into_iter();
@@ -57,16 +65,28 @@ pub fn parse(
                 let value = next_string(&mut args, "--geometry-source")?;
                 geometry_sources.extend(parse_geometry_source(&value)?);
             }
+            "--geometry-source-id" => {
+                let value = next_string(&mut args, "--geometry-source-id")?;
+                geometry_source_ids.push(parse_geometry_source_id(&value)?);
+            }
             "--shading-model-id" => {
                 let value = next_string(&mut args, "--shading-model-id")?;
                 shading_model_ids.push(parse_shading_model_id(&value)?);
             }
+            "--shader-permutation-registry" => {
+                permutation_registries.push(next_path(&mut args, "--shader-permutation-registry")?);
+            }
             "--resource-registry" => {
                 resource_registry = Some(next_path(&mut args, "--resource-registry")?);
+            }
+            "--export-resource-registry" => {
+                export_resource_registry =
+                    Some(next_path(&mut args, "--export-resource-registry")?);
             }
             "--cache-dir" => cache_dir = Some(next_path(&mut args, "--cache-dir")?),
             "--report" => report = Some(next_path(&mut args, "--report")?),
             "--builtin-fallback" => builtin_fallback = true,
+            "--validate-wgpu-modules" => validate_wgpu_modules = true,
             "--pretty" => pretty = true,
             unknown => return Err(usage(&format!("unknown argument {unknown}"))),
         }
@@ -78,6 +98,10 @@ pub fn parse(
         ));
     }
     let quality_tiers = normalized_quality_tiers(quality_tiers);
+    let geometry_source_ids = normalized_geometry_source_ids(geometry_source_ids)?;
+    let mut explicit_geometry_sources = geometry_source_ids.values().copied().collect::<Vec<_>>();
+    explicit_geometry_sources.sort_by_key(|geometry_source| geometry_source.value());
+    geometry_sources.extend(explicit_geometry_sources);
     let geometry_sources = normalized_geometry_sources(geometry_sources);
     let shading_model_ids = normalized_shading_model_ids(shading_model_ids)?;
 
@@ -87,18 +111,22 @@ pub fn parse(
         asset_roots,
         quality_tiers,
         geometry_sources,
+        geometry_source_ids,
         shading_model_ids,
+        permutation_registries,
         resource_registry,
+        export_resource_registry,
         cache_dir,
         report,
         builtin_fallback,
+        validate_wgpu_modules,
         pretty,
     }))
 }
 
 pub fn usage(message: &str) -> String {
     format!(
-        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--shading-model-id <custom:name>=<16-255>]... [--resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--pretty]"
+        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--geometry-source-id <custom:name>=<4-255>]... [--shading-model-id <custom:name>=<16-255>]... [--shader-permutation-registry <registry.json>]... [--resource-registry <records.json>] [--export-resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--validate-wgpu-modules] [--pretty]"
     )
 }
 
@@ -154,6 +182,41 @@ fn parse_geometry_source(value: &str) -> Result<Vec<GeometrySourceId>, String> {
     }
 }
 
+fn parse_geometry_source_id(value: &str) -> Result<(String, GeometrySourceId), String> {
+    let (token, id) = value.split_once('=').ok_or_else(|| {
+        usage(&format!(
+            "invalid geometry source id {value}; expected <custom:name>=<4-255>"
+        ))
+    })?;
+    let token = normalized_custom_geometry_source_token(token)?;
+    let id = id.trim().parse::<u8>().map_err(|_| {
+        usage(&format!(
+            "invalid geometry source id {value}; expected numeric plugin id 4-255"
+        ))
+    })?;
+    if id < GEOMETRY_SOURCE_PLUGIN_ID_START {
+        return Err(usage(&format!(
+            "invalid geometry source id {value}; plugin geometry source ids must be >= {GEOMETRY_SOURCE_PLUGIN_ID_START}"
+        )));
+    }
+    Ok((token, GeometrySourceId::new(id)))
+}
+
+pub(crate) fn normalized_custom_geometry_source_token(token: &str) -> Result<String, String> {
+    let token = token.trim().to_ascii_lowercase();
+    if token.is_empty() {
+        return Err(usage("custom geometry source token must not be empty"));
+    }
+    if let Some(name) = token.strip_prefix("custom:") {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(usage("custom geometry source token must not be empty"));
+        }
+        return Ok(format!("custom:{name}"));
+    }
+    Ok(format!("custom:{token}"))
+}
+
 fn parse_shading_model_id(value: &str) -> Result<(String, ShadingModelId), String> {
     let (token, id) = value.split_once('=').ok_or_else(|| {
         usage(&format!(
@@ -174,7 +237,7 @@ fn parse_shading_model_id(value: &str) -> Result<(String, ShadingModelId), Strin
     Ok((token, ShadingModelId::new(id)))
 }
 
-fn normalized_custom_shading_model_token(token: &str) -> Result<String, String> {
+pub(crate) fn normalized_custom_shading_model_token(token: &str) -> Result<String, String> {
     let token = token.trim().to_ascii_lowercase();
     if token.is_empty() {
         return Err(usage("custom shading model token must not be empty"));
@@ -225,6 +288,34 @@ fn normalized_shading_model_ids(
     Ok(by_token)
 }
 
+fn normalized_geometry_source_ids(
+    geometry_source_ids: Vec<(String, GeometrySourceId)>,
+) -> Result<BTreeMap<String, GeometrySourceId>, String> {
+    let mut by_token: BTreeMap<String, GeometrySourceId> = BTreeMap::new();
+    let mut by_id: BTreeMap<u8, String> = BTreeMap::new();
+    for (token, id) in geometry_source_ids {
+        if let Some(existing_id) = by_token.get(&token) {
+            if *existing_id != id {
+                return Err(usage(&format!(
+                    "custom geometry source {token} was assigned both id {} and id {}",
+                    existing_id.value(),
+                    id.value()
+                )));
+            }
+            continue;
+        }
+        if let Some(existing_token) = by_id.get(&id.value()) {
+            return Err(usage(&format!(
+                "custom geometry source id {} is already assigned to {existing_token} and cannot be reused by {token}",
+                id.value()
+            )));
+        }
+        by_id.insert(id.value(), token.clone());
+        by_token.insert(token, id);
+    }
+    Ok(by_token)
+}
+
 fn normalized_geometry_sources(
     mut geometry_sources: Vec<GeometrySourceId>,
 ) -> Vec<GeometrySourceId> {
@@ -243,9 +334,9 @@ mod tests {
     use std::ffi::OsString;
 
     use zircon_runtime::core::framework::render::{
-        GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GeometrySourceId, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
         GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        SHADING_MODEL_PLUGIN_ID_START,
+        GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
     };
 
     use super::parse;
@@ -316,6 +407,48 @@ mod tests {
     }
 
     #[test]
+    fn shader_prewarm_args_parse_custom_geometry_source_plugin_ids() {
+        let args = parse(
+            [
+                "--asset-root",
+                "assets",
+                "--geometry-source-id",
+                "custom:GpuDriven=4",
+                "--geometry-source-id",
+                "foliage=5",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            args.geometry_source_ids
+                .get("custom:gpudriven")
+                .copied()
+                .unwrap()
+                .value(),
+            GEOMETRY_SOURCE_PLUGIN_ID_START
+        );
+        assert_eq!(
+            args.geometry_source_ids
+                .get("custom:foliage")
+                .copied()
+                .unwrap()
+                .value(),
+            GEOMETRY_SOURCE_PLUGIN_ID_START + 1
+        );
+        assert_eq!(
+            args.geometry_sources,
+            vec![
+                GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START),
+                GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START + 1),
+            ]
+        );
+    }
+
+    #[test]
     fn shader_prewarm_args_parse_resource_registry_path() {
         let args = parse(
             [
@@ -337,6 +470,63 @@ mod tests {
     }
 
     #[test]
+    fn shader_prewarm_args_parse_shader_permutation_registry_path() {
+        let args = parse(
+            [
+                "--asset-root",
+                "assets",
+                "--shader-permutation-registry",
+                "Project/library/shader_permutation_registry.json",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            args.permutation_registries,
+            vec![std::path::PathBuf::from(
+                "Project/library/shader_permutation_registry.json"
+            )]
+        );
+    }
+
+    #[test]
+    fn shader_prewarm_args_parse_export_resource_registry_path() {
+        let args = parse(
+            [
+                "--asset-root",
+                "assets",
+                "--export-resource-registry",
+                "cache/shader_resource_records.json",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            args.export_resource_registry.unwrap(),
+            std::path::PathBuf::from("cache/shader_resource_records.json")
+        );
+    }
+
+    #[test]
+    fn shader_prewarm_args_parse_wgpu_module_validation_flag() {
+        let args = parse(
+            ["--asset-root", "assets", "--validate-wgpu-modules"]
+                .into_iter()
+                .map(OsString::from),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(args.validate_wgpu_modules);
+    }
+
+    #[test]
     fn shader_prewarm_args_reject_builtin_shading_model_id_range() {
         let error = parse(
             [
@@ -351,5 +541,22 @@ mod tests {
         .unwrap_err();
 
         assert!(error.contains("plugin shading model ids must be >= 16"));
+    }
+
+    #[test]
+    fn shader_prewarm_args_reject_builtin_geometry_source_id_range() {
+        let error = parse(
+            [
+                "--asset-root",
+                "assets",
+                "--geometry-source-id",
+                "custom:gpu-driven=3",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap_err();
+
+        assert!(error.contains("plugin geometry source ids must be >= 4"));
     }
 }

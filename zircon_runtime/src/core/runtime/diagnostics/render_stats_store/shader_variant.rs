@@ -4,7 +4,7 @@ use super::{record_count, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
-    let report = stats.last_shader_variant_miss_report;
+    let report = &stats.last_shader_variant_miss_report;
     record_count(
         store,
         "render.shader_variant.request_count",

@@ -27,31 +27,31 @@ impl WorkbenchSkeleton {
             region(
                 EditorRegion::LeftTop,
                 EditorRegionRole::PlacementTools,
-                "res://ui/editor/host/asset_surface_controls.v2.ui.toml",
+                "res://ui/editor/host/asset_surface_controls.zui",
                 Some("--left-drawer-width"),
             ),
             region(
                 EditorRegion::LeftBottom,
                 EditorRegionRole::ProjectTree,
-                "res://ui/editor/host/hierarchy_body.v2.ui.toml",
+                "res://ui/editor/host/hierarchy_body.zui",
                 Some("--left-drawer-width"),
             ),
             region(
                 EditorRegion::RightTop,
                 EditorRegionRole::HierarchyStructure,
-                "res://ui/editor/host/hierarchy_body.v2.ui.toml",
+                "res://ui/editor/host/hierarchy_body.zui",
                 Some("--right-drawer-width"),
             ),
             region(
                 EditorRegion::RightBottom,
                 EditorRegionRole::DetailInspector,
-                "res://ui/editor/host/inspector_body.v2.ui.toml",
+                "res://ui/editor/host/inspector_body.zui",
                 Some("--right-drawer-width"),
             ),
             region(
                 EditorRegion::Bottom,
                 EditorRegionRole::ConsoleDiagnosticsTimeline,
-                "res://ui/editor/host/console_body.v2.ui.toml",
+                "res://ui/editor/host/console_body.zui",
                 Some("--bottom-output-height"),
             ),
             region(
@@ -72,7 +72,7 @@ impl WorkbenchSkeleton {
                 "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui"
                     .to_string(),
             regions,
-            bottom_output_asset: "res://ui/editor/host/console_body.v2.ui.toml".to_string(),
+            bottom_output_asset: "res://ui/editor/host/console_body.zui".to_string(),
             status_bar_asset: "res://ui/editor/components/workbench/shell/workbench_status_bar.zui"
                 .to_string(),
             default_drawer_modes: EditorRegion::ALL

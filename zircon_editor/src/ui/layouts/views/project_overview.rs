@@ -8,7 +8,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.v2.ui.toml";
+const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.zui";
 
 pub(crate) fn project_overview_data(snapshot: &ProjectOverviewSnapshot) -> ProjectOverviewData {
     ProjectOverviewData {

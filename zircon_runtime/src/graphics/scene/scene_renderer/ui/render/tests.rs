@@ -155,6 +155,7 @@ fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
                                 source_range: UiTextRange { start: 0, end: 10 },
                                 visual_range: UiTextRange { start: 0, end: 10 },
                                 measured_width: 50.0,
+                                glyph_advances: vec![],
                                 baseline: 8.0,
                                 direction: UiTextDirection::LeftToRight,
                                 runs: vec![UiResolvedTextRun {
@@ -172,6 +173,7 @@ fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
                                 source_range: UiTextRange { start: 11, end: 16 },
                                 visual_range: UiTextRange { start: 0, end: 5 },
                                 measured_width: 25.0,
+                                glyph_advances: vec![],
                                 baseline: 8.0,
                                 direction: UiTextDirection::LeftToRight,
                                 runs: vec![UiResolvedTextRun {
@@ -249,6 +251,7 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
                             source_range: UiTextRange { start: 0, end: 15 },
                             visual_range: UiTextRange { start: 0, end: 15 },
                             measured_width: 150.0,
+                            glyph_advances: vec![],
                             baseline: 8.0,
                             direction: UiTextDirection::LeftToRight,
                             runs: vec![
@@ -354,6 +357,7 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
                             source_range: UiTextRange { start: 0, end: 5 },
                             visual_range: UiTextRange { start: 0, end: 5 },
                             measured_width: 50.0,
+                            glyph_advances: vec![],
                             baseline: 8.0,
                             direction: UiTextDirection::LeftToRight,
                             runs: vec![UiResolvedTextRun {

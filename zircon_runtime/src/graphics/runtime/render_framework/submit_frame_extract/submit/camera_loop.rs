@@ -1,7 +1,9 @@
 use crate::core::framework::render::{
-    resolve_camera_sequence, CameraRenderDescriptor, CameraSequenceEntry, PostProcessExtract,
-    RenderCameraTarget, RenderFrameExtract, RenderFrameworkError, RenderHybridGiExtract,
-    RenderViewExtract, RenderViewportHandle, RenderVirtualGeometryExtract,
+    resolve_camera_sequence_borrowed, CameraRenderDescriptor, CameraSequenceEntry,
+    PostProcessExtract, PostProcessPassGraph, PostProcessStackDescriptor, PostProcessVolumeExtract,
+    RenderBloomSettings, RenderCameraTarget, RenderColorGradingSettings, RenderFrameExtract,
+    RenderFrameworkError, RenderHybridGiExtract, RenderPostProcessEffectStackSettings,
+    RenderViewportHandle, RenderVirtualGeometryExtract,
 };
 use crate::graphics::visibility::FrameVisibility;
 use crate::graphics::{
@@ -11,6 +13,7 @@ use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::super::build_frame_submission_context::FrameSubmissionSourcePayloads;
 
 pub(super) fn submit_camera_loop(
     framework: &WgpuRenderFramework,
@@ -21,6 +24,7 @@ pub(super) fn submit_camera_loop(
         &WgpuRenderFramework,
         RenderViewportHandle,
         &mut Arc<RenderFrameExtract>,
+        Option<FrameSubmissionSourcePayloads<'_>>,
         Option<UiRenderExtract>,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
@@ -30,8 +34,15 @@ pub(super) fn submit_camera_loop(
         extract,
         ui,
         submissions,
-        |extract, ui, output_policy| {
-            submit_selected_camera(framework, viewport, extract, ui, output_policy)
+        |extract, source_payloads, ui, output_policy| {
+            submit_selected_camera(
+                framework,
+                viewport,
+                extract,
+                source_payloads,
+                ui,
+                output_policy,
+            )
         },
     )
 }
@@ -54,7 +65,7 @@ pub(super) fn viewport_terminal_camera_target(
 fn camera_loop_submissions(
     extract: &RenderFrameExtract,
 ) -> Result<Vec<CameraLoopSubmission>, RenderFrameworkError> {
-    let sequence = resolve_camera_sequence(extract.view.cameras.clone());
+    let sequence = resolve_camera_sequence_borrowed(&extract.view.cameras);
     if sequence.sequence.is_empty() {
         return Err(RenderFrameworkError::UnsupportedCapability {
             capability: "active camera sequence".to_string(),
@@ -76,6 +87,7 @@ pub(super) fn submit_camera_loop_frame(
         &WgpuRenderFramework,
         RenderViewportHandle,
         &mut ViewportRenderFrame,
+        Option<FrameSubmissionSourcePayloads<'_>>,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
@@ -87,9 +99,13 @@ pub(super) fn submit_camera_loop_frame(
         }
     };
 
-    stream_camera_loop_frame_submissions(frame, submissions, |frame, output_policy| {
-        submit_selected_frame(framework, viewport, frame, output_policy)
-    })
+    stream_camera_loop_frame_submissions(
+        frame,
+        submissions,
+        |frame, source_payloads, output_policy| {
+            submit_selected_frame(framework, viewport, frame, source_payloads, output_policy)
+        },
+    )
 }
 
 fn stream_camera_loop_frame_submissions(
@@ -97,21 +113,33 @@ fn stream_camera_loop_frame_submissions(
     submissions: Vec<CameraLoopSubmission>,
     mut submit_selected_frame: impl FnMut(
         &mut ViewportRenderFrame,
+        Option<FrameSubmissionSourcePayloads<'_>>,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
-    let source_state = CameraLoopFrameSourceState::capture(&frame);
+    let source_state =
+        (submissions.len() > 1).then(|| CameraLoopFrameSourceState::capture(&mut frame));
     let mut terminal_ui = frame.ui.take();
 
-    for submission in submissions {
-        source_state.restore_for_submission(&mut frame);
+    for (submission_index, submission) in submissions.into_iter().enumerate() {
+        if submission_index > 0 {
+            if let Some(source_state) = source_state.as_ref() {
+                source_state.restore_for_submission(&mut frame);
+            }
+        }
         select_frame_camera_for_submission(&mut frame, submission.camera);
         frame.ui = if submission.receives_terminal_ui {
             terminal_ui.take()
         } else {
             None
         };
-        submit_selected_frame(&mut frame, submission.output_policy)?;
+        submit_selected_frame(
+            &mut frame,
+            source_state
+                .as_ref()
+                .map(CameraLoopFrameSourceState::source_payloads),
+            submission.output_policy,
+        )?;
     }
 
     Ok(())
@@ -123,24 +151,41 @@ fn stream_camera_loop_extract_submissions(
     submissions: Vec<CameraLoopSubmission>,
     mut submit_selected_camera: impl FnMut(
         &mut Arc<RenderFrameExtract>,
+        Option<FrameSubmissionSourcePayloads<'_>>,
         Option<UiRenderExtract>,
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
-    let source_state = CameraLoopExtractSourceState::capture(&extract);
     let mut source_extract = Arc::new(extract);
+    let source_state = if submissions.len() > 1 {
+        let source = Arc::make_mut(&mut source_extract);
+        Some(CameraLoopExtractSourceState::capture(source))
+    } else {
+        None
+    };
     let mut terminal_ui = ui;
 
-    for submission in submissions {
+    for (submission_index, submission) in submissions.into_iter().enumerate() {
         let extract = Arc::make_mut(&mut source_extract);
-        source_state.restore_for_submission(extract);
+        if submission_index > 0 {
+            if let Some(source_state) = source_state.as_ref() {
+                source_state.restore_for_submission(extract);
+            }
+        }
         extract.select_camera_descriptor(submission.camera);
         let selected_ui = if submission.receives_terminal_ui {
             terminal_ui.take()
         } else {
             None
         };
-        submit_selected_camera(&mut source_extract, selected_ui, submission.output_policy)?;
+        submit_selected_camera(
+            &mut source_extract,
+            source_state
+                .as_ref()
+                .map(CameraLoopExtractSourceState::source_payloads),
+            selected_ui,
+            submission.output_policy,
+        )?;
     }
 
     Ok(())
@@ -154,27 +199,32 @@ fn select_frame_camera_for_submission(
 }
 
 struct CameraLoopExtractSourceState {
-    view: RenderViewExtract,
-    post_process: PostProcessExtract,
+    view_target_size: Option<crate::core::math::UVec2>,
+    post_process: CameraLoopPostProcessSourceState,
     virtual_geometry: Option<RenderVirtualGeometryExtract>,
     hybrid_global_illumination: Option<RenderHybridGiExtract>,
 }
 
 impl CameraLoopExtractSourceState {
-    fn capture(extract: &RenderFrameExtract) -> Self {
+    fn capture(extract: &mut RenderFrameExtract) -> Self {
         Self {
-            view: extract.view.clone(),
-            post_process: extract.post_process.clone(),
-            virtual_geometry: extract.geometry.virtual_geometry.clone(),
-            hybrid_global_illumination: extract.lighting.hybrid_global_illumination.clone(),
+            view_target_size: extract.view.target_size,
+            post_process: CameraLoopPostProcessSourceState::capture(&extract.post_process),
+            virtual_geometry: extract.geometry.virtual_geometry.take(),
+            hybrid_global_illumination: extract.lighting.hybrid_global_illumination.take(),
+        }
+    }
+
+    fn source_payloads(&self) -> FrameSubmissionSourcePayloads<'_> {
+        FrameSubmissionSourcePayloads {
+            virtual_geometry: self.virtual_geometry.as_ref(),
+            hybrid_global_illumination: self.hybrid_global_illumination.as_ref(),
         }
     }
 
     fn restore_for_submission(&self, extract: &mut RenderFrameExtract) {
-        extract.view = self.view.clone();
-        extract.post_process = self.post_process.clone();
-        extract.geometry.virtual_geometry = self.virtual_geometry.clone();
-        extract.lighting.hybrid_global_illumination = self.hybrid_global_illumination.clone();
+        extract.view.target_size = self.view_target_size;
+        self.post_process.restore_to(&mut extract.post_process);
     }
 }
 
@@ -183,21 +233,35 @@ struct CameraLoopFrameSourceState {
     view_target_size: Option<crate::core::math::UVec2>,
     output_target: ViewportRenderOutputTarget,
     frame_visibility: Option<FrameVisibility>,
-    post_process: PostProcessExtract,
+    post_process: CameraLoopPostProcessSourceState,
     virtual_geometry: Option<RenderVirtualGeometryExtract>,
     hybrid_global_illumination: Option<RenderHybridGiExtract>,
 }
 
 impl CameraLoopFrameSourceState {
-    fn capture(frame: &ViewportRenderFrame) -> Self {
+    fn capture(frame: &mut ViewportRenderFrame) -> Self {
+        let (virtual_geometry, hybrid_global_illumination) = {
+            let extract = frame.extract_mut();
+            (
+                extract.geometry.virtual_geometry.take(),
+                extract.lighting.hybrid_global_illumination.take(),
+            )
+        };
         Self {
             viewport_size: frame.viewport_size,
             view_target_size: frame.extract.view.target_size,
             output_target: frame.output_target,
             frame_visibility: frame.frame_visibility.clone(),
-            post_process: frame.extract.post_process.clone(),
-            virtual_geometry: frame.extract.geometry.virtual_geometry.clone(),
-            hybrid_global_illumination: frame.extract.lighting.hybrid_global_illumination.clone(),
+            post_process: CameraLoopPostProcessSourceState::capture(&frame.extract.post_process),
+            virtual_geometry,
+            hybrid_global_illumination,
+        }
+    }
+
+    fn source_payloads(&self) -> FrameSubmissionSourcePayloads<'_> {
+        FrameSubmissionSourcePayloads {
+            virtual_geometry: self.virtual_geometry.as_ref(),
+            hybrid_global_illumination: self.hybrid_global_illumination.as_ref(),
         }
     }
 
@@ -209,9 +273,38 @@ impl CameraLoopFrameSourceState {
         frame.output_target = self.output_target;
         frame.frame_visibility = self.frame_visibility.clone();
         let extract = frame.extract_mut();
-        extract.post_process = self.post_process.clone();
-        extract.geometry.virtual_geometry = self.virtual_geometry.clone();
-        extract.lighting.hybrid_global_illumination = self.hybrid_global_illumination.clone();
+        self.post_process.restore_to(&mut extract.post_process);
+    }
+}
+
+struct CameraLoopPostProcessSourceState {
+    bloom: RenderBloomSettings,
+    color_grading: RenderColorGradingSettings,
+    effect_stack: RenderPostProcessEffectStackSettings,
+    volumes: Vec<PostProcessVolumeExtract>,
+    stack: PostProcessStackDescriptor,
+    graph: PostProcessPassGraph,
+}
+
+impl CameraLoopPostProcessSourceState {
+    fn capture(post_process: &PostProcessExtract) -> Self {
+        Self {
+            bloom: post_process.bloom,
+            color_grading: post_process.color_grading,
+            effect_stack: post_process.effect_stack,
+            volumes: post_process.volumes.clone(),
+            stack: post_process.stack.clone(),
+            graph: post_process.graph.clone(),
+        }
+    }
+
+    fn restore_to(&self, post_process: &mut PostProcessExtract) {
+        post_process.bloom = self.bloom;
+        post_process.color_grading = self.color_grading;
+        post_process.effect_stack = self.effect_stack;
+        post_process.volumes.clone_from(&self.volumes);
+        post_process.stack = self.stack.clone();
+        post_process.graph = self.graph.clone();
     }
 }
 

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::{VmPluginManagementPolicyError, VmPluginManagementPolicyResult};
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VmPluginMemoryPolicy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16,18 +18,21 @@ impl VmPluginMemoryPolicy {
         }
     }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> VmPluginManagementPolicyResult<()> {
         if self.soft_limit_bytes == Some(0) {
-            return Err("memory soft_limit_bytes must be greater than zero".to_string());
+            return Err(VmPluginManagementPolicyError::MemorySoftLimitBytesZero);
         }
         if self.hard_limit_bytes == Some(0) {
-            return Err("memory hard_limit_bytes must be greater than zero".to_string());
+            return Err(VmPluginManagementPolicyError::MemoryHardLimitBytesZero);
         }
         if let (Some(soft), Some(hard)) = (self.soft_limit_bytes, self.hard_limit_bytes) {
             if soft > hard {
-                return Err(format!(
-                    "memory soft_limit_bytes {soft} exceeds hard_limit_bytes {hard}"
-                ));
+                return Err(
+                    VmPluginManagementPolicyError::MemorySoftLimitExceedsHardLimit {
+                        soft_limit_bytes: soft,
+                        hard_limit_bytes: hard,
+                    },
+                );
             }
         }
         Ok(())

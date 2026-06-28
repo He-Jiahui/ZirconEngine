@@ -272,11 +272,11 @@ related_code:
   - zircon_plugins/sound/editor/src/live_output/mod.rs
   - zircon_plugins/sound/editor/src/live_output/model.rs
   - zircon_plugins/sound/editor/src/live_output/controller.rs
-  - zircon_plugins/sound/editor/mixer_console.v2.ui.toml
-  - zircon_plugins/sound/editor/acoustic_debug.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_source.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_listener.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_volume.drawer.v2.ui.toml
+  - zircon_plugins/sound/editor/mixer_console.zui
+  - zircon_plugins/sound/editor/acoustic_debug.zui
+  - zircon_plugins/sound/editor/audio_source.drawer.zui
+  - zircon_plugins/sound/editor/audio_listener.drawer.zui
+  - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
   - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
@@ -553,11 +553,11 @@ implementation_files:
   - zircon_plugins/sound/editor/src/live_output/mod.rs
   - zircon_plugins/sound/editor/src/live_output/model.rs
   - zircon_plugins/sound/editor/src/live_output/controller.rs
-  - zircon_plugins/sound/editor/mixer_console.v2.ui.toml
-  - zircon_plugins/sound/editor/acoustic_debug.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_source.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_listener.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_volume.drawer.v2.ui.toml
+  - zircon_plugins/sound/editor/mixer_console.zui
+  - zircon_plugins/sound/editor/acoustic_debug.zui
+  - zircon_plugins/sound/editor/audio_source.drawer.zui
+  - zircon_plugins/sound/editor/audio_listener.drawer.zui
+  - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
   - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
   - zircon_runtime_interface/src/tests/contracts.rs

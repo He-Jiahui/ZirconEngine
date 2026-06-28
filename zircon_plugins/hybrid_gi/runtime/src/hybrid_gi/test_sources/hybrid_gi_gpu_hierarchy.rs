@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::math::{UVec2, Vec3};
+use crate::scene::world::World;
+use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
     RenderSceneSnapshot, RenderWorldSnapshotHandle,
 };
-use crate::core::math::{UVec2, Vec3};
-use crate::scene::world::World;
-use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
 
 use crate::{
     types::{

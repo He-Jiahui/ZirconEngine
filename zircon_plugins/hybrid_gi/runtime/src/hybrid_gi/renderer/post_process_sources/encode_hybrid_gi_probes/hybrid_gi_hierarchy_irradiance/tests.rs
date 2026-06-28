@@ -244,33 +244,33 @@ fn scene_prepare_capture_surface_cache_page_samples_stay_preferred_for_irradianc
 }
 
 #[test]
-fn legacy_irradiance_uses_first_probe_payload_for_duplicate_probe_ids() {
+fn extract_irradiance_uses_first_probe_payload_for_duplicate_probe_ids() {
     let irradiance = hierarchy_irradiance_with_duplicate_middle_probe_payloads();
 
     assert!(
         irradiance[3] <= f32::EPSILON,
-        "expected legacy hierarchy irradiance to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of inheriting through a later stale grandparent link; irradiance={irradiance:?}"
+        "expected extract hierarchy irradiance to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of inheriting through a later stale grandparent link; irradiance={irradiance:?}"
     );
 }
 
 #[test]
-fn flat_runtime_blocks_legacy_ancestor_prepare_irradiance_inheritance() {
-    let irradiance = hierarchy_irradiance_with_flat_runtime_and_legacy_ancestor_prepare();
+fn flat_runtime_blocks_extract_ancestor_prepare_irradiance_inheritance() {
+    let irradiance = hierarchy_irradiance_with_flat_runtime_and_extract_ancestor_prepare();
 
     assert!(
         irradiance[3] <= f32::EPSILON,
-        "expected flat runtime topology to stop legacy RenderHybridGiProbe parent-chain irradiance inheritance from farther resident ancestors; irradiance={irradiance:?}"
+        "expected flat runtime topology to stop extract-sourced RenderHybridGiProbe parent-chain irradiance inheritance from farther resident ancestors; irradiance={irradiance:?}"
     );
 }
 
 #[test]
-fn scene_representation_budget_blocks_legacy_ancestor_prepare_irradiance_inheritance() {
+fn scene_representation_budget_blocks_extract_ancestor_prepare_irradiance_inheritance() {
     let irradiance =
-        hierarchy_irradiance_with_budgeted_scene_representation_and_legacy_ancestor_prepare();
+        hierarchy_irradiance_with_budgeted_scene_representation_and_extract_ancestor_prepare();
 
     assert!(
         irradiance[3] <= f32::EPSILON,
-        "expected budgeted scene-representation extracts to stop legacy RenderHybridGiProbe parent-chain irradiance inheritance from farther resident ancestors; irradiance={irradiance:?}"
+        "expected budgeted scene-representation extracts to stop extract-sourced RenderHybridGiProbe parent-chain irradiance inheritance from farther resident ancestors; irradiance={irradiance:?}"
     );
 }
 
@@ -498,7 +498,7 @@ fn hierarchy_irradiance_with_duplicate_middle_probe_payloads() -> [f32; 4] {
     hybrid_gi_hierarchy_irradiance(&frame, &child_probe)
 }
 
-fn hierarchy_irradiance_with_budgeted_scene_representation_and_legacy_ancestor_prepare() -> [f32; 4]
+fn hierarchy_irradiance_with_budgeted_scene_representation_and_extract_ancestor_prepare() -> [f32; 4]
 {
     let grandparent_probe = RenderHybridGiProbe {
         probe_id: 100,
@@ -576,7 +576,7 @@ fn hierarchy_irradiance_with_budgeted_scene_representation_and_legacy_ancestor_p
     hybrid_gi_hierarchy_irradiance(&frame, &child_probe)
 }
 
-fn hierarchy_irradiance_with_flat_runtime_and_legacy_ancestor_prepare() -> [f32; 4] {
+fn hierarchy_irradiance_with_flat_runtime_and_extract_ancestor_prepare() -> [f32; 4] {
     let grandparent_probe = RenderHybridGiProbe {
         probe_id: 100,
         resident: true,

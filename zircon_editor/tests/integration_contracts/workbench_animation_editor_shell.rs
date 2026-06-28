@@ -21,7 +21,7 @@ fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
         "src/ui/retained_host/host_contract/data/panes/pane.rs",
         "src/ui/retained_host/host_contract/data/panes/animation.rs",
     ]);
-    let asset = source("assets/ui/editor/animation_editor.v2.ui.toml");
+    let asset = source("assets/ui/editor/animation_editor.zui");
 
     for required in [
         "pub(crate) struct AnimationEditorPaneData",

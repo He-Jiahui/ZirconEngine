@@ -225,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn primitive_relevance_preserves_layers_above_legacy_mask_width() {
+    fn primitive_relevance_preserves_layers_above_scene_schema_v1_mask_width() {
         let camera_layers = RenderLayerSet::layer(40);
         let render_layers = RenderLayerSet::layer(40);
         let relevance = PrimitiveRelevance::for_mesh_view(

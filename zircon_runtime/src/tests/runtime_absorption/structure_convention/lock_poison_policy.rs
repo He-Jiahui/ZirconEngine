@@ -153,6 +153,10 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
                 "fn ",
                 "runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries"
             ),
+            concat!(
+                "fn ",
+                "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock"
+            ),
         ],
     );
 
@@ -172,8 +176,8 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
                 .count()
             + runtime_services.matches(TEST_ATTRIBUTE).count()
             + asset_render_input.matches(TEST_ATTRIBUTE).count(),
-        24,
-        "lock poison policy parent plus split children should preserve 21 original guards plus the production global gate and two layout guards"
+        25,
+        "lock poison policy parent plus split children should preserve 21 original guards plus the production global gate, the ZrVM runtime lock guard, and two layout guards"
     );
 
     for (path, source) in [

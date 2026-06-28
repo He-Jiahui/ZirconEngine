@@ -339,7 +339,7 @@ fn mui_web_parity_tracks_explicit_retained_mui_x_targets() {
 
 #[test]
 fn editor_material_theme_declares_mui_web_default_theme_tokens() {
-    let theme = editor_file("assets/ui/theme/editor_material.v2.ui.toml");
+    let theme = editor_file("assets/ui/theme/editor_material.zui");
     for expected_line in REQUIRED_MUI_WEB_THEME_LINES {
         assert!(
             theme.contains(expected_line),

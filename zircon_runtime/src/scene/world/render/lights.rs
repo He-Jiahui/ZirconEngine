@@ -48,7 +48,7 @@ impl World {
             .map(|(entity, light)| RenderDirectionalLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: RenderLayerSet::from_legacy_mask(
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
                     self.render_layer_mask(*entity)
                         .unwrap_or(default_render_layer_mask()),
                 ),
@@ -76,7 +76,7 @@ impl World {
             .map(|(entity, light)| RenderPointLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: RenderLayerSet::from_legacy_mask(
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
                     self.render_layer_mask(*entity)
                         .unwrap_or(default_render_layer_mask()),
                 ),
@@ -110,7 +110,7 @@ impl World {
                 RenderRectLightSnapshot {
                     node_id: *entity,
                     light_id: *entity,
-                    layer_mask: RenderLayerSet::from_legacy_mask(
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
                         self.render_layer_mask(*entity)
                             .unwrap_or(default_render_layer_mask()),
                     ),
@@ -146,7 +146,7 @@ impl World {
             .map(|(entity, light)| RenderSpotLightSnapshot {
                 node_id: *entity,
                 light_id: *entity,
-                layer_mask: RenderLayerSet::from_legacy_mask(
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
                     self.render_layer_mask(*entity)
                         .unwrap_or(default_render_layer_mask()),
                 ),

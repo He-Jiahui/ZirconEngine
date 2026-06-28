@@ -1,5 +1,4 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
-use crate::graphics::scene::scene_renderer::prepass::NORMAL_FORMAT;
 
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_depth_prepass_mesh_pipeline(
     device: &wgpu::Device,
@@ -28,16 +27,16 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_depth_prepass_mes
             bias: wgpu::DepthBiasState::default(),
         }),
         multisample: wgpu::MultisampleState::default(),
-        fragment: Some(wgpu::FragmentState {
-            module: shader,
-            entry_point: Some("fs_main"),
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-            targets: &[Some(wgpu::ColorTargetState {
-                format: NORMAL_FORMAT,
-                blend: Some(wgpu::BlendState::REPLACE),
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
-        }),
+        fragment: if key.is_alpha_mask() {
+            Some(wgpu::FragmentState {
+                module: shader,
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[],
+            })
+        } else {
+            None
+        },
         multiview_mask: None,
         cache: None,
     })
@@ -62,7 +61,7 @@ mod tests {
     const TEST_SKINNED_JOINT_PARAMS_BYTES: u64 = 16;
 
     #[test]
-    fn depth_prepass_mesh_pipeline_declares_normal_target_template_entries_and_static_layout() {
+    fn depth_prepass_mesh_pipeline_declares_depth_only_template_entries_and_static_layout() {
         let source = include_str!("create_depth_prepass_mesh_pipeline.rs")
             .split("#[cfg(test)]")
             .next()
@@ -70,23 +69,24 @@ mod tests {
 
         assert!(source.contains("GpuMeshVertex::layout()"));
         assert!(!source.contains("GpuMeshVertex::previous_position_layout()"));
-        assert!(source.contains("NORMAL_FORMAT"));
+        assert!(!source.contains("NORMAL_FORMAT"));
         assert!(source.contains("entry_point: Some(\"vs_main\")"));
-        assert!(source.contains("entry_point: Some(\"fs_main\")"));
+        assert!(source.contains("key.is_alpha_mask()"));
+        assert!(source.contains("targets: &[]"));
         assert!(source.contains("depth_write_enabled: Some(true)"));
 
         let key = default_pipeline_key();
-        let variant_key = key.shader_variant_key(ShaderPassType::GBuffer, "wgpu-runtime");
+        let variant_key = key.shader_variant_key(ShaderPassType::DepthPrepass, "wgpu-runtime");
         let source = mesh_pipeline_depth_prepass_template_source_for_geometry(
             &key,
             variant_key.geometry_source,
         )
-        .expect("depth prepass normal template source should assemble");
+        .expect("depth prepass depth-only template source should assemble");
 
-        assert!(source.wgsl_source.contains("zr_template_gbuffer.wgsl"));
+        assert!(source.wgsl_source.contains("zr_template_depth.wgsl"));
         assert!(source.wgsl_source.contains("fn vs_main("));
-        assert!(source.wgsl_source.contains("fn fs_main("));
-        assert!(source.wgsl_source.contains("surface.normal_ws * 0.5"));
+        assert!(!source.wgsl_source.contains("fn fs_main("));
+        assert!(!source.wgsl_source.contains("surface.normal_ws * 0.5"));
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
             &key,
             GEOMETRY_SOURCE_ID_STATIC_MESH,
         )
-        .expect("depth prepass normal-target template source should assemble");
+        .expect("depth prepass depth-only template source should assemble");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-test-depth-prepass-template-shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Owned(shader_source.wgsl_source)),
@@ -126,7 +126,7 @@ mod tests {
 
         assert!(
             error.is_none(),
-            "depth prepass normal-target template pipeline should pass WGPU validation: {error:?}"
+            "depth prepass depth-only template pipeline should pass WGPU validation: {error:?}"
         );
     }
 

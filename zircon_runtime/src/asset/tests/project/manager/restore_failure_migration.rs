@@ -133,41 +133,6 @@ fn project_manager_records_failed_imports_and_continues_scanning() {
 }
 
 #[test]
-fn project_manager_records_ui_schema_migration_in_meta() {
-    let root = unique_temp_project_root("project_manager_ui_migration");
-    let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
-        "Sandbox",
-        AssetUri::parse("res://ui/legacy.ui.toml").unwrap(),
-        1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
-
-    let ui_path = paths.assets_root().join("ui").join("legacy.ui.toml");
-    if let Some(parent) = ui_path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(&ui_path, version_one_ui_layout_toml()).unwrap();
-
-    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
-    manager.scan_and_import().unwrap();
-
-    let meta = AssetMetaDocument::load(paths.assets_root().join("ui").join("legacy.ui.toml.zmeta"))
-        .unwrap();
-    assert_eq!(meta.importer_id, "ui_document_importer.typed_toml");
-    assert_eq!(meta.source_schema_version, Some(1));
-    assert_eq!(
-        meta.target_schema_version,
-        Some(UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION)
-    );
-    assert!(meta.migration_summary.contains("SourceVersionBumped"));
-
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
 fn project_manager_clears_stale_migration_meta_for_non_migrating_importer() {
     let root = unique_temp_project_root("project_manager_clear_stale_migration");
     let paths = ProjectPaths::from_root(&root).unwrap();

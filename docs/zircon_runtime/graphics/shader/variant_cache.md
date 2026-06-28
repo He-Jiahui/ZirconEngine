@@ -47,7 +47,10 @@ tests:
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_hits_disk_after_restart
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_treats_corrupt_entry_as_miss_after_cleanup
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_writes_disk_entries
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_counts_variant_misses_and_memory_hits
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Runtime custom id staged fallback lookup contract: passed)
+  - source/docs anchor scan, conflict marker scan, trailing-whitespace scan, scoped git diff --check (2026-06-28 Runtime custom id staged fallback lookup contract: passed; diff-check only reported LF/CRLF warnings)
   - rustfmt --edition 2021 on Plan 08 MS-M4-S1b touched files (2026-06-17 shader variant disk cache slice: passed)
   - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-variant-cache-check-0617 (2026-06-17 shader variant disk cache slice: passed with existing warnings)
   - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-prewarm-check-0617 (2026-06-17 shader prewarm slice: passed with existing warnings)
@@ -84,5 +87,13 @@ The live WGPU render-pipeline maps still key by the complete `PipelineKey`. That
 `zircon_runtime::dynamic_api::prewarm_shader_variants(...)` is the Rust-side headless entry point. The first implemented producer is `builtin_fallback_shader_prewarm_manifest()`, which emits the base forward fallback mesh variant using the same key/source/hash contract as `MeshPipelineCache::ensure_pipeline(...)`.
 
 `zircon_shader_prewarm` is the command-line wrapper used by `tools/zircon_build.py --prewarm-shaders`. It can read an explicit manifest JSON, add the built-in fallback manifest, and write cache entries into the staged payload at `ZirconEngine/cache/shader_variants` with a sibling JSON report. Runtime mesh cache lookup now checks the writable runtime cache first and then that staged prewarm cache.
+
+The custom-id fallback contract uses that same lookup chain for plugin-range
+shader dimensions. `render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root`
+writes a `GeometrySourceId(4)` / `ShadingModelId(16)` request into a staged
+`cache/shader_variants` root, requires a miss from the empty runtime root, and
+then requires `ShaderVariantCacheDisk::with_fallback_roots(&runtime_root, [&staged_root])`
+to hit the same canonical key without creating or writing the runtime root.
+Status: `render_plan08_runtime_custom_id_staged_fallback_lookup_static_passed_cargo_deferred`.
 
 The current prewarm scope covers the built-in base forward fallback mesh shader and manifest-driven writes. Velocity, TAA reactive, deferred/template variants, asset-scanned material manifests, actual device compilation, and the final "second startup compile miss = 0" product acceptance remain future slices.

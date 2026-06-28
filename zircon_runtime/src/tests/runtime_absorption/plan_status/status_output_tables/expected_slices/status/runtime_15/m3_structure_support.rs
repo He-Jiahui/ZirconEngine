@@ -3,6 +3,9 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_graphics_dead_code_guard_module_split_static_passed_cargo_lock_blocked")
     } else if slice == "Runtime 15 M3 graphics dead-code guard child-owner split" {
         Some("runtime_15_graphics_dead_code_guard_child_owner_split_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 graphics dead-code guard forbidden attribute literal cleanup"
+    {
+        Some("runtime_15_graphics_dead_code_guard_literal_cleanup_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 provider boilerplate guard module split" {
         Some("runtime_15_provider_boilerplate_guard_module_split_static_passed_cargo_lock_blocked")
     } else if slice == "Runtime 15 M3 provider boilerplate guard child-owner split" {
@@ -23,8 +26,64 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some(
             "runtime_15_core_runtime_deactivation_blocked_tests_folder_split_static_passed_cargo_deferred",
         )
+    } else if slice == "Runtime 15 M3 lock-poison status row-data child-owner split" {
+        Some(
+            "runtime_15_lock_poison_status_row_data_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 module-convention status row-data child-owner split" {
+        Some(
+            "runtime_15_module_convention_status_row_data_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 module convention gate output contract" {
+        Some("runtime_15_module_convention_gate_output_contract_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 module convention non-render debt guard" {
+        Some("runtime_15_module_convention_non_render_debt_guard_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 render-scoped migration debt handoff gate" {
+        Some("runtime_15_render_scoped_migration_debt_handoff_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 hard-cutover allowed Hyper policy risk cleanup" {
+        Some(
+            "runtime_15_hard_cutover_allowed_hyper_policy_risk_cleanup_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 module convention gate audit-clear status mirror" {
+        Some(
+            "runtime_15_module_convention_gate_audit_clear_status_mirror_core_min_cargo_passed_full_sweep_pending",
+        )
+    } else if slice == "Runtime 15 M3 module convention audit script family naming cleanup" {
+        Some(
+            "runtime_15_module_convention_audit_script_family_naming_core_min_cargo_passed_full_sweep_pending",
+        )
     } else if slice == "Runtime 15 M3 code review findings test folder split" {
         Some("runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 review top-row status row-data child-owner split" {
+        Some(
+            "runtime_15_review_top_row_status_row_data_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 D-S7 static plugin manifest generation/parity review sync" {
+        Some(
+            "ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 D7 core workspace dependency top-row closed status sync" {
+        Some("d7_core_workspace_dependency_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D7 core workspace dependency inheritance guard" {
+        Some("d7_core_workspace_dependency_inheritance_guard_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D8 runtime registration builder original evidence paths" {
+        Some("d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync" {
+        Some("d6_runtime_plugin_id_open_string_newtype_review_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 F5/F6/F7 typed-error top-row closed status sync" {
+        Some("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 F8/F9/F10 runtime surface top-row closed status sync" {
+        Some("f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 F13/F14 provider diagnostics top-row closed status sync" {
+        Some("f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 F17/F18 lookup/manager top-row closed status sync" {
+        Some("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 F19 scene renderer construction top-row closed status sync" {
+        Some("f19_scene_renderer_construction_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D9 editor/runtime mirror consumer guard" {
+        Some("d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D5 editor authoring macro consumer guard" {
+        Some("d5_editor_authoring_macro_consumers_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 typed-error convergence guard child-owner split" {
         Some(
             "runtime_15_typed_error_convergence_guard_child_owner_split_static_passed_cargo_deferred",
@@ -151,6 +210,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_test_file_budget_guard_folder_split_static_passed_cargo_lock_blocked")
     } else if slice == "Runtime 15 M3 test file budget guard root mod cutover" {
         Some("runtime_15_test_file_budget_guard_root_mod_cutover_static_passed_cargo_lock_blocked")
+    } else if slice == "Runtime 15 M3 no oversized test files global gate" {
+        Some("runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 Runtime 07 performance hotspot guard folder split" {
         Some(
             "runtime_15_runtime_07_performance_hotspots_guard_folder_split_static_passed_cargo_timeout_no_result",
@@ -223,6 +284,37 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_test_file_budget_root_layout_child_split_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 status output Runtime 15 row data split" {
         Some("runtime_15_status_output_runtime_15_row_data_split_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 status output Runtime 15 foundation row data split" {
+        Some(
+            "runtime_15_status_output_runtime_15_foundation_row_data_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 status output Runtime 15 M2 row data split" {
+        Some("runtime_15_status_output_runtime_15_m2_row_data_split_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 support Hub project-actions tests child-owner split" {
+        Some(
+            "runtime_15_support_hub_project_actions_tests_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 support Hub runtime-state tests child-owner split" {
+        Some(
+            "runtime_15_support_hub_runtime_state_tests_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split"
+    {
+        Some(
+            "runtime_15_support_hub_view_model_quick_actions_tests_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice
+        == "Runtime 15 M3 editor retained-host workbench window projection tests child-owner split"
+    {
+        Some(
+            "runtime_15_editor_retained_host_workbench_window_projection_tests_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice
+        == "Runtime 15 M3 editor retained-host pane data conversion projection owner guard"
+    {
+        Some(
+            "runtime_15_editor_retained_host_pane_data_conversion_owner_guard_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 M3 production file budget core runtime guard split" {
         Some(
             "runtime_15_production_file_budget_core_runtime_guard_split_static_passed_cargo_deferred",
@@ -232,6 +324,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     {
         Some(
             "runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 M3 shader prewarm manifest guard child-owner split" {
+        Some(
+            "runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred",
         )
     } else if slice == "Runtime 15 M3 status output Runtime 15 M4 row data split" {
         Some("runtime_15_status_output_runtime_15_m4_row_data_split_static_passed_cargo_deferred")
@@ -338,6 +434,24 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some(
             "runtime_15_status_output_expected_slice_guard_child_owner_split_static_passed_cargo_deferred",
         )
+    } else if slice == "Runtime 15 M3 D12 runtime helper export macro review sync" {
+        Some("d12_runtime_export_macro_review_synced_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D1 capability single-source review sync" {
+        Some("d1_capability_single_source_review_synced_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D10 animation/physics bridge call migration" {
+        Some("d10_animation_physics_bridge_call_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D11 animation/physics TestRuntime fixture migration" {
+        Some("d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D13 importer manifest parity guard" {
+        Some("d13_importer_manifest_parity_guard_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 P0/DX priority D13 parity sync" {
+        Some("review_priority_recommendation_d13_parity_sync_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D13 importer top-row closed status sync" {
+        Some("d13_importer_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 D-S8/D3 native fixture top-row closed status sync" {
+        Some("ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 M3 P0 F1/F2/F4 top-row closed status sync" {
+        Some("p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred")
     } else {
         None
     }

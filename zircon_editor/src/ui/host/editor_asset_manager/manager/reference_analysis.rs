@@ -106,6 +106,12 @@ mod tests {
             source: "res://fonts/default.ttf".to_string(),
             family: Some("Fira Mono".to_string()),
             render_mode: None,
+            face_index: 0,
+            family_members: Vec::new(),
+            variable_instances: Vec::new(),
+            fallback_families: Vec::new(),
+            render_strategy: Default::default(),
+            metadata: None,
         });
 
         assert!(direct_references(&imported).is_empty());

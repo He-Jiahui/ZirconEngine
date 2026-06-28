@@ -112,10 +112,10 @@ fn visibility_batch_key_preserves_layers_above_legacy_mask_width() {
     let batch_layers = &context.batches[0].key.render_layer_mask;
 
     assert!(batch_layers.contains(40));
-    assert_eq!(batch_layers.to_legacy_mask_lossy(), 0);
+    assert_eq!(batch_layers.to_scene_schema_v1_mask_lossy(), 0);
     assert!(context.frame_visibility.render_layer_masks[0].contains(40));
     assert_eq!(
-        context.frame_visibility.render_layer_masks[0].to_legacy_mask_lossy(),
+        context.frame_visibility.render_layer_masks[0].to_scene_schema_v1_mask_lossy(),
         0
     );
 }
@@ -142,7 +142,7 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
                 light_id: 10,
-                layer_mask: RenderLayerSet::from_legacy_mask(1),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
                 direction: Vec3::new(0.0, -1.0, -1.0),
                 color: Vec3::ONE,
                 intensity: 1.0,
@@ -206,7 +206,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
                 light_id: 10,
-                layer_mask: RenderLayerSet::from_legacy_mask(1),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
                 direction: Vec3::new(0.0, -1.0, -1.0),
                 color: Vec3::ONE,
                 intensity: 1.0,
@@ -215,7 +215,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
             point_lights: vec![RenderPointLightSnapshot {
                 node_id: 20,
                 light_id: 20,
-                layer_mask: RenderLayerSet::from_legacy_mask(1),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
                 position: Vec3::ZERO,
                 color: Vec3::ONE,
                 intensity: 1.0,
@@ -225,7 +225,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 30,
                 light_id: 30,
-                layer_mask: RenderLayerSet::from_legacy_mask(1),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
                 position: Vec3::ZERO,
                 direction: Vec3::new(0.0, 0.0, -1.0),
                 color: Vec3::ONE,
@@ -460,7 +460,7 @@ fn mesh_at(node_id: u64, translation: Vec3, legacy_layer_bits: u32) -> RenderMes
     mesh_at_layers(
         node_id,
         translation,
-        RenderLayerSet::from_legacy_mask(legacy_layer_bits),
+        RenderLayerSet::from_scene_schema_v1_mask(legacy_layer_bits),
     )
 }
 

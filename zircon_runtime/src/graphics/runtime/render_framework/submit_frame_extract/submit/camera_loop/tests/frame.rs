@@ -164,21 +164,26 @@ fn submit_camera_loop_frame_streams_selected_children_and_restores_source_fields
     let mut terminal_ui = Vec::new();
     let mut output_owners = Vec::new();
 
-    stream_camera_loop_frame_submissions(frame, submissions, |frame, output_policy| {
-        seen_cameras.push(frame.camera().entity);
-        terminal_ui.push(frame.ui.is_some());
-        output_owners
-            .push(ViewportCameraStackOutputPolicy::from(output_policy).owns_viewport_submission());
-        assert!(
-            frame.extract.geometry.virtual_geometry.is_none(),
-            "streaming submit should restore source advanced extract state before each child"
-        );
-        frame.extract_mut().geometry.virtual_geometry =
-            Some(RenderVirtualGeometryExtract::default());
-        frame.viewport_size = UVec2::new(7, 7);
-        frame.extract_mut().view.target_size = Some(UVec2::new(7, 7));
-        Ok(())
-    })
+    stream_camera_loop_frame_submissions(
+        frame,
+        submissions,
+        |frame, _source_payloads, output_policy| {
+            seen_cameras.push(frame.camera().entity);
+            terminal_ui.push(frame.ui.is_some());
+            output_owners.push(
+                ViewportCameraStackOutputPolicy::from(output_policy).owns_viewport_submission(),
+            );
+            assert!(
+                frame.extract.geometry.virtual_geometry.is_none(),
+                "streaming submit should restore source advanced extract state before each child"
+            );
+            frame.extract_mut().geometry.virtual_geometry =
+                Some(RenderVirtualGeometryExtract::default());
+            frame.viewport_size = UVec2::new(7, 7);
+            frame.extract_mut().view.target_size = Some(UVec2::new(7, 7));
+            Ok(())
+        },
+    )
     .expect("streamed frame submissions");
 
     assert_eq!(seen_cameras, vec![Some(1), Some(2), Some(3)]);

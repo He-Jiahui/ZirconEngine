@@ -806,68 +806,68 @@ mod tests {
     use super::HybridGiProbeEncodeFrame;
 
     #[test]
-    fn parent_probe_chain_blocks_legacy_extract_lineage_when_flat_runtime_scene_truth_has_legacy_rt_source(
+    fn parent_probe_chain_blocks_extract_input_lineage_when_flat_runtime_scene_truth_has_extract_rt_source(
     ) {
-        let frame = frame_with_flat_runtime_scene_truth_and_legacy_extract_lineage();
+        let frame = frame_with_flat_runtime_scene_truth_and_extract_input_lineage();
 
         assert_eq!(
             super::parent_probe_chain(&frame, 300),
             Some(Vec::new()),
-            "expected flat runtime scene truth to keep legacy RenderHybridGiProbe parent links out of runtime parent-chain fallback even when legacy RT continuation data is present"
+            "expected flat runtime scene truth to keep extract-sourced RenderHybridGiProbe parent links out of runtime parent-chain fallback even when extract RT continuation data is present"
         );
     }
 
     #[test]
-    fn descendant_probe_chain_blocks_legacy_extract_lineage_when_flat_runtime_scene_truth_has_legacy_rt_source(
+    fn descendant_probe_chain_blocks_extract_input_lineage_when_flat_runtime_scene_truth_has_extract_rt_source(
     ) {
-        let frame = frame_with_flat_runtime_scene_truth_and_legacy_extract_lineage();
+        let frame = frame_with_flat_runtime_scene_truth_and_extract_input_lineage();
 
         assert_eq!(
             super::descendant_probe_chain(&frame, 400),
             Some(Vec::new()),
-            "expected flat runtime scene truth to keep legacy RenderHybridGiProbe child links out of runtime descendant-chain fallback even when legacy RT continuation data is present"
+            "expected flat runtime scene truth to keep extract-sourced RenderHybridGiProbe child links out of runtime descendant-chain fallback even when extract RT continuation data is present"
         );
     }
 
     #[test]
-    fn parent_probe_chain_blocks_legacy_extract_lineage_when_runtime_is_flat() {
-        let frame = frame_with_flat_runtime_and_legacy_extract_lineage();
+    fn parent_probe_chain_blocks_extract_input_lineage_when_runtime_is_flat() {
+        let frame = frame_with_flat_runtime_and_extract_input_lineage();
 
         assert_eq!(
             super::parent_probe_chain(&frame, 300),
             Some(Vec::new()),
-            "expected flat runtime topology to keep legacy RenderHybridGiProbe parent links out of runtime parent-chain fallback"
+            "expected flat runtime topology to keep extract-sourced RenderHybridGiProbe parent links out of runtime parent-chain fallback"
         );
     }
 
     #[test]
-    fn descendant_probe_chain_blocks_legacy_extract_lineage_when_runtime_is_flat() {
-        let frame = frame_with_flat_runtime_and_legacy_extract_lineage();
+    fn descendant_probe_chain_blocks_extract_input_lineage_when_runtime_is_flat() {
+        let frame = frame_with_flat_runtime_and_extract_input_lineage();
 
         assert_eq!(
             super::descendant_probe_chain(&frame, 400),
             Some(Vec::new()),
-            "expected flat runtime topology to keep legacy RenderHybridGiProbe child links out of runtime descendant-chain fallback"
+            "expected flat runtime topology to keep extract-sourced RenderHybridGiProbe child links out of runtime descendant-chain fallback"
         );
     }
 
     #[test]
-    fn flat_runtime_blocks_legacy_scheduled_trace_region_payload_presence() {
-        let frame = frame_with_flat_runtime_and_legacy_scheduled_trace_region();
+    fn flat_runtime_blocks_extract_scheduled_trace_region_payload_presence() {
+        let frame = frame_with_flat_runtime_and_extract_scheduled_trace_region();
 
         assert_eq!(
             super::scheduled_live_trace_region_ids(&frame),
             Vec::<u32>::new(),
-            "expected flat runtime ownership to stop legacy RenderHybridGiTraceRegion schedule ids before any main-path caller can consume them"
+            "expected flat runtime ownership to stop extract-sourced RenderHybridGiTraceRegion schedule ids before any main-path caller can consume them"
         );
         assert!(
             !super::frame_has_scheduled_trace_region_payload(&frame),
-            "expected flat runtime ownership to stop legacy RenderHybridGiTraceRegion schedule presence from influencing probe hierarchy or temporal fallback selection"
+            "expected flat runtime ownership to stop extract-sourced RenderHybridGiTraceRegion schedule presence from influencing probe hierarchy or temporal fallback selection"
         );
     }
 
     #[test]
-    fn runtime_trace_region_scene_data_counts_as_trace_region_source_without_legacy_payload_presence(
+    fn runtime_trace_region_scene_data_counts_as_trace_region_source_without_extract_payload_presence(
     ) {
         let frame = frame_with_runtime_trace_region_scene_data();
 
@@ -878,7 +878,7 @@ mod tests {
         );
         assert!(
             !super::frame_has_scheduled_trace_region_payload(&frame),
-            "expected runtime trace-region scene data not to reclassify as legacy RenderHybridGiTraceRegion payload presence"
+            "expected runtime trace-region scene data not to reclassify as extract-sourced RenderHybridGiTraceRegion payload presence"
         );
         assert!(
             super::frame_has_scheduled_trace_region_source(&frame),
@@ -887,10 +887,10 @@ mod tests {
     }
 
     #[test]
-    fn scene_prepare_runtime_trace_region_source_ignores_runtime_data_backed_by_legacy_trace_payload(
+    fn scene_prepare_runtime_trace_region_source_ignores_runtime_data_backed_by_extract_trace_payload(
     ) {
         let frame =
-            frame_with_scene_prepare_runtime_trace_region_scene_data_backed_by_legacy_payload();
+            frame_with_scene_prepare_runtime_trace_region_scene_data_backed_by_extract_payload();
 
         assert_eq!(
             super::scheduled_runtime_trace_region_ids(&frame),
@@ -899,20 +899,20 @@ mod tests {
         );
         assert!(
             !super::frame_has_scheduled_trace_region_source(&frame),
-            "expected legacy-backed runtime trace-region scene data not to keep hierarchy or temporal compatibility paths alive during scene-prepare"
+            "expected extract-backed runtime trace-region scene data not to keep hierarchy or temporal compatibility paths alive during scene-prepare"
         );
     }
 
     #[test]
-    fn scene_prepare_runtime_trace_region_source_keeps_runtime_only_region_when_legacy_payload_is_scheduled(
+    fn scene_prepare_runtime_trace_region_source_keeps_runtime_only_region_when_extract_payload_is_scheduled(
     ) {
         let frame =
-            frame_with_scene_prepare_runtime_trace_region_scene_data_and_mixed_legacy_payload();
+            frame_with_scene_prepare_runtime_trace_region_scene_data_and_mixed_extract_payload();
 
         assert_eq!(
             super::scheduled_runtime_trace_region_ids(&frame),
             vec![41],
-            "expected scene-prepare runtime trace-region source selection to filter only legacy-backed ids and keep runtime-only trace scene data"
+            "expected scene-prepare runtime trace-region source selection to filter only extract-backed ids and keep runtime-only trace scene data"
         );
         assert!(
             super::frame_has_scheduled_trace_region_source(&frame),
@@ -921,8 +921,8 @@ mod tests {
     }
 
     #[test]
-    fn stripped_runtime_trace_region_source_ignores_runtime_data_backed_by_legacy_trace_payload() {
-        let frame = frame_with_stripped_runtime_trace_region_scene_data_backed_by_legacy_payload();
+    fn stripped_runtime_trace_region_source_ignores_runtime_data_backed_by_extract_trace_payload() {
+        let frame = frame_with_stripped_runtime_trace_region_scene_data_backed_by_extract_payload();
 
         assert_eq!(
             super::scheduled_runtime_trace_region_ids(&frame),
@@ -931,19 +931,19 @@ mod tests {
         );
         assert!(
             !super::frame_has_scheduled_trace_region_source(&frame),
-            "expected legacy-backed runtime trace-region scene data not to keep compatibility trace-source paths alive after scene-prepare has been stripped"
+            "expected extract-backed runtime trace-region scene data not to keep compatibility trace-source paths alive after scene-prepare has been stripped"
         );
     }
 
     #[test]
-    fn stripped_runtime_trace_region_source_keeps_runtime_only_region_when_legacy_payload_is_scheduled(
+    fn stripped_runtime_trace_region_source_keeps_runtime_only_region_when_extract_payload_is_scheduled(
     ) {
-        let frame = frame_with_stripped_runtime_trace_region_scene_data_and_mixed_legacy_payload();
+        let frame = frame_with_stripped_runtime_trace_region_scene_data_and_mixed_extract_payload();
 
         assert_eq!(
             super::scheduled_runtime_trace_region_ids(&frame),
             vec![41],
-            "expected stripped runtime scene truth to filter only legacy-backed trace ids and keep runtime-only trace scene data"
+            "expected stripped runtime scene truth to filter only extract-backed trace ids and keep runtime-only trace scene data"
         );
         assert!(
             super::frame_has_scheduled_trace_region_source(&frame),
@@ -952,38 +952,38 @@ mod tests {
     }
 
     #[test]
-    fn scene_representation_budget_blocks_legacy_scheduled_trace_region_payload_presence() {
-        let frame = frame_with_budgeted_scene_representation_and_legacy_scheduled_trace_region();
+    fn scene_representation_budget_blocks_extract_scheduled_trace_region_payload_presence() {
+        let frame = frame_with_budgeted_scene_representation_and_extract_scheduled_trace_region();
 
         assert_eq!(
             super::scheduled_live_trace_region_ids(&frame),
             Vec::<u32>::new(),
-            "expected budgeted scene-representation extracts to stop legacy RenderHybridGiTraceRegion schedule ids before any post-process caller can consume them"
+            "expected budgeted scene-representation extracts to stop extract-sourced RenderHybridGiTraceRegion schedule ids before any post-process caller can consume them"
         );
         assert!(
             !super::frame_has_scheduled_trace_region_payload(&frame),
-            "expected budgeted scene-representation extracts to stop legacy RenderHybridGiTraceRegion schedule presence from influencing compatibility fallback selection"
+            "expected budgeted scene-representation extracts to stop extract-sourced RenderHybridGiTraceRegion schedule presence from influencing compatibility fallback selection"
         );
     }
 
     #[test]
-    fn scene_representation_budget_blocks_legacy_extract_lineage() {
-        let frame = frame_with_budgeted_scene_representation_and_legacy_extract_lineage();
+    fn scene_representation_budget_blocks_extract_input_lineage() {
+        let frame = frame_with_budgeted_scene_representation_and_extract_input_lineage();
 
         assert_eq!(
             super::parent_probe_chain(&frame, 300),
             Some(Vec::new()),
-            "expected budgeted scene-representation extracts to keep legacy RenderHybridGiProbe parent links out of runtime parent-chain fallback"
+            "expected budgeted scene-representation extracts to keep extract-sourced RenderHybridGiProbe parent links out of runtime parent-chain fallback"
         );
         assert_eq!(
             super::descendant_probe_chain(&frame, 400),
             None,
-            "expected budgeted scene-representation extracts to leave no legacy RenderHybridGiProbe descendant-chain source"
+            "expected budgeted scene-representation extracts to leave no extract-sourced RenderHybridGiProbe descendant-chain source"
         );
     }
 
     #[test]
-    fn descendant_probe_chain_from_extract_uses_first_legacy_probe_payload_for_duplicate_ids() {
+    fn descendant_probe_chain_from_extract_uses_first_extract_probe_payload_for_duplicate_ids() {
         let extract = RenderHybridGiExtract {
             enabled: true,
             probes: vec![
@@ -1008,12 +1008,12 @@ mod tests {
         assert_eq!(
             super::descendant_probe_chain_from_extract(&extract, 400),
             Vec::<(u32, usize)>::new(),
-            "expected legacy descendant fallback to ignore duplicate RenderHybridGiProbe payloads after the first live id, matching runtime registration"
+            "expected extract descendant fallback to ignore duplicate RenderHybridGiProbe payloads after the first live id, matching runtime registration"
         );
     }
 
     #[test]
-    fn descendant_probe_chain_from_extract_does_not_return_origin_when_legacy_parent_cycle_exists()
+    fn descendant_probe_chain_from_extract_does_not_return_origin_when_extract_parent_cycle_exists()
     {
         let extract = RenderHybridGiExtract {
             enabled: true,
@@ -1035,7 +1035,7 @@ mod tests {
         assert_eq!(
             super::descendant_probe_chain_from_extract(&extract, 300),
             Vec::<(u32, usize)>::new(),
-            "expected legacy descendant fallback to break cyclic parent edges before traversal instead of returning the origin probe as its own descendant"
+            "expected extract descendant fallback to break cyclic parent edges before traversal instead of returning the origin probe as its own descendant"
         );
     }
 
@@ -1054,7 +1054,7 @@ mod tests {
     }
 
     #[test]
-    fn temporal_parent_probe_chain_does_not_restore_sanitized_legacy_parent_id() {
+    fn temporal_parent_probe_chain_does_not_restore_sanitized_extract_parent_id() {
         let child_probe_id = 300;
         let stale_parent_probe_id = 400;
         let child_probe = RenderHybridGiProbe {
@@ -1105,7 +1105,7 @@ mod tests {
     }
 
     #[test]
-    fn temporal_parent_probe_chain_does_not_restore_disabled_legacy_parent_id() {
+    fn temporal_parent_probe_chain_does_not_restore_disabled_extract_parent_id() {
         let child_probe_id = 300;
         let stale_parent_probe_id = 400;
         let child_probe = RenderHybridGiProbe {
@@ -1155,8 +1155,7 @@ mod tests {
         );
     }
 
-    fn frame_with_flat_runtime_scene_truth_and_legacy_extract_lineage() -> HybridGiProbeEncodeFrame
-    {
+    fn frame_with_flat_runtime_scene_truth_and_extract_input_lineage() -> HybridGiProbeEncodeFrame {
         let child_probe_id = 300;
         let stale_parent_probe_id = 400;
         let child_probe = RenderHybridGiProbe {
@@ -1215,7 +1214,7 @@ mod tests {
             ))
     }
 
-    fn frame_with_flat_runtime_and_legacy_extract_lineage() -> HybridGiProbeEncodeFrame {
+    fn frame_with_flat_runtime_and_extract_input_lineage() -> HybridGiProbeEncodeFrame {
         let child_probe_id = 300;
         let stale_parent_probe_id = 400;
         let child_probe = RenderHybridGiProbe {
@@ -1263,7 +1262,7 @@ mod tests {
             .with_hybrid_gi_resolve_runtime(Some(HybridGiResolveRuntime::default()))
     }
 
-    fn frame_with_flat_runtime_and_legacy_scheduled_trace_region() -> HybridGiProbeEncodeFrame {
+    fn frame_with_flat_runtime_and_extract_scheduled_trace_region() -> HybridGiProbeEncodeFrame {
         let trace_region_id = 40;
         let snapshot = RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -1358,10 +1357,10 @@ mod tests {
             ))
     }
 
-    fn frame_with_scene_prepare_runtime_trace_region_scene_data_backed_by_legacy_payload(
+    fn frame_with_scene_prepare_runtime_trace_region_scene_data_backed_by_extract_payload(
     ) -> HybridGiProbeEncodeFrame {
         let trace_region_id = 40;
-        let extract = extract_with_legacy_trace_region(trace_region_id);
+        let extract = extract_with_trace_region(trace_region_id);
 
         HybridGiProbeEncodeFrame::from_extract(extract, UVec2::new(32, 32))
             .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
@@ -1381,18 +1380,18 @@ mod tests {
             ))
     }
 
-    fn frame_with_scene_prepare_runtime_trace_region_scene_data_and_mixed_legacy_payload(
+    fn frame_with_scene_prepare_runtime_trace_region_scene_data_and_mixed_extract_payload(
     ) -> HybridGiProbeEncodeFrame {
-        let legacy_trace_region_id = 40;
+        let extract_trace_region_id = 40;
         let runtime_only_trace_region_id = 41;
-        let extract = extract_with_legacy_trace_region(legacy_trace_region_id);
+        let extract = extract_with_trace_region(extract_trace_region_id);
 
         HybridGiProbeEncodeFrame::from_extract(extract, UVec2::new(32, 32))
             .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
                 resident_probes: Vec::new(),
                 pending_updates: Vec::new(),
                 scheduled_trace_region_ids: vec![
-                    legacy_trace_region_id,
+                    extract_trace_region_id,
                     runtime_only_trace_region_id,
                     runtime_only_trace_region_id,
                 ],
@@ -1403,7 +1402,7 @@ mod tests {
                 HybridGiResolveRuntime::fixture()
                     .with_trace_region_scene_data(BTreeMap::from([
                         (
-                            legacy_trace_region_id,
+                            extract_trace_region_id,
                             trace_region_scene_data([240, 96, 48]),
                         ),
                         (
@@ -1415,10 +1414,10 @@ mod tests {
             ))
     }
 
-    fn frame_with_stripped_runtime_trace_region_scene_data_backed_by_legacy_payload(
+    fn frame_with_stripped_runtime_trace_region_scene_data_backed_by_extract_payload(
     ) -> HybridGiProbeEncodeFrame {
         let trace_region_id = 40;
-        let extract = extract_with_legacy_trace_region(trace_region_id);
+        let extract = extract_with_trace_region(trace_region_id);
 
         HybridGiProbeEncodeFrame::from_extract(extract, UVec2::new(32, 32))
             .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
@@ -1432,18 +1431,18 @@ mod tests {
             )))
     }
 
-    fn frame_with_stripped_runtime_trace_region_scene_data_and_mixed_legacy_payload(
+    fn frame_with_stripped_runtime_trace_region_scene_data_and_mixed_extract_payload(
     ) -> HybridGiProbeEncodeFrame {
-        let legacy_trace_region_id = 40;
+        let extract_trace_region_id = 40;
         let runtime_only_trace_region_id = 41;
-        let extract = extract_with_legacy_trace_region(legacy_trace_region_id);
+        let extract = extract_with_trace_region(extract_trace_region_id);
 
         HybridGiProbeEncodeFrame::from_extract(extract, UVec2::new(32, 32))
             .with_hybrid_gi_prepare(Some(HybridGiPrepareFrame {
                 resident_probes: Vec::new(),
                 pending_updates: Vec::new(),
                 scheduled_trace_region_ids: vec![
-                    legacy_trace_region_id,
+                    extract_trace_region_id,
                     runtime_only_trace_region_id,
                     runtime_only_trace_region_id,
                 ],
@@ -1452,7 +1451,7 @@ mod tests {
             .with_hybrid_gi_resolve_runtime(Some(runtime_scene_truth_with_trace_regions(
                 BTreeMap::from([
                     (
-                        legacy_trace_region_id,
+                        extract_trace_region_id,
                         trace_region_scene_data([240, 96, 48]),
                     ),
                     (
@@ -1476,7 +1475,7 @@ mod tests {
             .build()
     }
 
-    fn extract_with_legacy_trace_region(trace_region_id: u32) -> RenderFrameExtract {
+    fn extract_with_trace_region(trace_region_id: u32) -> RenderFrameExtract {
         let snapshot = RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
                 camera: ViewportCameraSnapshot::default(),
@@ -1520,7 +1519,7 @@ mod tests {
         HybridGiResolveTraceRegionSceneData::new(2048, 2048, 2048, 96, 128, rt_lighting_rgb)
     }
 
-    fn frame_with_budgeted_scene_representation_and_legacy_scheduled_trace_region(
+    fn frame_with_budgeted_scene_representation_and_extract_scheduled_trace_region(
     ) -> HybridGiProbeEncodeFrame {
         let trace_region_id = 40;
         let snapshot = RenderSceneSnapshot {
@@ -1569,7 +1568,7 @@ mod tests {
         )
     }
 
-    fn frame_with_budgeted_scene_representation_and_legacy_extract_lineage(
+    fn frame_with_budgeted_scene_representation_and_extract_input_lineage(
     ) -> HybridGiProbeEncodeFrame {
         let child_probe_id = 300;
         let stale_parent_probe_id = 400;

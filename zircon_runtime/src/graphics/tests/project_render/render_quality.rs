@@ -106,7 +106,9 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                    default_render_layer_mask(),
+                ),
             }],
             Vec::new(),
             viewport_size,
@@ -131,7 +133,9 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                    default_render_layer_mask(),
+                ),
             }],
             Vec::new(),
             viewport_size,
@@ -168,7 +172,9 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                    default_render_layer_mask(),
+                ),
             }],
             Vec::new(),
             viewport_size,
@@ -239,7 +245,9 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                    default_render_layer_mask(),
+                ),
             },
             RenderMeshSnapshot {
                 node_id: 2,
@@ -254,7 +262,9 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
                 static_state: Default::default(),
-                render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                    default_render_layer_mask(),
+                ),
             },
         ],
         Vec::new(),
@@ -406,7 +416,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     let lights = vec![RenderDirectionalLightSnapshot {
         node_id: 7,
         light_id: 7,
-        layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
         direction: Vec3::new(-0.65, -0.35, -1.0).normalize_or_zero(),
         color: Vec3::new(1.0, 0.48, 0.2),
         intensity: 3.5,
@@ -426,7 +436,9 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         }],
         lights,
         viewport_size,
@@ -561,7 +573,9 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         }],
         Vec::new(),
         viewport_size,

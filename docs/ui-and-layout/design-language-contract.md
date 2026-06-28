@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_runtime_interface/src/ui/style.rs
-  - zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/tests/integration_contracts/floating_window_design_parity.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
@@ -38,7 +38,7 @@ This document defines the editor workbench visual language as a code-facing cont
 ## Related Files
 
 - `zircon_runtime_interface/src/ui/design_tokens.rs` owns the serializable `EditorDesignTokens` DTO and the fixed workbench-dark defaults.
-- `zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml` is the authored asset mirror for the same token groups.
+- `zircon_editor/assets/ui/editor/theme/editor_tokens.zui` is the authored asset mirror for the same token groups.
 - `zircon_runtime_interface/src/ui/style.rs` remains the painter-state selector and neutral theme document owner.
 
 ## Behavior Model
@@ -61,7 +61,7 @@ The token defaults deliberately project into `UiThemeDocument` so existing style
 
 The token asset is allowed to contain literal color values because it is the source of truth. Component `.zui` files should reference token names as later slices remove duplicated naked colors from component definitions.
 
-The S2 hard cutover has started with the layout-owned skeleton/floating assets and the shell drawer width declarations. `workbench_skeleton.zui`, `command_palette.zui`, and `preferences.zui` import `editor_tokens.v2.ui.toml` and use `editor.surface.*`, `editor.text.*`, and `editor.border` token names instead of local hex colors. `workbench_main_band.zui`, `workbench_scene_tree_panel.zui`, and `workbench_inspector_panel.zui` import the same token asset and use `$--left-drawer-width` / `$--right-drawer-width` instead of local drawer pixel widths. Older shell/module workbench assets still contain historical literal colors and remain explicitly open for the wider cleanup slice.
+The S2 hard cutover has started with the layout-owned skeleton/floating assets and the shell drawer width declarations. `workbench_skeleton.zui`, `command_palette.zui`, and `preferences.zui` import `editor_tokens.zui` and use `editor.surface.*`, `editor.text.*`, and `editor.border` token names instead of local hex colors. `workbench_main_band.zui`, `workbench_scene_tree_panel.zui`, and `workbench_inspector_panel.zui` import the same token asset and use `$--left-drawer-width` / `$--right-drawer-width` instead of local drawer pixel widths. Older shell/module workbench assets still contain historical literal colors and remain explicitly open for the wider cleanup slice.
 
 ## Floating Window Design Parity Checklist
 
@@ -71,7 +71,7 @@ The command palette contract is a top overlay, non-modal, top-center, keyboard-d
 
 The preferences contract is a modal overlay centered over the workbench. Its asset must keep tokenized low chrome and a left navigation plus right content structure, with navigation and content panels using the same surface/border token rules as the shell.
 
-All floating assets must import `editor_tokens.v2.ui.toml`, avoid naked hex colors, avoid gradient/shadow/glow/blur effects, use 1 px `editor.border`, and keep radius at or below 8 px. The focused integration contract parses the real `.zui` assets directly so this checklist fails when the authored assets drift.
+All floating assets must import `editor_tokens.zui`, avoid naked hex colors, avoid gradient/shadow/glow/blur effects, use 1 px `editor.border`, and keep radius at or below 8 px. The focused integration contract parses the real `.zui` assets directly so this checklist fails when the authored assets drift.
 
 ## Test Coverage
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::binary::{
     decode_binary_asset_with_v1_payload_fallback, encode_binary_asset, AnimationBinaryAssetKind,
 };
+use super::error::{AnimationAssetError, AnimationAssetResult};
 use super::reference::{push_unique_reference, AnimationAssetReferenceBinary};
 use crate::asset::AssetReference;
 use crate::core::framework::animation::AnimationParameterValue;
@@ -166,7 +167,7 @@ impl From<&AnimationGraphNodeAsset> for AnimationGraphNodeBinary {
 }
 
 impl TryFrom<AnimationGraphNodeBinary> for AnimationGraphNodeAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationGraphNodeBinary) -> Result<Self, Self::Error> {
         match value.tag {
@@ -174,9 +175,7 @@ impl TryFrom<AnimationGraphNodeBinary> for AnimationGraphNodeAsset {
                 id: value.id,
                 clip: value
                     .clip
-                    .ok_or_else(|| {
-                        "animation graph clip node is missing clip reference".to_string()
-                    })?
+                    .ok_or(AnimationAssetError::MissingGraphClipReference)?
                     .try_into()?,
                 playback_speed: value.playback_speed,
                 looping: value.looping,
@@ -200,13 +199,13 @@ impl TryFrom<AnimationGraphNodeBinary> for AnimationGraphNodeAsset {
                 input: value.input,
                 target_ids: value.target_ids,
             }),
-            other => Err(format!("unknown animation graph node tag {other}")),
+            tag => Err(AnimationAssetError::UnknownGraphNodeTag { tag }),
         }
     }
 }
 
 impl TryFrom<AnimationGraphNodeBinaryV1> for AnimationGraphNodeAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationGraphNodeBinaryV1) -> Result<Self, Self::Error> {
         match value.tag {
@@ -214,9 +213,7 @@ impl TryFrom<AnimationGraphNodeBinaryV1> for AnimationGraphNodeAsset {
                 id: value.id,
                 clip: value
                     .clip
-                    .ok_or_else(|| {
-                        "animation graph clip node is missing clip reference".to_string()
-                    })?
+                    .ok_or(AnimationAssetError::MissingGraphClipReference)?
                     .try_into()?,
                 playback_speed: value.playback_speed,
                 looping: value.looping,
@@ -229,7 +226,7 @@ impl TryFrom<AnimationGraphNodeBinaryV1> for AnimationGraphNodeAsset {
             2 => Ok(Self::Output {
                 source: value.source,
             }),
-            other => Err(format!("unknown animation graph node tag {other}")),
+            tag => Err(AnimationAssetError::UnknownGraphNodeTag { tag }),
         }
     }
 }
@@ -242,7 +239,7 @@ struct AnimationGraphAssetV1 {
 }
 
 impl TryFrom<AnimationGraphAssetV1> for AnimationGraphAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationGraphAssetV1) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -291,14 +288,14 @@ pub struct AnimationGraphParameterAsset {
 }
 
 impl AnimationGraphAsset {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset_with_v1_payload_fallback::<AnimationGraphAsset, AnimationGraphAssetV1>(
             AnimationBinaryAssetKind::Graph,
             bytes,
         )
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(AnimationBinaryAssetKind::Graph, self)
     }
 

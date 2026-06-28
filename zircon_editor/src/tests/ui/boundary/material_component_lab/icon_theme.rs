@@ -112,9 +112,8 @@ fn assert_static_visual(node: &UiV2NodeDefinition) {
 }
 
 fn assert_theme_selectors(label: &str, expected_selectors: &[&str]) {
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in expected_selectors {
         assert!(

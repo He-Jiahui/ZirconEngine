@@ -57,7 +57,7 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
   - zircon_editor/src/ui/workbench/model/menu/mod.rs
   - zircon_editor/src/ui/workbench/event/menu_action_id.rs
@@ -128,7 +128,7 @@ implementation_files:
   - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/command_palette.rs
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
   - zircon_editor/src/ui/workbench/model/menu/mod.rs
 plan_sources:
@@ -153,7 +153,7 @@ tests:
   - cargo test -p zircon_editor --lib keymap_dispatch --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib key_chord_normalizes_runtime_keyboard_input --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib keymap_resolves_unconsumed_chord_to_command --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1
-  - Python tomllib parse of zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - Python tomllib parse of zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - cargo test -p zircon_editor --lib workbench_command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615
   - cargo test -p zircon_editor --lib command_palette_command_requests_open_effect --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615
   - cargo test -p zircon_editor --lib command_component_adapter_dispatches_palette_open_command --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615
@@ -193,7 +193,7 @@ The workbench menu bar now projects directly from `EditorCommandRegistry::menu_b
 
 `EditorCommandRegistry::event_for_command(...)` is the static event-shape convergence point. Built-in operation-backed command ids resolve through the built-in operation registry to their mapped `EditorEvent`, so an `EditorCommand` binding for `workbench.history.redo` still normalizes to the same event shape as the old menu action id. Runtime execution no longer stops at that static event shape: `EditorEventRuntime::dispatch_binding(...)` intercepts `EditorCommand` and `EditorOperation` payloads and calls `invoke_operation(...)` for operation-backed commands, preserving operation metadata, operation-stack entries, failure journaling, remote/Cli source mapping, and argument recording. `editor.command_palette` dispatches to `EditorEvent::Transient(EditorEventTransient::OpenCommandPalette)` and records `EditorEventEffect::CommandPaletteOpenRequested`. Projection helpers expose `EditorCommand` ids as action ids where host/native metadata needs a stable row identity.
 
-`component_adapter::command` is the committed CommandPalette bridge. It validates `UiComponentEventEnvelope` targets in the `command` domain, accepts only `Commit` events whose value is a non-empty string command id, builds an `EditorCommand` binding, and asks `EditorEventRuntime` to dispatch it as a retained-host event. This keeps palette execution on the same normalization path as keymap and native palette activation. `workbench_window.v2.ui.toml` mounts the Workbench `CommandPalette` as a collapsed overlay sibling and declares `CommandPalette/Commit` as a `Submit` route. `workbench_window_template_bindings.rs` registers that binding with an `EditorCommand("editor.command_palette")` placeholder so the route is discoverable, while `callback_dispatch::workbench::command_palette` takes the native commit value, builds a `command` domain `committed_command_id` envelope, reuses the adapter validation, and dispatches the resulting command id through the retained-host event path.
+`component_adapter::command` is the committed CommandPalette bridge. It validates `UiComponentEventEnvelope` targets in the `command` domain, accepts only `Commit` events whose value is a non-empty string command id, builds an `EditorCommand` binding, and asks `EditorEventRuntime` to dispatch it as a retained-host event. This keeps palette execution on the same normalization path as keymap and native palette activation. `workbench_window.zui` mounts the Workbench `CommandPalette` as a collapsed overlay sibling and declares `CommandPalette/Commit` as a `Submit` route. `workbench_window_template_bindings.rs` registers that binding with an `EditorCommand("editor.command_palette")` placeholder so the route is discoverable, while `callback_dispatch::workbench::command_palette` takes the native commit value, builds a `command` domain `committed_command_id` envelope, reuses the adapter validation, and dispatches the resulting command id through the retained-host event path.
 
 The palette open route is now also connected. `UiHostEventEffects` carries `open_command_palette_requested` for the new command-palette effect, and `RetainedEditorHost::open_workbench_command_palette(...)` builds a fresh command list from `EditorCommandRegistry::default_workbench()` plus the current `EditorChromeSnapshot` enablement context. The host writes `commands`, `filtered_commands`, `disabled_commands`, `selected_command_id`, `focused_index`, clears the default source filter, and toggles `popup_open`/visibility through `BuiltinWorkbenchWindowTemplateSurfaceBridge::open_command_palette(...)`. Closing is represented by the same bridge through `close_command_palette(...)`, which collapses the mounted overlay and clears the popup state.
 

@@ -1,39 +1,42 @@
 use std::collections::BTreeMap;
-use std::time::Duration;
 
+#[path = "runtime_physics_animation_tick_contract/animation_assets.rs"]
+mod animation_assets;
+#[path = "runtime_physics_animation_tick_contract/runtime_helpers.rs"]
+mod runtime_helpers;
+
+use animation_assets::{
+    additive_mask_graph, register_animation_blend_assets, register_single_clip_graph,
+    sequence_asset_for_entity, single_hand_translation_clip, single_state_machine,
+    timed_transition_state_machine, two_bone_skeleton, two_clip_blend_graph,
+};
+use runtime_helpers::{
+    runtime_asset_manager, runtime_physics_query_bridge,
+    runtime_with_physics_animation_scene_asset, runtime_with_scene_asset_only,
+};
 use zircon_runtime::asset::{
-    self, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationEventTrackAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
-    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
-    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
-    AssetReference, AssetUri, ProjectAssetManager,
+    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
+    AnimationGraphParameterAsset, AssetReference, AssetUri,
 };
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationParameterValue,
 };
-use zircon_runtime::core::framework::physics::{PhysicsSettings, PhysicsSimulationMode};
-use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
+use zircon_runtime::core::framework::physics::{
+    PhysicsColliderShape, PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings,
+    PhysicsShapeCastQuery, PhysicsShapeOverlapQuery, PhysicsSimulationMode,
+};
+use zircon_runtime::core::framework::scene::EntityPath;
 use zircon_runtime::core::manager::{resolve_animation_manager, resolve_physics_manager};
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
-use zircon_runtime::core::{CoreHandle, CoreRuntime};
-use zircon_runtime::plugin::{
-    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
-};
 use zircon_runtime::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, ColliderComponent,
     ColliderShape, NodeKind, RigidBodyComponent, RigidBodyType,
 };
-use zircon_runtime::{foundation, scene};
-
-const TEST_MAX_FIXED_STEPS: u32 = 4;
-const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
 
 #[test]
 fn plugin_runtime_resolves_physics_and_animation_managers() {
@@ -51,7 +54,8 @@ fn plugin_runtime_resolves_physics_and_animation_managers() {
 fn level_tick_advances_physics_and_records_contacts() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let core = runtime.handle();
-    runtime_physics_manager(&core)
+    let physics = resolve_physics_manager(&core).expect("physics manager should resolve");
+    physics
         .store_settings(PhysicsSettings {
             backend: "builtin".to_string(),
             simulation_mode: PhysicsSimulationMode::Simulate,
@@ -60,7 +64,8 @@ fn level_tick_advances_physics_and_records_contacts() {
             ..PhysicsSettings::default()
         })
         .unwrap();
-    let level = scene::create_default_level(&core).unwrap();
+    let physics_query = runtime_physics_query_bridge(runtime.extension_report());
+    let level = runtime.create_default_level().unwrap();
     let body = level.with_world_mut(|world| {
         let body = world.spawn_node(NodeKind::Cube);
         world
@@ -107,19 +112,63 @@ fn level_tick_advances_physics_and_records_contacts() {
         body
     });
 
-    tick_level(&runtime, &level, 1.0 / 60.0);
+    runtime.tick_level_seconds(&level, 1.0 / 60.0).unwrap();
 
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
     assert!(transform.translation.x > 0.0);
     assert_eq!(level.physics_contacts().len(), 1);
+
+    let world = level.world_handle();
+    let ray_hit = physics_query
+        .call(|physics| {
+            physics.ray_cast(&PhysicsRayCastQuery {
+                world,
+                origin: [-4.0, 0.0, 0.0],
+                direction: [1.0, 0.0, 0.0],
+                max_distance: 16.0,
+                filter: PhysicsQueryFilter::default(),
+            })
+        })
+        .expect("physics.query ray cast should be enabled");
+    assert!(ray_hit.is_some());
+
+    let overlap_hits = physics_query
+        .call(|physics| {
+            physics.shape_overlap(&PhysicsShapeOverlapQuery {
+                world,
+                shape: PhysicsColliderShape::Box {
+                    half_extents: [2.0, 2.0, 2.0],
+                },
+                transform: Transform::default(),
+                filter: PhysicsQueryFilter::default(),
+            })
+        })
+        .expect("physics.query overlap should be enabled");
+    assert!(!overlap_hits.is_empty());
+
+    let shape_cast_hit = physics_query
+        .call(|physics| {
+            physics.shape_cast(&PhysicsShapeCastQuery {
+                world,
+                shape: PhysicsColliderShape::Box {
+                    half_extents: [0.5, 0.5, 0.5],
+                },
+                origin_transform: Transform::default(),
+                direction: [1.0, 0.0, 0.0],
+                max_distance: 4.0,
+                filter: PhysicsQueryFilter::default(),
+            })
+        })
+        .expect("physics.query shape cast should be enabled");
+    assert!(shape_cast_hit.is_some());
 }
 
 #[test]
 fn level_tick_without_physics_plugin_does_not_run_physics() {
     let runtime = runtime_with_scene_asset_only();
     let core = runtime.handle();
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let body = level.with_world_mut(|world| {
         let body = world.spawn_node(NodeKind::Cube);
         world
@@ -148,7 +197,7 @@ fn level_tick_without_physics_plugin_does_not_run_physics() {
     });
     let before = level.with_world(|world| world.find_node(body).unwrap().transform);
 
-    tick_level(&runtime, &level, 1.0 / 60.0);
+    runtime.tick_level_seconds(&level, 1.0 / 60.0).unwrap();
 
     let after = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(after, before);
@@ -170,7 +219,7 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
         ResourceRecord::new(sequence_id, ResourceKind::AnimationSequence, sequence_uri),
         sequence_asset_for_entity(target_entity_name),
     );
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let cube = level.with_world_mut(|world| {
         let cube = world.spawn_node(NodeKind::Cube);
         world.rename_node(cube, target_entity_name).unwrap();
@@ -189,7 +238,7 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
         cube
     });
 
-    tick_level(&runtime, &level, 0.5);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
 
     let (translation, player_time) = level.with_world(|world| {
         (
@@ -228,7 +277,7 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
         ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri),
         clip,
     );
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -248,7 +297,7 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
     });
 
     let mut event_subscription = subscribe_animation_clip_events(&level);
-    tick_level(&runtime, &level, 0.1);
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
     let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
@@ -337,7 +386,7 @@ fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
             ],
         },
     );
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -362,7 +411,7 @@ fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
     });
 
     let mut event_subscription = subscribe_animation_clip_events(&level);
-    tick_level(&runtime, &level, 0.3);
+    runtime.tick_level_seconds(&level, 0.3).unwrap();
     let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
@@ -415,7 +464,7 @@ fn state_machine_player_emits_active_graph_clip_events() {
         single_state_machine(&graph_uri),
     );
 
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -441,7 +490,7 @@ fn state_machine_player_emits_active_graph_clip_events() {
     });
 
     let mut event_subscription = subscribe_animation_clip_events(&level);
-    tick_level(&runtime, &level, 0.5);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
     let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
@@ -521,7 +570,7 @@ fn state_machine_transition_emits_from_and_to_graph_clip_events() {
         timed_transition_state_machine(&idle_graph_uri, &run_graph_uri),
     );
 
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -550,7 +599,7 @@ fn state_machine_transition_emits_from_and_to_graph_clip_events() {
     });
 
     let mut event_subscription = subscribe_animation_clip_events(&level);
-    tick_level(&runtime, &level, 0.1);
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
     let mut events = drain_animation_clip_events(&level, &mut event_subscription);
     events.sort_by(|a, b| a.event.cmp(&b.event));
 
@@ -579,7 +628,7 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
         ResourceRecord::new(sequence_id, ResourceKind::AnimationSequence, sequence_uri),
         sequence_asset_for_entity(target_entity_name),
     );
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let cube = level.with_world_mut(|world| {
         let cube = world.spawn_node(NodeKind::Cube);
         world.rename_node(cube, target_entity_name).unwrap();
@@ -598,7 +647,7 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
         cube
     });
 
-    tick_level(&runtime, &level, 0.5);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
 
     let (translation, player_time) = level.with_world(|world| {
         (
@@ -657,7 +706,7 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
         two_clip_blend_graph(&clip_a_uri, &clip_b_uri, 0.25),
     );
 
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -681,7 +730,7 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
         entity
     });
 
-    tick_level(&runtime, &level, 0.0);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
 
     let pose = level
         .animation_pose(entity)
@@ -779,7 +828,7 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
         additive_mask_graph(&base_uri, &add_uri),
     );
 
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -803,7 +852,7 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
         entity
     });
 
-    tick_level(&runtime, &level, 0.0);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
 
     let pose = level
         .animation_pose(entity)
@@ -857,7 +906,7 @@ fn sequence_runtime_resolves_target_id_before_entity_path_fallback() {
         ResourceRecord::new(sequence_id, ResourceKind::AnimationSequence, sequence_uri),
         sequence,
     );
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let cube = level.with_world_mut(|world| {
         let cube = world.spawn_node(NodeKind::Cube);
         world.rename_node(cube, target_entity_name).unwrap();
@@ -876,7 +925,7 @@ fn sequence_runtime_resolves_target_id_before_entity_path_fallback() {
         cube
     });
 
-    tick_level(&runtime, &level, 0.5);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
 
     let translation =
         level.with_world(|world| world.find_node(cube).unwrap().transform.translation);
@@ -905,7 +954,7 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
         timed_transition_state_machine(&idle_graph_uri, &run_graph_uri),
     );
 
-    let level = scene::create_default_level(&core).unwrap();
+    let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
         let entity = world.spawn_node(NodeKind::Cube);
         world
@@ -933,7 +982,7 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
         entity
     });
 
-    tick_level(&runtime, &level, 0.1);
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
 
     let midway_pose = level
         .animation_pose(entity)
@@ -956,7 +1005,7 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
         Some("Idle".to_string())
     );
 
-    tick_level(&runtime, &level, 0.1);
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
 
     let final_pose = level
         .animation_pose(entity)
@@ -978,377 +1027,4 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
             .clone()),
         Some("Run".to_string())
     );
-}
-
-fn runtime_with_physics_animation_scene_asset() -> CoreRuntime {
-    let physics_registration = RuntimePluginRegistrationReport::from_plugin(
-        &zircon_plugin_physics_runtime::runtime_plugin(),
-    );
-    let animation_registration = RuntimePluginRegistrationReport::from_plugin(
-        &zircon_plugin_animation_runtime::runtime_plugin(),
-    );
-    assert!(
-        physics_registration.is_success(),
-        "{:?}",
-        physics_registration.diagnostics
-    );
-    assert!(
-        animation_registration.is_success(),
-        "{:?}",
-        animation_registration.diagnostics
-    );
-    let extension_report = RuntimePluginCatalog::from_registration_reports(
-        [physics_registration, animation_registration],
-        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
-    )
-    .runtime_extensions();
-    assert!(
-        extension_report.is_success(),
-        "{:?}",
-        extension_report.fatal_diagnostics
-    );
-
-    let runtime = CoreRuntime::new();
-    runtime.set_fixed_timestep(test_fixed_timestep());
-    runtime
-        .register_module(foundation::module_descriptor())
-        .unwrap();
-    runtime.register_module(asset::module_descriptor()).unwrap();
-    runtime.register_module(scene::module_descriptor()).unwrap();
-    for module in extension_report.registry.modules() {
-        runtime.register_module(module.clone()).unwrap();
-    }
-    runtime
-        .install_world_runtime_extensions(&extension_report.registry)
-        .unwrap();
-    runtime
-        .activate_module(foundation::FOUNDATION_MODULE_NAME)
-        .unwrap();
-    runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();
-    runtime.activate_module(scene::SCENE_MODULE_NAME).unwrap();
-    runtime
-        .activate_module(zircon_plugin_physics_runtime::PHYSICS_MODULE_NAME)
-        .unwrap();
-    runtime
-        .activate_module(zircon_plugin_animation_runtime::ANIMATION_MODULE_NAME)
-        .unwrap();
-    runtime
-}
-
-fn runtime_physics_manager(
-    core: &CoreHandle,
-) -> std::sync::Arc<zircon_plugin_physics_runtime::DefaultPhysicsManager> {
-    core.resolve_manager::<zircon_plugin_physics_runtime::DefaultPhysicsManager>(
-        zircon_plugin_physics_runtime::DEFAULT_PHYSICS_MANAGER_NAME,
-    )
-    .unwrap()
-}
-
-fn runtime_with_scene_asset_only() -> CoreRuntime {
-    let runtime = CoreRuntime::new();
-    runtime.set_fixed_timestep(test_fixed_timestep());
-    runtime
-        .register_module(foundation::module_descriptor())
-        .unwrap();
-    runtime.register_module(asset::module_descriptor()).unwrap();
-    runtime.register_module(scene::module_descriptor()).unwrap();
-    runtime
-        .activate_module(foundation::FOUNDATION_MODULE_NAME)
-        .unwrap();
-    runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();
-    runtime.activate_module(scene::SCENE_MODULE_NAME).unwrap();
-    runtime
-}
-
-fn tick_level(runtime: &CoreRuntime, level: &scene::LevelSystem, seconds: f64) {
-    let core = runtime.handle();
-    let advance = runtime.advance_time_by(duration_from_seconds(seconds), TEST_MAX_FIXED_STEPS);
-    level.tick(&core, advance).unwrap();
-}
-
-fn duration_from_seconds(seconds: f64) -> Duration {
-    if seconds.is_finite() && seconds > 0.0 {
-        Duration::from_secs_f64(seconds)
-    } else {
-        Duration::ZERO
-    }
-}
-
-fn test_fixed_timestep() -> Duration {
-    Duration::from_nanos(TEST_FIXED_TIMESTEP_NANOS)
-}
-
-fn runtime_asset_manager(core: &CoreHandle) -> std::sync::Arc<ProjectAssetManager> {
-    core.resolve_manager::<ProjectAssetManager>(asset::PROJECT_ASSET_MANAGER_NAME)
-        .unwrap()
-}
-
-fn sequence_asset_for_entity(entity_path: &str) -> AnimationSequenceAsset {
-    AnimationSequenceAsset {
-        name: Some("RuntimeSequenceTick".to_string()),
-        duration_seconds: 1.0,
-        frames_per_second: 30.0,
-        bindings: vec![AnimationSequenceBindingAsset {
-            entity_path: EntityPath::parse(entity_path).unwrap(),
-            target_id: Some(entity_path.to_string()),
-            tracks: vec![AnimationSequenceTrackAsset {
-                property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
-                channel: AnimationChannelAsset {
-                    interpolation: AnimationInterpolationAsset::Hermite,
-                    keys: vec![
-                        AnimationChannelKeyAsset {
-                            time_seconds: 0.0,
-                            value: AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0]),
-                            in_tangent: None,
-                            out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
-                        },
-                        AnimationChannelKeyAsset {
-                            time_seconds: 0.5,
-                            value: AnimationChannelValueAsset::Vec3([2.0, 0.0, 0.0]),
-                            in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
-                            out_tangent: None,
-                        },
-                    ],
-                },
-            }],
-        }],
-    }
-}
-
-fn register_animation_blend_assets(
-    asset_manager: &ProjectAssetManager,
-    skeleton_uri: &AssetUri,
-    clip_a_uri: &AssetUri,
-    clip_b_uri: &AssetUri,
-) {
-    let skeleton_id = ResourceId::from_locator(skeleton_uri);
-    let clip_a_id = ResourceId::from_locator(clip_a_uri);
-    let clip_b_id = ResourceId::from_locator(clip_b_uri);
-    asset_manager.resource_manager().register_ready(
-        ResourceRecord::new(
-            skeleton_id,
-            ResourceKind::AnimationSkeleton,
-            skeleton_uri.clone(),
-        ),
-        two_bone_skeleton(),
-    );
-    asset_manager.resource_manager().register_ready(
-        ResourceRecord::new(clip_a_id, ResourceKind::AnimationClip, clip_a_uri.clone()),
-        single_hand_translation_clip(skeleton_uri, 0.0),
-    );
-    asset_manager.resource_manager().register_ready(
-        ResourceRecord::new(clip_b_id, ResourceKind::AnimationClip, clip_b_uri.clone()),
-        single_hand_translation_clip(skeleton_uri, 10.0),
-    );
-}
-
-fn register_single_clip_graph(
-    asset_manager: &ProjectAssetManager,
-    graph_uri: &AssetUri,
-    clip_uri: &AssetUri,
-) {
-    asset_manager.resource_manager().register_ready(
-        ResourceRecord::new(
-            ResourceId::from_locator(graph_uri),
-            ResourceKind::AnimationGraph,
-            graph_uri.clone(),
-        ),
-        single_clip_graph(clip_uri),
-    );
-}
-
-fn two_bone_skeleton() -> AnimationSkeletonAsset {
-    AnimationSkeletonAsset {
-        name: Some("BlendSkeleton".to_string()),
-        bones: vec![
-            AnimationSkeletonBoneAsset {
-                name: "Root".to_string(),
-                parent_index: None,
-                local_translation: [0.0, 0.0, 0.0],
-                local_rotation: [0.0, 0.0, 0.0, 1.0],
-                local_scale: [1.0, 1.0, 1.0],
-            },
-            AnimationSkeletonBoneAsset {
-                name: "Hand".to_string(),
-                parent_index: Some(0),
-                local_translation: [0.0, 0.0, 0.0],
-                local_rotation: [0.0, 0.0, 0.0, 1.0],
-                local_scale: [1.0, 1.0, 1.0],
-            },
-        ],
-    }
-}
-
-fn single_hand_translation_clip(skeleton_uri: &AssetUri, translation_x: f32) -> AnimationClipAsset {
-    AnimationClipAsset {
-        name: Some(format!("Hand{translation_x}")),
-        skeleton: AssetReference::from_locator(skeleton_uri.clone()),
-        duration_seconds: 1.0,
-        tracks: vec![AnimationClipBoneTrackAsset {
-            bone_name: "Hand".to_string(),
-            target_id: Some("Root/Hand".to_string()),
-            translation: constant_vec3_channel([translation_x, 0.0, 0.0]),
-            rotation: constant_quaternion_channel([0.0, 0.0, 0.0, 1.0]),
-            scale: constant_vec3_channel([1.0, 1.0, 1.0]),
-        }],
-        event_tracks: Vec::new(),
-    }
-}
-
-fn two_clip_blend_graph(
-    clip_a_uri: &AssetUri,
-    clip_b_uri: &AssetUri,
-    blend_weight: f32,
-) -> AnimationGraphAsset {
-    AnimationGraphAsset {
-        name: Some("TwoClipBlend".to_string()),
-        parameters: vec![AnimationGraphParameterAsset {
-            name: "blend".to_string(),
-            default_value: AnimationParameterValue::Scalar(blend_weight),
-        }],
-        nodes: vec![
-            AnimationGraphNodeAsset::Clip {
-                id: "a".to_string(),
-                clip: AssetReference::from_locator(clip_a_uri.clone()),
-                playback_speed: 1.0,
-                looping: false,
-            },
-            AnimationGraphNodeAsset::Clip {
-                id: "b".to_string(),
-                clip: AssetReference::from_locator(clip_b_uri.clone()),
-                playback_speed: 1.0,
-                looping: false,
-            },
-            AnimationGraphNodeAsset::Blend {
-                id: "blend".to_string(),
-                inputs: vec!["a".to_string(), "b".to_string()],
-                weight_parameter: Some("blend".to_string()),
-            },
-            AnimationGraphNodeAsset::Output {
-                source: "blend".to_string(),
-            },
-        ],
-    }
-}
-
-fn additive_mask_graph(base_uri: &AssetUri, additive_uri: &AssetUri) -> AnimationGraphAsset {
-    AnimationGraphAsset {
-        name: Some("AdditiveMaskGraph".to_string()),
-        parameters: vec![AnimationGraphParameterAsset {
-            name: "additive_weight".to_string(),
-            default_value: AnimationParameterValue::Scalar(1.0),
-        }],
-        nodes: vec![
-            AnimationGraphNodeAsset::Clip {
-                id: "base".to_string(),
-                clip: AssetReference::from_locator(base_uri.clone()),
-                playback_speed: 1.0,
-                looping: false,
-            },
-            AnimationGraphNodeAsset::Clip {
-                id: "add".to_string(),
-                clip: AssetReference::from_locator(additive_uri.clone()),
-                playback_speed: 1.0,
-                looping: false,
-            },
-            AnimationGraphNodeAsset::Additive {
-                id: "additive".to_string(),
-                base: "base".to_string(),
-                additive: "add".to_string(),
-                weight_parameter: Some("additive_weight".to_string()),
-            },
-            AnimationGraphNodeAsset::Mask {
-                id: "masked".to_string(),
-                input: "additive".to_string(),
-                target_ids: vec!["Root/Hand".to_string()],
-            },
-            AnimationGraphNodeAsset::Output {
-                source: "masked".to_string(),
-            },
-        ],
-    }
-}
-
-fn single_clip_graph(clip_uri: &AssetUri) -> AnimationGraphAsset {
-    AnimationGraphAsset {
-        name: Some("SingleClipGraph".to_string()),
-        parameters: Vec::new(),
-        nodes: vec![
-            AnimationGraphNodeAsset::Clip {
-                id: "clip".to_string(),
-                clip: AssetReference::from_locator(clip_uri.clone()),
-                playback_speed: 1.0,
-                looping: false,
-            },
-            AnimationGraphNodeAsset::Output {
-                source: "clip".to_string(),
-            },
-        ],
-    }
-}
-
-fn timed_transition_state_machine(
-    idle_graph_uri: &AssetUri,
-    run_graph_uri: &AssetUri,
-) -> AnimationStateMachineAsset {
-    AnimationStateMachineAsset {
-        name: Some("TimedTransition".to_string()),
-        entry_state: "Idle".to_string(),
-        states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: AssetReference::from_locator(idle_graph_uri.clone()),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: AssetReference::from_locator(run_graph_uri.clone()),
-            },
-        ],
-        transitions: vec![AnimationStateTransitionAsset {
-            from_state: "Idle".to_string(),
-            to_state: "Run".to_string(),
-            duration_seconds: 0.2,
-            conditions: vec![AnimationTransitionConditionAsset {
-                parameter: "advance".to_string(),
-                operator: asset::AnimationConditionOperatorAsset::Equal,
-                value: Some(AnimationParameterValue::Bool(true)),
-            }],
-        }],
-    }
-}
-
-fn single_state_machine(graph_uri: &AssetUri) -> AnimationStateMachineAsset {
-    AnimationStateMachineAsset {
-        name: Some("SingleState".to_string()),
-        entry_state: "Idle".to_string(),
-        states: vec![AnimationStateAsset {
-            name: "Idle".to_string(),
-            graph: AssetReference::from_locator(graph_uri.clone()),
-        }],
-        transitions: Vec::new(),
-    }
-}
-
-fn constant_vec3_channel(value: [f32; 3]) -> AnimationChannelAsset {
-    AnimationChannelAsset {
-        interpolation: AnimationInterpolationAsset::Step,
-        keys: vec![AnimationChannelKeyAsset {
-            time_seconds: 0.0,
-            value: AnimationChannelValueAsset::Vec3(value),
-            in_tangent: None,
-            out_tangent: None,
-        }],
-    }
-}
-
-fn constant_quaternion_channel(value: [f32; 4]) -> AnimationChannelAsset {
-    AnimationChannelAsset {
-        interpolation: AnimationInterpolationAsset::Step,
-        keys: vec![AnimationChannelKeyAsset {
-            time_seconds: 0.0,
-            value: AnimationChannelValueAsset::Quaternion(value),
-            in_tangent: None,
-            out_tangent: None,
-        }],
-    }
 }

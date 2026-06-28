@@ -68,7 +68,7 @@ impl HubActionId {
         Self::OpenEditor,
     ];
 
-    /// Canonical wire action id table. Legacy aliases belong in `from_str`.
+    /// Canonical wire action id table. Archived aliases belong in `from_str`.
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::ShowPage => "show-page",
@@ -136,7 +136,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_aliases_and_whitespace_resolve_to_canonical_actions() {
+    fn archived_aliases_and_whitespace_resolve_to_canonical_actions() {
         assert_eq!(HubActionId::from_str("page"), Some(HubActionId::ShowPage));
         assert_eq!(
             HubActionId::from_str("project-subpage"),

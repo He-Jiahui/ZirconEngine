@@ -7,4 +7,4 @@ description = "Network RPC runtime feature package for Zircon."
 
 [dependencies]
 zircon_plugin_net_runtime = { path = "../../../runtime" }
-zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

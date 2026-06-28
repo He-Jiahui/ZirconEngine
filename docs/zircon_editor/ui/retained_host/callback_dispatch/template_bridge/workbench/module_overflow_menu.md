@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
@@ -35,7 +35,7 @@ This module is intentionally small: it only maps hidden module menu rows to exis
 
 ## Related Files
 
-`workbench_window.v2.ui.toml` declares `WorkbenchModuleOverflowMenu` as a `WorkbenchPopupMenu` root child. The visible toolbar still owns the `WorkbenchModuleMore` trigger in `workbench_top_toolbar.zui`, while `toolbar_layout.rs` decides whether the trigger is visible at the current width.
+`workbench_window.zui` declares `WorkbenchModuleOverflowMenu` as a `WorkbenchPopupMenu` root child. The visible toolbar still owns the `WorkbenchModuleMore` trigger in `workbench_top_toolbar.zui`, while `toolbar_layout.rs` decides whether the trigger is visible at the current width.
 
 `window_menu_state.rs` treats the overflow popup as a toolbar menu. Opening More closes the other toolbar menus, and resizing out of compact mode closes the overflow popup. `control.rs` handles popup item selection and merges the resulting hidden module-tab dispatch effects back into the retained host result.
 

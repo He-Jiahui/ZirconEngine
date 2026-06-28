@@ -133,8 +133,8 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
-  - zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/material_demo_window.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
@@ -162,15 +162,15 @@ related_code:
   - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_base.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
@@ -326,7 +326,7 @@ implementation_files:
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/v2/surface_tree
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
@@ -381,8 +381,8 @@ implementation_files:
   - zircon_editor/src/tests/ui/template/repository_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
-  - zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/material_demo_window.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
@@ -798,7 +798,7 @@ The v2 path avoids recursive template-node materialization on its main build/sty
 
 The retained-host projection layer now treats v2 field labels as metadata instead of visible typed text. `RetainedUiHostAdapter` still projects explicit `text`, and it still lets action-style nodes fall back from `label` to visible text, but that fallback is disabled when the node also carries field/value metadata such as `placeholder`, `value`, `value_text`, `options`, `items`, or `entries`. The v2 inspector surface authors those contracts directly: the root projects as `InspectorSurfaceControls` with direct retained control children, Name/Parent fields include `placeholder`, empty value metadata, `layout_min_height`, and `input_focusable`; transform fields use direct `NumberField` nodes with numeric value metadata; Apply/Delete are direct `Button` nodes with explicit text, input flags, and Delete danger tone. This keeps the v2 retained host path on shared runtime component metadata rather than restoring an editor-only Material meta-component expansion.
 
-The Material demo is now a builtin template-runtime document instead of only a runtime asset fixture. `builtin_template_documents()` maps `editor.window.material_demo` to `material_demo_window.v2.ui.toml`; `material_demo_view_descriptor()` maps `editor.material_demo_window` to that document, a retained pane template, and the same document-center open path used by other activity windows. The welcome startup demo button and Window menu route through `EditorManager::open_view(...)` / `Window.MaterialDemo.Open`, so the demo validates the real editor registry, retained host projection, menu model, and operation registry rather than a bespoke preview path. The 2026-05-12 focused rerun covered the normal builtin load path, document projection, shared surface build, retained host projection, window menu, and operation registry on `target\codex-shared-b`.
+The Material demo is now a builtin template-runtime document instead of only a runtime asset fixture. `builtin_template_documents()` maps `editor.window.material_demo` to `material_demo_window.zui`; `material_demo_view_descriptor()` maps `editor.material_demo_window` to that document, a retained pane template, and the same document-center open path used by other activity windows. The welcome startup demo button and Window menu route through `EditorManager::open_view(...)` / `Window.MaterialDemo.Open`, so the demo validates the real editor registry, retained host projection, menu model, and operation registry rather than a bespoke preview path. The 2026-05-12 focused rerun covered the normal builtin load path, document projection, shared surface build, retained host projection, window menu, and operation registry on `target\codex-shared-b`.
 
 ## Builtin Pane Body Projection
 

@@ -7,7 +7,7 @@ fn source(relative: &str) -> String {
 
 fn component_showcase_contract_source() -> String {
     [
-        "assets/ui/editor/component_showcase.v2.ui.toml",
+        "assets/ui/editor/component_showcase.zui",
         "assets/ui/editor/components/showcase/showcase_command_toolbar.zui",
         "assets/ui/editor/components/showcase/showcase_bottom_log.zui",
         "assets/ui/editor/components/showcase/showcase_category_nav.zui",

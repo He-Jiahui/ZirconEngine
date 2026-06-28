@@ -451,7 +451,9 @@ fn directional_shadow_capture_extract_with_shadow_settings(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 50_200,
                     light_id: 50_200,
-                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        DEFAULT_RENDER_LAYER_MASK,
+                    ),
                     direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 0.8,

@@ -7,7 +7,7 @@ use crate::asset::{
 #[test]
 fn texture_upload_readiness_reports_compressed_container_support() {
     let uri = AssetUri::parse("res://textures/bc1.dds").unwrap();
-    let bytes = dds_legacy_bytes("DXT1", 8);
+    let bytes = dds_classic_fourcc_bytes("DXT1", 8);
     let texture = TextureAsset::new_container(uri, 4, 4, "dds/DXT1", bytes, 1, 1);
 
     let unsupported = texture.upload_readiness(TextureUploadSupport::uncompressed_only());
@@ -20,7 +20,7 @@ fn texture_upload_readiness_reports_compressed_container_support() {
         4,
         4,
         "dds/DXT1",
-        dds_legacy_bytes("DXT1", 1),
+        dds_classic_fourcc_bytes("DXT1", 1),
         1,
         1,
     );
@@ -55,7 +55,7 @@ fn texture_upload_readiness_reports_compressed_container_support() {
         ("BC5U", 16),
         ("BC5S", 16),
     ] {
-        let bytes = dds_legacy_bytes(fourcc, expected_bytes_per_block as usize);
+        let bytes = dds_classic_fourcc_bytes(fourcc, expected_bytes_per_block as usize);
         let texture = TextureAsset::new_container(
             AssetUri::parse(&format!("res://textures/{fourcc}.dds")).unwrap(),
             4,

@@ -16,6 +16,7 @@ related_code:
   - zircon_runtime_interface/src/resource/untyped_handle.rs
   - zircon_runtime/src/ui/tests/asset_resource_resolver.rs
   - zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_template_resource.rs
   - zircon_runtime/src/ui/tests/mod.rs
 implementation_files:
   - zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs
@@ -26,6 +27,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/tests/asset_resource_resolver.rs
   - zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_template_resource.rs
   - zircon_runtime/src/ui/tests/mod.rs
 plan_sources:
   - user: 2026-06-12 implement editor UI architecture plan code
@@ -39,6 +41,8 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-resource-refresh-0612-coremin --message-format short --color never (2026-06-12: passed, existing warnings only)
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\resource_ref\resolver.rs zircon_runtime\src\ui\tests\asset_resource_resolver.rs (2026-06-20: passed)
   - git diff --check -- zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs zircon_runtime/src/ui/tests/asset_resource_resolver.rs docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md (2026-06-20: passed with LF/CRLF warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\resource_ref\resolver.rs zircon_runtime\src\ui\tests\asset_resource_resolver.rs zircon_runtime\src\tests\runtime_absorption\code_review_findings\typed_error_convergence\ui_template_resource.rs (2026-06-27: passed)
+  - git diff --check -- zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs zircon_runtime/src/ui/tests/asset_resource_resolver.rs zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_template_resource.rs docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md (2026-06-27: passed with LF/CRLF warnings only)
 doc_type: module-detail
 ---
 
@@ -89,6 +93,8 @@ The resolver treats this as a boundary unless the runtime host supplies an expli
 
 This keeps authoring validation and runtime registry lookup consistent: UI schemes are tolerated by default, and hosts that have imported editor/project-relative roots can opt into deterministic runtime locator lookup without adding file-system reads to the resolver.
 
+The URI translation helpers use `UiResourceLookupError` / `UiResourceLookupResult` internally. That typed owner carries `ResourceLocatorError` sources from `ResourceLocator::parse(...)`, `ResourceLocator::new(...)`, and mapped empty-label validation before the resolver converts the failure into `UiResourceResolveDiagnostic`. The public diagnostic surface remains string-based because editor/report consumers need stable authored messages, but the lookup layer no longer transports failures as `Result<_, String>` or `.map_err(|error| error.to_string())`.
+
 ## Fallbacks
 
 When the primary resource fails:
@@ -129,6 +135,7 @@ The report also exposes `resolved_count()`, `placeholder_count()`, and `has_erro
 - legal `asset://` UI scheme producing missing-resource diagnostics rather than invalid-URI diagnostics.
 - configured `asset://` -> `res://` and `project://` -> `package://...` scheme mapping resolving registered runtime records.
 - UI scheme mapping preserving `#label` subresource fragments.
+- mapped UI scheme references with an empty `#` label producing the same `InvalidUri` diagnostic text through `ResourceLocatorError::EmptyLabel`.
 - missing placeholder fallback producing a separate fallback diagnostic.
 - kind mismatch refusing to return the wrong runtime handle.
 - cache reuse for repeated references.
@@ -140,3 +147,5 @@ The report also exposes `resolved_count()`, `placeholder_count()`, and `has_erro
 The first validation layer for this slice is formatting and diff hygiene. Focused runtime test execution remains part of the milestone testing stage because recent cold lib-test rebuilds in this workspace have timed out or stopped in unrelated scene/core test changes.
 
 2026-06-20 update: `UiResourceResolverSchemeMap` added host-configured UI scheme mapping to the resolver while keeping default `asset://` / `project://` missing-not-invalid behavior. New behavior anchors cover `asset://` mapping to `res://`, `project://` mapping to `package://{package_id}/...`, preserving `#label` when a UI scheme URI is converted into a runtime locator, and invalidating mapped UI scheme cache entries when hot reload reports the runtime locator URI.
+
+2026-06-27 update: Runtime 15 F5 UI template resource resolver typed errors (`runtime_15_ui_template_resource_resolver_typed_errors_static_passed_cargo_deferred`) added `UiResourceLookupError` / `UiResourceLookupResult` to this owner. `runtime_lookup_for_ui_uri(...)`, `mapped_ui_locator(...)`, and `split_ui_locator_label(...)` no longer return `String` errors; `ResourceLocatorError::EmptyLabel` is covered by `ui_resource_resolver_reports_invalid_mapped_ui_scheme_empty_label`, and `review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary` locks the no-String-error contract plus Runtime 15/status/docs anchors.

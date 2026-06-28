@@ -96,7 +96,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
         crate_batch(vec![crate_a, crate_b]),
         VisibilityBatch {
             key: VisibilityBatchKey {
-                render_layer_mask: RenderLayerSet::from_legacy_mask(0x0000_0008),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(0x0000_0008),
                 material_id: ResourceId::from_stable_label("res://materials/statue.zmaterial"),
                 model_id: ResourceId::from_stable_label("res://models/statue.obj"),
                 mobility: Mobility::Dynamic,
@@ -105,7 +105,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
         },
         VisibilityBatch {
             key: VisibilityBatchKey {
-                render_layer_mask: RenderLayerSet::from_legacy_mask(0x0000_0008),
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(0x0000_0008),
                 material_id: ResourceId::from_stable_label("res://materials/tree.zmaterial"),
                 model_id: ResourceId::from_stable_label("res://models/tree.obj"),
                 mobility: Mobility::Static,
@@ -355,7 +355,7 @@ fn crate_batch(entities: Vec<u64>) -> VisibilityBatch {
 
 fn crate_batch_key() -> VisibilityBatchKey {
     VisibilityBatchKey {
-        render_layer_mask: RenderLayerSet::from_legacy_mask(0x0000_0001),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(0x0000_0001),
         material_id: ResourceId::from_stable_label("res://materials/crate.zmaterial"),
         model_id: ResourceId::from_stable_label("res://models/crate.obj"),
         mobility: Mobility::Dynamic,

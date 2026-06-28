@@ -706,7 +706,7 @@ fn material_component_lab_mui_x_samples_only_use_themed_utility_classes() {
 }
 
 fn editor_theme_source() -> String {
-    let path = editor_asset("assets/ui/theme/editor_material.v2.ui.toml");
+    let path = editor_asset("assets/ui/theme/editor_material.zui");
     fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()))
 }

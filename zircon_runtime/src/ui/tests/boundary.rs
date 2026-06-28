@@ -7,13 +7,25 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn collect_ui_toml_files(root: &Path) -> Vec<PathBuf> {
+    collect_files_with_suffixes(root, &[".ui.toml"])
+}
+
+fn collect_zui_files(root: &Path) -> Vec<PathBuf> {
+    collect_files_with_suffixes(root, &[".zui"])
+}
+
+fn collect_ui_document_files(root: &Path) -> Vec<PathBuf> {
+    collect_files_with_suffixes(root, &[".ui.toml", ".zui"])
+}
+
+fn collect_files_with_suffixes(root: &Path, suffixes: &[&str]) -> Vec<PathBuf> {
     let mut files = Vec::new();
-    collect_ui_toml_files_inner(root, &mut files);
+    collect_files_with_suffixes_inner(root, suffixes, &mut files);
     files.sort();
     files
 }
 
-fn collect_ui_toml_files_inner(root: &Path, files: &mut Vec<PathBuf>) {
+fn collect_files_with_suffixes_inner(root: &Path, suffixes: &[&str], files: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(root) else {
         return;
     };
@@ -21,14 +33,14 @@ fn collect_ui_toml_files_inner(root: &Path, files: &mut Vec<PathBuf>) {
     for entry in entries.filter_map(Result::ok) {
         let path = entry.path();
         if path.is_dir() {
-            collect_ui_toml_files_inner(&path, files);
+            collect_files_with_suffixes_inner(&path, suffixes, files);
             continue;
         }
 
         if path
             .file_name()
             .and_then(|name| name.to_str())
-            .is_some_and(|name| name.ends_with(".ui.toml"))
+            .is_some_and(|name| suffixes.iter().any(|suffix| name.ends_with(suffix)))
         {
             files.push(path);
         }

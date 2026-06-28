@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/assets/ui/editor/theme/editor_tokens.v2.ui.toml
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
@@ -38,7 +38,7 @@ status: in_progress
 
 # Workbench Autolayout Breakpoints
 
-`layout_tier.rs` owns the Workbench shell breakpoint classification used by editor layout plan S15.5. The current accepted tiers are Ultra at 480 px and below, Narrow above 480 and up to 640, Regular above 640 and below 1260, and Wide at 1260 px and above. The defaults are projected from `EditorDensityTokens::workbench_dense()` and mirrored in `editor_tokens.v2.ui.toml`, so breakpoint thresholds, compact drawer clamps, bottom-region clamps, and minimum-window limits share one token source.
+`layout_tier.rs` owns the Workbench shell breakpoint classification used by editor layout plan S15.5. The current accepted tiers are Ultra at 480 px and below, Narrow above 480 and up to 640, Regular above 640 and below 1260, and Wide at 1260 px and above. The defaults are projected from `EditorDensityTokens::workbench_dense()` and mirrored in `editor_tokens.zui`, so breakpoint thresholds, compact drawer clamps, bottom-region clamps, and minimum-window limits share one token source.
 
 The first implemented consumer is the right drawer collapse rule. `compute_workbench_shell_geometry(...)` asks the tier owner whether the right drawer should be forced into the collapsed rail state. If so, `build_tool_region_state(...)` returns the existing side collapsed constraints from `collapsed_constraints.rs`, using the same `WorkbenchChromeMetrics::rail_width` as normal collapsed drawers. This avoids a second rail-width constant and keeps right-side splitters hidden through the existing expanded-state checks.
 

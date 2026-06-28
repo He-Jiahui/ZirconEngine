@@ -118,6 +118,14 @@ fn semantic_shell_icon_aliases_load_as_real_pixels() {
         "props",
         "player-start",
         "audio-zone",
+        "asset-texture",
+        "asset-material",
+        "asset-scene",
+        "asset-shader",
+        "asset-mesh",
+        "asset-ui-layout",
+        "asset-ui-widget",
+        "asset-ui-style",
     ] {
         let pixels =
             load_existing_icon_asset_pixels_for_size(icon_name, 18, 18, Some([203, 210, 220, 255]))

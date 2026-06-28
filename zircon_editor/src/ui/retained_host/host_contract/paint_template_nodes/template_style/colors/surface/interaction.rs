@@ -2,12 +2,15 @@ use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::PALETTE;
 use super::super::super::super::template_style_color::is_primary_contained_button;
 use super::super::super::state::button_interaction_state;
-use super::super::super::surface_roles::is_asset_preview_surface;
+use super::super::super::surface_roles::{is_asset_preview_surface, is_content_panel_surface};
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 
 pub(super) fn interaction_surface_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
     if is_asset_preview_surface(node) {
         return asset_preview_interaction_surface_color(button_interaction_state(node));
+    }
+    if is_content_panel_surface(node) {
+        return content_panel_interaction_surface_color(button_interaction_state(node));
     }
 
     match button_interaction_state(node) {
@@ -20,6 +23,17 @@ pub(super) fn interaction_surface_color(node: &TemplatePaneNodeData) -> Option<[
         }),
         ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
         ButtonInteractionState::Loading | ButtonInteractionState::Normal => None,
+    }
+}
+
+fn content_panel_interaction_surface_color(state: ButtonInteractionState) -> Option<[u8; 4]> {
+    match state {
+        ButtonInteractionState::Disabled => Some(PALETTE.surface_disabled),
+        ButtonInteractionState::Loading
+        | ButtonInteractionState::Pressed
+        | ButtonInteractionState::Focused
+        | ButtonInteractionState::Hover
+        | ButtonInteractionState::Normal => None,
     }
 }
 

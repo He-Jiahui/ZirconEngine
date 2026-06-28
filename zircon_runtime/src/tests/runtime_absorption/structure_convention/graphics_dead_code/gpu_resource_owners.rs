@@ -1,5 +1,5 @@
 use super::super::assert_contains_all;
-use super::{read_repo, read_runtime_src};
+use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
 #[test]
 fn runtime_15_gpu_texture_resource_owner_cleanup() {
@@ -14,7 +14,7 @@ fn runtime_15_gpu_texture_resource_owner_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !gpu_texture.contains("#[allow(dead_code)]"),
+        !gpu_texture.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "GpuTextureResource identity and WGPU owners should be live binding contracts, not dead-code suppressions"
     );
     assert_contains_all(
@@ -69,7 +69,7 @@ fn runtime_15_gpu_material_uniform_owner_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !gpu_material_uniform.contains("#[allow(dead_code)]"),
+        !gpu_material_uniform.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "GpuMaterialUniformResource buffer and byte-length diagnostics should be live binding contracts, not dead-code suppressions"
     );
     assert_contains_all(
@@ -133,7 +133,7 @@ fn runtime_15_gpu_mesh_order_signature_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !gpu_mesh.contains("#[allow(dead_code)]"),
+        !gpu_mesh.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "GpuMeshResource indirect order signature should be live draw ordering input, not a dead-code suppression"
     );
     assert_contains_all(
@@ -210,7 +210,7 @@ fn runtime_15_gpu_model_identity_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !gpu_model.contains("#[allow(dead_code)]"),
+        !gpu_model.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "GpuModelResource identity should be a live streamer cache contract, not a dead-code suppression"
     );
     assert_contains_all(
@@ -281,7 +281,7 @@ fn runtime_15_post_process_lut_texture_owner_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !lut_texture.contains("#[allow(dead_code)]"),
+        !lut_texture.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "PostProcessLutTextureResource texture owner should be a live LUT binding contract, not a dead-code suppression"
     );
     assert_contains_all(
@@ -360,7 +360,7 @@ fn runtime_15_output_target_texture_owner_cleanup() {
         ),
     ] {
         assert!(
-            !source.contains("#[allow(dead_code)]"),
+            !source.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
             "{label} owner fields should be live output target contracts, not dead-code suppressions"
         );
     }

@@ -6,11 +6,11 @@ related_code:
   - zircon_plugins/sound/editor/src/live_output/mod.rs
   - zircon_plugins/sound/editor/src/live_output/model.rs
   - zircon_plugins/sound/editor/src/live_output/controller.rs
-  - zircon_plugins/sound/editor/mixer_console.v2.ui.toml
-  - zircon_plugins/sound/editor/acoustic_debug.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_source.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_listener.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_volume.drawer.v2.ui.toml
+  - zircon_plugins/sound/editor/mixer_console.zui
+  - zircon_plugins/sound/editor/acoustic_debug.zui
+  - zircon_plugins/sound/editor/audio_source.drawer.zui
+  - zircon_plugins/sound/editor/audio_listener.drawer.zui
+  - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_runtime/src/core/framework/sound/manager.rs
   - zircon_runtime/src/core/framework/sound/manager/backend.rs
   - zircon_runtime/src/core/framework/sound/manager/output_device.rs
@@ -22,11 +22,11 @@ implementation_files:
   - zircon_plugins/sound/editor/src/live_output/mod.rs
   - zircon_plugins/sound/editor/src/live_output/model.rs
   - zircon_plugins/sound/editor/src/live_output/controller.rs
-  - zircon_plugins/sound/editor/mixer_console.v2.ui.toml
-  - zircon_plugins/sound/editor/acoustic_debug.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_source.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_listener.drawer.v2.ui.toml
-  - zircon_plugins/sound/editor/audio_volume.drawer.v2.ui.toml
+  - zircon_plugins/sound/editor/mixer_console.zui
+  - zircon_plugins/sound/editor/acoustic_debug.zui
+  - zircon_plugins/sound/editor/audio_source.drawer.zui
+  - zircon_plugins/sound/editor/audio_listener.drawer.zui
+  - zircon_plugins/sound/editor/audio_volume.drawer.zui
 plan_sources:
   - .codex/plans/Sound 插件核心完善计划.md
   - docs/superpowers/specs/2026-05-23-sound-cpal-polish-design.md
@@ -66,7 +66,7 @@ Action reports are best-effort. If configure/start/stop fails, the report stores
 
 ## Mixer Toolbar Metadata
 
-`mixer_console.v2.ui.toml` now exposes stable live output controls:
+`mixer_console.zui` now exposes stable live output controls:
 
 - `SoundOutputDevicePicker`
 - `SoundOutputRefreshButton`
@@ -78,7 +78,7 @@ The buttons route to sound output operation paths. `Sound.Output.Device.Refresh`
 
 ## Authoring Template Contract
 
-The checked-in Sound editor UI templates are treated as static plugin assets, not editor-core code. `mixer_console.v2.ui.toml`, `acoustic_debug.v2.ui.toml`, and the three component drawer templates now have registration coverage in `src/lib.rs`: each template asset id must match the registered Sound surface or drawer asset, and every `route = "..."` event in the templates must target an operation descriptor contributed by `sound_editor_operation_descriptors()`.
+The checked-in Sound editor UI templates are treated as static plugin assets, not editor-core code. `mixer_console.zui`, `acoustic_debug.zui`, and the three component drawer templates now have registration coverage in `src/lib.rs`: each template asset id must match the registered Sound surface or drawer asset, and every `route = "..."` event in the templates must target an operation descriptor contributed by `sound_editor_operation_descriptors()`.
 
 This keeps the mixer toolbar buttons and future drawer/acoustic debug controls from drifting away from the operation table while preserving the current boundary: the editor host sees generic operation paths and template documents, and Sound-specific behavior remains in the Sound plugin.
 

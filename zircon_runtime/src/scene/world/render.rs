@@ -267,7 +267,7 @@ impl World {
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
-        let render_layer_mask = RenderLayerSet::from_legacy_mask(render_layer_mask);
+        let render_layer_mask = RenderLayerSet::from_scene_schema_v1_mask(render_layer_mask);
         if !camera_layers.intersects(&render_layer_mask) {
             return Vec::new();
         }
@@ -344,7 +344,7 @@ impl World {
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
-        let render_layer_mask = RenderLayerSet::from_legacy_mask(render_layer_mask);
+        let render_layer_mask = RenderLayerSet::from_scene_schema_v1_mask(render_layer_mask);
         if !camera_layers.intersects(&render_layer_mask) {
             return None;
         }
@@ -376,7 +376,7 @@ impl World {
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
-        camera_layers.intersects_legacy_mask(render_layer_mask)
+        camera_layers.intersects_scene_schema_v1_mask(render_layer_mask)
     }
 
     fn build_render_camera(
@@ -530,11 +530,11 @@ impl World {
             target: component.target.clone(),
             viewport_rect: component.viewport,
             clear: component.clear_color.into(),
-            culling_mask: RenderLayerSet::from_legacy_mask(
+            culling_mask: RenderLayerSet::from_scene_schema_v1_mask(
                 self.render_layer_mask(entity)
                     .unwrap_or(default_render_layer_mask()),
             ),
-            volume_mask: RenderLayerSet::from_legacy_mask(
+            volume_mask: RenderLayerSet::from_scene_schema_v1_mask(
                 self.render_layer_mask(entity)
                     .unwrap_or(default_render_layer_mask()),
             ),
@@ -556,7 +556,7 @@ impl World {
 fn fallback_render_camera(request: &SceneViewportExtractRequest) -> CameraRenderDescriptor {
     let mut camera =
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
-    let default_layers = RenderLayerSet::from_legacy_mask(default_render_layer_mask());
+    let default_layers = RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask());
     camera.culling_mask = default_layers.clone();
     camera.volume_mask = default_layers;
     if request.settings.projection_mode != ProjectionMode::default() {

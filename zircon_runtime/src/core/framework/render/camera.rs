@@ -255,7 +255,7 @@ impl RenderLayerSet {
             .fold(Self::none(), |layers, layer| layers.with(layer))
     }
 
-    pub fn from_legacy_mask(mask: u32) -> Self {
+    pub fn from_scene_schema_v1_mask(mask: u32) -> Self {
         let mut layers = Self::none();
         for layer in 0..u32::BITS {
             if (mask & (1u32 << layer)) != 0 {
@@ -265,7 +265,7 @@ impl RenderLayerSet {
         layers
     }
 
-    pub fn to_legacy_mask_lossy(&self) -> u32 {
+    pub fn to_scene_schema_v1_mask_lossy(&self) -> u32 {
         self.iter()
             .filter(|layer| *layer < u32::BITS)
             .fold(0u32, |mask, layer| mask | (1u32 << layer))
@@ -319,8 +319,8 @@ impl RenderLayerSet {
         Self { blocks }.shrink()
     }
 
-    pub fn intersects_legacy_mask(&self, mask: u32) -> bool {
-        self.intersects(&Self::from_legacy_mask(mask))
+    pub fn intersects_scene_schema_v1_mask(&self, mask: u32) -> bool {
+        self.intersects(&Self::from_scene_schema_v1_mask(mask))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = RenderLayer> + '_ {

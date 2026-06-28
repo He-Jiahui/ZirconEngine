@@ -296,7 +296,7 @@ pub(super) fn write_bc1_texture(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
-    fs::write(path, dds_legacy_bytes("DXT1", 8)).unwrap();
+    fs::write(path, dds_classic_fourcc_bytes("DXT1", 8)).unwrap();
 }
 
 fn write_text(path: PathBuf, text: &str) {
@@ -306,7 +306,7 @@ fn write_text(path: PathBuf, text: &str) {
     fs::write(path, text.trim_start()).unwrap();
 }
 
-fn dds_legacy_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
+fn dds_classic_fourcc_bytes(fourcc: &str, payload_bytes: usize) -> Vec<u8> {
     let mut bytes = vec![0_u8; 128];
     bytes[0..4].copy_from_slice(b"DDS ");
     write_u32_le(&mut bytes, 4, 124);

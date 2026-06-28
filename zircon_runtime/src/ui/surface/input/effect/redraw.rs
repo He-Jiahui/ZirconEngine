@@ -3,23 +3,26 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
+use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 
 pub(super) fn apply_redraw_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::DirtyRedraw { target, dirty, .. } => {
             let node = surface
                 .tree
                 .nodes
                 .get_mut(target)
-                .ok_or_else(|| format!("missing dirty target {target:?}"))?;
+                .ok_or(UiSurfaceInputEffectError::MissingDirtyTarget { node_id: *target })?;
             merge_dirty(&mut node.dirty, *dirty);
             node.state_flags.dirty |= dirty.hit_test || dirty.input;
             Ok(Some(*target))
         }
-        _ => Err("expected dirty redraw effect".to_string()),
+        _ => Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "dirty redraw",
+        }),
     }
 }
 

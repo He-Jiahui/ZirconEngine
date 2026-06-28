@@ -5,6 +5,6 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-zircon_editor = { path = "../../../../../zircon_editor" }
+zircon_editor = { workspace = true }
 zircon_plugin_rendering_ray_tracing_policy_runtime = { path = "../runtime" }
-zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

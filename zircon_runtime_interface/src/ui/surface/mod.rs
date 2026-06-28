@@ -45,10 +45,11 @@ pub use render::{
     UiRendererParityBatchRow, UiRendererParityPaintRow, UiRendererParityPayloadKind,
     UiRendererParitySnapshot, UiRendererParityStats, UiResolvedStyle, UiResolvedTextLayout,
     UiResolvedTextLine, UiResolvedTextRun, UiResourceUvRect, UiRoundedBrushPayload, UiShapedGlyph,
-    UiShapedText, UiShapedTextCluster, UiShapedTextLine, UiSolidBrushPayload, UiTextAlign,
-    UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextEditAction,
-    UiTextOverflow, UiTextPaint, UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun,
-    UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextWrap,
+    UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText, UiShapedTextCluster,
+    UiShapedTextLine, UiSolidBrushPayload, UiTextAlign, UiTextCaret, UiTextCaretAffinity,
+    UiTextComposition, UiTextDirection, UiTextEditAction, UiTextOverflow, UiTextPaint,
+    UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange,
+    UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextWrap,
     UiVectorBrushPayload, UiVisualAssetRef,
 };
 pub use timeline::{

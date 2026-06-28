@@ -9,10 +9,10 @@ use crate::ui::{
         UiRenderResourceKind, UiRenderResourceState, UiRenderVisualizerOverlayKind,
         UiRenderVisualizerSnapshot, UiRendererParityPayloadKind, UiRendererParitySnapshot,
         UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
-        UiResourceUvRect, UiShapedGlyph, UiShapedText, UiTextCaret, UiTextCaretAffinity,
-        UiTextComposition, UiTextDirection, UiTextOverflow, UiTextPaint, UiTextPaintDecoration,
-        UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
-        UiVisualAssetRef,
+        UiResourceUvRect, UiShapedGlyph, UiShapedGlyphRotation, UiShapedText, UiTextCaret,
+        UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextOverflow, UiTextPaint,
+        UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode,
+        UiTextRunKind, UiTextSelection, UiVisualAssetRef,
     },
 };
 
@@ -249,6 +249,7 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
             source_range: UiTextRange { start: 0, end: 4 },
             visual_range: UiTextRange { start: 0, end: 4 },
             measured_width: 36.0,
+            glyph_advances: vec![],
             baseline: 16.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -372,6 +373,7 @@ fn ui_text_paint_carries_editable_caret_selection_and_composition() {
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
             measured_width: 50.0,
+            glyph_advances: vec![],
             baseline: 8.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -733,6 +735,7 @@ fn ui_render_visualizer_snapshot_tracks_material_resource_and_sdf_text_stats() {
                 source_range: UiTextRange { start: 0, end: 1 },
                 visual_range: UiTextRange { start: 0, end: 1 },
                 measured_width: 12.0,
+                glyph_advances: vec![],
                 baseline: 15.0,
                 direction: UiTextDirection::LeftToRight,
                 runs: vec![UiResolvedTextRun {
@@ -860,6 +863,7 @@ fn ui_shaped_text_contract_preserves_runs_and_ranges() {
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
             measured_width: 42.0,
+            glyph_advances: vec![],
             baseline: 13.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -908,6 +912,7 @@ fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
                 end: source.len(),
             },
             measured_width: 90.0,
+            glyph_advances: vec![30.0, 30.0, 30.0],
             baseline: 14.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -950,6 +955,47 @@ fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
     assert_eq!(glyphs[1].visual_frame, UiFrame::new(34.0, 6.0, 30.0, 20.0));
     assert_eq!(glyphs[2].advance, 30.0);
     assert!(glyphs.iter().all(|glyph| glyph.glyph_id != 0));
+}
+
+#[test]
+fn ui_shaped_text_contract_uses_measured_glyph_advances() {
+    let layout = UiResolvedTextLayout {
+        direction: UiTextDirection::LeftToRight,
+        font_size: 16.0,
+        line_height: 20.0,
+        source_range: UiTextRange { start: 0, end: 2 },
+        lines: vec![UiResolvedTextLine {
+            text: "Wi".to_string(),
+            frame: UiFrame::new(4.0, 6.0, 18.0, 20.0),
+            source_range: UiTextRange { start: 0, end: 2 },
+            visual_range: UiTextRange { start: 0, end: 2 },
+            measured_width: 18.0,
+            glyph_advances: vec![14.0, 4.0],
+            baseline: 14.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![UiResolvedTextRun {
+                kind: UiTextRunKind::Strong,
+                text: "Wi".to_string(),
+                source_range: UiTextRange { start: 0, end: 2 },
+                visual_range: UiTextRange { start: 0, end: 2 },
+                direction: UiTextDirection::LeftToRight,
+            }],
+            ellipsized: false,
+        }],
+        ..UiResolvedTextLayout::default()
+    };
+
+    let shaped = UiShapedText::from_resolved_layout("Wi", &layout, UiTextRenderMode::Native);
+    let paint = UiTextPaint::from_shaped_text(shaped.clone(), Some("#ffffff".to_string()));
+    let glyphs = &shaped.lines[0].glyphs;
+
+    assert_eq!(glyphs[0].visual_frame, UiFrame::new(4.0, 6.0, 14.0, 20.0));
+    assert_eq!(glyphs[1].visual_frame, UiFrame::new(18.0, 6.0, 4.0, 20.0));
+    assert!(glyphs[0].cluster_flags.cluster_start);
+    assert!(!glyphs[0].cluster_flags.whitespace);
+    assert_eq!(glyphs[0].rotation, UiShapedGlyphRotation::None);
+    assert!(glyphs[0].font_id.is_none());
+    assert_eq!(paint.runs[0].frame, UiFrame::new(4.0, 6.0, 18.0, 20.0));
 }
 
 #[test]
@@ -996,6 +1042,7 @@ fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
                 end: source.len(),
             },
             measured_width: 30.0,
+            glyph_advances: vec![],
             baseline: 8.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -1273,6 +1320,7 @@ fn ui_shaped_text_contract_preserves_glyph_atlas_and_advance_data() {
                 source_range: UiTextRange { start: 0, end: 2 },
                 visual_range: UiTextRange { start: 0, end: 2 },
                 measured_width: 24.0,
+                glyph_advances: vec![],
                 baseline: 15.0,
                 direction: UiTextDirection::LeftToRight,
                 runs: vec![UiResolvedTextRun {
@@ -1343,6 +1391,7 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
                 source_range: UiTextRange { start: 0, end: 4 },
                 visual_range: UiTextRange { start: 0, end: 4 },
                 measured_width: 28.0,
+                glyph_advances: vec![],
                 baseline: 13.0,
                 direction: UiTextDirection::LeftToRight,
                 runs: vec![UiResolvedTextRun {

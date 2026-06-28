@@ -4,6 +4,7 @@ related_code:
   - zircon_plugins/physics/runtime/src/backend.rs
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/module.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/manager/builtin_step.rs
   - zircon_plugins/physics/runtime/src/manager/clock.rs
@@ -32,12 +33,16 @@ related_code:
   - zircon_plugins/physics/runtime/src/trigger/pair.rs
   - zircon_plugins/physics/runtime/src/trigger/point.rs
   - zircon_plugins/physics/runtime/src/trigger/scan.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/core/framework/physics/joint_constraint_metadata.rs
   - zircon_runtime/src/core/framework/physics/joint_drive.rs
   - zircon_runtime/src/core/framework/physics/joint_sync_state.rs
   - zircon_runtime/src/core/framework/physics/joint_type.rs
   - zircon_runtime/src/core/framework/physics/manager.rs
+  - zircon_runtime/src/core/framework/physics/query_interface.rs
   - zircon_runtime/src/core/framework/physics/query_filter.rs
   - zircon_runtime/src/core/framework/physics/ray_cast_hit.rs
   - zircon_runtime/src/core/framework/physics/ray_cast_query.rs
@@ -94,6 +99,9 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/trigger/pair.rs
   - zircon_plugins/physics/runtime/src/trigger/point.rs
   - zircon_plugins/physics/runtime/src/trigger/scan.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/core/framework/physics/joint_constraint_metadata.rs
   - zircon_runtime/src/core/framework/physics/joint_drive.rs
@@ -173,8 +181,12 @@ The current backend option decision is recorded in [Physics Plugin Options](../p
 
 ## Runtime Boundary
 
-- The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
-- The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_runtime_scene_system(...)` as `physics.step` in `SystemStage::FixedUpdate`, in set `physics.simulation`.
+- The plugin contributes the lifecycle module through `RuntimePluginRegistrationBuilder::new(registry).module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())`.
+- The plugin contributes tick behavior through `RuntimePluginModuleRegistration::runtime_scene_system(...)` as `physics.step` in `SystemStage::FixedUpdate`, in set `physics.simulation`; the plugin runtime system owner no longer receives `PluginModuleId` or calls `RuntimeExtensionRegistry::register_runtime_scene_system(...)` directly.
+- D8 runtime registration builder original evidence paths are locked by `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` and status `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred`.
+- D10 animation/physics bridge call migration exports the runtime-owned `physics.query.v1` bridge interface from this plugin. `PhysicsRuntimePlugin::register(...)` creates a shared `DefaultPhysicsManager`, registers it as the module manager, and exports it as `Arc<dyn PhysicsQueryInterface>` through `RuntimePluginModuleRegistration::export_interface::<dyn PhysicsQueryInterface>(...)`; module activation binds the same manager back to `CoreHandle` so settings persistence remains on the original path. Guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred` and locks consumers to `WeakBridge<dyn PhysicsQueryInterface>`.
+- D5 editor authoring macro consumer guard keeps the editor package on the SDK macro path: `zircon_plugins/physics/editor/src/plugin.rs` uses `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest: zircon_plugin_physics_runtime::package_manifest()` and only keeps the Physics-specific extension registration body outside the macro. Status `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` is locked by `review_d5_editor_authoring_plugins_use_sdk_macro`.
+- D9 editor/runtime mirror consumer guard keeps the editor package tied to this runtime package manifest through the SDK declaration projection: editor tests assert `mirrored_runtime_package_id()`, and the package manifest carries both `zircon_plugin_physics_runtime::PHYSICS_RUNTIME_CAPABILITY` and the Physics authoring capability. `tools/audit_plugin_structure.py --json` reports `editor_runtime_mirror_violations = 0` and `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`; status `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` is locked by `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`.
 - Static `zircon_plugins/physics/plugin.toml`, the linked runtime package manifest, and `RuntimePluginDescriptor::builtin_catalog()` all classify Physics as category `runtime`, maturity `experimental`, with partial status rows for `runtime.plugin.physics`, `runtime.capability.physics.raycast`, `runtime.capability.physics.overlap`, `runtime.capability.physics.shape_cast`, `runtime.capability.physics.trigger_events`, `runtime.capability.physics.constraints`, and `runtime.capability.physics.skeletal_joints`. This keeps package/export metadata consistent without promoting Jolt, swept-shape, trigger, constraint-solver, or ragdoll parity.
 - `PhysicsRuntimeSystem` resolves `PhysicsManagerHandle` through the runtime manager resolver and calls `PhysicsManager::tick_scene_world(...)`. If no manager is active, it still records the neutral fallback physics step plan on `LevelSystem`.
 - `PhysicsManager::tick_scene_world(...)` is the scheduled `FixedUpdate` entrypoint. It treats `delta_seconds` from `WorldDriver` as one already-drained runtime fixed timestep and emits a one-step `PhysicsWorldStepPlan` when the backend can simulate. The frame-delta accumulator stays behind `plan_world_step(...)` for direct manager planning callers, so scheduled fixed systems do not reaccumulate substeps.
@@ -207,6 +219,7 @@ Runtime framework contracts are intentionally concrete-free:
 - `PhysicsQueryFilter` is now the shared query filter for ray, shape-overlap, and shape-cast queries. It carries collision mask, sensor inclusion, excluded entities, and required collision group.
 - `PhysicsRayCastQuery` uses the shared filter instead of duplicating query fields. `PhysicsShapeOverlapQuery` and `PhysicsShapeCastQuery` expose the same filter semantics for broader query families.
 - `PhysicsManager::shape_overlap(...)` and `PhysicsManager::shape_cast(...)` are optional manager capabilities with default empty/no-hit implementations. The builtin fallback manager answers shape overlap from its synchronized collider snapshot and uses immediate overlap as the first shape-cast behavior; native backends can replace that behind the same trait.
+- `PhysicsQueryInterface` is the plugin-to-plugin bridge contract for ray, shape-overlap, and shape-cast queries. Its `PHYSICS_QUERY_INTERFACE_ID` is `physics.query.v1`, and linked plugins should consume it through `WeakBridge<dyn PhysicsQueryInterface>` instead of resolving `DefaultPhysicsManager`.
 - The builtin fallback deliberately does not report swept shape hits yet. A non-overlapping cast returns `None` even when the sweep direction would later cross a collider, so future Jolt/Rapier-style backend work can add continuous shape casts without silently changing the current fallback contract.
 - `PhysicsJointType`, scene `JointKind`, and scene-asset `SceneJointKindAsset` now share the same fixed/distance/hinge/slider/cone-twist/Generic6Dof vocabulary. The plugin maps those scene values into `PhysicsJointSyncState`.
 - `PhysicsJointConstraintMetadata` and `PhysicsJointDrive` carry per-axis linear/angular limits, per-axis drives, break thresholds, and projection tolerances through scene ECS, scene assets, project IO, and the synchronized physics snapshot.
@@ -229,6 +242,7 @@ The plugin can evolve Jolt or another backend behind `DefaultPhysicsManager` or 
 - Current live-world fixed-step seam: `cargo test --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_physics_runtime --test physics_manager_runtime_contract contract::step::builtin_fixed_step_uses_live_world_records_before_node_cache_flush --locked --quiet -- --exact --nocapture` passed after confirming the regression failed against the stale node-cache path.
 - Current shape-query contract seam: static validation passed with scoped `rustfmt --check` and `git diff --check` after adding the shared query-filter DTOs, public shape query DTO re-exports, `PhysicsManager` shape-query methods, plugin fallback overlap/cast implementation, and non-finite query-transform rejection. Focused Cargo validation is pending until the active workspace/render Cargo lane clears.
 - Current constraint/skeletal-joint contract seam: tests now cover Generic6Dof joint constraint/skeleton metadata framework serde, scene project IO persistence, plugin world-sync projection, and manifest/catalog partial capability status rows. Static validation and focused Cargo evidence are tracked in the session note for this slice.
+- Current D10 animation/physics bridge call migration: `physics.query.v1` is exported from the physics runtime plugin through the SDK bridge helper, public physics runtime re-exports `PhysicsQueryInterface` / `PHYSICS_QUERY_INTERFACE_ID`, and the animation/physics contract test calls ray/overlap/shape-cast through `WeakBridge<dyn PhysicsQueryInterface>`. Static guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred`; Cargo remains deferred for this implementation slice.
 - Current query/contact boundary split: `zircon_plugins/physics/runtime/src/query_contact.rs` is reduced to a structural facade over contact, filter, geometry, overlap, and raycast child modules. The split preserves the builtin fallback behavior while giving future collider filters, shape queries, raycasts, trigger contact checks, and native-backend parity work separate homes.
 - Current overlap boundary split: `zircon_plugins/physics/runtime/src/query_contact/overlap.rs` is reduced to a structural dispatcher over `overlap/query.rs`, `proxies.rs`, `pairwise.rs`, and `distance.rs`. The split preserves box/sphere/capsule overlap fallback behavior while preventing query traversal, shape proxy extraction, pairwise shape matching, and shared distance math from accumulating in one implementation file.
 - Current overlap boundary split validation: static formatting, tracked diff hygiene, explicit trailing-whitespace scan, conflict-marker scan, and line-count audit passed on 2026-06-04. Focused Cargo validation is pending because the latest process poll still showed active other-session Cargo/rustc lanes.

@@ -5,6 +5,7 @@ mod dispatch;
 mod drag_drop;
 mod editable_text;
 mod effect;
+mod error;
 mod keyboard;
 mod keyboard_action;
 mod keyboard_clipboard;
@@ -32,6 +33,7 @@ mod window_pump;
 
 pub(crate) use dispatch::dispatch_input_event;
 pub(crate) use effect::{apply_dispatch_reply, apply_dispatch_reply_steps};
+pub use error::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 pub use state::UiSurfaceInputState;
 pub(crate) use text_constraints::text_input_constraints_for_node;
 pub(crate) use validation::{is_valid_input_owner, require_valid_input_owner};

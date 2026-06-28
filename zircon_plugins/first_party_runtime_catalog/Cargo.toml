@@ -43,4 +43,4 @@ zircon_plugin_sound_runtime = { path = "../sound/runtime", optional = true }
 zircon_plugin_texture_runtime = { path = "../texture/runtime", optional = true }
 zircon_plugin_virtual_geometry_runtime = { path = "../virtual_geometry/runtime", optional = true }
 zircon_plugin_zr_vm_language_runtime = { path = "../zr_vm_language/runtime", optional = true }
-zircon_runtime = { path = "../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

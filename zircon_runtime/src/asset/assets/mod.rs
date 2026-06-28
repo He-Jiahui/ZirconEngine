@@ -16,13 +16,13 @@ mod texture;
 mod ui;
 
 pub use animation::{
-    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
-    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
-    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+    AnimationAssetError, AnimationAssetResult, AnimationChannelAsset, AnimationChannelKeyAsset,
+    AnimationChannelValueAsset, AnimationClipAsset, AnimationClipBoneTrackAsset,
+    AnimationConditionOperatorAsset, AnimationEventTrackAsset, AnimationGraphAsset,
+    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
+    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
+    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 pub use authoring::{
     AssetAuthoringError, AssetAuthoringResult, MaterialGraphAsset, MaterialGraphLinkAsset,
@@ -32,7 +32,12 @@ pub use authoring::{
     TileSetTileAsset,
 };
 pub use data::{DataAsset, DataAssetFormat};
-pub use font::{FontAsset, FontAssetError, FontAssetResult};
+pub use font::{
+    FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetError, FontAssetFaceStyle,
+    FontAssetFamilyMember, FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy,
+    FontAssetResult, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
+    FontAssetVariationCoord,
+};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
@@ -104,8 +109,9 @@ pub use texture::{
     TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
-    ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiIconAsset,
-    UiIconAssetDocumentError, UiIconSource, UiIconSourceKind, UiLayoutAsset, UiStyleAsset,
-    UiThemeAsset, UiThemeAssetDocumentError, UiV2AssetDocumentError, UiV2ComponentAsset,
-    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiAssetDocumentResult,
+    UiIconAsset, UiIconAssetDocumentError, UiIconAssetDocumentResult, UiIconSource,
+    UiIconSourceKind, UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiThemeAssetDocumentError,
+    UiThemeAssetDocumentResult, UiV2AssetDocumentError, UiV2AssetDocumentResult,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };

@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderFrameExtract, RenderLayerSet, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{Transform, Vec4};
@@ -60,6 +61,20 @@ impl FrameHistoryValidationKey {
         extract: &RenderFrameExtract,
         effective_features: Vec<String>,
     ) -> Self {
+        Self::from_extract_with_hybrid_gi(
+            extract,
+            effective_features,
+            extract.lighting.hybrid_global_illumination.as_ref(),
+        )
+    }
+
+    pub(crate) fn from_extract_with_hybrid_gi(
+        extract: &RenderFrameExtract,
+        effective_features: Vec<String>,
+        hybrid_global_illumination: Option<&RenderHybridGiExtract>,
+    ) -> Self {
+        let mut lighting = extract.lighting.clone();
+        lighting.hybrid_global_illumination = hybrid_global_illumination.cloned();
         Self {
             world: extract.world,
             camera: extract
@@ -83,7 +98,7 @@ impl FrameHistoryValidationKey {
                     render_layer_mask: mesh.render_layer_mask.clone(),
                 })
                 .collect(),
-            lighting: extract.lighting.clone(),
+            lighting,
             animation_poses: extract
                 .animation_poses
                 .iter()

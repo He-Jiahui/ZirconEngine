@@ -132,6 +132,193 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         // Guard anchors: runtime_non_network_server_naming_is_classified_by_owner,
         // runtime_15_render_framework_receiver_uses_framework_name.
         Some("2026-06-25")
+    } else if slice
+        == "Runtime 15 M2 render framework trait/construction owner naming hard cutover"
+    {
+        // Status anchor:
+        // runtime_15_render_framework_trait_construction_owner_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs,
+        // graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs.
+        // Guard anchor: runtime_15_no_banned_name_modules.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 graphics construction new owner naming hard cutover" {
+        // Status anchor:
+        // runtime_15_graphics_construction_new_owner_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // graphics/feature/render_feature_descriptor/construct.rs,
+        // graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs.
+        // Guard anchors: runtime_15_graphics_construction_new_owners_use_construct_names,
+        // runtime_15_no_banned_name_modules.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 scene dynamic document v1 owner naming hard cutover" {
+        // Status anchor:
+        // runtime_15_scene_dynamic_document_v1_owner_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: scene/dynamic_scene/document/v1_project_document.rs.
+        // Type anchor: V1ProjectDocument.
+        // Guard anchor: runtime_15_scene_dynamic_document_v1_owner_uses_versioned_name.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 scene render layer schema-v1 mask naming hard cutover" {
+        // Status anchor:
+        // runtime_15_scene_render_layer_schema_v1_mask_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // core/framework/render/camera.rs and scene/world/render*.rs.
+        // Helper anchor: from_scene_schema_v1_mask.
+        // Guard anchor: runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 render layer schema-v1 mask API naming hard cutover" {
+        // Status anchor:
+        // runtime_15_render_layer_schema_v1_mask_api_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // core/framework/render/camera.rs,
+        // graphics/scene/scene_renderer/lighting/light_buffer.rs,
+        // graphics/runtime/render_framework/viewport_record/camera_history_key.rs.
+        // Helper anchors: from_scene_schema_v1_mask,
+        // to_scene_schema_v1_mask_lossy, intersects_scene_schema_v1_mask.
+        // Guard anchor: runtime_15_render_layer_schema_v1_mask_api_uses_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 render shader definition bare-flag naming hard cutover" {
+        // Status anchor:
+        // runtime_15_render_shader_definition_bare_flag_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: core/framework/render/shader/definition_value.rs.
+        // Serde branch anchor: BareFlag.
+        // Guard anchor: runtime_15_render_shader_definition_uses_bare_flag_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 GPU model embedded primitive naming hard cutover" {
+        // Status anchor:
+        // runtime_15_gpu_model_embedded_primitive_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor:
+        // graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs.
+        // Test-name anchor:
+        // model_render_primitives_keep_embedded_payload_when_mesh_reference_unresolved.
+        // Guard anchor: runtime_15_gpu_model_embedded_primitive_uses_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 frame extract snapshot adapter naming hard cutover" {
+        // Status anchor:
+        // runtime_15_frame_extract_snapshot_adapter_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: core/framework/render/frame_extract.rs.
+        // Comment anchor: scene viewport snapshot packet.
+        // Guard anchor: runtime_15_frame_extract_snapshot_adapter_uses_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 core framework render fixture naming hard cutover" {
+        // Status anchor:
+        // runtime_15_core_framework_render_fixture_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // core/framework/render/core_pipeline/render_queue.rs,
+        // core/framework/render/post_process/effect_stack_settings.rs,
+        // core/framework/render/relevance.rs,
+        // core/framework/render/light/readiness.rs,
+        // core/framework/render/scene_extract.rs.
+        // Guard anchor: runtime_15_core_framework_render_fixtures_use_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 render feature fallback capability naming hard cutover" {
+        // Status anchor:
+        // runtime_15_render_feature_fallback_capability_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_enabled_features.rs,
+        // graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs.
+        // Fallback ID anchor: fallback-virtual-geometry-without-capability.
+        // Guard anchor: runtime_15_render_feature_fallback_capability_fixtures_use_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 render material stale texture fixture naming hard cutover" {
+        // Status anchor:
+        // runtime_15_render_material_stale_texture_fixture_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: graphics/scene/render_product_streamer_tests/material_runtime.rs.
+        // Test-name anchor: unresolved_stale_texture.
+        // URI anchor: res://textures/missing-stale-base.png.
+        // Guard anchor: runtime_15_render_material_stale_texture_fixtures_use_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 render graph fallback fixture naming hard cutover" {
+        // Status anchor:
+        // runtime_15_render_graph_fallback_fixture_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs,
+        // graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs.
+        // Unexpected dispatch anchor: unexpected-compute.
+        // Guard anchor: runtime_15_render_graph_fallback_fixtures_use_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 Hybrid GI extract scene-source naming hard cutover" {
+        // Status anchor:
+        // runtime_15_hybrid_gi_extract_scene_source_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: zircon_plugins/hybrid_gi/runtime/src/hybrid_gi.
+        // Helper anchors: extract_trace_region_ids, extract-backed,
+        // extract-sourced RenderHybridGiProbe.
+        // Guard anchor: runtime_15_hybrid_gi_extract_scene_source_uses_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 platform input DOM keycode naming hard cutover" {
+        // Status anchor:
+        // runtime_15_platform_input_dom_keycode_naming_hard_cutover_static_passed_cargo_timeout_no_result.
+        // Evidence anchor: ui/platform_input/keyboard_map.rs.
+        // Function anchor: dom_key_code.
+        // Guard anchor: runtime_15_platform_input_uses_dom_keycode_names.
+        Some("2026-06-27")
+    } else if slice
+        == "Runtime 15 M2 platform input runtime baseline test naming hard cutover"
+    {
+        // Status anchor:
+        // runtime_15_platform_input_runtime_baseline_test_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: ui/platform_input/winit_translation.rs.
+        // Test-name anchor: runtime_input_baseline.
+        // Guard anchor: runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names.
+        Some("2026-06-27")
+    } else if slice
+        == "Runtime 15 M2 UI template schema source fixture naming hard cutover"
+    {
+        // Status anchor:
+        // runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // ui/template/asset/schema/migrator.rs,
+        // zircon_runtime_interface/src/ui/template/asset/schema/report.rs.
+        // Enum anchor: SourceTemplateFixture.
+        // Guard anchor: runtime_15_ui_template_schema_uses_source_fixture_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 input mouse-wheel line-delta naming hard cutover" {
+        // Status anchor:
+        // runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // core/framework/input/mouse_wheel.rs,
+        // input/runtime/default_input_manager.rs,
+        // dynamic_api/session/events.rs.
+        // Guard anchor: runtime_15_input_mouse_wheel_line_delta_uses_current_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 DDS upload policy naming hard cutover" {
+        // Status anchor:
+        // runtime_15_dds_upload_policy_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // asset/assets/texture/upload_support/dds.rs,
+        // asset/tests/assets/texture_upload_readiness/container_fixtures.rs.
+        // Helper anchors: dds_classic_fourcc_upload_layout, dds_classic_cubemap_bytes.
+        // Guard anchor: runtime_15_dds_upload_policy_uses_classic_container_names.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 material asset schema-v1 defaults naming hard cutover" {
+        // Status anchor:
+        // runtime_15_material_asset_schema_v1_defaults_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchor: asset/assets/material/material_asset.rs.
+        // Helper anchors: property_overrides_with_schema_v1_defaults,
+        // texture_slots_with_schema_v1_defaults, schema_v1_pbr_texture_slots.
+        // Guard owner: naming_boundary/runtime_15_m2/asset_schema.rs.
+        // Guard anchor: runtime_15_material_asset_schema_v1_defaults_use_versioned_names.
+        Some("2026-06-27")
+    } else if slice
+        == "Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover"
+    {
+        // Status anchor:
+        // runtime_15_net_http_hyper_http1_client_policy_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // zircon_plugins/net/features/http/runtime/src/backend/client.rs,
+        // zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs.
+        // Audit anchor: external-hyper-http1-client-policy.
+        // Guard anchor: runtime_15_net_http_hyper_http1_client_policy_is_isolated.
+        Some("2026-06-27")
+    } else if slice == "Runtime 15 M2 Hub message raw text policy hard cutover" {
+        // Status anchor:
+        // runtime_15_hub_message_raw_text_policy_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // zircon_hub/src/state/hub_message/message.rs,
+        // zircon_hub/src/tauri_app/runtime_state/build_actions.rs.
+        // Raw text anchor: HubMessage::raw_text.
+        // Guard anchor: runtime_15_hub_message_raw_text_policy_uses_current_names.
+        Some("2026-06-27")
     } else if slice == "Runtime 15 M2 editor workbench authority-label naming hard cutover" {
         // Status anchor:
         // runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred.
@@ -141,6 +328,15 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         // Audit anchor: non_network_server_naming.py.
         // Guard anchor: runtime_15_editor_workbench_authority_label_uses_editor_name.
         Some("2026-06-25")
+    } else if slice == "Runtime 15 M2 editor Workbench archived fixture naming hard cutover" {
+        // Status anchor:
+        // runtime_15_editor_workbench_archived_fixture_naming_hard_cutover_static_passed_cargo_deferred.
+        // Evidence anchors:
+        // zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs,
+        // zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs.
+        // Entry anchor: draw_host_workbench_window.
+        // Guard anchor: runtime_15_editor_workbench_archived_fixtures_use_current_names.
+        Some("2026-06-27")
     } else {
         None
     }

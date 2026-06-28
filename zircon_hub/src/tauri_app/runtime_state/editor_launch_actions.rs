@@ -229,7 +229,7 @@ impl HubRuntimeSession {
         let report = match result {
             Ok(report) => report,
             Err(error) => {
-                let detail = HubMessage::legacy(error.to_string());
+                let detail = HubMessage::raw_text(error.to_string());
                 self.record_editor_launch_failure(
                     pending_launch.target,
                     detail,

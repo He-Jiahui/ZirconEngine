@@ -1,0 +1,60 @@
+[asset]
+kind = "style"
+id = "ui.theme.editor_base"
+version = 1
+display_name = "Editor Base"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_material.zui"]
+
+[tokens]
+accent = "#4d89ff"
+panel_bg = "#20252d"
+shell_bg = "#171a20"
+title = "#eef3ff"
+
+[components]
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = ".editor-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$shell_bg"
+
+[stylesheets.rules.set.slot]
+
+[[stylesheets.rules]]
+selector = ".panel"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.slot]
+
+[[stylesheets.rules]]
+selector = ".section-title"
+
+[stylesheets.rules.set.self]
+text = "$title"
+
+[stylesheets.rules.set.slot]
+
+[[stylesheets.rules]]
+selector = ".toolbar > Button.toolbar-primary"
+
+[stylesheets.rules.set.self.background]
+color = "$accent"
+
+[stylesheets.rules.set.slot]
+
+[[stylesheets.rules]]
+selector = "#DesignerLabel"
+
+[stylesheets.rules.set.self]
+text = "Canvas Preview"
+
+[stylesheets.rules.set.slot]

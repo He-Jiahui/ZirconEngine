@@ -166,7 +166,14 @@ fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
     assert!(frame.buttons.just_pressed(&InputButton::MouseLeft));
     assert!(frame.cursor_inside_window);
     assert_eq!(frame.mouse_motion_accumulator, [3.0, -2.0]);
-    assert_eq!(frame.wheel_accumulator, 4.0);
+    assert_eq!(
+        MouseWheelEvent::pixels(4.0, 20.0).vertical_line_delta(),
+        20.0 * PIXEL_SCROLL_LINE_DELTA_SCALE
+    );
+    assert_eq!(
+        frame.wheel_accumulator,
+        2.0 + 20.0 * PIXEL_SCROLL_LINE_DELTA_SCALE
+    );
     assert_eq!(frame.mouse_wheel_accumulator, [4.0, 22.0]);
     assert_eq!(frame.mouse_wheel_unit, MouseScrollUnit::Pixel);
     assert_eq!(

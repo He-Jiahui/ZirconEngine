@@ -21,7 +21,7 @@ fn ui_asset_theme_shell_contract_is_rust_owned_and_toml_projected() {
         "src/ui/retained_host/host_contract/data/ui_asset/style/theme_source.rs",
     ]);
     let callbacks = source("src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs");
-    let asset = source("assets/ui/editor/ui_asset_editor.v2.ui.toml");
+    let asset = source("assets/ui/editor/ui_asset_editor.zui");
 
     for required in [
         "pub(crate) struct UiAssetThemeSourceData",

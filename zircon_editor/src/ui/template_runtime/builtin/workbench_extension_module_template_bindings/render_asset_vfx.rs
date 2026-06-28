@@ -531,8 +531,8 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.particle_library.impact_gpu_row.select",
     ),
     click(
-        "ParticleLibraryDeprecatedRow",
-        "workbench.extension.particle_library.deprecated_row.select",
+        "ParticleLibraryArchivedRow",
+        "workbench.extension.particle_library.archived_row.select",
     ),
     click(
         "ParticleLibraryOutput",

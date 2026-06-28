@@ -1201,7 +1201,7 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
@@ -2397,7 +2397,7 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-24 editor UI architecture screenshot validation and Project Overview button readability acceptance

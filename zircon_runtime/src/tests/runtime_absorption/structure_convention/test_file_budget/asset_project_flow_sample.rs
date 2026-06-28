@@ -74,7 +74,7 @@ fn runtime_15_asset_project_flow_sample_tests_are_folder_backed() {
             "pub(super) fn write_minimal_textured_gltf",
             "pub(super) fn write_sample_shader_package",
             "pub(super) fn write_bc1_texture",
-            "fn dds_legacy_bytes",
+            "fn dds_classic_fourcc_bytes",
         ],
     );
     assert_contains_all(

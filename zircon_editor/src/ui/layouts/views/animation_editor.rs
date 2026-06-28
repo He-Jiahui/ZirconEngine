@@ -7,9 +7,9 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 
-const ANIMATION_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/animation_editor.v2.ui.toml";
-const ANIMATION_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const ANIMATION_EDITOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
+const ANIMATION_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/animation_editor.zui";
+const ANIMATION_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const ANIMATION_EDITOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn animation_editor_pane_nodes(size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     model_rc(

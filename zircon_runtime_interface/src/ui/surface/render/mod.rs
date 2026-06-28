@@ -49,8 +49,9 @@ pub use parity::{
 pub use resolved_style::UiResolvedStyle;
 pub use text_layout::{UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange};
 pub use text_shape::{
-    UiShapedGlyph, UiShapedText, UiShapedTextCluster, UiShapedTextLine, UiTextPaint,
-    UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
+    UiShapedGlyph, UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText,
+    UiShapedTextCluster, UiShapedTextLine, UiTextPaint, UiTextPaintDecoration,
+    UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
 };
 pub use typography::{
     UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextRunKind, UiTextWrap,

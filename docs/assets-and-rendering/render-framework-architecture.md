@@ -225,7 +225,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
@@ -261,9 +261,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/mod.rs
@@ -570,11 +574,11 @@ related_code:
   - zircon_graphics/src/runtime/render_framework/query_stats/mod.rs
   - zircon_graphics/src/runtime/render_framework/queue_capability/mod.rs
   - zircon_graphics/src/runtime/render_framework/reload_pipeline/mod.rs
-  - zircon_graphics/src/runtime/render_framework/render_framework_impl/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/mod.rs
   - zircon_graphics/src/runtime/render_framework/set_pipeline_asset/mod.rs
   - zircon_graphics/src/runtime/render_framework/set_quality_profile/mod.rs
   - zircon_graphics/src/runtime/render_framework/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/render_framework/wgpu_render_framework_new/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
@@ -863,7 +867,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
@@ -1188,11 +1192,11 @@ implementation_files:
   - zircon_graphics/src/runtime/render_framework/query_stats/mod.rs
   - zircon_graphics/src/runtime/render_framework/queue_capability/mod.rs
   - zircon_graphics/src/runtime/render_framework/reload_pipeline/mod.rs
-  - zircon_graphics/src/runtime/render_framework/render_framework_impl/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/mod.rs
   - zircon_graphics/src/runtime/render_framework/set_pipeline_asset/mod.rs
   - zircon_graphics/src/runtime/render_framework/set_quality_profile/mod.rs
   - zircon_graphics/src/runtime/render_framework/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/render_framework/wgpu_render_framework_new/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
@@ -1922,6 +1926,8 @@ Hybrid GI 与 Virtual Geometry 的高级 renderer/runtime/type owner 已经从 `
 2026-05-04 的 editor/runtime export build repair 只恢复 compiled-scene wiring 的局部可见性和 import authority，没有改变 graph semantics。`execute_graph_stage.rs` 现在从 `crate::graphics::pipeline` 直接导入 `CompiledRenderPipeline` 与 `CompiledRenderPipelinePassStage`，并把 `RenderGraphStageExecution`、`import_frame_targets(...)`、`execute_graph_stage(...)` 的 visibility 限定在 `scene_renderer_core_render_compiled_scene` 子树；`render/mod.rs` 只对同一子树公开 `execute_graph_stage` module，同时继续把 `merge_plugin_renderer_outputs` re-export 到 core 范围，供 `render_frame_with_pipeline(...)` 的 existing path 合并 neutral plugin renderer outputs。这个 repair 对应用户粘贴的 `render_frame_with_pipeline.rs` call-site mismatch 阻塞：目标是让当前 compiled pipeline render path 重新 type-check，而不是接管 active VG/HGI/readback refactor sessions 或扩大 executor registry policy。
 
 2026-05-04 particles M6 full graph refactor replaces the old metadata-only executor loop with renderer-owned staged execution. `CompiledRenderPipeline` now stores `CompiledRenderPipelinePassStage` entries so renderer code can execute passes by stage without rediscovering descriptor order. `RenderPassExecutorRegistry` stores executor objects behind `Arc<dyn RenderPassExecutor>` and still adapts function-pointer registrations, but all executors now receive a mutable `RenderPassExecutionContext<'_>`. That context keeps pass metadata available and can optionally carry a renderer-owned `RenderPassGpuExecutionContext` with `wgpu::Device`, `wgpu::Queue`, live `wgpu::CommandEncoder`, frame extract access, scene bind group, named `RenderGraphExecutionResources`, and a neutral `RenderPluginRendererOutputs` sink. The root context file owns metadata, queue flags, declared resource access, and graph attachment-op lookup; `render_pass_execution_context/gpu.rs` owns the common renderer payload plus non-postprocess concrete `record_*` calls, while `render_pass_execution_context/gpu/post_process.rs` owns `RenderPassPostProcessStackContext`, postprocess target/resource resolution, SSAO/clustered compute-dispatch recording, and the concrete shared postprocess, motion-vector, and DoF record bridges. SSR-specific postprocess graph bridges now live under `render_pass_execution_context/gpu/post_process/screen_space_reflection.rs` so the root postprocess bridge remains structural as the SSR pass family grows.
+
+2026-06-28 的 F16 render_compiled_scene structure split status guard 只记录并锁定既有拆分：`bind_compiled_scene_graph_resources.rs` 继续拥有 frame/history/transient/execution/plugin resource binding，`execute_compiled_scene_graph_stages.rs` 继续拥有 early/lighting/scene/post/history/late graph stage execution，`submit_compiled_scene_frame.rs` 继续拥有 `queue.submit([encoder.finish()])`、HZB/readback 统计与 transient-pool release。`review_f16_compiled_scene_render_path_uses_split_owners` 要求 `render.rs` 保持约 444 行 orchestration owner，不把 `execute_graph_stage(...)`、`active_late_graph_stages(...)` 或 submit/readback/pool-release 行为吸回主函数；计划状态锚为 `compiled_scene_render_split_review_guard_static_passed_cargo_deferred`。
 
 The scene renderer owns graph execution timing. `render_frame_with_pipeline(...)` no longer runs the compiled graph before rendering as metadata validation. Instead, `SceneRendererCore::render_compiled_scene(...)` validates executor ids once, creates the command encoder, imports frame targets into `RenderGraphExecutionResources` as `scene-color` and `scene-depth`, executes the pre-transparent stage slices while the encoder is live, then calls `render_scene_passes(...)`. The `Transparent` graph slice is executed at the transparent boundary before CPU particle billboard fallback, so plugin graph work can prepare or consume transparent resources in the same encoder lifetime. Post-process and overlay graph slices run at their matching renderer boundaries. `RenderPassExecutorRegistry` stays the registry/validation owner, while post-process executor bodies, scene executor bodies, preview-sky executor bodies, and registry tests now live in focused child modules under `graph_execution`. Post-process graph node accounting uses the same `RenderGraphExecutionRecord` held by `RenderGraphStageExecution`; `record_post_process_graph(...)` is the only compiled-scene path that clones the effective post-process graph, checks node availability against `RenderGraphExecutionResources`, and writes the post-process graph plus executed node names into the record. The resulting `RenderGraphExecutionRecord` is stored through `SceneRendererCompiledSceneOutputs` / `store_last_runtime_outputs(...)`, and `RenderStats` now exposes particle-prefixed and transparent-stage executed pass counts from the real renderer execution record.
 

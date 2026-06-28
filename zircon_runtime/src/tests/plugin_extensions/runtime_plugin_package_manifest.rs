@@ -275,6 +275,30 @@ fn native_runtime_plugin_registration_report_rejects_static_package_id_shape_vio
 }
 
 #[test]
+fn native_runtime_plugin_registration_report_accepts_dot_namespaced_package_id() {
+    let manifest = PluginPackageManifest::new("asset_importer.shader", "Shader Asset Importers")
+        .with_capability("runtime.plugin.asset_importer.shader")
+        .with_asset_importer(
+            AssetImporterDescriptor::new(
+                "asset_importer.shader.wgsl",
+                "asset_importer.shader",
+                crate::asset::AssetKind::Shader,
+                1,
+            )
+            .with_source_extensions(["wgsl"])
+            .with_required_capabilities(["runtime.plugin.asset_importer.shader"]),
+        );
+
+    assert_eq!(manifest.package_name, "asset_importer_shader");
+    assert_eq!(manifest.package_id(), "com.zircon.asset_importer_shader");
+
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(manifest);
+
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    assert!(registration.diagnostics.is_empty());
+}
+
+#[test]
 fn runtime_plugin_registration_report_rejects_descriptor_package_id_shape_violations() {
     let plugin = RuntimePluginDescriptor::builder(
         "1weather__",

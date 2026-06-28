@@ -1,5 +1,7 @@
 use zircon_runtime_interface::{ZrByteSlice, ZrStatus, ZrStatusCode};
 
+use std::fmt::Display;
+
 pub(in crate::dynamic_api::session) fn unsupported_version() -> ZrStatus {
     ZrStatus::new(
         ZrStatusCode::UnsupportedVersion,
@@ -18,8 +20,8 @@ pub(in crate::dynamic_api::session) fn not_found(message: &'static [u8]) -> ZrSt
     ZrStatus::new(ZrStatusCode::NotFound, ZrByteSlice::from_static(message))
 }
 
-pub(in crate::dynamic_api::session) fn error_status(message: impl Into<String>) -> ZrStatus {
-    let message = message.into();
+pub(in crate::dynamic_api::session) fn error_status(message: impl Display) -> ZrStatus {
+    let message = message.to_string();
     if message.is_empty() {
         return ZrStatus::new(
             ZrStatusCode::Error,

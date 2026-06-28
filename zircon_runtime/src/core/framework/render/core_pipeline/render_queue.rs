@@ -170,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn authored_legacy_offsets_are_clamped_to_material_window() {
+    fn authored_queue_offsets_are_clamped_to_material_window() {
         assert_eq!(
             RenderQueueValue::from_authored_queue(&RenderMaterialAlphaMode::Blend, -10),
             RenderQueueValue::new(2_990)

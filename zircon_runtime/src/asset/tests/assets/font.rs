@@ -1,8 +1,12 @@
 use std::fs;
+use std::path::PathBuf;
 
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
-use crate::asset::{AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError, ImportedAsset};
+use crate::asset::{
+    AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError, FontAssetRenderStrategy,
+    ImportedAsset,
+};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"
@@ -18,6 +22,30 @@ fn font_asset_wrapper_parses_runtime_font_manifest_fields() {
     assert_eq!(font.source, "FiraMono-subset.ttf");
     assert_eq!(font.family.as_deref(), Some("Fira Mono"));
     assert_eq!(font.render_mode, Some(UiTextRenderMode::Sdf));
+    assert_eq!(font.effective_render_mode(), Some(UiTextRenderMode::Sdf));
+    assert_eq!(font.face_index, 0);
+    assert!(font.metadata.is_none());
+}
+
+#[test]
+fn font_asset_effective_render_mode_uses_strategy_default_and_constraints() {
+    let font = FontAsset {
+        source: "FiraMono-subset.ttf".to_string(),
+        family: Some("Fira Mono".to_string()),
+        render_mode: None,
+        face_index: 0,
+        family_members: Vec::new(),
+        variable_instances: Vec::new(),
+        fallback_families: Vec::new(),
+        render_strategy: FontAssetRenderStrategy {
+            default_mode: Some(UiTextRenderMode::Auto),
+            allow_native: Some(false),
+            allow_sdf: Some(true),
+        },
+        metadata: None,
+    };
+
+    assert_eq!(font.effective_render_mode(), Some(UiTextRenderMode::Sdf));
 }
 
 #[test]
@@ -35,6 +63,7 @@ fn importer_decodes_font_assets_from_font_toml() {
     fs::create_dir_all(&root).unwrap();
     let font_path = root.join("default.font.toml");
     fs::write(&font_path, FONT_TOML).unwrap();
+    fs::copy(runtime_font_fixture(), root.join("FiraMono-subset.ttf")).unwrap();
 
     let importer = AssetImporter::default();
     let imported = importer
@@ -48,6 +77,13 @@ fn importer_decodes_font_assets_from_font_toml() {
         ImportedAsset::Font(asset) => {
             assert_eq!(asset.source, "FiraMono-subset.ttf");
             assert_eq!(asset.render_mode, Some(UiTextRenderMode::Sdf));
+            let metadata = asset
+                .metadata
+                .as_ref()
+                .expect("font import should parse source metadata");
+            assert_eq!(metadata.face_count, 1);
+            assert!(metadata.faces[0].cmap.contains_codepoint('A' as u32));
+            assert!(!asset.family_members.is_empty());
         }
         other => panic!("unexpected font import: {other:?}"),
     }
@@ -71,6 +107,7 @@ fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
     let font_dir = paths.assets_root().join("fonts");
     fs::create_dir_all(&font_dir).unwrap();
     fs::write(font_dir.join("default.font.toml"), FONT_TOML).unwrap();
+    fs::copy(runtime_font_fixture(), font_dir.join("FiraMono-subset.ttf")).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
     let imported = manager.scan_and_import().unwrap();
@@ -88,9 +125,14 @@ fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
     {
         ImportedAsset::Font(asset) => {
             assert_eq!(asset.family.as_deref(), Some("Fira Mono"));
+            assert!(asset.metadata.is_some());
         }
         other => panic!("unexpected project font asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn runtime_font_fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraMono-subset.ttf")
 }

@@ -1,7 +1,7 @@
 use super::*;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use zircon_runtime_interface::ui::layout::UiFrame;
-use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextWrap};
+use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWrap};
 
 #[test]
 fn sdf_atlas_plan_deduplicates_glyph_slots_across_batches() {
@@ -297,6 +297,7 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         font_size: 12.0,
         line_height: 14.0,
         text_align: UiTextAlign::Left,
+        text_direction: UiTextDirection::LeftToRight,
         wrap: UiTextWrap::None,
         style: Default::default(),
     }

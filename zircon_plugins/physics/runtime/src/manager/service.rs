@@ -1,8 +1,8 @@
 use zircon_runtime::core::framework::physics::{
     PhysicsBackendStatus, PhysicsContactEvent, PhysicsManager, PhysicsMaterialMetadata,
-    PhysicsRayCastHit, PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings,
-    PhysicsShapeCastHit, PhysicsShapeCastQuery, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery,
-    PhysicsTriggerEvent, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsQueryInterface, PhysicsRayCastHit, PhysicsRayCastQuery, PhysicsSceneStepResult,
+    PhysicsSettings, PhysicsShapeCastHit, PhysicsShapeCastQuery, PhysicsShapeOverlapHit,
+    PhysicsShapeOverlapQuery, PhysicsTriggerEvent, PhysicsWorldStepPlan, PhysicsWorldSyncState,
 };
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Real;
@@ -28,6 +28,13 @@ impl PhysicsManager for DefaultPhysicsManager {
             .lock()
             .expect("physics settings mutex poisoned")
             .clone()
+    }
+
+    fn store_settings(
+        &self,
+        settings: PhysicsSettings,
+    ) -> Result<(), zircon_runtime::core::CoreError> {
+        DefaultPhysicsManager::store_settings(self, settings)
     }
 
     fn default_material(&self) -> PhysicsMaterialMetadata {
@@ -147,6 +154,20 @@ impl PhysicsManager for DefaultPhysicsManager {
             contacts: self.drain_contacts(world_handle),
             triggers: self.drain_triggers(world_handle),
         }
+    }
+}
+
+impl PhysicsQueryInterface for DefaultPhysicsManager {
+    fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit> {
+        query::ray_cast(self, query)
+    }
+
+    fn shape_overlap(&self, query: &PhysicsShapeOverlapQuery) -> Vec<PhysicsShapeOverlapHit> {
+        query::shape_overlap(self, query)
+    }
+
+    fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Option<PhysicsShapeCastHit> {
+        query::shape_cast(self, query)
     }
 }
 

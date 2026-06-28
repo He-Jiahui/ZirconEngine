@@ -28,10 +28,10 @@ mod tests {
         assert!(manifest
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(manifest
+        assert!(!manifest
             .capabilities
             .contains(&CONTAINER_IMPORTER_CAPABILITY.to_string()));
-        assert!(manifest
+        assert!(!manifest
             .capabilities
             .contains(&PSD_IMPORTER_CAPABILITY.to_string()));
         assert_eq!(manifest.supported_targets, supported_targets());
@@ -96,10 +96,10 @@ mod tests {
         assert!(dist_module
             .target_modes
             .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
-        assert!(dist_module
+        assert!(!dist_module
             .capabilities
             .contains(&CONTAINER_IMPORTER_CAPABILITY.to_string()));
-        assert!(dist_module
+        assert!(!dist_module
             .capabilities
             .contains(&PSD_IMPORTER_CAPABILITY.to_string()));
     }

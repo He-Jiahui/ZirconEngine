@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const LEGACY_PIXEL_SCROLL_SCALE: f32 = 0.1;
+pub const PIXEL_SCROLL_LINE_DELTA_SCALE: f32 = 0.1;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MouseScrollUnit {
@@ -29,10 +29,10 @@ impl MouseWheelEvent {
         Self::new(MouseScrollUnit::Pixel, x, y)
     }
 
-    pub fn legacy_vertical_delta(self) -> f32 {
+    pub fn vertical_line_delta(self) -> f32 {
         match self.unit {
             MouseScrollUnit::Line => self.y,
-            MouseScrollUnit::Pixel => self.y * LEGACY_PIXEL_SCROLL_SCALE,
+            MouseScrollUnit::Pixel => self.y * PIXEL_SCROLL_LINE_DELTA_SCALE,
         }
     }
 }

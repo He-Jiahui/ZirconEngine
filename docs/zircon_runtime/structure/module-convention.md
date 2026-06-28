@@ -1,8 +1,21 @@
 ---
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f12_dead_code.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs
+  - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
+  - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
+  - tools/plugin_structure_audits/capability.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/error.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
+  - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/asset/load/texture.rs
   - zircon_runtime/src/asset/tests/load/texture.rs
   - zircon_runtime/src/asset/load/mesh.rs
@@ -56,8 +69,25 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/prelude.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
+  - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/input/mod.rs
+  - zircon_runtime/src/ui/surface/input/error.rs
+  - zircon_runtime/src/ui/surface/input/effect.rs
+  - zircon_runtime/src/ui/surface/input/effect/component_event.rs
+  - zircon_runtime/src/ui/surface/input/effect/drag_drop.rs
+  - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
+  - zircon_runtime/src/ui/surface/input/effect/navigation.rs
+  - zircon_runtime/src/ui/surface/input/effect/node.rs
+  - zircon_runtime/src/ui/surface/input/effect/popup_tooltip.rs
+  - zircon_runtime/src/ui/surface/input/effect/redraw.rs
+  - zircon_runtime/src/ui/surface/input/effect/text_services.rs
+  - zircon_runtime/src/ui/surface/input/validation.rs
+  - zircon_runtime/src/ui/surface/input/state/drag_drop.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
@@ -68,6 +98,9 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/slot_contract.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs
+  - zircon_runtime/src/ui/template/asset/schema/migrator.rs
+  - zircon_runtime/src/ui/tests/asset_schema_migration.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/document/validation.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
@@ -82,6 +115,7 @@ related_code:
   - zircon_runtime/src/asset/assets/material/material_asset/management.rs
   - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
   - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
+  - zircon_runtime/src/asset/assets/texture/upload_support/dds.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
@@ -120,9 +154,16 @@ related_code:
   - docs/zircon_runtime/core/resource.md
   - zircon_runtime/src/animation/manager/mod.rs
   - docs/zircon_runtime/animation/runtime.md
+  - zircon_runtime/src/core/framework/input/mouse_wheel.rs
+  - zircon_runtime/src/core/framework/input/mod.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
+  - zircon_runtime/src/input/mod.rs
+  - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - docs/zircon_runtime/input/input_state.md
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
   - zircon_runtime/src/core/runtime/config_store.rs
   - docs/zircon_runtime/core/runtime/config_store.md
   - zircon_runtime/src/navigation/runtime.rs
@@ -157,7 +198,11 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+  - zircon_runtime/src/ui/platform_input/keyboard_map.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
+  - docs/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/asset/watch/asset_change_construction.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
@@ -201,6 +246,9 @@ related_code:
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_particle_gpu_readback_outputs.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
@@ -219,7 +267,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
@@ -531,6 +582,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_geometry.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_rows.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs
@@ -554,8 +606,18 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_row_data.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs
+  - zircon_hub/src/state/hub_message/message.rs
+  - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
 implementation_files:
   - docs/zircon_runtime/structure/module-convention.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/multi.rs
@@ -1035,6 +1097,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_manager.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs
@@ -1058,13 +1121,44 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_row_data.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs
+  - zircon_plugins/net/features/http/runtime/src/backend.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/client.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
+  - zircon_hub/src/state/hub_message/message.rs
+  - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs::runtime_15_module_convention_audit_script_family_uses_gate_names (2026-06-27 Runtime 15 M3 module convention audit script family naming cleanup: static guard added; focused core-min Cargo guard passed)
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs::runtime_15_module_convention_gate_audit_clear_is_status_locked (2026-06-27 Runtime 15 M3 module convention gate audit-clear status mirror: static guard added; focused core-min Cargo guard passed)
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs::runtime_15_hard_cutover_allowed_hyper_policy_does_not_report_risk (2026-06-27 Runtime 15 M3 hard-cutover allowed Hyper policy risk cleanup: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs::runtime_15_module_convention_gate_reports_non_render_debt_boundary (2026-06-27 Runtime 15 M3 module convention non-render debt guard: static guard added; Cargo deferred because external cargo/rustc lanes were active)
   - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_wav_parse_reports_typed_error_variants
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_sound_asset_uses_typed_error
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_dds_upload_policy_uses_classic_container_names (2026-06-27 Runtime 15 M2 DDS upload policy naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs::runtime_15_material_asset_schema_v1_defaults_use_versioned_names (2026-06-27 Runtime 15 M2 material asset schema-v1 defaults naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated (2026-06-27 Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub.rs::runtime_15_hub_message_raw_text_policy_uses_current_names (2026-06-27 Runtime 15 M2 Hub message raw text policy hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs::runtime_15_editor_workbench_archived_fixtures_use_current_names (2026-06-27 Runtime 15 M2 editor Workbench archived fixture naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names (2026-06-27 Runtime 15 M2 scene render layer schema-v1 mask naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_render_layer_schema_v1_mask_api_uses_current_names (2026-06-27 Runtime 15 M2 render layer schema-v1 mask API naming hard cutover: static guard added; Cargo deferred by Runtime 15 implementation-slice cadence)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_render_shader_definition_uses_bare_flag_names (2026-06-27 Runtime 15 M2 render shader definition bare-flag naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs::runtime_15_gpu_model_embedded_primitive_uses_current_names (2026-06-27 Runtime 15 M2 GPU model embedded primitive naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_frame_extract_snapshot_adapter_uses_current_names (2026-06-27 Runtime 15 M2 frame extract snapshot adapter naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_core_framework_render_fixtures_use_current_names (2026-06-27 Runtime 15 M2 core framework render fixture naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_feature_fallback_capability_fixtures_use_current_names (2026-06-27 Runtime 15 M2 render feature fallback capability naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_material_stale_texture_fixtures_use_current_names (2026-06-27 Runtime 15 M2 render material stale texture fixture naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_graph_fallback_fixtures_use_current_names (2026-06-27 Runtime 15 M2 render graph fallback fixture naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics/hybrid_gi.rs::runtime_15_hybrid_gi_extract_scene_source_uses_current_names (2026-06-27 Runtime 15 M2 Hybrid GI extract scene-source naming hard cutover: static guard added; Cargo deferred by Runtime 15 implementation-slice cadence)
   - cargo test -p zircon_runtime --lib runtime_15_mixed_visibility_has_facade_note --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib prelude --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_prelude_covers_required_types --no-default-features --features core-min --locked
@@ -1191,7 +1285,11 @@ doc_type: module-detail
 
 > 本文是 [Runtime 15](../../plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md) 的镜像文档，固定 `module_convention_gate` 的结构审计事实，由 `runtime_15_module_convention_mirror_docs_match_structure_audit_counts` 守卫锁定计数。上游规范：[`engine-code-structure-convention.md`](../../plans/engine-code-structure-convention.md)。
 >
-> 状态：in_progress（Runtime 15 F9 runtime prelude required type coverage、Runtime 15 graphics facade visibility note、Runtime 15 runtime UI dead-code support split、Runtime 15 F12 runtime-owned dead-code suppression cleanup、Runtime 15 F12 script host value descriptor dead-code cleanup、Runtime 15 F12 script reflection macro fixture dead-code cleanup、Runtime 15 F12 offscreen target texture owner cleanup、Runtime 15 F12 render backend state owner cleanup、Runtime 15 F12 gpu texture resource owner cleanup、Runtime 15 F12 gpu material uniform owner cleanup、Runtime 15 F12 gpu mesh order signature cleanup、Runtime 15 F12 gpu model identity cleanup、Runtime 15 F12 post-process LUT texture owner cleanup、Runtime 15 F12 output target texture owner cleanup、Runtime 15 F12 material runtime capture seed cleanup、Runtime 15 F12 resource streamer diagnostics accessor cleanup、Runtime 15 F12 resource streamer resolve texture id cleanup、Runtime 15 F12 particle GPU readback output accessor cleanup、Runtime 15 F12 advanced plugin output test accessor cleanup、Runtime 15 M3 graphics dead-code guard module split、Runtime 15 M3 graphics dead-code guard child-owner split、Runtime 15 M3 provider boilerplate guard module split、Runtime 15 M3 facade surface guard module split、Runtime 15 M3 runtime dead-code guard module split、Runtime 15 M3 diagnostics guard module split、Runtime 15 M3 core framework test folder split、Runtime 15 M3 core runtime deactivation blocked test folder split、Runtime 15 M3 UI v2 asset test folder split、Runtime 15 M3 UI shared core test folder split、Runtime 15 M3 UI accessibility test folder split、Runtime 15 M3 UI accessibility widget actions test folder split、Runtime 15 M3 UI layout slots test folder split、Runtime 15 M3 UI surface-frame authority test folder split、Runtime 15 M3 UI surface dirty domains test folder split、Runtime 15 M3 UI material layout test folder split、Runtime 15 M3 UI event routing test folder split、Runtime 15 M3 UI runtime input reply routes test folder split、Runtime 15 M3 UI runtime input reply route child folder split、Runtime 15 M3 runtime diagnostics test folder split、Runtime 15 M3 RHI command list test folder split、Runtime 15 M3 RHI device contract test folder split、Runtime 15 M3 asset pack test folder split、Runtime 15 M3 asset facade test folder split、Runtime 15 M3 asset project zmeta test folder split、Runtime 15 M3 asset project manager test folder split、Runtime 15 M3 asset project flow sample test folder split、Runtime 15 M3 asset material test folder split、Runtime 15 M3 asset glTF importer test folder split、Runtime 15 M3 asset glTF primitive fixture folder split、Runtime 15 M3 asset importer test folder split、Runtime 15 M3 asset scene test folder split、Runtime 15 M3 test file budget guard folder split、Runtime 15 M3 Runtime 07 performance hotspot guard folder split、Runtime 15 M3 script VM test folder split、Runtime 15 M3 scene ECS schedule test folder split、Runtime 15 F14 diagnostics normalization、Runtime 15 F13 provider registration shared owner、Runtime 15 F13 provider update shared stats owner、Runtime 15 F13 provider feedback shared payload owner、Runtime 15 F13 provider prepare input shared frame owner 与 Runtime 15 F13 full provider boilerplate audit 已落地；完整 `module_convention_boundary.py` 审计计数、全量 dead-code sweep 与测试组织拆分仍 pending）。
+> 状态：in_progress（Runtime 15 F9 runtime prelude required type coverage、Runtime 15 graphics facade visibility note、Runtime 15 runtime UI dead-code support split、Runtime 15 F12 runtime-owned dead-code suppression cleanup、Runtime 15 F12 script host value descriptor dead-code cleanup、Runtime 15 F12 script reflection macro fixture dead-code cleanup、Runtime 15 F12 offscreen target texture owner cleanup、Runtime 15 F12 render backend state owner cleanup、Runtime 15 F12 gpu texture resource owner cleanup、Runtime 15 F12 gpu material uniform owner cleanup、Runtime 15 F12 gpu mesh order signature cleanup、Runtime 15 F12 gpu model identity cleanup、Runtime 15 F12 post-process LUT texture owner cleanup、Runtime 15 F12 output target texture owner cleanup、Runtime 15 F12 material runtime capture seed cleanup、Runtime 15 F12 resource streamer diagnostics accessor cleanup、Runtime 15 F12 resource streamer resolve texture id cleanup、Runtime 15 F12 particle GPU readback output accessor cleanup、Runtime 15 F12 advanced plugin output test accessor cleanup、Runtime 15 M3 graphics dead-code guard module split、Runtime 15 M3 graphics dead-code guard child-owner split、Runtime 15 M3 provider boilerplate guard module split、Runtime 15 M3 facade surface guard module split、Runtime 15 M3 runtime dead-code guard module split、Runtime 15 M3 diagnostics guard module split、Runtime 15 M3 core framework test folder split、Runtime 15 M3 core runtime deactivation blocked test folder split、Runtime 15 M3 UI v2 asset test folder split、Runtime 15 M3 UI shared core test folder split、Runtime 15 M3 UI accessibility test folder split、Runtime 15 M3 UI accessibility widget actions test folder split、Runtime 15 M3 UI layout slots test folder split、Runtime 15 M3 UI surface-frame authority test folder split、Runtime 15 M3 UI surface dirty domains test folder split、Runtime 15 M3 UI material layout test folder split、Runtime 15 M3 UI event routing test folder split、Runtime 15 M3 UI runtime input reply routes test folder split、Runtime 15 M3 UI runtime input reply route child folder split、Runtime 15 M3 runtime diagnostics test folder split、Runtime 15 M3 RHI command list test folder split、Runtime 15 M3 RHI device contract test folder split、Runtime 15 M3 asset pack test folder split、Runtime 15 M3 asset facade test folder split、Runtime 15 M3 asset project zmeta test folder split、Runtime 15 M3 asset project manager test folder split、Runtime 15 M3 asset project flow sample test folder split、Runtime 15 M3 asset material test folder split、Runtime 15 M3 asset glTF importer test folder split、Runtime 15 M3 asset glTF primitive fixture folder split、Runtime 15 M3 asset importer test folder split、Runtime 15 M3 asset scene test folder split、Runtime 15 M3 test file budget guard folder split、Runtime 15 M3 Runtime 07 performance hotspot guard folder split、Runtime 15 M3 script VM test folder split、Runtime 15 M3 scene ECS schedule test folder split、Runtime 15 F14 diagnostics normalization、Runtime 15 F13 provider registration shared owner、Runtime 15 F13 provider update shared stats owner、Runtime 15 F13 provider feedback shared payload owner、Runtime 15 F13 provider prepare input shared frame owner 与 Runtime 15 F13 full provider boilerplate audit 已落地；当前 `module_convention_gate audit clear`，`migration_debt_count=0`、`risk_count=0`、`risks=[]`，全量 Cargo sweep 仍 pending）。
+>
+> 最新完成：Runtime 15 M3 status output Runtime 15 M2 row data split（`runtime_15_status_output_runtime_15_m2_row_data_split_static_passed_cargo_deferred`）已把 `plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs` 中的 Runtime 15 M2 module naming / hard-cutover row literals 拆入 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m2.rs`；Runtime 15 父聚合和顶层 status row group 显式挂载 `RUNTIME_15_M2_EXPECTED_STATUS_OUTPUT_SLICES`，`runtime_15_status_output_runtime_15_m2_row_data_is_child_owner` 锁定新 child owner、旧 foundation owner 不回流 M2 rows、foundation/M2 owner 低于 800 行预算，以及 Runtime 15/index/review findings/structure/module docs/status-output expectations 的状态锚同步。该切片只整理测试/状态 row-data owner，不改 runtime/render/plugin/editor 生产代码；Cargo 按支撑切片节奏 deferred。
+>
+> 最新完成：Runtime 15 M3 D10 animation/physics bridge call migration（`d10_animation_physics_bridge_call_static_passed_cargo_deferred`）已关闭跨插件查询路径缺口：运行时中立契约新增 `PhysicsQueryInterface` / `physics.query.v1`，SDK `RuntimePluginModuleRegistration::export_interface::<T>(...)` 提供 owner-tracked bridge export，Physics runtime 声明并导出 `physics.query.v1`，Animation/physics 合约测试通过 `WeakBridge<dyn PhysicsQueryInterface>` 从 frozen bridge table 调用 ray、overlap、shape-cast，不再解析 concrete physics manager；`review_d10_animation_physics_tests_use_sdk_bridge_call` 与 `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs` 已同步锁定源码、docs/status 和 no-concrete-manager 回归；Cargo 按实施切片节奏 deferred。
 >
 > 最新完成：Runtime 15 F5 texture loader typed errors（`runtime_15_texture_loader_typed_errors_static_passed_cargo_deferred`）已把 `asset/load/texture.rs` 的 `load_texture(...)` / `decode_image_file(...)` 从 `Result<CpuTexturePayload, String>` / `format!("open image ...")` 收敛到 `TextureLoadError` / `TextureLoadResult`；`TextureLoadError::OpenImage` 保留 `image::ImageError` source，`asset/pipeline/worker_pool.rs` 只在 `CpuAssetPayload::Failure { message }` 出口 stringify，`review_f5_texture_loader_uses_typed_error` 已同步锁定 loader owner、worker boundary、test 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
 >
@@ -1211,6 +1309,30 @@ doc_type: module-detail
 >
 > 最新完成：Runtime 15 F5 asset meta typed errors（`runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred`）已把 `.zmeta` `asset/project/meta.rs::migrate_to_current(...)` 从 `Result<(), String>` / `Err(format!(...))` 收敛到 `AssetMetaError` / `AssetMetaResult`；`AssetMetaError::UnsupportedFormatVersion` 保留 found/supported 版本，`AssetMetaDocument::load(...)` 只在 `std::io::ErrorKind::InvalidData` 边界 stringify，`review_f5_asset_meta_uses_typed_error` 已同步锁定 meta owner、facade exports、importer doc 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
 >
+> 最新完成：Runtime 15 F5 gameplay host typed errors（`runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred`）已新增 `script/vm/gameplay_host/error.rs` 的 `GameplayHostError` / `GameplayHostResult` typed-error owner，并把 `script/vm/gameplay_host/{combat,lifecycle,navigation,transform}.rs` 的 world mutation、navigation tick、JSON serialization 与 missing-entity failure 从内部 `Result<_, String>` / `Err(format!(...))` / `.map_err(|error| error.to_string())` 收敛到 typed result；`ScriptHostError` 字符串诊断只保留在 VM host-call 边界，`review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary` 已同步锁定 error owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 script scene hook typed errors（`runtime_15_script_scene_hook_typed_errors_static_passed_cargo_deferred`）已新增 `script/vm/scene_hook/error.rs` 的 `ScriptSceneHookError` / `ScriptSceneHookResult` typed-error owner，并把 `script/vm/scene_hook.rs` 的 `script.bindings` JSON parse、manager resolve 与 VM export-call failure 从内部 `Result<_, String>` / `Err(format!(...))` / `.map_err(|error| error.to_string())` 收敛到 typed result；`CoreError::Initialization` 字符串诊断只保留在 `SceneRuntimeHook::run(...)` 边界，`review_f5_script_scene_hook_uses_typed_errors_before_core_boundary` 已同步锁定 error owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 export CLI typed errors（`runtime_15_export_cli_typed_errors_static_passed_cargo_deferred`）已新增 `bin/zircon_export_pack/error.rs` 的 `ExportPackError` / `ExportPackResult` 与 `bin/zircon_export_validate/error.rs` 的 `ExportValidateError` / `ExportValidateResult` typed-error owners，并把 Pack/Validate CLI 内部 argument parsing、manifest/report JSON、pack/report/delta IO、ZRPK/ZRPD verification 和 deterministic comparison failure 从内部 `Result<_, String>` / `Err(format!(...))` / `.map_err(|error| format!(...))` 收敛到 typed result；`main.rs` 仍是最终 CLI display boundary，`review_f5_export_cli_uses_typed_errors_before_cli_boundary` 已同步锁定 error owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 host reflection docs CLI typed errors（`runtime_15_host_reflection_docs_cli_typed_errors_static_passed_cargo_deferred`）已把 `bin/zircon_host_reflection_docs.rs` 收缩为只挂载 `args/error/run` 并调用 `run::run(...)` 的 thin entry shell；`bin/zircon_host_reflection_docs/error.rs` 新增 `HostReflectionDocsError` / `HostReflectionDocsResult`，保留 built-in host module collection 的 `VmError` source 与 Markdown writer 的 `std::io::Error` source，旧内部 `Result<(), String>` / `Err(format!(...))` / `.map_err(|error| format!(...))` 已清除；`review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary` 已同步锁定 folder-backed bin owner、typed-error owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 dynamic API session typed errors（`runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred`）已新增 `dynamic_api/session/error.rs` 的 `RuntimeDynamicSessionError` / `RuntimeDynamicSessionResult` 与 `RuntimeProjectError` / `RuntimeProjectResult` typed-error owners，并把 dynamic session 构造、project root parsing、project asset/default scene/navmesh/script loading、scene hook install、frame tick、render bridge handoff 和 accessibility encode failure 从内部 `Result<_, String>` / `Err(format!(...))` / `.map_err(|error| error.to_string())` 收敛到 typed result；`dynamic_api/session/status.rs::error_status(...)` 仍是唯一 ABI 字符串出口，`review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary` 已同步锁定 error owner、project owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 F5 VM plugin management policy typed errors（`runtime_15_vm_plugin_management_policy_typed_errors_static_passed_cargo_deferred`）已新增 `script/vm/plugin/management_policy/error.rs` 的 `VmPluginManagementPolicyError` / `VmPluginManagementPolicyResult` typed-error owner，并把 VM plugin management policy 的 garbage-collection、memory 与 aggregate validate path 从内部 `Result<(), String>` / `Err(format!(...))` / `.to_string()` 收敛到 typed variants；`script/vm/mod.rs` 与 `script/mod.rs` 公开导出该 validation surface，management TOML schema 与 slot lifecycle 行为不变；`review_f5_vm_plugin_management_policy_uses_typed_validation_errors` 已同步锁定 error owner、validate signatures、facade exports 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 按 Runtime 15 实施节奏 deferred。
+>
+> 最新完成：Runtime 15 F5 UI surface input effect typed errors（`runtime_15_ui_surface_input_effect_typed_errors_static_passed_cargo_deferred`）已新增 `ui/surface/input/error.rs` 的 `UiSurfaceInputEffectError` / `UiSurfaceInputEffectResult` typed-error owner，并把 UI surface input effect dispatch、leaf effect handlers、input-owner validation 与 drag/drop state 从内部 `Result<_, String>` / `Result<(), String>` / `Err(format!(...))` 收敛到 typed variants；`UiDispatchRejectedEffect.reason` 保持唯一字符串出口，rejected-effect schema 与现有文案不变；`review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary` 已同步锁定 error owner、typed result signatures、string boundary、docs/status anchors 和无 String-error 回流；scoped rustfmt 与静态扫描已通过，Cargo 按 Runtime 15 实施节奏 deferred。
+>
+> 最新完成：Runtime 15 F5 UI input surrounding-text error source（`runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred`）已让 `zircon_runtime_interface/src/ui/dispatch/input/effect.rs::UiInputMethodSurroundingTextError` 实现 `std::error::Error`，并新增 `zircon_runtime_interface/src/tests/ui_dispatch_error_contracts.rs::ui_input_method_surrounding_text_error_is_std_error` 锁定 `StdError + Send + Sync + 'static` trait bound；runtime 侧 `UiSurfaceInputEffectError::InvalidInputMethodSurroundingText` 把 typed validation payload 标成 `#[source]`，不回退到字符串 wrapper；`review_f5_ui_input_surrounding_text_error_implements_std_error` 已同步锁定接口 source、runtime payload、docs/status anchors 和 code-review guard count 38；scoped rustfmt 与静态扫描已通过，Cargo 按 Runtime 15 实施节奏 deferred。
+>
+> 最新完成：Runtime 15 F5 UI template resource resolver typed errors（`runtime_15_ui_template_resource_resolver_typed_errors_static_passed_cargo_deferred`）已在 `ui/template/asset/resource_ref/resolver.rs` 新增 `UiResourceLookupError` / `UiResourceLookupResult`，把 UI scheme 到 runtime `ResourceLocator` lookup helper 从 `Result<_, String>` / `.map_err(|error| error.to_string())` 收敛到 typed result；`ResourceLocatorError::EmptyLabel` 与 parse/new source 通过 typed owner 保留，`UiResourceResolveDiagnostic` 仍是唯一 editor/report 字符串诊断边界；`review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary` 已同步锁定 lookup owner、empty-label behavior test、docs/status anchors 和无 String-error 回流；scoped rustfmt 与静态扫描已通过，Cargo 按 Runtime 15 实施节奏 deferred。
+>
+> 最新完成：Runtime 15 F5 UI asset document typed errors（`runtime_15_ui_asset_document_typed_errors_static_passed_cargo_deferred`）已把 `asset/assets/ui.rs` 的 v1/v2 wrapper parse 从 `Parse(String)` / `.map_err(|error| error.to_string())` 收敛到保留 `UiAssetError` / `UiV2AssetError` source 的 typed variants，theme/icon TOML parse 保留 `toml::de::Error` source，`UiIconAssetDocumentError::InvalidSourceUri` 保留 `ResourceLocatorError` source；`asset/importer/error.rs` 新增 `AssetImportError::UiThemeDocument` / `AssetImportError::UiIconDocument`，UI v1/v2/ZUI/theme/icon importers 不再把 document failures 降级为 `AssetImportError::Parse(String)`；`review_f5_ui_asset_documents_use_typed_errors_before_import_boundary` 已同步锁定 wrappers、importers、behavior tests、docs/status anchors 和无 String-error 回流；scoped rustfmt 与静态扫描已通过，Cargo 按 Runtime 15 实施节奏 deferred。
+>
+> 最新完成：Runtime 15 F1 native host callback panic guard（`runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred`）已把 P0/F1 native host 入站 FFI panic 边界闭合状态固定到 `plugin/native_plugin_loader/ffi_panic_guard.rs`、`host_api_adapter.rs` 与 `host_callbacks.rs`：9 个 public `ZrHostApiV3` callbacks 走 `catch_native_host_api_panic` / `ZrStatusCode::Panic`，4 个 private native host callbacks 走 `catch_native_plugin_host_callback_panic` / `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`；`review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi` 已同步锁定 13/13 callback guard、native loader docs、status/docs anchors 和当时 33 个 code-review findings 评审守卫，当前 P0/F2 跟进后总数为 40；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
+>
+> 最新完成：Runtime 15 M3 F2 lock poison recovery guard（`runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending`）已把 P0/F2 scene/EventBus poison-safe lock 闭合状态固定到 `scene/level_system.rs`、`scene/module/default_level_manager.rs` 与 `core/runtime/events.rs`：生产锁入口保留 poison recovery helpers，publish/subscribe/prune/lifecycle 调用方不直接展开锁；`review_f2_scene_eventbus_locks_recover_after_poison` 已同步锁定 `scene/EventBus poison-safe lock recovery complete`、module docs、status/docs anchors 和 code-review findings 当前 40 个评审守卫；`level_system_accessors_recover_poisoned_state_locks` core-min Cargo 通过，完整 Runtime 15 sweep 仍 pending。
+>
 > 最新完成：Runtime 15 F5 fixed world mutation typed errors（`runtime_15_fixed_world_mutation_typed_errors_static_passed_cargo_deferred`）已把 `scene/world/{component_access,hierarchy,query,records}.rs` 的固定 World mutation helper 从内部 `Err(format!(...)).into()` / `to_string().into()` 收敛到显式 `SceneError` 变体；`SceneError::MissingRequiredComponent`、joint/hierarchy/mobility/record/name typed variants 与 `review_f5_fixed_world_mutation_uses_scene_error_variants` 已同步锁定 owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
 >
 > 最新完成：Runtime 15 F5 typed API residual typed errors（`runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred`）已把 `scene/world/typed_api.rs` 的 dynamic component presence helper 与 `scene/world/identity.rs::register_stable_entity(...)` 从内部 `Result<_, String>` / `error.to_string()` 收敛到 `SceneResult`；`SceneError::EntityRegistry(#[from] EntityRegistryError)` 保留 stable entity registry source，`review_f5_world_spawn_bundle_surface_uses_scene_error` 已同步锁定 typed API、identity owner 和 status/docs anchors；scoped rustfmt 与静态扫描已通过，Cargo 因并行 cargo/rustc lane active deferred。
@@ -1229,7 +1351,33 @@ doc_type: module-detail
 >
 > 最新完成：Runtime 15 M3 core runtime deactivation blocked test folder split（`runtime_15_core_runtime_deactivation_blocked_tests_folder_split_static_passed_cargo_deferred`）已把 `core/runtime/tests/activation/behavior/deactivation/blocked.rs` 降到 7 行并迁出五个新增 folder-backed blocked deactivation owner；10 个测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
-> 最新完成：Runtime 15 M3 code review findings test folder split（`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/code_review_findings.rs` 降到 3 行并迁出 `typed_error_convergence/`、`f8_api_convergence.rs` 与 `late_api_cleanup.rs` 三个 folder-backed review guard owner；25 个评审守卫保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
+> 最新完成：Runtime 15 M3 code review findings test folder split（`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/code_review_findings.rs` 降到模块挂载文件，并迁出 `typed_error_convergence/`、`f8_api_convergence.rs`、`late_api_cleanup.rs`、`p0_robustness.rs`、`plugin_importer_dx.rs`、`render_structure.rs` 与 `f12_dead_code.rs` 七个 folder-backed review guard owner；后续 F1/F2/F4/F5/F8/D1/D8/D5/D9/D12/D13/F12/F16 子 owner 扩展后 57 个评审守卫保留在子模块，其中 plugin importer DX/P0 child owners 通过 `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs`、`tests/runtime_absorption/code_review_findings/plugin_importer_dx/d12_runtime_exports.rs`、`tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs` 与 `tests/runtime_absorption/code_review_findings/p0_robustness.rs` 锁定 D1 capability single-source review/status sync、D12 runtime helper export macro rollout、D13 importer SDK manifest parity guard、D13 importer top-row closed status sync、D-S8/D3 native fixture top-row closed status sync、P0 F1/F2/F4 top-row closed status sync、D7 core workspace dependency top-row closed status sync、`plugins_12_runtime_capability_single_source_guard_passed`、`plugins_12_capability_single_source_conformance`、`m4_runtime_capability_gate_status = runtime-capability-single-source-clean`、`capability_source_mismatches = 0`、`m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`、`sdk_builder_mirror_violations = 0`、`RuntimePluginRegistrationBuilder`、`RuntimePluginModuleRegistration::event`、`zircon_plugin_sdk::authoring_plugin!`、`review_d5_editor_authoring_plugins_use_sdk_macro`、`d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`、`EditorPluginDeclaration::mirrors_runtime_manifest`、`d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`、`review_d12_runtime_helper_exports_use_sdk_macro`、`d12_runtime_export_macro_review_synced_static_passed_cargo_deferred`、`runtime_plugin_exports!`、`ImporterRuntimeManifestBuilder`、`review_d13_importer_manifest_parity_guard_lives_in_sdk_builder`、`d13_importer_manifest_parity_guard_static_passed_cargo_deferred`、`review_priority_recommendation_d13_parity_sync_static_passed_cargo_deferred`、`d13_importer_top_row_closed_status_static_passed_cargo_deferred`、`ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred`、`p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred`、`d7_core_workspace_dependency_top_row_closed_status_static_passed_cargo_deferred`、`| M3 / closed |`、`| M2 / closed |`、`Runtime 15 + Runtime 06 + Plugins 11 / review closed`、`Runtime 15 + Runtime 07 / review closed`、`Runtime 07 + render index / review closed`、`Plugins 13 M2 + Plugins 12 / closed`、`Plugins 13 M1 + Plugins 12 / closed` 和 `importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity`，完整 `runtime_15_no_oversized_test_files` 仍 pending。
+>
+> 最新完成：Runtime 15 M3 F5/F6/F7 typed-error top-row closed status sync（`f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred`）已把 F5/F6/F7 顶表状态列同步为 `Runtime 08 + Runtime 15 / review closed`、`Runtime 02 / review closed` 与 `Runtime 04 / review closed`；`typed_error_convergence/scene_world.rs`、`animation_resource.rs` 与 `asset_loaders.rs` 的对应 review guards 现在要求顶表行包含该锚并以 review closed 状态结尾。该切片只同步审查状态和结构镜像，不改 runtime/asset/core/scene 生产代码。
+>
+> 最新完成：Runtime 15 M3 F8/F9/F10 runtime surface top-row closed status sync（`f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred`）已把 F8/F9/F10 顶表状态列同步为 `convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed`、`Runtime 15 / review closed` 与 `Runtime 09 + Runtime 15 / review closed`；`f8_api_convergence.rs`、`facade_surface.rs` 与 `runtime_dead_code.rs` 的对应 review/structure guards 现在要求顶表行包含该锚并以 review closed 状态结尾。该切片只同步审查状态和结构镜像，不改 runtime/plugin/asset/ui 生产代码。
+>
+> 最新完成：Runtime 15 M3 F13/F14 provider diagnostics top-row closed status sync（`f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred`）已把 F13/F14 顶表状态列同步为 `convention + Runtime 15 / review closed` 与 `Runtime 15 / review closed`；`provider_boilerplate/full_audit.rs::runtime_15_no_duplicated_provider_boilerplate` 与 `diagnostics_surface.rs::runtime_15_diagnostics_use_frame_trait_without_world_wrapper` 现在要求顶表行包含该锚并以 review closed 状态结尾。该切片只同步审查状态和结构镜像，不改 runtime/graphics/diagnostics 生产代码。
+>
+> 最新完成：Runtime 15 M3 F17/F18 lookup/manager top-row closed status sync（`f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred`）已把 F17/F18 顶表状态列同步为 `convention + Runtime 08 / review closed` 与 `Runtime 10 / review closed`；`late_api_cleanup.rs::review_f17_entity_path_option_lookup_uses_get_verb` 与 `review_f18_asset_manager_resolution_returns_registered_handle` 现在要求顶表行包含该锚并以 review closed 状态结尾。该切片只同步审查状态和结构镜像，不改 runtime/asset/scene 生产代码。
+>
+> 最新完成：Runtime 15 M3 F19 scene renderer construction top-row closed status sync（`f19_scene_renderer_construction_top_row_closed_status_static_passed_cargo_deferred`）已把 F19 顶表状态列同步为 `convention + render index / review closed`；`late_api_cleanup.rs::review_f19_scene_renderer_construction_modules_use_construct_names` 现在要求顶表行包含该锚并以 review closed 状态结尾，同时继续锁定 `scene_renderer_core_construct` / `scene_renderer_construct` 与旧 `_new` owner absent。该切片只同步审查状态和结构镜像，不改 render 生产代码。
+>
+> 最新完成：Runtime 15 M3 lock-poison status row-data child-owner split（`runtime_15_lock_poison_status_row_data_child_owner_split_static_passed_cargo_deferred`）已把 lock-poison policy/recovery status rows 从 `expected_status_row_data/runtime_15/m3/foundation_guards.rs` 拆到 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs`；`plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs`、Runtime 15 父聚合和顶层 row-data 聚合显式挂载 `LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`，`runtime_15_status_output_m3_row_data_child_owner_split` 现在要求旧 foundation owner 不回流这些 lock-poison rows 并锁定新 child owner、状态/日期映射和跨文档锚点。该切片只整理测试/状态 row-data owner，不改生产代码。
+>
+> 最新完成：Runtime 15 M3 module-convention status row-data child-owner split（`runtime_15_module_convention_status_row_data_child_owner_split_static_passed_cargo_deferred`）已把 module convention gate/output/debt/cleanup status rows 从 `expected_status_row_data/runtime_15/m3/foundation_guards.rs` 拆到 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs`；`plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs`、Runtime 15 父聚合和顶层 row-data 聚合显式挂载 `MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`，`runtime_15_status_output_m3_row_data_child_owner_split` 现在要求旧 foundation owner 不回流这些 module-convention rows 并锁定新 child owner、状态/日期映射和跨文档锚点。该切片只整理测试/状态 row-data owner，不改生产代码。
+>
+> 最新完成：Runtime 15 M3 review top-row status row-data child-owner split（`runtime_15_review_top_row_status_row_data_child_owner_split_static_passed_cargo_deferred`）已把 review top-row closed status sync rows 从 `expected_status_row_data/runtime_15/m3/foundation_guards.rs` 拆到 `expected_status_row_data/runtime_15/m3/review_status_sync.rs`；M3/Runtime 15/top-level row-data 聚合显式挂载 `REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES`，`runtime_15_status_output_m3_row_data_child_owner_split` 现在要求旧 foundation owner 不回流这些 review top-row rows 并锁定新 child owner、状态/日期映射和跨文档锚点。该切片只整理测试/状态 row-data owner，不改生产代码。
+>
+> 最新完成：Runtime 15 M3 D7 core workspace dependency inheritance guard（`d7_core_workspace_dependency_inheritance_guard_static_passed_cargo_deferred`）已把 Plugins 12 D7 的核心依赖继承收进全局结构审计：`tools/audit_plugin_structure.py --json` 当前报告 `core_workspace_dependency_status = core-workspace-deps-clean`、`core_workspace_dependency_count = 117`、`core_workspace_dependency_violation_count = 0`，所有 `zircon_runtime` / `zircon_editor` / `zircon_runtime_interface` plugin member 依赖均为 `workspace = true`；`zircon_plugins/Cargo.lock` 已随离线解析同步，`cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --offline` 通过；插件间 path 依赖仍归后续切片。
+>
+> 最新完成：Runtime 15 M3 D8 runtime registration builder original evidence paths（`d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred`）已把 `animation`、`physics`、`net` 三个原始 D8 证据 root 收进 `RuntimePluginRegistrationBuilder` / `RuntimePluginModuleRegistration` authoring path；`RuntimePluginModuleRegistration::event` 封装 net typed event owner token，`tools/audit_plugin_structure.py --json` 当前报告 `runtime_registration_builder_violation_count = 0`、`m3_t2_runtime_registration_builder_status = runtime-registration-builder-clean`，并由 `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` 锁定源码、审计、docs/status 锚。该状态只关闭原始证据路径，不声明 importer private registry mutation 或 module-only registration 全量清零。
+>
+> 最新完成：Runtime 15 M3 D5 editor authoring macro consumer guard（`d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`）已把 `animation`、`physics`、`net` 三个 editor plugin consumer 收进 `zircon_plugin_sdk::authoring_plugin!` authoring path；SDK macro 现在接受 `mirrors_runtime_manifest:`，并统一生成 struct/Default/declaration/package-manifest/registration-report/EditorPlugin 样板，各插件只保留 `register_*_extensions` body。`review_d5_editor_authoring_plugins_use_sdk_macro` 锁定源码、SDK macro、docs/status 锚，并拒绝手写 `impl zircon_editor::EditorPlugin`、本地 `EditorPluginDeclaration::new(...)` 或 struct/declaration 复制样板回流。该状态只关闭 animation/physics/net editor authoring macro consumers，不声明 broader plugin SDK rollout 全量完成。
+>
+> 最新完成：Runtime 15 M3 D9 editor/runtime mirror consumer guard（`d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred`）已把 `animation`、`physics`、`net` 三个 editor plugin consumer 收进 `zircon_plugin_sdk::authoring_plugin!` 的 `mirrors_runtime_manifest:` path，并进入 `EditorPluginDeclaration::mirrors_runtime_manifest` projection；editor tests 断言 `mirrored_runtime_package_id()` 并验证 package manifest 同时包含 runtime/editor capability，`tools/audit_plugin_structure.py --json` 当前报告 `editor_runtime_mirror_violations = 0`、`d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`，并由 `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration` 锁定源码、审计、docs/status 锚。该状态只关闭 animation/physics/net editor/runtime mirror consumers，不声明 broader editor capability rollout 全量完成。
+>
+> 最新完成：Runtime 15 M3 D-S7 static plugin manifest generation/parity review sync（`ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred`）已把评审优先级段落从“D-S7 剩余高 ROI”同步为 Plugins 12 M1 已闭合状态：`tools/audit_plugin_structure.py --json` 当前报告 37 个 manifest root、36 个 generated manifest、1 个 native 手写 manifest、schema/header 违规 0、`m1_gate_status = classified-and-clear`，并由 `plugins_12_static_plugin_manifest_is_generated`、`plugins_12_manifest_schema_uniform_audit_report_is_clean`、`plugins_12_feature_enabled_runtime_descriptor_manifest_parity` 锁定。
 >
 > 最新完成：Runtime 15 M3 UI architecture test folder split（`runtime_15_ui_architecture_tests_folder_split_static_passed_cargo_deferred`）已把 `tests/runtime_absorption/ui_architecture.rs` 降到 104 行并迁出 `tests/runtime_absorption/ui_architecture/architecture_boundaries.rs`、`tests/runtime_absorption/ui_architecture/legacy_renames.rs` 与 `tests/runtime_absorption/ui_architecture/mirror_docs.rs` 三个 folder-backed absorption guard owner；18 个 UI architecture 守卫保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
@@ -1239,7 +1387,9 @@ doc_type: module-detail
 >
 > 最新完成：Runtime 15 M3 UI shared core test folder split（`runtime_15_ui_shared_core_tests_folder_split_static_passed_cargo_lock_blocked`）已把 `ui/tests/shared_core.rs` 降到当前 77 行并迁出五个 folder-backed 行为 owner；完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
-> 最新完成：Runtime 15 M3 historical oversized test roots closeout（`runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred`）已用 `runtime_15_historical_oversized_test_roots_are_folder_backed` 统一锁定 `core/framework/tests.rs`、`ui/tests/v2_asset.rs` 与 `ui/tests/shared_core.rs` 三个历史 S6 超大测试根的 folder-backed 收口事实；完整 `runtime_15_no_oversized_test_files` 仍 pending。
+> 最新完成：Runtime 15 M3 historical oversized test roots closeout（`runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred`）已用 `runtime_15_historical_oversized_test_roots_are_folder_backed` 统一锁定 `core/framework/tests.rs`、`ui/tests/v2_asset.rs` 与 `ui/tests/shared_core.rs` 三个历史 S6 超大测试根的 folder-backed 收口事实；该历史 closeout 当时不单独关闭完整 `runtime_15_no_oversized_test_files`。
+>
+> 最新完成：Runtime 15 M3 no oversized test files global gate（`runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred`）已用 `structure_convention/test_file_budget/global_budget.rs::runtime_15_no_oversized_test_files` 对 `zircon_runtime/src` 下全部 Rust 测试文件执行 800 行预算扫描；当前无 `>= 800` 行测试文件，测试文件预算全局结构闸已关闭，Cargo 仍 deferred。
 >
 > 最新完成：Runtime 15 M3 UI accessibility test folder split（`runtime_15_ui_accessibility_tests_folder_split_static_passed_cargo_deferred`）已把 `ui/tests/accessibility.rs` 降到 125 行并迁出六个 folder-backed accessibility 行为 owner；49 个测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
@@ -1328,6 +1478,8 @@ doc_type: module-detail
 > 最新完成：Runtime 15 M2 resource streamer construction module naming hard cutover（`runtime_15_resource_streamer_construction_naming_hard_cutover_static_passed_cargo_deferred`）已删除 `graphics/scene/resources/resource_streamer/resource_streamer_new.rs` 并硬切为 `graphics/scene/resources/resource_streamer/resource_streamer_construction.rs`；`runtime_15_resource_streamer_construction_uses_owner_name` 锁定旧 `*_new` construction owner 不回流，完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
 >
 > 最新完成：Runtime 15 M2 offscreen target construct directory naming hard cutover（`runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result`）已删除 `graphics/backend/render_backend/offscreen_target_new/` 并硬切为 `graphics/backend/render_backend/offscreen_target_construct/`；`runtime_15_offscreen_target_construct_uses_owner_name` 锁定旧 `*_new` construction directory 不回流，完整 construction-owner `_new` sweep 与 `module_convention_gate` 仍 pending。
+>
+> 最新完成：Runtime 15 M2 graphics construction new owner naming hard cutover（`runtime_15_graphics_construction_new_owner_naming_hard_cutover_static_passed_cargo_deferred`）已把 graphics 私有 construction 裸 `new.rs` / `new/` owners 硬切为 `construct.rs` / `construct/`；`runtime_15_graphics_construction_new_owners_use_construct_names` 与 `runtime_15_no_banned_name_modules` 锁定裸 `new` 模块名不回流，完整 `module_convention_gate` 仍 pending。
 >
 > 最新完成：Runtime 15 M3 UI runtime input ownership test folder split（`runtime_15_ui_runtime_input_ownership_tests_folder_split_static_passed_cargo_deferred`）已把 `ui/tests/runtime_input_ownership.rs` 降到 203 行并迁出六个 folder-backed input ownership owner；16 个 input-method、owner validation、high-precision、drag/drop、popup/tooltip 与 route-trace 测试保留在子模块，完整 `runtime_15_no_oversized_test_files` 仍 pending。
 >
@@ -1805,7 +1957,7 @@ R1.4/M4 的当前新增落地部分是 native host API adapter production owner 
 
 状态：`runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result`。
 
-R1.4/M4 的当前新增落地部分是 material asset helper owner 减压。`asset/assets/material/material_asset.rs` 从 937 行减压为 750 行，继续拥有 `MaterialAsset` DTO、`.zmaterial` document 转换入口、descriptor/readiness public API、management overview 与 shader-aware dependency/texture-slot entry；新增 `asset/assets/material/material_asset/value_sync.rs` 作为 136 行 child owner，承接 TOML override 读取、texture slot hydration、legacy default 同步与 TOML 数组生成 helper；新增 `asset/assets/material/material_asset/readiness.rs` 作为 70 行 child owner，承接 shader readiness diagnostic projection、WGSL capture/missing runtime source 映射与 material validation diagnostic rows。
+R1.4/M4 的当前新增落地部分是 material asset helper owner 减压。`asset/assets/material/material_asset.rs` 从 937 行减压为 750 行，继续拥有 `MaterialAsset` DTO、`.zmaterial` document 转换入口、descriptor/readiness public API、management overview 与 shader-aware dependency/texture-slot entry；新增 `asset/assets/material/material_asset/value_sync.rs` 作为 136 行 child owner，承接 TOML override 读取、texture slot hydration、schema-v1 default 同步与 TOML 数组生成 helper；新增 `asset/assets/material/material_asset/readiness.rs` 作为 70 行 child owner，承接 shader readiness diagnostic projection、WGSL capture/missing runtime source 映射与 material validation diagnostic rows。
 
 该切片不改变 `.zmaterial` 序列化形状、不改变 `MaterialAsset` public API、不改 render material descriptor 字段或 readiness report 语义，也不新增兼容 re-export。守卫：`runtime_15_material_asset_value_readiness_helpers_are_child_owners` 验证父/子 owner 挂载、value/readiness helper 不回流、三侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、asset zmeta/material 文档和 status-output expectations 的状态锚同步。该切片只关闭 material asset value/readiness helper 的 M4 减压子面；完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 asset/render material Cargo sweep 仍 pending。
 
@@ -1866,6 +2018,14 @@ R1.4/M4 的当前新增落地部分是 scene world project I/O mesh owner 减压
 R4.1/M3 的当前新增落地部分是 status-output expected row data 减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs` 从 815 行降到 55 行，只保留 child module mounts、row group aggregation 与 `EXPECTED_STATUS_OUTPUT_SLICE_GROUPS`；新增 folder-backed 子 owner `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs` 承接 Runtime 15 全部 expected status row literals，并保持低于 800 行预算。
 
 Runtime 15 结构守护的 status row source 读取点已统一转向 `expected_status_row_data/runtime_15.rs`，避免把 Runtime 15 row literal 复制回聚合入口。新增 `runtime_15_status_output_runtime_15_row_data_is_child_owner`，验证父/子 owner 布局、row literal 不回流、两侧行数预算，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证：scoped rustfmt/static checks、父子行数预算扫描、moved row-data 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
+
+## Runtime 15 M3 status output Runtime 15 foundation row data split
+
+状态：`runtime_15_status_output_runtime_15_foundation_row_data_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前新增落地部分是 Runtime 15 status-output foundation row data 二级减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs` 从 791 行降到 145 行，只保留 `foundation`、`m3`、`m4` 子 owner 挂载、F12 resource row literals 与窄常量转发；新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs`，用 651 行承接 Runtime 15 foundation/F5/F8/F9/F12/F13/F14 expected status row literals。
+
+顶层 `expected_status_row_data.rs` 仍通过 `runtime_15::RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES` 挂载 foundation 数据，Runtime 15 父文件通过 `foundation::FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES` 委派 foundation row data。新增 `runtime_15_status_output_runtime_15_foundation_row_data_is_child_owner`，验证父/子 owner 挂载、foundation row literal 不回流、两侧低于 800 行预算，并要求 status/date expected-slice maps、Runtime 15 计划、runtime index、审查发现、结构规范和本文档的状态锚同步。验证：scoped rustfmt/static checks、父子行数预算扫描、foundation row 回流扫描、docs/status 锚点扫描和 scoped `git diff --check` 通过；Cargo 因外部 Cargo/rustc 车道 active 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
 
 ## Runtime 15 M3 production file budget core runtime guard split
 
@@ -1935,6 +2095,14 @@ R4.1/M3 的当前新增落地部分是 expected-slice status/date map 的第二�
 
 新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/pre_runtime_15.rs`（567 行）与 `tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/pre_runtime_15.rs`（446 行），承接 Runtime 01-14 的 expected status/date literal 映射。新增 `runtime_15_status_output_expected_slice_legacy_maps_are_child_owners`，验证父入口不再保留 `Runtime 14 Cargo 验证窗口探测`、`Runtime 10 F18 asset manager resolution return shape` 等旧分支，Runtime 15 子 map 记录本切片状态，status row evidence 指向两个 legacy child owner。验证：scoped rustfmt/static checks、父子行数预算扫描、moved legacy expected-slice 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 因当前外部 Cargo/rustc 车道 active 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
 
+## D11 animation/physics TestRuntime fixture migration
+
+状态：`d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred`。
+
+Plugins 12 / Runtime 15 的当前新增结构项是把原始 animation/physics 跨插件测试从手写 CoreRuntime+Scene fixture 迁到 SDK `TestRuntime`。`zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs` 现在只保留行为用例和 `runtime.create_default_level()` / `runtime.tick_level_seconds(...)` 调用；大块 animation asset fixture 由 `runtime_physics_animation_tick_contract/animation_assets.rs` 承接，runtime setup/manager helper 由 `runtime_physics_animation_tick_contract/runtime_helpers.rs` 承接。
+
+新增 `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs::review_d11_animation_physics_tests_use_sdk_test_runtime_fixture`，锁定 `zircon_plugin_sdk::TestRuntime`、`TestRuntime::builder()`、`with_runtime_plugin`、`runtime.tick_level_seconds(&level,`、Runtime 15/status-output/docs/session 状态锚，并禁止 `CoreRuntime::new`、`RuntimePluginCatalog`、本地 `register_module` / `activate_module` / fixed-step helper 回流。该切片只关闭 D11 fixture 迁移，不声明 D10 plugin bridge 或 broader Cargo sweep；Cargo 按实施切片节奏 deferred。
+
 ## Runtime 15 M3 status output expected-slice legacy group child-owner split
 
 状态：`runtime_15_status_output_expected_slice_legacy_group_child_owner_split_static_passed_cargo_deferred`。
@@ -1963,9 +2131,33 @@ R4.1/M3 的当前新增落地部分是 status-output row evidence arity 修复�
 
 状态：`runtime_15_status_output_m3_row_data_child_owner_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 Runtime 15 M3 status-output row data 二级 child-owner 减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs` 从 740 行降到 31 行聚合父模块，只保留 `foundation_guards`、`ui_tests_first`、`asset_budget_tests`、`scene_script_tests`、`status_support`、`ui_tests_second` 与 `production_guard_support` 七个 child owner 挂载和窄常量转发。
+R4.1/M3 的当前新增落地部分是 Runtime 15 M3 status-output row data 二级 child-owner 减压。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs` 从 740 行降到聚合父模块，只保留 `foundation_guards`、`review_status_sync`、`ui_tests_first`、`asset_budget_tests`、`scene_script_tests`、`status_support`、`ui_tests_second` 与 `production_guard_support` child owner 挂载和窄常量转发。
 
-新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/*.rs` 承接原 78 条 M3 row literals，其中状态支撑锚点由 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs` 记录，最大 child `asset_budget_tests.rs` 为 157 行。顶层 `expected_status_row_data.rs` 逐组挂载 Runtime 15 M3 child constants，避免 M3 row literal 或单体 M3 row-data owner 回流。新增 `runtime_15_status_output_m3_row_data_child_owner_split`，验证 7 个 child group 全部进入输出聚合、代表性 row literals 不回流、父/子 owner 低于 800 行预算，并要求 status/date expected-slice maps、Runtime 15 计划、runtime index、审查发现、结构规范和本文档的状态锚同步。验证：scoped rustfmt/static checks、M3 child group aggregation scan、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 因当前外部 Cargo/rustc 车道 active 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
+新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/*.rs` 承接 M3 row literals，其中状态支撑锚点由 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs` 记录，review top-row closed status sync rows 由 `plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_status_sync.rs` 记录。顶层 `expected_status_row_data.rs` 逐组挂载 Runtime 15 M3 child constants，避免 M3 row literal 或单体 M3 row-data owner 回流。新增 `runtime_15_status_output_m3_row_data_child_owner_split`，验证 child groups 全部进入输出聚合、代表性 row literals 不回流、父/子 owner 低于 800 行预算，并要求 status/date expected-slice maps、Runtime 15 计划、runtime index、审查发现、结构规范和本文档的状态锚同步。验证：scoped rustfmt/static checks、M3 child group aggregation scan、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 因当前外部 Cargo/rustc 车道 active 按支撑切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 status-output guard sweep 仍 pending。
+
+## Runtime 15 M3 review top-row status row-data child-owner split
+
+状态：`runtime_15_review_top_row_status_row_data_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前支撑切片继续收束 Runtime 15 M3 status-output row data。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs` 已从 883 行降到 729 行，新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_status_sync.rs`（172 行）专门承接 D13、D-S8/D3、P0 F1/F2/F4、D7、F5/F6/F7、F8/F9/F10、F13/F14、F17/F18 与 F19 的 review top-row closed status sync row literals。
+
+`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs` 现在挂载 `review_status_sync` 并导出 `REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES`；`runtime_15.rs` 继续向上导出 `RUNTIME_15_M3_REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES`，顶层 `expected_status_row_data.rs` 将该组纳入 `EXPECTED_STATUS_OUTPUT_SLICE_GROUPS`。`runtime_15_status_output_m3_row_data_child_owner_split` 现在同时验证新 child owner、旧 foundation owner 不回流 review top-row rows、所有相关 owner 低于 800 行预算，以及 Runtime 15 子计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证按支撑切片节奏使用 scoped rustfmt/static checks、父子行数预算扫描、moved top-row 扫描、docs/status 锚点扫描和 scoped `git diff --check`；Cargo deferred，不计通过。
+
+## Runtime 15 M3 lock-poison status row-data child-owner split
+
+状态：`runtime_15_lock_poison_status_row_data_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前支撑切片继续收束 Runtime 15 M3 status-output row data。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs` 已从 663 行降到 390 行，新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs`（291 行）专门承接 lock-poison policy guard、production direct lock unwrap gate、core/runtime handle recovery、plugin/native bridge recovery、dynamic/session/scene/asset/render/input/script VM recovery row literals。
+
+`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs` 现在挂载 `lock_poison_status` 并导出 `LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`；`runtime_15.rs` 继续向上导出 `RUNTIME_15_M3_LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`，顶层 `expected_status_row_data.rs` 将该组纳入 `EXPECTED_STATUS_OUTPUT_SLICE_GROUPS`。`runtime_15_status_output_m3_row_data_child_owner_split` 现在同时验证新 child owner、旧 foundation owner 不回流 lock-poison rows、所有相关 owner 低于 800 行预算，以及 Runtime 15 子计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证按支撑切片节奏使用 scoped rustfmt/static checks、父子行数预算扫描、moved lock-poison row 扫描、docs/status 锚点扫描和 scoped `git diff --check`；Cargo deferred，不计通过。
+
+## Runtime 15 M3 module-convention status row-data child-owner split
+
+状态：`runtime_15_module_convention_status_row_data_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 的当前支撑切片继续收束 Runtime 15 M3 status-output row data。`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs` 已从 729 行降到 663 行，新增 `tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs`（84 行）专门承接 module convention gate output/non-render debt、render-scoped migration debt handoff、hard-cutover Hyper policy risk cleanup、audit-clear mirror 与 audit script family naming cleanup row literals。
+
+`tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs` 现在挂载 `module_convention_status` 并导出 `MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`；`runtime_15.rs` 继续向上导出 `RUNTIME_15_M3_MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES`，顶层 `expected_status_row_data.rs` 将该组纳入 `EXPECTED_STATUS_OUTPUT_SLICE_GROUPS`。`runtime_15_status_output_m3_row_data_child_owner_split` 现在同时验证新 child owner、旧 foundation owner 不回流 module-convention rows、所有相关 owner 低于 800 行预算，以及 Runtime 15 子计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 的状态锚同步。验证按支撑切片节奏使用 scoped rustfmt/static checks、父子行数预算扫描、moved module-convention row 扫描、docs/status 锚点扫描和 scoped `git diff --check`；Cargo deferred，不计通过。
 
 ## Runtime 15 M3 status output row-data guard child-owner split
 
@@ -2129,6 +2321,16 @@ R4.1/M3 继续收缩 graphics dead-code guard owner。`structure_convention/grap
 
 验证：scoped rustfmt/static checks、父/子行数与测试数量扫描、docs/status 锚点扫描和 scoped `git diff --check` 通过；Cargo 按实施切片节奏 deferred，不计通过。
 
+## Runtime 15 M3 graphics dead-code guard forbidden attribute literal cleanup
+
+状态：`runtime_15_graphics_dead_code_guard_literal_cleanup_static_passed_cargo_deferred`。
+
+本切片只清理 graphics dead-code 测试守卫自身的 forbidden attribute 直接字面量，不改变 graphics production owner 或 render behavior。`structure_convention/graphics_dead_code/mod.rs` 现在集中声明 `DEAD_CODE_ALLOW_ATTRIBUTE = concat!("#[allow(", "dead_code", ")]")`，`graphics_dead_code/backend_owners.rs`、`gpu_resource_owners.rs`、`renderer_output_accessors.rs` 与 `resource_streamer_cleanup.rs` 统一使用该常量检查生产源码是否回归 dead-code suppression。
+
+新增守卫 `runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_backed` 读取 parent 与四个 child owner，验证 parent 只通过常量拼接构造 forbidden attribute、child owner 不直接嵌入 `#[allow(dead_code)]` 字面量、所有既有 F12 graphics dead-code guard 仍在对应 child owner 内，并同步 Runtime 15 计划、runtime index、review findings、结构规范、本文档、session note 与 status-output expectations。完整 `module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、literal scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
 ## Runtime 15 M3 provider boilerplate guard module split
 
 状态：`runtime_15_provider_boilerplate_guard_module_split_static_passed_cargo_lock_blocked`。
@@ -2193,9 +2395,11 @@ R4.1/M3 的当前新增落地部分是 `core/runtime/tests/activation/behavior/d
 
 状态：`runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings.rs` folder-backed 拆分。F5/F6/F7 typed-error review guards 迁入 `tests/runtime_absorption/code_review_findings/typed_error_convergence/`，并由后续 child-owner split 拆为 `animation_resource.rs`、`asset_loaders.rs`、`asset_records.rs` 与 `scene_world.rs`；F8 texture import settings 与 RuntimePluginDescriptor review guards 迁入 `f8_api_convergence.rs`；F11 shading-model registry、F17 entity path lookup、F18 asset manager handle shape 与 F19 scene renderer construction naming review guards 迁入 `late_api_cleanup.rs`。父文件现在只保留子模块挂载，行数从 1315 降到 3；25 个评审守卫全部保留，最大子文件 `f8_api_convergence.rs` 为 589 行。
+R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings.rs` folder-backed 拆分。F5/F6/F7 typed-error review guards 迁入 `tests/runtime_absorption/code_review_findings/typed_error_convergence/`，并由后续 child-owner split 拆为 `animation_resource.rs`、`asset_loaders.rs`、`asset_records.rs`、`tests/runtime_absorption/code_review_findings/typed_error_convergence/diagnostics.rs`、`dynamic_api.rs`、`export_cli.rs`、`script_host.rs`、`scene_world.rs`、`ui_asset_documents.rs`、`ui_input.rs` 与 `ui_template_resource.rs`；F8 texture import settings 与 RuntimePluginDescriptor review guards 迁入 `f8_api_convergence.rs`；F11 shading-model registry、F17 entity path lookup、F18 asset manager handle shape 与 F19 scene renderer construction naming review guards 迁入 `late_api_cleanup.rs`；F1 native host callback panic guard、F2 scene/EventBus lock poison review guard 与 F4 render submit typed-error guard 迁入 `p0_robustness.rs`；D1 capability single-source review/status sync guard `review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror` 迁入 child owner `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs`；D8 runtime registration builder original evidence paths guard `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder`、D5 editor authoring macro consumer guard `review_d5_editor_authoring_plugins_use_sdk_macro`、D9 editor/runtime mirror consumer guard `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`、D12 runtime helper export macro rollout guard `review_d12_runtime_helper_exports_use_sdk_macro`、D13 importer runtime export macro convergence guard `review_d13_importer_runtime_exports_use_sdk_macro`、D13 importer runtime manifest builder convergence guard `review_d13_importer_runtime_manifests_use_sdk_builder` 和 D13 importer manifest parity guard `review_d13_importer_manifest_parity_guard_lives_in_sdk_builder` 迁入 `plugin_importer_dx.rs` 及其 child owner `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs`，状态锚为 `d1_capability_single_source_review_synced_static_passed_cargo_deferred`、`d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred`、`d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`、`d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred`、`plugins_12_runtime_capability_single_source_guard_passed`、`plugins_12_capability_single_source_conformance`、`plugins_12_runtime_export_macro_rollout_check_passed`、`d12_runtime_export_macro_review_synced_static_passed_cargo_deferred`、`d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred`、`d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred`、`d13_importer_manifest_parity_guard_static_passed_cargo_deferred`、`review_priority_recommendation_d13_parity_sync_static_passed_cargo_deferred`、`d13_importer_top_row_closed_status_static_passed_cargo_deferred`、`ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred` 与 `p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred`，并锁定 `m4_runtime_capability_gate_status = runtime-capability-single-source-clean`、`capability_source_mismatches = 0`、`m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`、`sdk_builder_mirror_violations = 0`、`RuntimePluginRegistrationBuilder`、`RuntimePluginModuleRegistration::event`、`zircon_plugin_sdk::authoring_plugin!`、`EditorPluginDeclaration::mirrors_runtime_manifest`、`d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`、`zircon_plugin_sdk::runtime_plugin_exports!`、`ImporterRuntimeManifestBuilder`、`importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity`、`| M3 / closed |`、`Runtime 15 + Runtime 06 + Plugins 11 / review closed`、`Runtime 15 + Runtime 07 / review closed`、`Runtime 07 + render index / review closed`、`Plugins 13 M2 + Plugins 12 / closed`、`Plugins 13 M1 + Plugins 12 / closed`、`NATIVE_ABI_VERSION_V3` 与 `NATIVE_DESCRIPTOR_SYMBOL_V3`；F16 compiled-scene split status guard 迁入 `render_structure.rs`；F12 dead-code review status sync 迁入 `f12_dead_code.rs`。父文件现在只保留子模块挂载；57 个评审守卫全部保留，最大子文件仍低于 800 行预算。
 
-守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 验证父模块挂载三个子 owner，typed-error 子目录挂载四个 child owner，代表性 F5/F8/F11/F19 moved guard 不回流到父文件，所有 25 个 review guard 保留在子模块，父/子 owner 都低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 都包含本切片锚。该切片只关闭 `runtime_absorption/code_review_findings.rs` 的 M3 folder-backed 子面；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 F12 sweep 仍 pending。
+F5/F6/F7 顶表状态补记：`f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred` 锁定三条 typed-error 顶表状态列，要求 `review_f5_world_spawn_bundle_surface_uses_scene_error`、`review_f6_core_resource_registry_rename_uses_core_error` 与 `review_f7_asset_artifact_errors_use_asset_import_error_sources` 分别看到 `Runtime 08 + Runtime 15 / review closed`、`Runtime 02 / review closed` 与 `Runtime 04 / review closed`，防止审查表回退到只写来源计划。
+
+守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 验证父模块挂载七个子 owner，typed-error 子目录挂载十一个 child owner，代表性 F5/F8/F11/F12/F16/F19/D1/D8/D5/D9/D12/D13 moved guard 不回流到父文件，P0 子 owner 同时保留 F1/F2/F4 review guards，`plugin_importer_dx.rs` 保留 D8 runtime registration builder guard、D5 editor authoring macro consumer guard、D9 editor/runtime mirror consumer guard、D13 importer export macro guard、manifest builder guard 与 manifest parity guard，`tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs` 保留 D1 capability single-source review/status sync guard，`tests/runtime_absorption/code_review_findings/plugin_importer_dx/d12_runtime_exports.rs` 保留 D12 runtime helper export macro guard，`tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs` 保留 D13 importer SDK export/manifest/parity guards，`render_structure.rs` 保留 F16 split-owner guard，`f12_dead_code.rs` 保留 F12 production suppression status guard，所有 57 个 review guard 保留在子模块，父/子 owner 都低于 800 行，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 都包含本切片锚。该切片只关闭 `runtime_absorption/code_review_findings.rs` 的 M3 folder-backed 子面；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 F12 sweep 仍 pending。
 
 验证：scoped rustfmt/static checks、迁移测试数量扫描、父子行数预算扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按实施切片节奏 deferred，不计通过。
 
@@ -2203,11 +2407,11 @@ R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_fin
 
 状态：`runtime_15_typed_error_convergence_guard_child_owner_split_static_passed_cargo_deferred`。
 
-R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings/typed_error_convergence.rs` 的 folder-backed 子拆分。新增 sound asset typed-error guard 后，该文件增长到 1400 行以上，因此退役平铺文件并改为 `typed_error_convergence/mod.rs` 入口，子 owner 按责任分为 `scene_world.rs`、`asset_records.rs`、`asset_loaders.rs` 与 `animation_resource.rs`。
+R4.1/M3 的当前新增落地部分是 `tests/runtime_absorption/code_review_findings/typed_error_convergence.rs` 的 folder-backed 子拆分。新增 sound asset typed-error guard 后，该文件增长到 1400 行以上，因此退役平铺文件并改为 `typed_error_convergence/mod.rs` 入口；后续 animation asset、profile export 与 gameplay host typed-error guards 继续按责任扩展子 owner。当前子 owner 分为 `scene_world.rs`、`asset_records.rs`、`asset_loaders.rs`、`animation_resource.rs`、`diagnostics.rs` 与 `script_host.rs`。
 
-`scene_world.rs` 承接 world spawn/bundle、fixed mutation、dynamic component 和 property access typed-error guards；`asset_records.rs` 承接 authoring/navigation/font/sound/zshader/asset-meta record typed-error guards；`asset_loaders.rs` 承接 texture loader、mesh/OBJ loader 和 artifact/importer typed-error guards；`animation_resource.rs` 承接 animation manager 与 core resource registry typed-error guards。当前 typed-error 子目录保留 15 个 guard，整体 code-review findings 保留 25 个 review guards，所有 owner 低于 800 行预算。
+`scene_world.rs` 承接 world spawn/bundle、fixed mutation、dynamic component 和 property access typed-error guards；`asset_records.rs` 承接 authoring/navigation/font/sound/zshader/asset-meta record typed-error guards；`asset_loaders.rs` 承接 texture loader、mesh/OBJ loader、animation asset binary 和 artifact/importer typed-error guards；`animation_resource.rs` 承接 animation manager 与 core resource registry typed-error guards；`diagnostics.rs` 承接 profiling export typed-error guard；`dynamic_api.rs`、`export_cli.rs`、`script_host.rs`、`ui_asset_documents.rs`、`ui_input.rs` 与 `ui_template_resource.rs` 承接 ABI/CLI/script/UI typed-error guards。当前 typed-error 子目录保留 23 个 guard，整体 code-review findings 保留 40 个 review guards，所有 owner 低于 800 行预算。
 
-守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 已更新为检查 typed-error 子目录挂载、`review_f5_sound_asset_uses_typed_error` 锚点、25 个 review guards、父/子 owner 行数预算，以及 Runtime 15/status/docs 锚点。验证：scoped rustfmt/static scans、line-count scan 与 docs/status/session anchor scan 已通过；Cargo 因并行 cargo/rustc lane active deferred，不计通过。
+守卫：`runtime_15_code_review_findings_tests_are_folder_backed` 已更新为检查 typed-error 子目录挂载、`review_f5_sound_asset_uses_typed_error` / `review_f5_profile_export_uses_typed_error` / `review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary` / `review_f5_script_scene_hook_uses_typed_errors_before_core_boundary` / `review_f5_ui_asset_documents_use_typed_errors_before_import_boundary` 锚点、40 个 review guards、父/子 owner 行数预算，以及 Runtime 15/status/docs 锚点。验证：scoped rustfmt/static scans、line-count scan 与 docs/status/session anchor scan 已通过；Cargo 因并行 cargo/rustc lane active deferred，不计通过。
 
 ## Runtime 15 M3 UI architecture test folder split
 
@@ -2268,6 +2472,16 @@ R4.1/M3 的当前新增落地部分是历史 S6 超大测试根 closeout。`core
 守卫：`runtime_15_historical_oversized_test_roots_are_folder_backed` 位于 `structure_convention/test_file_budget/historical_oversized_roots.rs`，验证三组历史根仍挂载各自 child owner，代表性 moved guard 不回流到父文件，父子 owner 都低于 800 行，并要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档和 status-output expectations 同步包含 `Runtime 15 M3 historical oversized test roots closeout` 与 `runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred`。该切片只关闭 `core/framework/tests.rs`、`ui/tests/v2_asset.rs` 与 `ui/tests/shared_core.rs` 三个历史超大测试根的收口证明；完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 test-file-budget guard sweep 仍 pending。
 
 验证：scoped rustfmt/static scans、历史父子行数预算扫描、moved guard ownership 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按支撑切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 no oversized test files global gate
+
+状态：`runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred`。
+
+新增 `structure_convention/test_file_budget/global_budget.rs`，并在 `test_file_budget/mod.rs` 挂载 `mod global_budget;`。守卫 `runtime_15_no_oversized_test_files` 递归扫描 `zircon_runtime/src` 下所有 Rust 测试文件（`tests/` 目录、`tests.rs` 与 `*_tests.rs`），以 `TEST_FILE_LINE_BUDGET = 800` 作为全局预算闸；当前扫描无 `>= 800` 行测试文件，最高测试 owner 为 `tests/plugin_extensions/runtime_plugin_package_manifest.rs` 763 行。
+
+该守卫同步检查 Runtime 15 子计划、runtime index、审查发现、结构规范、本文档、session note、status-output row data 以及 status/date expected-slice maps 均包含 `Runtime 15 M3 no oversized test files global gate`、`runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred`、`structure_convention/test_file_budget/global_budget.rs`、`TEST_FILE_LINE_BUDGET` 与 `runtime_15_no_oversized_test_files`。本切片关闭测试文件 800 行预算全局结构闸；`module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static line-budget scans、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
 
 ## Runtime 15 M3 UI accessibility test folder split
 
@@ -2550,6 +2764,54 @@ R1.4/M4 的当前新增落地部分是 UI surface production owner 减压。`ui/
 验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
 
+## Runtime 15 F5 UI surface input effect typed errors
+
+状态：`runtime_15_ui_surface_input_effect_typed_errors_static_passed_cargo_deferred`。
+
+F5/E1/E2 的当前新增落地部分是 UI surface input effect dispatcher 的 typed-error 收束。`ui/surface/input/error.rs` 新增 `UiSurfaceInputEffectError` / `UiSurfaceInputEffectResult`，`ui/surface/input/mod.rs` 与 `ui/surface/mod.rs` 公开导出该 surface；`effect.rs`、8 个 effect leaf owner、`validation.rs` 与 `state/drag_drop.rs` 不再把内部失败作为 `Result<_, String>` 或 `Result<(), String>` 传递。
+
+错误 owner 覆盖 input owner、missing node/dirty target、unexpected effect kind、focus tree rejection、pointer capture/lock/high-precision ownership、drag/drop session lifecycle、navigation route/target/focus、input method surrounding text 与 clipboard read/write payload contract。`UiDispatchRejectedEffect.reason` 是唯一 `error.to_string()` 边界，因此 dispatch rejected-effect DTO schema、reason 字符串和 UI input routing behavior 都保持不变。
+
+守卫：`review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary` 锁定 error owner、facade exports、typed result signatures、`reason: error.to_string()` 单一边界、`ui/surface/input/effect*.rs` / `validation.rs` / `state/drag_drop.rs` 不回退到 `Result<_, String>`、`Err(format!(...))` 或 `Err("...")`，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/platform_input.md` 和 status-output expectations 都包含本切片锚。完整 `module_convention_gate`、全量 UI input Cargo sweep 与剩余 typed-error sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、String-error rollback scan、docs/status/session anchor scan、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F5 UI input surrounding-text error source
+
+状态：`runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred`。
+
+F5/E1/E2 的当前新增落地部分是 UI input surrounding-text validation error 的 source contract 收束。`zircon_runtime_interface/src/ui/dispatch/input/effect.rs::UiInputMethodSurroundingTextError` 现在实现 `std::error::Error`，使 runtime 侧 `ui/surface/input/error.rs::UiSurfaceInputEffectError::InvalidInputMethodSurroundingText` 可以把 typed validation payload 标成 `#[source]`，并满足 `thiserror` 对 typed source 组合的约束。
+
+接口守卫：`zircon_runtime_interface/src/tests/ui_dispatch_error_contracts.rs::ui_input_method_surrounding_text_error_is_std_error` 用 `StdError + Send + Sync + 'static` trait bound 锁定该接口错误的可组合性，同时保留当前 display 文案和无 nested source 的行为。runtime 审查守卫：`review_f5_ui_input_surrounding_text_error_implements_std_error` 锁定接口实现、接口测试、runtime payload、Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/platform_input.md`、`docs/zircon_runtime_interface/ui/mod.md` 和 status-output expectations 都包含本切片锚。完整 `module_convention_gate`、全量 UI input Cargo sweep 与剩余 typed-error sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、接口错误 source scan、docs/status/session anchor scan、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F5 UI template resource resolver typed errors
+
+状态：`runtime_15_ui_template_resource_resolver_typed_errors_static_passed_cargo_deferred`。
+
+F5/E1/E2 的当前新增落地部分是 UI template resource resolver 的 runtime lookup typed-error 收束。`ui/template/asset/resource_ref/resolver.rs` 新增 `UiResourceLookupError` / `UiResourceLookupResult`，`runtime_lookup_for_ui_uri(...)`、`mapped_ui_locator(...)` 与 `split_ui_locator_label(...)` 不再返回 `String` error；`ResourceLocator::parse(...)`、`ResourceLocator::new(...)` 与 empty-label validation 的 `ResourceLocatorError` source 通过 resolver-local typed owner 保留。
+
+该切片只改变内部错误传递，不改变外部诊断模型。`UiResourceResolveDiagnostic` 继续承接 editor/report 字符串消息，`InvalidUri` 诊断文案保持 `resource uri is invalid: resource locator label cannot be empty`，`asset://` / `project://` 默认 missing-not-invalid 行为、configured scheme mapping、fallback policy、registry lookup、resolver cache 和 hot-reload invalidation 都保持不变。
+
+守卫：`review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary` 锁定 `UiResourceLookupError`、`UiResourceLookupResult`、`ResourceLocatorError::EmptyLabel`、lookup signatures、`ui_resource_resolver_reports_invalid_mapped_ui_scheme_empty_label` 行为测试、无 `Result<RuntimeResourceLookup, String>` / `.map_err(|error| error.to_string())` 回流，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md` 和 status-output expectations 都包含本切片锚。完整 `module_convention_gate`、全量 UI asset/resource Cargo sweep 与剩余 typed-error sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、String-error rollback scan、docs/status/session anchor scan、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F5 UI asset document typed errors
+
+状态：`runtime_15_ui_asset_document_typed_errors_static_passed_cargo_deferred`。
+
+F5/E1/E2 的当前新增落地部分是 UI asset document wrapper/importer 的 typed-error 收束。`asset/assets/ui.rs` 现在为 v1、theme、icon 与 v2 wrappers 暴露 `UiAssetDocumentResult`、`UiThemeAssetDocumentResult`、`UiIconAssetDocumentResult` 和 `UiV2AssetDocumentResult`，v1/v2 parse failures 分别保留 `UiAssetError` 与 `UiV2AssetError` source，theme/icon TOML parse failures 保留 `toml::de::Error` source。
+
+Icon validation 不再用单一字符串错误表达，`UiIconAssetDocumentError` 现在区分 invalid default size、empty semantic id、empty inline SVG source、empty external source URI 与 `UiIconAssetDocumentError::InvalidSourceUri { source: ResourceLocatorError }`。`UiV2AssetDocumentError::ComponentRequiresZui` 保留 `.v2.ui.toml` component rejection 的语义和外部文案。
+
+Importer 边界同步 typed source：当前生产 UI document source 由 `AssetImportError::UiV2Document` 承接，`AssetImportError::UiThemeDocument` 与 `AssetImportError::UiIconDocument` 承接 theme/icon source。`.zui` 入口集中在 `asset/importer/ingest/import_ui_zui_asset.rs`，component/view/style 物化集中在 `ui_v2_document_import.rs`；旧 `import_ui_asset.rs` 与 `import_ui_v2_asset.rs` 后缀 importer 已删除。`import_ui_zui_asset.rs`、`import_ui_theme_asset.rs` 与 `import_ui_icon_asset.rs` 不再把 UI document failures 降级到 `AssetImportError::Parse(String)`。
+
+守卫：`review_f5_ui_asset_documents_use_typed_errors_before_import_boundary` 锁定 result aliases、parse source variants、icon URI source、component rejection variant、importer typed source variants、wrapper/importer behavior tests、Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/zircon_runtime/asset/assets/ui.md` 和 status-output expectations 都包含本切片锚。完整 `module_convention_gate`、全量 UI asset Cargo sweep 与剩余 typed-error sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、String-error rollback scan、docs/status/session anchor scan、尾随空白扫描和 scoped `git diff --check` 已通过；当前外部 cargo/rustc 通道仍活跃，Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
 ## Runtime 15 M4 UI surface property mutation metadata dirty owner split
 
 状态：`runtime_15_ui_surface_property_mutation_metadata_dirty_owner_split_static_passed_cargo_deferred`。
@@ -2619,6 +2881,18 @@ R2.3/M2 的当前新增落地部分是 editor workbench extension authority labe
 守卫：`runtime_15_editor_workbench_authority_label_uses_editor_name` 验证 Workbench feedback source 包含新 `Selected Condition_Night   editor authority` 文案、不再包含 `server authority`，并验证 Python `non_network_server_naming.py` 不再保留 retired `editor-workbench-authority-label-debt` bucket。该守卫同时要求 Runtime 15 计划、runtime index、审查发现、结构规范、本文档、`docs/engine-architecture/non-network-server-naming-m1.md`、`docs/zircon_editor/ui/host/commands.md` 和 status-output expectations 都包含本切片锚。aggregate `non_network_server_references` 审计现在报告 0 reference decisions、0 classified debt、0 migration debt、0 unclassified，M1 gate 为 `classified-and-clear`。
 
 验证：scoped rustfmt/static scans、Python py_compile、aggregate `audit_runtime_structure.py --json` non-network server assertions、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 已通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 editor Workbench archived fixture naming hard cutover
+
+状态：`runtime_15_editor_workbench_archived_fixture_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 hard-cutover 审计中的 `legacy-editor-ui-fixture-debt`。`zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/legacy.rs` 已退役并硬切为 `paint_workbench_renderer/host_window.rs`，函数入口改为 `draw_host_workbench_window(...)` 与 `draw_host_workbench_window_profiled(...)`；`paint_workbench_renderer.rs` 只挂载 `mod host_window;` 并从该 owner re-export 当前 host Workbench window painter。该命名表达当前 retained-host Workbench window path，而不是旧兼容 renderer。
+
+同一 owner 范围内的 table/extension fixture 旧词汇同步收束：`template_table_rows/cells/text.rs` 的 fallback row-text parser 改为 `split_archived_table_text(...)`；Particle/Icon extension authored ZUI、builtin template bindings、navigation specs、preview action list 与 feedback dispatch 改为 `ArchivedRow` / `archived_table_row` / `icon-archive`，并删除 `legacy_table_row`、`DeprecatedRow`、`LegacyTableRow`、`Legacy Smoke`、`icon-old` 等 fixture labels。该切片不改变 retained host paint behavior、componentized Workbench dispatch、table-row parsing behavior 或 extension route dispatch semantics，只改当前 owner 命名与 fixture text。
+
+新增 `naming_boundary/runtime_15_m2/editor_workbench.rs::runtime_15_editor_workbench_archived_fixtures_use_current_names`，锁定旧 module/function/route/control id/text 不回流，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、hard-cutover docs、module-convention docs 与 status-output expectations。`hard_cutover_migration_smells` 实测 `legacy_reference_count = 85`、`classification_count = 3`、`hard_cutover_migration_debt_count = 2`，editor fixture debt bucket 已不在当前 classification counts 中。完整 `module_convention_gate` 与 full editor retained-host Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、editor retained-host old-name scan、hard-cutover audit JSON、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
 
 ## Runtime 15 M4 UI template document validation owner split
 
@@ -2914,6 +3188,18 @@ R4.1/M3 的当前新增落地部分是 `bin/zircon_shader_prewarm/manifest.rs` �
 父文件从 810 行降到 672 行；子文件为 137 行，所有 owner 低于 800 行。新增 `structure_convention/test_file_budget/shader_prewarm_manifest.rs::runtime_15_shader_prewarm_manifest_tests_are_folder_backed`，验证父/子模块挂载、moved test 不回流、迁移测试数量、shader prewarm manifest owner 行数预算，以及 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/core/framework/render/shader.md` 和 status-output expectations 的状态锚同步。
 
 验证：scoped rustfmt/static checks、父子行数预算扫描、moved test scan、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 按实施切片节奏 deferred，不计通过。完整 `runtime_15_no_oversized_test_files`、`module_convention_gate` 与全量 dead-code sweep 仍 pending。
+
+## Runtime 15 M3 shader prewarm manifest guard child-owner split
+
+状态：`runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred`。
+
+R4.1/M3 继续收缩 shader prewarm 结构守卫 owner。`zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs` 在后续 Plan 08 staged-cache 守卫追加后达到 785 行；本切片把它降到 219 行父挂载文件，只保留七个 child owner 挂载和新增布局守卫 `runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed`。
+
+原有守卫按职责迁入 `zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs`（103 行）、`geometry_source.rs`（98 行）、`custom_shading_model.rs`（103 行）、`builtin_template_source.rs`（130 行）、`builtin_fallback.rs`（142 行）、`product_staged_prewarm.rs`（118 行）和 `asset_revision.rs`（97 行）。manifest folder-backed、geometry-source、custom shading-model、builtin template source、builtin fallback、product staged prewarm 与 asset revision export 七个原守卫全部保留。
+
+新增守卫验证 child mount、moved guard 不回流、父/子 owner 均低于 800 行预算，并锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations。精确锚点包括 `structure_convention/test_file_budget/shader_prewarm_manifest.rs`、`structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs`、`structure_convention/test_file_budget/shader_prewarm_manifest/geometry_source.rs`、`structure_convention/test_file_budget/shader_prewarm_manifest/builtin_template_source.rs`、`structure_convention/test_file_budget/shader_prewarm_manifest/asset_revision.rs` 与 `runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed`。
+
+验证已通过：scoped `rustfmt --edition 2021 --check`、父子行数预算扫描（父 219 行，最大 child 142 行）、moved guard parent scan、docs/status/session anchor scan、status/date expected-slice map scan、trailing-whitespace scan 和 scoped `git diff --check` 均通过；`git diff --check` 仅报告 LF-to-CRLF 提示。Cargo 因验证时存在 active cargo/rustc lanes deferred，不计通过。
 
 ## Runtime 15 M3 scene ECS schedule test folder split
 
@@ -3216,6 +3502,26 @@ R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减�
 
 验证：scoped rustfmt/static scans、literal scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
+## Runtime 15 M3 module convention gate output contract
+
+状态：`runtime_15_module_convention_gate_output_contract_static_passed_cargo_deferred`。
+
+Runtime 15 结构审计现在拥有显式 `module_convention_gate` 聚合输出：`.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py` 调用 `runtime_structure_audits/module_convention_gate.py`，把 module classification、`large_file_ownership_gate`、runtime naming、hard-cutover migration smells 与 non-network server naming 汇总成 `m1_gate_status`、`classification_counts`、`migration_debt_count`、`exempt`、source gate statuses 与 violation fields。
+
+新增 `module_convention_gate_markdown.py` 和 `runtime_15_module_convention_gate_output_contract_is_backed_by_structure_audit`，锁定 JSON/Markdown 输出契约与跨文档状态锚。该切片不宣称 `classified-and-clear`，后续仍需逐项消除 migration debt 并跑完整 Cargo gate。
+
+验证：scoped rustfmt/static scans、Python audit syntax/import scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M3 module convention non-render debt guard
+
+状态：`runtime_15_module_convention_non_render_debt_guard_static_passed_cargo_deferred`。
+
+`module_convention_gate.py` 现在在聚合 `migration_debt` 后再拆分 `render_scoped_migration_debt` 与 `non_render_migration_debt`。render-scoped 白名单只包含当前仍由 graphics/hybrid-GI owner 处理的三类债：runtime graphics naming、hybrid GI render hard-cutover 与 runtime graphics hard-cutover。
+
+`module_convention_gate_markdown.py` 同步输出 render-scoped 与 non-render debt count，`runtime_15_module_convention_gate_reports_non_render_debt_boundary` 锁定字段、白名单和文档锚点。当前审计证据为 non-render migration debt 0；完整 gate 仍因 render-scoped debt pending，不在本非渲染切片内宣称清零。
+
+验证：scoped rustfmt、Python compile、audit JSON、docs/status/session anchor scan 与 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
 ## Runtime 15 M5 production dead-code suppression global gate
 
 状态：`runtime_15_production_dead_code_suppression_global_gate_static_passed_cargo_deferred`。
@@ -3225,6 +3531,46 @@ R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减�
 该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `structure_convention/runtime_dead_code.rs`、`DEAD_CODE_ALLOW_ATTRIBUTE` 与 `runtime_15_production_sources_do_not_allow_dead_code_suppression`。完整 `module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
 
 验证：生产源码 dead-code suppression 扫描、scoped rustfmt/static scans、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F12 dead-code review status sync
+
+状态：`runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred`。
+
+本切片把已落地的 Runtime 15 production dead-code suppression 全局闸口同步到 F12 顶层评审行和状态输出，不改变生产 runtime 行为。`tests/runtime_absorption/code_review_findings/f12_dead_code.rs::review_f12_runtime_production_dead_code_suppression_is_globally_gated` 递归扫描 `zircon_runtime/src` 下非 `tests/`、非 `tests.rs`、非 `*_tests.rs` 的生产 Rust 源文件，确认 `allow(dead_code)` 属性零命中；同时锁定 `engine-code-review-findings-2026-06.md` 的 F12 行记录 "Runtime production `allow(dead_code)` sweep is globally gated"、`runtime_15_production_sources_do_not_allow_dead_code_suppression` 与本切片状态锚。
+
+该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations，精确锚点包括 `tests/runtime_absorption/code_review_findings/f12_dead_code.rs`、`review_f12_runtime_production_dead_code_suppression_is_globally_gated`、`runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred` 与 `runtime_15_production_sources_do_not_allow_dead_code_suppression`。editor `template_runtime/component_adapter/registry.rs` 残项仍归 Editor UI 10；完整 `module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、生产源码 dead-code suppression scan、focused review guard、code-review folder guard、status-output 直接测试和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 F12 dead-code runtime/editor boundary status guard
+
+状态：`runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred`。
+
+本切片在 `Runtime 15 F12 dead-code review status sync` 之后锁定 F12 顶层评审行的边界语义，不改变 runtime/editor production。`tests/runtime_absorption/code_review_findings/f12_dead_code.rs::review_f12_runtime_production_dead_code_suppression_is_globally_gated` 现在要求 F12 行包含 `runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred`、`runtime_15_production_sources_do_not_allow_dead_code_suppression` 和 `Editor UI 10`，并且以 `Runtime 15 + Editor UI 10 + convention` 结尾。
+
+该状态表示 runtime production `allow(dead_code)` 已由全局扫描保持零命中，但 editor `template_runtime/component_adapter/registry.rs` 残项仍委派给 Editor UI 10，不把 F12 误标为 runtime 全量 review closed。同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、module-convention docs、session note 与 status-output expectations。
+
+验证：scoped rustfmt/static scans、focused review guard、code-review folder guard、status-output 直接测试、anchor/date scan 和 scoped `git diff --check`；Cargo 按本切片节奏 deferred，不计通过。
+
+## Runtime 15 F1 native host callback panic guard
+
+状态：`runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred`。
+
+本切片按 P0/F1 与 E7 FFI panic 边界复核 native host 入站回调，不改变 native ABI 或插件调用语义。`plugin/native_plugin_loader/ffi_panic_guard.rs` 继续拥有 `catch_unwind(AssertUnwindSafe(call))`；`plugin/native_plugin_loader/host_api_adapter.rs` 的 9 个 public `ZrHostApiV3` callbacks 均先进入 `catch_native_host_api_panic` 并把 panic 映射为 `ZrStatusCode::Panic`；`plugin/native_plugin_loader/host_callbacks.rs` 的 4 个 private native host callbacks 均先进入 `catch_native_plugin_host_callback_panic` 并映射为 `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`。
+
+新增守卫 `review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi` 锁定 panic guard owner、13/13 callback guard、native plugin loader 文档、Runtime 15 子计划、runtime index、engine code review findings、engine code structure convention、本文档、session note 与 status-output expectations。该记录当时把 code-review findings folder-backed 子 owner 计数更新为 33 个评审守卫；当前 F2 跟进后总数为 40 个评审守卫。完整 `module_convention_gate` 与全量 Runtime 15 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、13/13 callback guard scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 F12 UI text edit-state dead-code suppression cleanup
+
+状态：`runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred`。
+
+本切片清理 F12 dead-code sweep 中被 exact attribute 闸口漏掉的 UI text edit-state 压制，不改变生产文本编辑行为。`ui/text/mod.rs` 已删除 `cfg_attr(not(test), allow(dead_code))`，继续挂载 `mod edit_state;` 并导出 `apply_text_edit_action(...)`；`ui/text/edit_state.rs` 仍是生产 TextInput reducer、editable text input、keyboard clipboard 与 text pointer 共享的编辑状态 owner，因此不把它降为 test-only 模块。
+
+新增守卫 `runtime_15_ui_text_edit_state_dead_code_suppression_cleanup` 锁定 `ui/text/mod.rs` 无 dead-code suppression、`ui/text/edit_state.rs` 的插入/组合/删除/移动 caret 行为仍在 owner 内、生产 consumer 仍读取 `apply_text_edit_action(...)`，并同步 Runtime 15 计划、runtime index、review findings、结构规范、本文档、`docs/zircon_runtime/ui/text.md`、session note 与 status-output expectations。全局 `runtime_15_production_sources_do_not_allow_dead_code_suppression` 同步从 exact `#[allow(dead_code)]` 字符串检查扩展为按属性行扫描 `allow(dead_code)`，覆盖 `cfg_attr(not(test), allow(dead_code))` 这类形态。
+
+验证：scoped rustfmt/static scans、生产源码 dead-code suppression 扫描、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
 ## Runtime 15 M3 root entries guard child-owner split
 
@@ -3258,13 +3604,13 @@ R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减�
 
 ## Runtime 15 M3 F2 lock poison recovery guard
 
-状态：`runtime_15_f2_lock_poison_recovery_guard_static_passed_cargo_deferred`。
+状态：`runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending`。
 
-本切片只把既有 F2 poison-safe lock 修复转成 Runtime 15 结构防回退守卫，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs` 读取 `scene/level_system.rs`、`scene/module/default_level_manager.rs`、`scene/module/level_manager_lifecycle.rs`、`core/runtime/events.rs` 与 publish/subscribe/prune 子 owner，确认 scene level holder 和 EventBus 的共享状态锁都经集中 helper 恢复 poison。
+本切片把既有 F2 poison-safe lock 修复升级为 Runtime 15 结构防回退守卫和审查闭合守卫，不改变生产 runtime 行为。`zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs` 读取 `scene/level_system.rs`、`scene/module/default_level_manager.rs`、`scene/module/level_manager_lifecycle.rs`、`core/runtime/events.rs` 与 publish/subscribe/prune 子 owner，确认 scene level holder 和 EventBus 的共享状态锁都经集中 helper 恢复 poison。
 
-新增守卫 `runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus` 验证 `LevelSystem` 保留 `lock_poison_recovered(...)` 与 world/runtime_state/metadata/lifecycle/subsystems accessors，`DefaultLevelManager` 保留 `lock_levels()`，EventBus 保留 `lock_subscribers()` / `lock_delivery()`，并扫描生产段拒绝 direct lock unwrap。测试段中用于制造 poison 的 `level_system.rs` fixture 仍允许存在。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、scene/event module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
+新增守卫 `runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus` 验证 `LevelSystem` 保留 `lock_poison_recovered(...)` 与 world/runtime_state/metadata/lifecycle/subsystems accessors，`DefaultLevelManager` 保留 `lock_levels()`，EventBus 保留 `lock_subscribers()` / `lock_delivery()`，并扫描生产段拒绝 direct lock unwrap。新增审查守卫 `review_f2_scene_eventbus_locks_recover_after_poison` 把主审查表同步为 `scene/EventBus poison-safe lock recovery complete`，并锁定 `level_system_accessors_recover_poisoned_state_locks` 与状态 `runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending`。测试段中用于制造 poison 的 `level_system.rs` fixture 仍允许存在。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、scene/event module docs 与 status-output expectations。完整 `module_convention_gate` 与全量 Cargo sweep 仍 pending。
 
-验证：scoped rustfmt/static scans、生产段 direct lock unwrap scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+验证：新增 F2 review guard 先触发 RED，失败在缺少 `runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending` 状态锚；随后 `level_system_accessors_recover_poisoned_state_locks`、`review_f2_scene_eventbus_locks_recover_after_poison`、`runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus`、`runtime_15_code_review_findings_tests_are_folder_backed` 与 `status_output_tables` 均在 core-min 聚焦 Cargo 通过。完整 Runtime 15 sweep 仍 pending。
 
 ## Runtime 15 M3 production direct lock unwrap global gate
 
@@ -3608,6 +3954,16 @@ R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减�
 
 验证：scoped rustfmt/static scans、script VM registry direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
+## Runtime 15 M3 ZrVM real backend runtime lock poison recovery
+
+状态：`runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result`。
+
+本切片把 E9/F2 的 poison-safe lock 规则扩展到 real `zr_vm` backend 的全局 runtime/session 串行化锁。`zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/lock.rs` 的 `acquire_zr_vm_lock()` 继续返回 `MutexGuard<'static, ()>`，但 poisoned lock 现在通过 `unwrap_or_else(|poisoned| poisoned.into_inner())` 恢复，不再 panic。
+
+`zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs` 的项目加载路径和 `zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs` 的 activate/deactivate/save/restore/export 调用仍统一通过 `acquire_zr_vm_lock()` 串行化访问 ZrVM runtime/session。新增 module-local `zr_vm_real_backend_runtime_lock_recovers_after_poison` 覆盖锁中毒后 helper 仍可恢复；`structure_convention/lock_poison_policy/asset_render_input.rs::runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock` 读取 lock/package/instance owners 与 `docs/zircon_runtime/script/vm/zr_vm_project_backend.md`，验证 helper、direct-panic rollback scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、ZrVM project backend docs 与 status-output expectations。完整 `module_convention_gate` 与全量 script VM/ZrVM Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、ZrVM runtime lock direct-panic rollback scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo gate 首次因 `ZR_VM_RUST_BINDING_LIB_DIR` 未设置被 build script 拦截，补 `E:\Git\zr_vm\build-msvc\lib\Release` / `bin\Release` 后 120s timeout_no_result，已终止本轮 cargo/rustc 子进程，不计通过。
+
 ## Runtime 15 M3 VM plugin manager selected-backend lock poison recovery
 
 状态：`runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred`。
@@ -3627,3 +3983,325 @@ R1.4/M4 的当前新增落地部分是 glTF labeled material subasset owner 减�
 该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、UI architecture 与 status-output expectations。完整 `runtime_15_no_dead_code_suppression_in_production`、`module_convention_gate` 与全量 Cargo sweep 仍 pending。
 
 验证：scoped rustfmt/static scans、literal scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 render framework trait/construction owner naming hard cutover
+
+状态：`runtime_15_render_framework_trait_construction_owner_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 Runtime 15 banned-name 全局闸口中的最后一组 render-framework 私有 owner 命名债。`zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs` 已硬切为 `zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs`，继续只承接 `impl RenderFramework for WgpuRenderFramework` 的 trait binding；`zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_new/new.rs` 已硬切为 `zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs`，继续只承接 `WgpuRenderFramework::new(...)` 与 plugin render extension construction。父模块只挂载 `render_framework_trait_binding` 与 `wgpu_render_framework_construction`，没有保留 `_impl`、`trait_impl`、`*_new`、`new` child、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/banned_names.rs::runtime_15_no_banned_name_modules`，递归扫描 `zircon_runtime/src` 的 Rust 文件和目录模块名，拒绝 `common`、`helper(s)`、`misc`、`util(s)`、`*_helper(s)`、`*_impl`、`*_inner` 与 `*_new` 回流。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、graphics render-product docs 与 status-output expectations。完整 `module_convention_gate`、large-file gate 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、文件/目录 banned-name scan、旧路径不存在扫描、docs/status anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 graphics construction new owner naming hard cutover
+
+状态：`runtime_15_graphics_construction_new_owner_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 Runtime 15 R2.5 中裸 `new` construction owner 漏洞。graphics 私有构造 owner 从 `new.rs` / `new/` 硬切为 `construct.rs` / `construct/`，代表路径包括 `zircon_runtime/src/graphics/feature/render_feature_descriptor/construct.rs`、`zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs` 与 `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs`。父模块只挂载 `mod construct;`，post-process construct child visibility path 从 `resources::new` 收束为 `resources::construct`，没有保留旧 `new` 模块、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/banned_names.rs::runtime_15_graphics_construction_new_owners_use_construct_names`，并扩展 `runtime_15_no_banned_name_modules` 让全局 banned-name 扫描拒绝裸 `new` 模块名。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、graphics render-product docs 与 status-output expectations。完整 `module_convention_gate`、large-file gate 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧 `new.rs` / `new/` 路径不存在扫描、construct owner/mount 扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 scene dynamic document v1 owner naming hard cutover
+
+状态：`runtime_15_scene_dynamic_document_v1_owner_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 `legacy-runtime-scene-document-debt` 的 live hit。`zircon_runtime/src/scene/dynamic_scene/document/legacy.rs` 已硬切为 `zircon_runtime/src/scene/dynamic_scene/document/v1_project_document.rs`，DTO 从 `LegacyProjectDocument` 改为 `V1ProjectDocument`。`document/mod.rs` 只挂载 `mod v1_project_document;`，`document/read.rs` 只通过 `use super::v1_project_document::V1ProjectDocument;` 解析旧 project-world JSON 兼容 schema，未保留旧 `legacy` 模块、alias 或兼容 re-export。
+
+`.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py` 同步读取新 owner 路径，避免结构审计继续指向 retired file。新增 `naming_boundary/runtime_15_m2/banned_names.rs::runtime_15_scene_dynamic_document_v1_owner_uses_versioned_name`，锁定旧路径、旧类型、旧审计路径与跨文档状态锚不回流。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、dynamic scene docs 与 status-output expectations。完整 `module_convention_gate` 与 full dynamic scene Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧路径/旧类型扫描、audit JSON hard-cutover debt scan、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
+
+## Runtime 15 M2 platform input DOM keycode naming hard cutover
+
+状态：`runtime_15_platform_input_dom_keycode_naming_hard_cutover_static_passed_cargo_timeout_no_result`。
+
+本切片关闭 runtime naming boundary 中 platform input 的 legacy 命名 live hit。`zircon_runtime/src/ui/platform_input/keyboard_map.rs` 的私有 helper 已硬切为 `dom_key_code(...)` 与 `dom_character_key_code(...)`，明确其职责是维护 DOM keyCode 兼容表；`zircon_runtime/src/ui/platform_input/winit_translation.rs` 只导入 `dom_key_code`，并把 pixel-wheel fallback 常量改为 `PIXEL_SCROLL_LINE_DELTA_SCALE`。模块未保留旧 helper 名、常量名、测试名、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/ui.rs::runtime_15_platform_input_uses_dom_keycode_names`，锁定旧 platform input 命名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、platform input docs 与 status-output expectations。完整 `module_convention_gate` 与 full platform-input Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、platform input 旧命名零命中扫描、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；focused Cargo 守卫测试 304 秒超时无结果，残留 cargo/rustc 进程已终止，不计 Cargo 通过。
+
+## Runtime 15 M2 platform input runtime baseline test naming hard cutover
+
+状态：`runtime_15_platform_input_runtime_baseline_test_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 platform input 的剩余未分类 editor 命名 live hit。`zircon_runtime/src/ui/platform_input/winit_translation.rs` 的两个 runtime-owned winit translation tests 已从 `editor_baseline` 后缀硬切为 `runtime_input_baseline` 后缀：`translate_winit_keyboard_matrix_matches_runtime_input_baseline` 和 `translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline`。该改动只收敛测试命名，不改变 keyboard/IME translation、modifier/synthetic flag、preedit cursor range 或 commit text 行为。
+
+新增 `naming_boundary/runtime_15_m2/ui.rs::runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names`，锁定 `editor_baseline` 不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、platform input docs 与 status-output expectations。完整 `module_convention_gate` 与 full platform-input Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、platform input test-name 扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 UI template schema source fixture naming hard cutover
+
+状态：`runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 `legacy-runtime-ui-template-schema-debt` 的 live hit。`zircon_runtime_interface/src/ui/template/asset/schema/report.rs` 的 migration report DTO 枚举已从 `LegacyTemplateFixture` / `LegacyTemplateConverted` 硬切为 `SourceTemplateFixture` / `SourceTemplateFixtureConverted`，让报告 API 描述 source-template fixture 输入而不是迁移残留。`zircon_runtime/src/ui/template/asset/schema/migrator.rs` 只写入新枚举项，`zircon_runtime/src/ui/tests/asset_schema_migration.rs` 的 fixture 常量与 control id 同步使用 source fixture 词汇。未保留旧枚举 alias、compat wrapper、旧路径 re-export 或行为分叉。
+
+新增 `naming_boundary/runtime_15_m2/ui.rs::runtime_15_ui_template_schema_uses_source_fixture_names`，锁定接口枚举、运行时迁移器、测试 fixture、`SourceTemplateFixture`、Runtime 15 子计划、runtime index、engine code structure convention、review findings、UI template pipeline docs、runtime-interface UI docs 与 status-output expectations。完整 `module_convention_gate` 与 full UI template Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、UI template schema 旧枚举名扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 input mouse-wheel line-delta naming hard cutover
+
+状态：`runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 input/dynamic API 鼠标滚轮 scalar helper 的 legacy 命名 live hit。`zircon_runtime/src/core/framework/input/mouse_wheel.rs` 把 pixel scroll scalar 常量硬切为 `PIXEL_SCROLL_LINE_DELTA_SCALE`，并把 `MouseWheelEvent` 的单轴 scalar helper 改为 `vertical_line_delta()`。`core/framework/input/mod.rs`、`input/mod.rs` 与 `prelude.rs` 只 re-export 新常量，`input/runtime/default_input_manager.rs` 与 `dynamic_api/session/events.rs` 只调用新 helper。未保留旧常量名、旧 helper 名、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/input.rs::runtime_15_input_mouse_wheel_line_delta_uses_current_names`，锁定旧名不在生产 input/dynamic/prelude 路径回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、input state docs、dynamic API docs、prelude docs 与 status-output expectations。完整 `module_convention_gate` 与 full input/dynamic Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧名精确扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M3 support Hub project-actions tests child-owner split
+
+状态：`runtime_15_support_hub_project_actions_tests_child_owner_split_static_passed_cargo_deferred`。
+
+本切片关闭 support-hub large-file 迁移债中的 project-actions 测试 owner 减压面。`zircon_hub/src/tauri_app/runtime_state/project_actions.rs` 从 1287 行降到 674 行，继续拥有 Hub project create/import/pin/remove/delete action runtime owner、target resolution、lifecycle failure recording、recent-project metadata mutation、Source Engine binding、localized task summary 和 display/picker helpers。父文件只通过 `#[path = "project_actions/tests.rs"] mod tests;` 挂载测试子模块，不改变 project lifecycle action routing、payload handling、Recycle Bin recovery 或持久化语义。
+
+新增 `zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs` 作为 719 行 folder-backed 测试子 owner，承接 create/import/delete 行为覆盖、typed project target 测试、`session_with_source` 与 temp-dir fixture。新增 `structure_convention/test_file_budget/hub_project_actions.rs::runtime_15_support_hub_project_actions_tests_are_child_owner`，锁定父/子 owner 布局、moved test fixture 不回流、两侧低于 800 行预算，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、Hub lifecycle docs 与 status-output expectations 都包含本切片锚。
+
+该切片只关闭 `zircon_hub/src/tauri_app/runtime_state/project_actions.rs` 的测试 owner 减压面；剩余 support-hub large-file owners、`large_file_ownership_gate` 与完整 `module_convention_gate` 仍 pending。验证：scoped rustfmt/static scans、父子行数预算扫描、moved test 回流扫描、docs/status 锚点扫描、runtime structure audit 和 scoped `git diff --check` 已通过；runtime structure audit 报告 `project_actions_hotspot=0`、support-hub large-file hotspots=2、`module_gate_migration_debt_count=7`。Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M3 support Hub runtime-state tests child-owner split
+
+状态：`runtime_15_support_hub_runtime_state_tests_child_owner_split_static_passed_cargo_deferred`。
+
+本切片关闭 support-hub large-file 迁移债中的 runtime-state 测试 owner 减压面。`zircon_hub/src/tauri_app/runtime_state.rs` 从 1367 行降到 927 行，继续拥有 Hub action router、snapshot projection input、navigation/search/filter/sort/view-mode state、settings save/persist、Source Engine selection/registration、selected-project persistence 与 project-scoped refresh helpers。父文件只通过 `#[path = "runtime_state/tests.rs"] mod tests;` 挂载测试子模块，不改变 `HubRuntimeSession::apply_action()` routing、settings draft/save semantics、Source Engine registration、selected-project persistence 或 task-status localization。
+
+新增 `zircon_hub/src/tauri_app/runtime_state/tests.rs` 作为 435 行 folder-backed 测试子 owner，承接 startup selection、load/repair/persist、save-settings/catalog refresh、payload-validation、persist-retry 和 localized project-view status tests。新增 `structure_convention/test_file_budget/hub_runtime_state.rs::runtime_15_support_hub_runtime_state_tests_are_child_owner`，锁定父/子 owner 布局、moved test fixture 不回流、父文件低于 1000 行 large-file hotspot 阈值、测试子文件低于 800 行预算，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、Hub actionable pages docs 与 status-output expectations 都包含本切片锚。
+
+该切片只关闭 `zircon_hub/src/tauri_app/runtime_state.rs` 的测试 owner 减压面；剩余 support-hub large-file owner、`large_file_ownership_gate` 与完整 `module_convention_gate` 仍 pending。验证：scoped rustfmt/static scans、父子行数预算扫描、moved test 回流扫描、docs/status 锚点扫描、runtime structure audit 和 scoped `git diff --check` 已通过；runtime structure audit 报告 `runtime_state_hotspot=0`、support-hub large-file hotspots=1、`hotspot_count=2`、`module_gate_migration_debt_count=7`。Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split
+
+状态：`runtime_15_support_hub_view_model_quick_actions_tests_child_owner_split_static_passed_cargo_deferred`。
+
+本切片关闭 support-hub large-file 迁移债中的 view-model owner 减压面。`zircon_hub/src/tauri_app/view_model.rs` 从 1390 行降到 665 行，继续拥有 Hub view-model DTO 编排、project/recent/source-engine/task/action-history projection 入口与共享 DTO 结构。父文件只通过 `mod quick_actions;`、`use quick_actions::quick_actions;` 和 `#[path = "view_model/tests.rs"] mod tests;` 挂载子模块，不改变 dashboard quick actions、selected/latest fallback、localized task summary 或 DTO shape。
+
+新增 `zircon_hub/src/tauri_app/view_model/quick_actions.rs` 作为 342 行 folder-backed quick-action 子 owner，承接 action id/title/detail/enabled projection、selected/latest/stale project target 判定与 Source Engine binding 状态文案；新增 `zircon_hub/src/tauri_app/view_model/tests.rs` 作为 388 行 folder-backed 测试子 owner，承接 view-model filtering、quick-action、Source Engine row、relative-time 与 task-summary 行为覆盖。新增 `structure_convention/test_file_budget/hub_view_model.rs::runtime_15_support_hub_view_model_quick_actions_tests_are_child_owners`，锁定父/子 owner 布局、quick-action owner/test fixture 不回流、三侧低于 800 行预算，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、Hub actionable pages docs 与 status-output expectations 都包含本切片锚。
+
+该切片关闭 support-hub large-file 最后一个当前热点；support-hub large-file 迁移债已清零。验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner/test 回流扫描、docs/status 锚点扫描、runtime structure audit 和 scoped `git diff --check` 已通过；runtime structure audit 报告 support-hub large-file hotspots=0、`hotspot_count=1`、`module_gate_migration_debt_count=6`，剩余热点仅为 editor retained-host。Cargo 因外部 cargo/rustc 通道 active deferred，不计通过；完整 `large_file_ownership_gate` 与 `module_convention_gate` 仍因 editor/graphics 等剩余迁移债 pending。
+
+## Runtime 15 M3 editor retained-host workbench window projection tests child-owner split
+
+状态：`runtime_15_editor_retained_host_workbench_window_projection_tests_child_owner_split_static_passed_cargo_deferred`。
+
+本切片关闭当前最后一个 large-file hotspot。`zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs` 从 1054 行降到 958 行，继续拥有 editor retained-host workbench window DTO projection、visibility inheritance、style normalization、text/value projection、route binding helpers 与 host-property TOML conversion。父文件只通过 `#[path = "workbench_window_projection/tests.rs"] mod tests;` 挂载测试子模块，不改变 Workbench projection behavior、host-contract DTO shape、style token resolution 或 retained-host rendering path。
+
+新增 `zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs` 作为 96 行 folder-backed 测试子 owner，承接 authored-label/value-text/segmented-value projection tests 与 `test_host_node` fixture。新增 `structure_convention/test_file_budget/editor_workbench_window_projection.rs::runtime_15_editor_retained_host_workbench_window_projection_tests_are_child_owner`，锁定父/子 owner 布局、moved test fixture 不回流、父文件低于 1000 行 large-file hotspot 阈值、测试子文件低于 800 行预算，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、editor workbench docs 与 status-output expectations 都包含本切片锚。
+
+验证：scoped rustfmt/static scans、父子行数预算扫描、moved test 回流扫描、docs/status 锚点扫描、runtime structure audit 和 scoped `git diff --check` 已通过；runtime structure audit 报告 `hotspot_count=0`、`large_file_ownership_gate=classified-and-clear`、`large_file_migration_debt_count=0`、`module_gate_migration_debt_count=4`。Cargo 因外部 cargo/rustc 通道 active deferred，不计通过；完整 `module_convention_gate` 仍因 graphics/hard-cutover 等剩余迁移债 pending。
+
+## Runtime 15 M3 editor retained-host pane data conversion projection owner guard
+
+状态：`runtime_15_editor_retained_host_pane_data_conversion_owner_guard_static_passed_cargo_deferred`。
+
+本切片把 F15 原始 `pane_data_conversion` 超长样板复制问题的当前闭合形态固定为结构守卫。`zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs` 只保留 projection 子模块挂载与窄 re-export，不再承接 `animation_template_projection(...)`、`to_host_contract_animation_editor_pane(...)`、`to_host_contract_pane(...)` 或 `project_nodes<T, F>` 实现。
+
+当前 owner 分工为：`zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs` 拥有 `project_nodes<T, F>` / `project_node_vec<T, F>` 通用节点映射；`zircon_editor/src/ui/retained_host/ui/pane_data_conversion/animation_projection.rs` 拥有 animation sequence/graph payload projection；`zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs` 拥有 pane routing。新增 `structure_convention/test_file_budget/editor_pane_data_conversion.rs::runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_owners`，锁定旧超长 owner 不回流、四侧低于 800 行预算，并验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、editor workbench docs 与 status-output expectations 都包含本切片锚。
+
+验证：scoped rustfmt/static scans、owner anchor 扫描、docs/status 锚点扫描和 scoped `git diff --check` 已通过；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。该记录关闭 F15 `pane_data_conversion` 结构守卫子切片；完整 `module_convention_gate` 仍因 graphics/hard-cutover 等剩余迁移债 pending。
+
+## Runtime 15 M2 Net HTTP backend Hyper HTTP/1 client policy hard cutover
+
+状态：`runtime_15_net_http_hyper_http1_client_policy_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 hard-cutover 审计中的 `legacy-net-hyper-client-api-debt` 迁移债。`zircon_plugins/net/features/http/runtime/src/backend/client.rs` 不再直接导入 `hyper_util::client::legacy::Client`，只通过 `http1_client_policy::plain_http_client()` 取得 plain HTTP client。新增 `zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs` 作为 Net HTTP backend dependency policy owner，集中拥有第三方 Hyper HTTP/1 legacy API path、`PlainHttpClient` type alias 与 `TokioExecutor` builder。
+
+`hard_cutover_migration_smells.py` 将 `zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs` 分类为允许的 `external-hyper-http1-client-policy`，并在 migration-debt 聚合中跳过该外部 API policy 分类；`zircon_plugins/net/features/http/runtime/src/backend/client.rs` 继续作为业务 request/response/retry/timeout owner，不暴露第三方 dependency edge。该命名表达当前 Net HTTP backend 的 plain HTTP/1 implementation policy，而不是项目内兼容层；HTTP retry、timeout、header/body conversion、plain HTTP Hyper path、HTTPS reqwest/rustls/certificate-pinning path 均不变，未保留 compat alias 或 re-export。
+
+新增 `naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated`，锁定 backend module mount、client/policy 分工、hard-cutover audit classification、Runtime 15 子计划、runtime index、engine code structure convention、review findings、Net runtime docs、hard-cutover docs 与 status-output expectations。完整 `module_convention_gate` 与 full Net HTTP Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、Hyper legacy API exact scan、hard-cutover audit JSON、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 Hub message raw text policy hard cutover
+
+状态：`runtime_15_hub_message_raw_text_policy_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 hard-cutover 审计中的 `legacy-hub-message-archived-text-debt`。`zircon_hub/src/state/hub_message/message.rs` 把 unstructured message branch 从 generic legacy wording 硬切为 `RawText(String)` 与 `HubMessage::raw_text(...)`；旧字符串 wire payload 的反序列化 owner 明确命名为 `ArchivedRawText(String)`，未知 structured id 的降级仍落到 raw text，不改变 Hub action history 读写语义。
+
+Hub 调用方同步只消费 raw-text policy：`zircon_hub/src/tauri_app/runtime_state/build_actions.rs`、source-engine install、project/local-path、task-status、runtime-state actions 和 `HubError` 相关路径都改为 `HubMessage::raw_text(...)`。`zircon_hub/src` 下 `legacy` 词汇、`HubMessage::legacy`、`Self::Legacy` 与 `HubMessageRepr::Legacy` 已清零，没有保留旧构造函数 alias、旧 enum variant 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/hub.rs::runtime_15_hub_message_raw_text_policy_uses_current_names`，扫描 Hub Rust sources 并锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、hard-cutover docs 与 status-output expectations。`hard_cutover_migration_smells` 实测 `legacy_reference_count = 90`、`classification_count = 4`、`hard_cutover_migration_debt_count = 3`，Hub debt bucket 已不在当前 classification counts 中。完整 `module_convention_gate` 与 full Hub Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、Hub legacy term zero-hit scan、hard-cutover audit JSON、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 material asset schema-v1 defaults naming hard cutover
+
+状态：`runtime_15_material_asset_schema_v1_defaults_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 `legacy-runtime-asset-schema-debt` 的 live hit。`zircon_runtime/src/asset/assets/material/material_asset.rs` 把 `.zmaterial` v1 默认同步 helper 从 generic legacy wording 硬切为版本化 schema-v1 命名：`property_overrides_with_legacy_defaults(...)` 改为 `property_overrides_with_schema_v1_defaults(...)`，`texture_slots_with_legacy_defaults(...)` 改为 `texture_slots_with_schema_v1_defaults(...)`，`legacy_texture_slots(...)` 改为 `schema_v1_pbr_texture_slots(...)`。该命名表达 MaterialAsset 固定 PBR runtime fields 与 `.zmaterial` v1 source schema 的同步责任，而不是通用兼容路径；`.zmaterial` 序列化形状、descriptor/readiness 语义、shader-aware texture alias promotion 和 `MaterialAsset` public APIs 均不变，未保留旧 helper、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/asset_schema.rs::runtime_15_material_asset_schema_v1_defaults_use_versioned_names`，锁定新 helper、旧 helper 名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、zmeta material docs、render-assets docs 与 status-output expectations。完整 `module_convention_gate` 与 full asset/render material Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧名精确扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 DDS upload policy naming hard cutover
+
+状态：`runtime_15_dds_upload_policy_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 DDS container policy 的 legacy 命名 live hit。`zircon_runtime/src/asset/assets/texture/upload_support/dds.rs` 把 pre-DX10 DDS FourCC helper 从 `dds_legacy_upload_layout(...)` 硬切为 `dds_classic_fourcc_upload_layout(...)`，并把 header/layer locals 改为 `classic_faces` 与 `classic_header_cubemap`。`zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs` 的 DDS fixture helpers 同步改为 `dds_classic_fourcc_bytes(...)`、`dds_classic_mip_bytes(...)` 与 `dds_classic_cubemap_bytes(...)`，调用方测试只使用 classic fixture 名。该命名表达 classic DDS header/FourCC policy，而不是 generic compatibility path；DX10 extension header path、descriptor/header agreement、mip/layer/cubemap validation 和 unsupported diagnostics 不变，未保留旧 helper、alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/asset_dynamic.rs::runtime_15_dds_upload_policy_uses_classic_container_names`，锁定旧 helper/变量名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-assets docs 与 status-output expectations。完整 `module_convention_gate` 与 full texture upload Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、旧名精确扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 scene render layer schema-v1 mask naming hard cutover
+
+状态：`runtime_15_scene_render_layer_schema_v1_mask_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 scene schema render layer mask 的 legacy 命名 live hit。`zircon_runtime/src/core/framework/render/camera.rs` 的 `RenderLayerSet` 新增 `from_scene_schema_v1_mask(...)`、`to_scene_schema_v1_mask_lossy(...)` 与 `intersects_scene_schema_v1_mask(...)`，用于 scene schema v1 的 `u32` render layer mask 投影。`zircon_runtime/src/scene/world/render.rs`、`zircon_runtime/src/scene/world/render/lights.rs`、`zircon_runtime/src/scene/world/render_particles.rs`、`zircon_runtime/src/scene/world/render_post_process.rs` 与 `zircon_runtime/src/scene/world/render_visibility.rs` 只使用 schema-v1 mask API，不再使用旧 mask helper 或 generic legacy naming。
+
+新增 `naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names`，锁定 `from_scene_schema_v1_mask` API、五个 scene render caller、Runtime 15 子计划、runtime index、engine code structure convention、review findings、render camera docs 与 status-output expectations。该切片不改变 scene schema v1 的 `u32` storage shape；后续 `runtime_15_render_layer_schema_v1_mask_api_uses_current_names` 已完成 broader graphics mask helper API 硬切，`legacy-scene-schema-render-debt` 已清零。完整 Hybrid GI render plugin debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、scene render 旧命名零命中扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 render shader definition bare-flag naming hard cutover
+
+状态：`runtime_15_render_shader_definition_bare_flag_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 render shader definition 私有 serde branch 的 legacy 命名 live hit。`zircon_runtime/src/core/framework/render/shader/definition_value.rs` 的 untagged 输入枚举从 `LegacyFlag(String)` 硬切为 `BareFlag(String)`，明确该分支表示裸字符串 shader definition flag 输入。该改动只改变内部分支名，不改变 `RenderShaderDefinitionValue` 的 tagged `bool` / `int` / `uint` schema、不改变 `.zshader` import、不改变 material shader readiness diagnostics，也不新增 alias 或兼容 re-export。
+
+新增 `naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_render_shader_definition_uses_bare_flag_names`，锁定 `BareFlag`、旧 `LegacyFlag` 不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-assets docs、zmeta shader/material docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、shader definition 旧分支名零命中扫描、runtime naming audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 GPU model embedded primitive naming hard cutover
+
+状态：`runtime_15_gpu_model_embedded_primitive_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming/hard-cutover boundary 中 GPU model resource inline regression 的 generic legacy primitive/payload wording live hit。`zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs` 的 helper/test 从 `legacy_primitive` / legacy payload 改为 `embedded_primitive` / embedded payload，明确 unresolved mesh reference fallback 保留的是模型根内嵌 primitive。该改动不改变 `model_primitives_preferring_mesh_assets(...)`、mesh-reference lookup、`MeshAsset::to_model_primitive()` conversion 或 GPU model preparation 行为，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/graphics.rs::runtime_15_gpu_model_embedded_primitive_uses_current_names`，锁定 `embedded_primitive`、旧 helper/test 名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-assets docs、module-convention docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、GPU model 旧 helper/test 名零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 frame extract snapshot adapter naming hard cutover
+
+状态：`runtime_15_frame_extract_snapshot_adapter_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming/hard-cutover boundary 中 `RenderFrameExtract::from_snapshot(...)` 注释的 generic legacy viewport packet wording live hit。`zircon_runtime/src/core/framework/render/frame_extract.rs` 现在将该路径描述为从 `scene viewport snapshot packet` 构建 frame DTO，明确它是 preview、roundtrip 与 synthetic validation 的 snapshot adapter，而不是 production render-frame extraction owner。该改动不改变 `SceneViewportRenderPacket` 输入、不改变 `RenderSceneSnapshot` 转换、不改变 scene producer 直接填充 `RenderFrameExtract` 的路径，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/core_scene.rs::runtime_15_frame_extract_snapshot_adapter_uses_current_names`，锁定 `scene viewport snapshot packet`、旧 `legacy viewport packet` 不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、scene render-extract docs、module-convention docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、frame extract 旧注释名零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 core framework render fixture naming hard cutover
+
+状态：`runtime_15_core_framework_render_fixture_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中 core framework render fixtures 的 generic legacy wording live hits。`zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs` 的 clamp regression 改为 `authored_queue_offsets_are_clamped_to_material_window`，`post_process/effect_stack_settings.rs` 改为 `extended_effect_stack_settings_enable_product_node_without_retired_fields`，`relevance.rs` 改为 `primitive_relevance_preserves_layers_above_scene_schema_v1_mask_width`；`light/readiness.rs` 与 `scene_extract.rs` 的 fixture mask wrapper 改为 `RenderLayerSet::from_scene_schema_v1_mask(...)`。这些改动只切换 test/helper wording，不改变 render queue clamp、effect-stack enablement、primitive relevance、light readiness 或 scene extract 行为，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_core_framework_render_fixtures_use_current_names`，锁定五个 core render fixture/source anchor、`scene_schema_v1_mask`、旧 test/helper 名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、common render API docs、module-convention docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、core framework render fixture 旧名零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 render feature fallback capability naming hard cutover
+
+状态：`runtime_15_render_feature_fallback_capability_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming/hard-cutover boundary 中 render feature no-capability fixtures 的 legacy-prefixed diagnostic IDs。`zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_enabled_features.rs` 与 `zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs` 的 Virtual Geometry / Hybrid GI no-capability IDs 已从 `legacy-*`/`legacy.*` 硬切为 `fallback-*`/`fallback.*`，覆盖 `fallback-virtual-geometry-without-capability`、Hybrid GI、`without-capability` 与 `without-submission-capability` 两组 fixture。该改动不改变 capability metadata 判定、advanced runtime flags、pipeline compile 或 submit 行为，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_feature_fallback_capability_fixtures_use_current_names`，锁定两个 fixture source、fallback ID、旧 legacy-prefixed ID 不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-product-submit docs、module-convention docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、render feature fallback capability 旧 ID 零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 render material stale texture fixture naming hard cutover
+
+状态：`runtime_15_render_material_stale_texture_fixture_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming/hard-cutover boundary 中 material runtime shader alias fixtures 的 legacy texture wording live hits。`zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs` 现在使用 `stale_texture_id`、`stale-base.png`、`missing-stale-base.png` 与 `render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture`，明确 shader alias shadowing 覆盖的是 stale schema-v1 base-color texture field。该改动不改变 material descriptor promotion、shader texture alias readiness、runtime material preparation 或 dependency rebuild 行为，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_material_stale_texture_fixtures_use_current_names`，锁定 material runtime source、stale URI/test anchors、旧变量/URI/test 名不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-assets docs、zmeta shader/material docs、module-convention docs 与 status-output expectations。完整 graphics render naming debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、render material stale texture 旧名零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 render graph fallback fixture naming hard cutover
+
+状态：`runtime_15_render_graph_fallback_fixture_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 hard-cutover runtime graphics debt 中最后一组 fixture wording。`zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs` 的 unqualified resource-capability fixture 改为 `fallback-virtual-geometry-without-resource-capability`；`zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs` 的 unexpected dispatch fixture 改为 `unexpected-compute`、`unexpected.executor` 和 `unexpected-pipeline`。该改动不改变 advanced plugin resource capability scanning、compute workload audit、unexpected dispatch counting 或 graph execution behavior，也不新增 alias 或 compat re-export。
+
+新增 `naming_boundary/runtime_15_m2/graphics.rs::runtime_15_render_graph_fallback_fixtures_use_current_names`，锁定两个 source owners、fallback/unexpected anchors、旧 legacy wording 不回流，并同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-product-submit docs、render graph builder docs、module-convention docs 与 status-output expectations。hard-cutover runtime graphics debt 已清零，hybrid-GI render plugin debt 与全量 Cargo sweep 仍 pending。
+
+验证：scoped rustfmt/static scans、render graph fallback fixture 旧名零命中扫描、runtime naming/hard-cutover audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M2 render layer schema-v1 mask API naming hard cutover
+
+状态：`runtime_15_render_layer_schema_v1_mask_api_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 runtime naming boundary 中剩余的 `legacy-runtime-graphics-debt` mask-helper API。`zircon_runtime/src/core/framework/render/camera.rs` 的 `RenderLayerSet` 不再提供 `from_legacy_mask(...)`、`to_legacy_mask_lossy(...)` 或 `intersects_legacy_mask(...)`；ordinary runtime source/test callers 已统一使用 `from_scene_schema_v1_mask(...)`、`to_scene_schema_v1_mask_lossy(...)` 与 `intersects_scene_schema_v1_mask(...)`。
+
+覆盖范围包括 render submit fixtures、`graphics/scene/scene_renderer/lighting/light_buffer.rs` 的 light-buffer packing、`graphics/runtime/render_framework/viewport_record/camera_history_key.rs` 的 camera-history keys、post-process computed resources、mesh/particle/shadow/visibility callers，以及既有 core/graphics/scene tests。新增 `naming_boundary/runtime_15_m2/core_framework.rs::runtime_15_render_layer_schema_v1_mask_api_uses_current_names`，扫描 `zircon_runtime/src` ordinary Rust files（排除 naming-boundary guards）防止旧 helper API 回流，并锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render camera docs、render-product-submit docs、module-convention docs 与 status-output expectations。
+
+该切片不改变 scene schema v1 `u32` storage，不改变 shader/light/visibility 32-bit ABI，也不新增 alias 或 compat re-export。Runtime naming graphics debt 已清零；后续 Hybrid GI extract scene-source 切片已关闭剩余 hard-cutover render plugin debt，全量 Cargo sweep 仍 pending。
+
+## Runtime 15 M2 Hybrid GI extract scene-source naming hard cutover
+
+状态：`runtime_15_hybrid_gi_extract_scene_source_naming_hard_cutover_static_passed_cargo_deferred`。
+
+本切片关闭 Hybrid GI render plugin 中剩余的 hard-cutover extract/trace/probe wording。`zircon_plugins/hybrid_gi/runtime/src/hybrid_gi` 已统一使用 `extract`、`extract-backed` 与 `extract-sourced` terminology；覆盖 scene-prepare collect inputs、probe quantization、trace-region inputs、hierarchy resolve weight、runtime parent chain、irradiance/RT-lighting hierarchy tests、scene representation、visibility/runtime test sources，并保留 `extract_trace_region_ids`、`extract-backed`、`extract-sourced RenderHybridGiProbe` 作为新锚点。
+
+新增 `naming_boundary/runtime_15_m2/graphics/hybrid_gi.rs::runtime_15_hybrid_gi_extract_scene_source_uses_current_names`，父 `graphics.rs` 仅挂载 `mod hybrid_gi`，扫描 Hybrid GI runtime Rust sources 防止 `legacy` wording 回流，并锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、render-product-submit docs、module-convention docs 与 status-output expectations。该切片不改变 Hybrid GI scene-prepare ownership、runtime scene-truth filtering、probe/trace budgets、parent-chain fallback、visibility feedback 或 shader ABI；`hard_cutover_migration_debt_count` 已清零，render-scoped migration debt 0、non-render migration debt 0，`module_convention_gate classified-and-clear`。
+
+验证：scoped rustfmt/static scans、Hybrid GI runtime `legacy` 零命中扫描、hard-cutover/module-convention audit、docs/status/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 implementation-slice cadence deferred，不计通过。
+
+## Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup
+
+状态：`runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred`。
+
+本切片关闭 F8 RuntimePluginDescriptor 完成态和计划/审查文档镜像不一致的问题，不改变 runtime/plugin descriptor 生产行为。实现层已由 `runtime_plugin_descriptor_public_field_convergence_coremin_check_passed` 与 `runtime_plugin_descriptor_public_constructor_retired_coremin_check_passed` 固定为 RuntimePluginDescriptor private fields 15/15、15 个只读访问器、RuntimePluginDescriptor public-field convergence complete 与 RuntimePluginDescriptor::new retired。
+
+新增 `code_review_findings/f8_api_convergence.rs::review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending`，验证 Runtime 06、runtime index、engine code structure convention、review findings、package-manifest docs 与 status-output expectations 都同步到完成态，并防止旧 pending 镜像回流。`runtime_15_code_review_findings_tests_are_folder_backed` 同步更新为 39 个 review guards，`f8_api_convergence.rs` 仍低于 800 行测试预算。
+
+验证：scoped rustfmt/static anchor scans、旧 pending exact phrase scan、docs/status/session anchor scan、line-budget scan 和 scoped `git diff --check`；Cargo 因外部 cargo/rustc 通道 active deferred，不计通过。
+
+## Runtime 15 M3 render-scoped migration debt handoff gate
+
+状态：`runtime_15_render_scoped_migration_debt_handoff_static_passed_cargo_deferred`。
+
+本切片把 Runtime 15 module-convention 当前剩余债务状态固定到文档和守卫中：runtime structure audit 当前为 render-scoped migration debt 0、non-render migration debt 0，`module_convention_gate classified-and-clear`。
+
+新增 `structure_convention/module_convention_gate.rs::runtime_15_render_scoped_migration_debt_handoff_is_status_locked`，验证 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档和 session note 都保留该交接状态。Hybrid GI render plugin hard-cutover wording 已由 extract scene-source 切片关闭；完整全量 Cargo sweep 仍 pending。
+
+## Runtime 15 M3 hard-cutover allowed Hyper policy risk cleanup
+
+状态：`runtime_15_hard_cutover_allowed_hyper_policy_risk_cleanup_static_passed_cargo_deferred`。
+
+本切片收束 `module_convention_gate` 的最后一个 stale risk 表达：`hard_cutover_migration_smells.py` 保留 `external-hyper-http1-client-policy` 分类和第三方 Hyper HTTP/1 `legacy` API path 可见性，但 generic legacy risk 只由未允许的 legacy 分类触发。当前审计事实为 `legacy_reference_count=1`、`classification_counts.external-hyper-http1-client-policy=1`、`hard_cutover_migration_debt_count=0`、`risk_count=0`、`risks=[]`，`module_convention_gate classified-and-clear`。
+
+新增 `structure_convention/module_convention_gate.rs::runtime_15_hard_cutover_allowed_hyper_policy_does_not_report_risk`，锁定 `HARD_CUTOVER_ALLOWED_CLASSIFICATIONS`、`non_allowed_legacy_count`、module-convention risk aggregation、Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档和 session note 的状态锚。该切片不改变 Net HTTP backend 的 retry/timeout/plain HTTP Hyper path/HTTPS reqwest path 行为；完整全量 Cargo sweep 仍 pending。
+
+## Runtime 15 M3 module convention gate audit-clear status mirror
+
+状态：`runtime_15_module_convention_gate_audit_clear_status_mirror_core_min_cargo_passed_full_sweep_pending`。
+
+本切片只收敛当前状态镜像，不改变 runtime production code。当前 runtime structure audit 已达到 `module_convention_gate audit clear`：`m1_gate_status=classified-and-clear`、`migration_debt_count=0`、render-scoped migration debt 0、non-render migration debt 0、`risk_count=0`、`risks=[]`。历史切片中记录的旧 pending 语境保留为当时证据；当前摘要和最新状态行改为 audit-clear，并继续明确 `全量 Cargo sweep 仍 pending`。补跑的 core-min 聚焦 Cargo 守卫测试已通过：1 passed、0 failed；状态输出表测试已通过：2 passed、0 failed。
+
+新增 `structure_convention/module_convention_gate.rs::runtime_15_module_convention_gate_audit_clear_is_status_locked`，锁定 `module_convention_gate.py` 输出字段、Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、session note 与 status-output expectations 中的 audit-clear 状态锚，并禁止 runtime index / 本文档当前摘要回到旧 gate-pending wording。
+
+## Runtime 15 M3 module convention audit script family naming cleanup
+
+状态：`runtime_15_module_convention_audit_script_family_naming_core_min_cargo_passed_full_sweep_pending`。
+
+本切片只收敛计划/规范中的审计脚本族命名，不改变 runtime production code。Runtime 15 子计划的 related-code 清单、§5 审计脚本描述和全局结构规范 §7 现在都指向实际 owner：`module_convention_gate.py` 与 `module_convention_gate_markdown.py`。旧名证据为 `module_convention_boundary.py zero hits` 与 `module_convention_markdown.py zero hits`，避免读者按过期文件名追踪审计入口。
+
+新增 `structure_convention/module_convention_gate.rs::runtime_15_module_convention_audit_script_family_uses_gate_names`，锁定 Runtime 15 子计划、runtime index、engine code structure convention、review findings、本文档、session note 与 status-output expectations 的新状态锚。验证：core-min 聚焦 Cargo 守卫测试 1 passed、0 failed；状态输出表测试 2 passed、0 failed；全量 Cargo sweep 仍 pending。
+
+## Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync
+
+状态：`d6_runtime_plugin_id_open_string_newtype_review_static_passed_cargo_deferred`。
+
+本切片只同步 D6 审查/状态镜像，不改变 runtime/plugin 生产代码。`RuntimePluginId` 继续由 `zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs` 拥有，为开放 string-newtype：first-party ids 只作为 associated constants 存在，合法第三方 key 通过 `parse_key(...)` 的 external fallback 与 `intern_runtime_plugin_key(...)` 进入同一字符串 id 形态，不需要新增 core enum 分支。
+
+新增 `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs::review_d6_runtime_plugin_id_accepts_external_string_keys`，锁定 `runtime_plugin_id_accepts_external_keys_without_core_variant`、`plugin_modules/loader.rs` 的 `_ => externalized_runtime_plugin_module(id.key(), warnings)` 外部化诊断、engine review findings D6 顶表行、Runtime 15 子计划、runtime index、engine code structure convention、runtime module docs、本文档、session note 与 status-output expectations。Cargo gate 按 Runtime 15 implementation-slice cadence deferred。
+
+## Runtime 07 F16 render_compiled_scene split status guard
+
+状态：`compiled_scene_render_split_review_guard_static_passed_cargo_deferred`。
+
+本切片只补 Runtime 07/F16 既有 `render_compiled_scene()` 结构拆分的状态镜像，不改变生产渲染逻辑。当前 owner 边界为：`bind_compiled_scene_graph_resources.rs` 负责 compiled-scene resource binding，`execute_compiled_scene_graph_stages.rs` 负责 graph stage execution 和 late-stage 顺序，`submit_compiled_scene_frame.rs` 负责 command submit、HZB/readback 统计与 transient-pool release；`render.rs` 保持 orchestration owner，不重新持有 `execute_graph_stage(...)`、`active_late_graph_stages(...)`、`queue.submit([encoder.finish()])` 或 pool-release 行为。
+
+新增 `code_review_findings/render_structure.rs::review_f16_compiled_scene_render_path_uses_split_owners`，锁定 Runtime 07 状态表、render index、engine code structure convention、review findings、render-framework architecture 与本文档的 F16 状态锚。Cargo/full Runtime 07/FPS/profiling gates deferred。

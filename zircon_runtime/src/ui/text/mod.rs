@@ -1,4 +1,3 @@
-#[cfg_attr(not(test), allow(dead_code))]
 mod edit_state;
 mod font_registry;
 mod grapheme;

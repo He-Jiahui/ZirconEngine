@@ -257,7 +257,7 @@ fn retained_editor_migration_docs_pin_sources_and_no_direct_slint_fence() {
 
 #[test]
 fn editor_material_theme_declares_source_aligned_slint_material_foundation_tokens() {
-    let document = editor_toml("assets/ui/theme/editor_material.v2.ui.toml");
+    let document = editor_toml("assets/ui/theme/editor_material.zui");
     let tokens = document
         .get("tokens")
         .and_then(Value::as_table)
@@ -307,7 +307,7 @@ fn editor_material_theme_declares_source_aligned_slint_material_foundation_token
 
 #[test]
 fn editor_material_theme_declares_m2_behavior_metadata_contracts() {
-    let document = editor_toml("assets/ui/theme/editor_material.v2.ui.toml");
+    let document = editor_toml("assets/ui/theme/editor_material.zui");
     let tokens = document
         .get("tokens")
         .and_then(Value::as_table)

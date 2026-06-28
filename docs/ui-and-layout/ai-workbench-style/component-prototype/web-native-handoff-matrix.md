@@ -106,7 +106,7 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/generated_bottom_body.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui
@@ -230,7 +230,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/generated_bottom_body.zui
   - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
   - zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs
@@ -327,7 +327,7 @@ The same contract also records the native builtin import graph: `collect_builtin
 | popup-menu | `collections.js`, `app.js` popup layer, `action-paths.js` | `template_popup_rows.rs`, retained popup keyboard/dismiss, runtime popup rows | native-covered | Popup rows use dotted `workbench.collection.menu.*` action ids; keyboard navigation, outside-dismiss, bounded layout, and row render commands are checked. |
 | feedback | `collections.js` alerts/tooltips/toasts | `template_alerts.rs`, `template_tooltips.rs`, feedback runtime extract | native-covered | Alert, tooltip, and toast painter families are checked through selector and runtime extract gates. |
 | drawer-window-panel | `surfaces.js`, `module-components.js` bottom/side panels | `template_shell_panels.rs`, retained window/surface projection | native-covered for core shell | Drawer, window, and panel-view surfaces are treated as shell primitives before individual modules add content. |
-| generated-bottom-panel | `module-components.js` `data-generated-bottom-panel` secondary drawer bodies, `action-paths.js` | `workbench/modules/generated/workbench_generated_bottom_drawer.zui`, `workbench/modules/generated/workbench_generated_bottom_panel.zui`, `generated_bottom_body.v2.ui.toml`, generated-bottom bindings, retained action/lifecycle/navigation/feedback helpers, shell bottom drawer view registration, host-contract pane projection | visible shell bottom drawer pane body evidence recorded; module lifecycle remains state owner | Native-synced core modules and the More Editors library use the shared generated panel grammar for secondary bottom tabs. Core module secondary routes now have dotted `workbench.generated_bottom.*` action ids, a retained drawer host, panel content, template bindings, preview actions, focused action routing, explicit drawer lifecycle ownership, route feedback, and a real `editor.generated_bottom#1` bottom drawer pane body checked by `verify-native-generated-bottom-contract.mjs`; the shared `WorkbenchGeneratedBottomPanel` is visible by default for direct shell-pane hosting, while the module overlay keeps collapsed state on `WorkbenchGeneratedBottomDrawer`. Full promotion still keeps action/state consolidation out of the native-covered column until the shell pane and module lifecycle contracts are unified. |
+| generated-bottom-panel | `module-components.js` `data-generated-bottom-panel` secondary drawer bodies, `action-paths.js` | `workbench/modules/generated/workbench_generated_bottom_drawer.zui`, `workbench/modules/generated/workbench_generated_bottom_panel.zui`, `generated_bottom_body.zui`, generated-bottom bindings, retained action/lifecycle/navigation/feedback helpers, shell bottom drawer view registration, host-contract pane projection | visible shell bottom drawer pane body evidence recorded; module lifecycle remains state owner | Native-synced core modules and the More Editors library use the shared generated panel grammar for secondary bottom tabs. Core module secondary routes now have dotted `workbench.generated_bottom.*` action ids, a retained drawer host, panel content, template bindings, preview actions, focused action routing, explicit drawer lifecycle ownership, route feedback, and a real `editor.generated_bottom#1` bottom drawer pane body checked by `verify-native-generated-bottom-contract.mjs`; the shared `WorkbenchGeneratedBottomPanel` is visible by default for direct shell-pane hosting, while the module overlay keeps collapsed state on `WorkbenchGeneratedBottomDrawer`. Full promotion still keeps action/state consolidation out of the native-covered column until the shell pane and module lifecycle contracts are unified. |
 
 ## Module Handoff
 

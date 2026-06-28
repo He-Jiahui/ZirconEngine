@@ -174,6 +174,26 @@ Zircon 规范(对标上述):
 
 > **文本延伸(见 `17`)**:本节的根缩放对**字体光栅化**同样适用——字形须按物理像素 `font_size_logical × scale_factor` 重栅格,而非固定字号拉伸。当前 `sdf_font_bake.rs` 的 atlas key 不含 scale,是 R4 在文本上的同源缺陷,详见 `17` §3.2。
 
+### 3.4a 分辨率成熟度:scale 模式 / 多显示器 / 分数缩放 / 安全区(深化)
+
+§3.4 的根缩放只解决"单窗口跟随系统 DPI"。一个成熟的分辨率方案还要处理 **scale 模式选择、跨显示器迁移、分数缩放吸附、安全区**。对标 Unity UI Toolkit `PanelSettings` 的三种 scale 模式(权威思想来源,见 `dev/ui-toolkit-manual-code-examples` + UIElements docs):
+
+| Scale 模式 | 语义 | 适用 | 对标 |
+| --- | --- | --- | --- |
+| `constant-physical`(默认 chrome) | 逻辑单位即物理尺寸,scale = 系统 DPI;1pt 在任何屏物理大小一致 | 编辑器 chrome(工具条/抽屉/控件) | Unity `ConstantPhysicalSize`;UE `GetDPIScaleFactor` |
+| `constant-pixel` | scale = 1,逻辑=物理像素,不随 DPI 变 | 像素精确内容、center 自由区可选 | Unity `ConstantPixelSize` |
+| `scale-with-resolution` | 按参考分辨率比例缩放(`scale = f(actual/reference)`) | 需整体等比放大的全屏布局/预览 | Unity `ScaleWithScreenSize` + reference resolution |
+
+Zircon 规范(在 §3.4 根缩放之上):
+
+1. **scale 模式是 panel/根属性**:每个渲染根(主窗口、浮动窗口、视口)声明 scale 模式 + 参考分辨率,`effective_scale` = 模式 × 系统 DPI;chrome 默认 `constant-physical`,与 §3.4 一致。
+2. **每显示器 DPI**:窗口跨显示器迁移时 `scale_factor` 随目标显示器更新(对标 Win32 per-monitor-V2 DPI、UE `SetDPIScaleFactor`),触发受影响子树重算(接 09/10),不重载资产。
+3. **分数缩放吸附**:1.25×/1.5× 等分数 scale 下,逻辑→物理换算产生分数像素;**像素吸附归渲染/合成层**(顶点装配,见 `21` §3.5),Taffy 侧 `disable_rounding` 保留分数(见 `13`),由 21 在装配顶点时对文本/1px 边框整像素吸附,自由内容不吸附——避免 Taffy 取整与渲染取整双重误差。
+4. **安全区 / 工作区**:布局根扣除系统保留区(任务栏、刘海、窗口装饰)得可用工作区,chrome 在工作区内布局(对标 Unity `safe-area`、移动端 safe area inset)。
+5. **断点用逻辑宽度**(承 §3.4-3):tier 判定永远用 `logical_width = physical / effective_scale`,与 scale 模式无关,保证不同屏同观感。
+
+> Taffy 取整归属(见 `13`/`21`):本仓库已 `taffy.disable_rounding()`(保真分数 30.5px 控件)。Taffy 0.10 的 `round_layout` 用累积坐标避免间隙(`compute/mod.rs:219-274`),关闭后**像素吸附责任移交渲染层**——这正是上面第 3 点的依据,`21` §3.5 落实。
+
 ### 3.5 autolayout 计算规则修正(R1/R2 → flex 容器)
 
 把 `region_frames.rs` 的"竖向手工像素累加"改为"壳作为一个竖向 flex 容器,一次求解":

@@ -2,13 +2,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::plugin::ExportPackagingStrategy;
 
-use super::{PluginFeatureDependency, PluginModuleManifest};
+use super::{PluginDistributionManifest, PluginFeatureDependency, PluginModuleManifest};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginFeatureBundleManifest {
     pub id: String,
     pub display_name: String,
     pub owner_plugin_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_package_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distribution: Option<PluginDistributionManifest>,
     #[serde(default)]
     pub dependencies: Vec<PluginFeatureDependency>,
     #[serde(default)]
@@ -31,6 +35,8 @@ impl PluginFeatureBundleManifest {
             id: id.into(),
             display_name: display_name.into(),
             owner_plugin_id: owner_plugin_id.into(),
+            provider_package_id: None,
+            distribution: None,
             dependencies: Vec::new(),
             modules: Vec::new(),
             capabilities: Vec::new(),
@@ -49,6 +55,16 @@ impl PluginFeatureBundleManifest {
 
     pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
         self.capabilities.push(capability.into());
+        self
+    }
+
+    pub fn with_provider_package_id(mut self, provider_package_id: impl Into<String>) -> Self {
+        self.provider_package_id = Some(provider_package_id.into());
+        self
+    }
+
+    pub fn with_distribution(mut self, distribution: PluginDistributionManifest) -> Self {
+        self.distribution = Some(distribution);
         self
     }
 

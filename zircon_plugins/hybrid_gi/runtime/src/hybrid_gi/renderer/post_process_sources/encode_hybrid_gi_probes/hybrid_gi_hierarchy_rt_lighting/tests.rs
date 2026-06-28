@@ -204,21 +204,22 @@ fn scene_driven_lineage_runtime_rt_lighting_ignores_scene_prepare_surface_cache_
 }
 
 #[test]
-fn scene_driven_inherited_legacy_probe_rt_lighting_uses_legacy_when_packed_hierarchy_rt_is_zero() {
-    let inherited_rt_lighting = inherited_legacy_probe_rt_lighting_with_zero_packed_hierarchy_rt();
+fn scene_driven_inherited_extract_probe_rt_lighting_uses_extract_when_packed_hierarchy_rt_is_zero()
+{
+    let inherited_rt_lighting = inherited_extract_probe_rt_lighting_with_zero_packed_hierarchy_rt();
 
     assert!(
         inherited_rt_lighting[0] > 0.45,
-        "expected inherited legacy RT lighting to remain visible when the packed hierarchy RT scene-truth source has zero support; inherited_rt_lighting={inherited_rt_lighting:?}"
+        "expected inherited extract RT lighting to remain visible when the packed hierarchy RT scene-truth source has zero support; inherited_rt_lighting={inherited_rt_lighting:?}"
     );
     assert!(
         inherited_rt_lighting[3] > 0.1,
-        "expected inherited legacy RT lighting resolve weight to provide support when packed hierarchy RT is zero-weight; inherited_rt_lighting={inherited_rt_lighting:?}"
+        "expected inherited extract RT lighting resolve weight to provide support when packed hierarchy RT is zero-weight; inherited_rt_lighting={inherited_rt_lighting:?}"
     );
 }
 
 #[test]
-fn legacy_trace_region_inheritance_counts_duplicate_scheduled_live_payload_once() {
+fn extract_trace_region_inheritance_counts_duplicate_scheduled_live_payload_once() {
     let single = inherited_trace_region_rt_lighting_with_scheduled_region_ids(vec![40]);
     let duplicate = inherited_trace_region_rt_lighting_with_scheduled_region_ids(vec![40, 40]);
 
@@ -233,22 +234,22 @@ fn legacy_trace_region_inheritance_counts_duplicate_scheduled_live_payload_once(
 }
 
 #[test]
-fn legacy_trace_region_inheritance_respects_live_payload_region_limit() {
+fn extract_trace_region_inheritance_respects_live_payload_region_limit() {
     let rt_lighting = inherited_trace_region_rt_lighting_with_budget_excess_tail_payload();
 
     assert!(
         rt_lighting[3] <= f32::EPSILON,
-        "expected legacy trace-region inheritance to respect the same live-payload GPU budget as trace-region encoding instead of reading a 17th scheduled payload; rt_lighting={rt_lighting:?}"
+        "expected extract trace-region inheritance to respect the same live-payload GPU budget as trace-region encoding instead of reading a 17th scheduled payload; rt_lighting={rt_lighting:?}"
     );
 }
 
 #[test]
-fn legacy_trace_region_inheritance_uses_first_payload_for_duplicate_region_ids() {
+fn extract_trace_region_inheritance_uses_first_payload_for_duplicate_region_ids() {
     let rt_lighting = inherited_trace_region_rt_lighting_with_duplicate_region_payloads();
 
     assert!(
         rt_lighting[0] > rt_lighting[2] + 0.2,
-        "expected legacy RT-lighting inheritance to match runtime registration and use the first RenderHybridGiTraceRegion payload for a duplicate region id; rt_lighting={rt_lighting:?}"
+        "expected extract RT-lighting inheritance to match runtime registration and use the first RenderHybridGiTraceRegion payload for a duplicate region id; rt_lighting={rt_lighting:?}"
     );
     assert!(
         rt_lighting[3] > 0.0,
@@ -257,22 +258,22 @@ fn legacy_trace_region_inheritance_uses_first_payload_for_duplicate_region_ids()
 }
 
 #[test]
-fn legacy_trace_region_inheritance_uses_first_probe_payload_for_duplicate_probe_ids() {
+fn extract_trace_region_inheritance_uses_first_probe_payload_for_duplicate_probe_ids() {
     let rt_lighting = inherited_trace_region_rt_lighting_with_duplicate_child_probe_payloads();
 
     assert!(
         rt_lighting[3] <= f32::EPSILON,
-        "expected legacy RT-lighting inheritance to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of inheriting through a later stale parent link; rt_lighting={rt_lighting:?}"
+        "expected extract RT-lighting inheritance to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of inheriting through a later stale parent link; rt_lighting={rt_lighting:?}"
     );
 }
 
 #[test]
-fn flat_runtime_blocks_legacy_trace_region_rt_lighting_inheritance() {
+fn flat_runtime_blocks_extract_trace_region_rt_lighting_inheritance() {
     let rt_lighting = inherited_trace_region_rt_lighting_with_flat_runtime();
 
     assert!(
         rt_lighting[3] <= f32::EPSILON,
-        "expected flat runtime topology to stop legacy RenderHybridGiProbe parent-chain trace-region RT inheritance; rt_lighting={rt_lighting:?}"
+        "expected flat runtime topology to stop extract-sourced RenderHybridGiProbe parent-chain trace-region RT inheritance; rt_lighting={rt_lighting:?}"
     );
 }
 
@@ -1264,7 +1265,7 @@ fn scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
     hybrid_gi_hierarchy_rt_lighting(&frame, &encoded_probe)
 }
 
-fn inherited_legacy_probe_rt_lighting_with_zero_packed_hierarchy_rt() -> [f32; 4] {
+fn inherited_extract_probe_rt_lighting_with_zero_packed_hierarchy_rt() -> [f32; 4] {
     let parent_probe = RenderHybridGiProbe {
         probe_id: 100,
         resident: true,

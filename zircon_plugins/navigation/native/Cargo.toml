@@ -6,7 +6,7 @@ license.workspace = true
 description = "Recast/Detour navigation backend boundary for Zircon navigation."
 
 [dependencies]
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }
 
 [build-dependencies]
 cc = "1.2"

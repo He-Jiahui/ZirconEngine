@@ -144,30 +144,30 @@ mod tests {
             .renderer
             .features
             .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-                "legacy-virtual-geometry-without-capability",
+                "fallback-virtual-geometry-without-capability",
                 Vec::new(),
                 Vec::new(),
                 vec![RenderFeaturePassDescriptor::new(
                     RenderPassStage::DepthPrepass,
-                    "legacy-virtual-geometry-without-capability",
+                    "fallback-virtual-geometry-without-capability",
                     QueueLane::Graphics,
                 )
-                .with_executor_id("legacy.virtual-geometry.without-capability")
+                .with_executor_id("fallback.virtual-geometry.without-capability")
                 .with_side_effects()],
             )));
         pipeline
             .renderer
             .features
             .push(RendererFeatureAsset::plugin(RenderFeatureDescriptor::new(
-                "legacy-hybrid-gi-without-capability",
+                "fallback-hybrid-gi-without-capability",
                 Vec::new(),
                 Vec::new(),
                 vec![RenderFeaturePassDescriptor::new(
                     RenderPassStage::Lighting,
-                    "legacy-hybrid-gi-without-capability",
+                    "fallback-hybrid-gi-without-capability",
                     QueueLane::Graphics,
                 )
-                .with_executor_id("legacy.hybrid-gi.without-capability")
+                .with_executor_id("fallback.hybrid-gi.without-capability")
                 .with_side_effects()],
             )));
 

@@ -83,7 +83,7 @@ const generatedBottomDrawerUrl = new URL(
   import.meta.url
 );
 const generatedBottomBodyUrl = new URL(
-  "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml",
+  "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.zui",
   import.meta.url
 );
 const extensionTerrainEditorWorkspaceUrl = new URL(
@@ -335,11 +335,11 @@ const paneDataConversionUrl = new URL(
   import.meta.url
 );
 const applyPresentationUrl = new URL(
-  "../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation.rs",
+  "../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs",
   import.meta.url
 );
 const hostContractPanesUrl = new URL(
-  "../../../../zircon_editor/src/ui/retained_host/host_contract/data/panes.rs",
+  "../../../../zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs",
   import.meta.url
 );
 const windowBindingsUrl = new URL(
@@ -770,7 +770,7 @@ check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modul
 check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui"), "matrix header mentions menu-flow extension workspace zui");
 check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui"), "matrix header mentions generated bottom panel zui");
 check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui"), "matrix header mentions generated bottom drawer zui");
-check(matrix.includes("zircon_editor/assets/ui/editor/host/generated_bottom_body.v2.ui.toml"), "matrix header mentions generated bottom shell body zui");
+check(matrix.includes("zircon_editor/assets/ui/editor/host/generated_bottom_body.zui"), "matrix header mentions generated bottom shell body zui");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs"), "matrix header mentions generated bottom activity view descriptor");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs"), "matrix header mentions generated bottom shell view instance");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs"), "matrix header mentions generated bottom drawer layout");
@@ -826,7 +826,7 @@ for (const asset of shellSurfaceZuiAssets) {
   check(matrix.includes(asset), `matrix records shell surface zui asset ${asset}`);
 }
 check(matrix.includes("workbench/shell/workbench_component_drawer.zui"), "matrix records component drawer low-level zui composition");
-check(matrix.includes("23 declarative `.zui` component assets"), "matrix records native component zui asset count");
+check(matrix.includes("32 declarative `.zui` component assets"), "matrix records native component zui asset count");
 check(matrix.includes("7 shell surface `.zui` assets"), "matrix records native shell surface zui asset count");
 check(matrix.includes("builtin import graph"), "matrix records native builtin import graph coverage");
 check(matrix.includes("primitive and shell surface set"), "matrix records focused workbench primitive and shell surface governance test");

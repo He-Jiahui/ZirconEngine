@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/surface.rs
   - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs

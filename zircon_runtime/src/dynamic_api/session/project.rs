@@ -12,6 +12,8 @@ use crate::diagnostic_log::write_log;
 use crate::scene::{DynamicSceneAssetReloadQueue, LevelSystem};
 use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
 
+use super::error::{RuntimeProjectError, RuntimeProjectResult};
+
 const DEFAULT_PROJECT_NAVMESH_PATH: &[&str] = &["assets", "navigation", "main.navmesh.toml"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,16 +22,16 @@ pub(super) struct RuntimeProjectConfig {
 }
 
 impl RuntimeProjectConfig {
-    pub(super) fn from_abi_slice(slice: ZrByteSlice) -> Result<Option<Self>, String> {
+    pub(super) fn from_abi_slice(slice: ZrByteSlice) -> RuntimeProjectResult<Option<Self>> {
         if slice.is_empty() {
             return Ok(None);
         }
         let bytes = unsafe { slice.as_slice() };
         let value = std::str::from_utf8(bytes)
-            .map_err(|error| format!("runtime project root must be UTF-8: {error}"))?
+            .map_err(|source| RuntimeProjectError::ProjectRootUtf8 { source })?
             .trim();
         if value.is_empty() {
-            return Err("runtime project root cannot be empty".to_string());
+            return Err(RuntimeProjectError::EmptyProjectRoot);
         }
         Ok(Some(Self {
             root: PathBuf::from(value),
@@ -40,12 +42,12 @@ impl RuntimeProjectConfig {
         self.root.to_string_lossy().into_owned()
     }
 
-    pub(super) fn load_manifest(&self) -> Result<RuntimeLoadedProjectManifest, String> {
-        let project = ProjectManager::open(&self.root).map_err(|error| {
-            format!(
-                "failed to open runtime project {}: {error}",
-                self.root.display()
-            )
+    pub(super) fn load_manifest(&self) -> RuntimeProjectResult<RuntimeLoadedProjectManifest> {
+        let project = ProjectManager::open(&self.root).map_err(|source| {
+            RuntimeProjectError::OpenProject {
+                root: self.root.clone(),
+                source,
+            }
         })?;
         Ok(RuntimeLoadedProjectManifest {
             default_scene: project.manifest().default_scene.to_string(),
@@ -53,55 +55,51 @@ impl RuntimeProjectConfig {
         })
     }
 
-    pub(super) fn open_project_assets(&self, core: &CoreHandle) -> Result<(), String> {
+    pub(super) fn open_project_assets(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
         let asset_manager =
-            crate::asset::pipeline::manager::resolve_asset_manager(core).map_err(|error| {
-                format!(
-                    "runtime project {} requires AssetManager but it is unavailable: {error}",
-                    self.root.display()
-                )
+            crate::asset::pipeline::manager::resolve_asset_manager(core).map_err(|source| {
+                RuntimeProjectError::ResolveAssetManager {
+                    root: self.root.clone(),
+                    source,
+                }
             })?;
         let asset_manager = asset_manager.shared();
         asset_manager
             .open_project(&self.root_display())
             .map(|_| ())
-            .map_err(|error| {
-                format!(
-                    "failed to open runtime project assets {}: {error}",
-                    self.root.display()
-                )
+            .map_err(|source| RuntimeProjectError::OpenProjectAssets {
+                root: self.root.clone(),
+                source,
             })
     }
 
-    pub(super) fn load_default_level(&self, core: &CoreHandle) -> Result<LevelSystem, String> {
+    pub(super) fn load_default_level(
+        &self,
+        core: &CoreHandle,
+    ) -> RuntimeProjectResult<LevelSystem> {
         let manifest = self.load_manifest()?;
         crate::scene::load_level_asset(core, &self.root_display(), manifest.default_scene.as_str())
-            .map_err(|error| {
-                format!(
-                    "failed to load default scene {} from project {}: {error}",
-                    manifest.default_scene,
-                    self.root.display()
-                )
+            .map_err(|source| RuntimeProjectError::LoadDefaultScene {
+                root: self.root.clone(),
+                scene: manifest.default_scene,
+                source,
             })
     }
 
     pub(super) fn scene_asset_reload_queue(
         &self,
         core: &CoreHandle,
-    ) -> Result<DynamicSceneAssetReloadQueue, String> {
+    ) -> RuntimeProjectResult<DynamicSceneAssetReloadQueue> {
         let asset_manager = core
             .resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)
-            .map_err(|error| {
-                format!(
-                    "runtime project {} requires ProjectAssetManager for scene asset reloads but it is unavailable: {error}",
-                    self.root.display()
-                )
+            .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
+                root: self.root.clone(),
+                source,
             })?;
         let project = asset_manager.current_project_manager().ok_or_else(|| {
-            format!(
-                "runtime project {} has no active ProjectManager for scene asset reloads",
-                self.root.display()
-            )
+            RuntimeProjectError::MissingActiveProjectManager {
+                root: self.root.clone(),
+            }
         })?;
         Ok(DynamicSceneAssetReloadQueue::from_project_asset_manager(
             project,
@@ -109,54 +107,50 @@ impl RuntimeProjectConfig {
         ))
     }
 
-    pub(super) fn load_default_navigation(&self, core: &CoreHandle) -> Result<(), String> {
+    pub(super) fn load_default_navigation(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
         let navmesh_path = DEFAULT_PROJECT_NAVMESH_PATH
             .iter()
             .fold(self.root.clone(), |path, segment| path.join(segment));
         if !navmesh_path.exists() {
             return Ok(());
         }
-        let document = std::fs::read_to_string(&navmesh_path).map_err(|error| {
-            format!(
-                "failed to read runtime navmesh {}: {error}",
-                navmesh_path.display()
-            )
+        let document = std::fs::read_to_string(&navmesh_path).map_err(|source| {
+            RuntimeProjectError::ReadNavmesh {
+                path: navmesh_path.clone(),
+                source,
+            }
         })?;
-        let asset = toml::from_str::<NavMeshAsset>(&document).map_err(|error| {
-            format!(
-                "failed to parse runtime navmesh {}: {error}",
-                navmesh_path.display()
-            )
+        let asset = toml::from_str::<NavMeshAsset>(&document).map_err(|source| {
+            RuntimeProjectError::ParseNavmesh {
+                path: navmesh_path.clone(),
+                source,
+            }
         })?;
-        let navigation = resolve_navigation_manager(core).map_err(|error| {
-            format!(
-                "runtime project {} declares a navmesh but NavigationManager is unavailable: {error}",
-                self.root.display()
-            )
+        let navigation = resolve_navigation_manager(core).map_err(|source| {
+            RuntimeProjectError::ResolveNavigationManager {
+                root: self.root.clone(),
+                source,
+            }
         })?;
         navigation
             .load_nav_mesh(asset)
             .map(|_| ())
-            .map_err(|error| {
-                format!(
-                    "failed to load runtime navmesh {}: {error}",
-                    navmesh_path.display()
-                )
+            .map_err(|source| RuntimeProjectError::LoadNavmesh {
+                path: navmesh_path,
+                source,
             })
     }
 
-    pub(super) fn load_startup_scripts(&self, core: &CoreHandle) -> Result<(), String> {
+    pub(super) fn load_startup_scripts(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
         let manifest = self.load_manifest()?;
         if manifest.scripts.is_empty() {
             return Ok(());
         }
         let manager = core
             .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)
-            .map_err(|error| {
-                format!(
-                    "runtime project {} declares scripts but ScriptModule is unavailable: {error}",
-                    self.root.display()
-                )
+            .map_err(|source| RuntimeProjectError::ResolveScriptManager {
+                root: self.root.clone(),
+                source,
             })?;
         let mut packages = Vec::new();
         for root in manifest.script_package_roots(&self.root) {
@@ -167,11 +161,11 @@ impl RuntimeProjectConfig {
                     root.display()
                 ),
             );
-            packages.extend(manager.discover_packages(&root).map_err(|error| {
-                format!(
-                    "failed to discover runtime script packages under {}: {error}",
-                    root.display()
-                )
+            packages.extend(manager.discover_packages(&root).map_err(|source| {
+                RuntimeProjectError::DiscoverScriptPackages {
+                    root: root.clone(),
+                    source,
+                }
             })?);
             write_log(
                 "runtime_session",
@@ -190,12 +184,12 @@ impl RuntimeProjectConfig {
                     package.package.manifest.name, package.backend_name
                 ),
             );
-            manager.load_discovered_package(&package).map_err(|error| {
-                format!(
-                    "failed to load runtime script package {}: {error}",
-                    package.package.manifest.name
-                )
-            })?;
+            manager
+                .load_discovered_package(&package)
+                .map_err(|source| RuntimeProjectError::LoadScriptPackage {
+                    package: package.package.manifest.name.clone(),
+                    source,
+                })?;
             write_log(
                 "runtime_session",
                 format!(
@@ -226,7 +220,7 @@ impl RuntimeLoadedProjectManifest {
     fn filter_startup_packages(
         &self,
         packages: Vec<crate::script::DiscoveredVmPluginPackage>,
-    ) -> Result<Vec<crate::script::DiscoveredVmPluginPackage>, String> {
+    ) -> RuntimeProjectResult<Vec<crate::script::DiscoveredVmPluginPackage>> {
         if self.scripts.startup_packages.is_empty() {
             return Ok(packages);
         }
@@ -236,9 +230,9 @@ impl RuntimeLoadedProjectManifest {
             .collect::<HashSet<_>>();
         for startup_package in &self.scripts.startup_packages {
             if !discovered.contains(startup_package) {
-                return Err(format!(
-                    "runtime startup script package {startup_package} was not found"
-                ));
+                return Err(RuntimeProjectError::MissingStartupScriptPackage {
+                    package: startup_package.clone(),
+                });
             }
         }
         Ok(packages
@@ -280,7 +274,7 @@ mod tests {
         })
         .unwrap_err();
 
-        assert_eq!(error, "runtime project root cannot be empty");
+        assert_eq!(error.to_string(), "runtime project root cannot be empty");
     }
 
     #[test]
@@ -332,7 +326,7 @@ mod tests {
             .unwrap_err();
 
         assert_eq!(
-            error,
+            error.to_string(),
             "runtime startup script package vampire_game was not found"
         );
     }

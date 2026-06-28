@@ -1,4 +1,5 @@
 use crate::asset::AssetImporterRegistry;
+use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -15,6 +16,7 @@ pub(super) struct RuntimeModuleRegistrationInputs {
     asset_importers: AssetImporterRegistry,
     asset_importer_errors: Vec<String>,
     render_features: Vec<RenderFeatureDescriptor>,
+    shading_models: Vec<ShadingModelDescriptor>,
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
     runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
@@ -38,6 +40,7 @@ impl RuntimeModuleRegistrationInputs {
             asset_importers: AssetImporterRegistry::default(),
             asset_importer_errors: Vec::new(),
             render_features: Vec::new(),
+            shading_models: Vec::new(),
             render_pass_executors: Vec::new(),
             runtime_prepare_collectors: Vec::new(),
             hybrid_gi_runtime_providers: Vec::new(),
@@ -60,6 +63,10 @@ impl RuntimeModuleRegistrationInputs {
 
     pub(super) fn render_features(&self) -> &[RenderFeatureDescriptor] {
         &self.render_features
+    }
+
+    pub(super) fn shading_models(&self) -> &[ShadingModelDescriptor] {
+        &self.shading_models
     }
 
     pub(super) fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
@@ -96,6 +103,7 @@ impl RuntimeModuleRegistrationInputs {
             asset_importers: extension_inputs.asset_importers,
             asset_importer_errors: extension_inputs.asset_importer_errors,
             render_features: extension_inputs.render_features,
+            shading_models: extension_inputs.shading_models,
             render_pass_executors: extension_inputs.render_pass_executors,
             runtime_prepare_collectors: extension_inputs.runtime_prepare_collectors,
             hybrid_gi_runtime_providers: extension_inputs.hybrid_gi_runtime_providers,

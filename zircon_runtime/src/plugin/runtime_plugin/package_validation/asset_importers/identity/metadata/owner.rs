@@ -1,13 +1,14 @@
 use crate::asset::AssetImporterDescriptor;
 
-use super::super::super::super::validate_runtime_plugin_package_token;
+use super::super::super::super::validate_runtime_plugin_package_id;
 
 pub(super) fn validate_runtime_plugin_package_asset_importer_owner(
     package_id: &str,
     importer: &AssetImporterDescriptor,
     diagnostics: &mut Vec<String>,
 ) {
-    validate_runtime_plugin_package_token(
+    validate_runtime_plugin_package_id(
+        "runtime plugin package manifest",
         "asset importer plugin_id",
         &importer.plugin_id,
         diagnostics,

@@ -6059,6 +6059,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "toml",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6076,6 +6077,7 @@ dependencies = [
  "dxf",
  "ply-rs-bw",
  "stl_io",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6092,6 +6094,7 @@ version = "0.1.0"
 dependencies = [
  "naga",
  "toml",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6122,6 +6125,7 @@ name = "zircon_plugin_audio_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "symphonia",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6163,6 +6167,7 @@ dependencies = [
  "gltf",
  "serde_json",
  "toml",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6374,6 +6379,7 @@ name = "zircon_plugin_obj_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "tobj",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6389,6 +6395,7 @@ name = "zircon_plugin_opus_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_audio_importer_runtime",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6703,6 +6710,7 @@ name = "zircon_plugin_shader_wgsl_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "naga",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6851,6 +6859,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "psd",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6930,6 +6939,7 @@ dependencies = [
 name = "zircon_plugin_ui_document_importer_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -7006,6 +7016,7 @@ dependencies = [
  "tobj",
  "toml",
  "tracing",
+ "ttf-parser 0.25.1",
  "unicode-segmentation",
  "uuid",
  "wgpu",

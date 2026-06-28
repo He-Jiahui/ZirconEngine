@@ -40,7 +40,7 @@ fn ui_asset_editor_additional_editor_asset_browser_layout_compiles_and_opens() {
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_ASSET_BROWSER_TOML,
         "editor.asset_browser",
-        "res://ui/editor/asset_browser.ui.toml",
+        "res://ui/editor/asset_browser.zui",
         "asset_browser_root [VerticalBox]",
         "AssetBrowserRoot",
     );
@@ -51,7 +51,7 @@ fn ui_asset_editor_additional_editor_theme_browser_layout_compiles_and_opens() {
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_THEME_BROWSER_TOML,
         "editor.theme_browser",
-        "res://ui/editor/theme_browser.ui.toml",
+        "res://ui/editor/theme_browser.zui",
         "theme_browser_root [VerticalBox]",
         "ThemeBrowserRoot",
     );
@@ -62,7 +62,7 @@ fn ui_asset_editor_additional_editor_binding_browser_layout_compiles_and_opens()
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_BINDING_BROWSER_TOML,
         "editor.binding_browser",
-        "res://ui/editor/binding_browser.ui.toml",
+        "res://ui/editor/binding_browser.zui",
         "binding_browser_root [VerticalBox]",
         "BindingBrowserRoot",
     );
@@ -73,7 +73,7 @@ fn ui_asset_editor_additional_editor_layout_workbench_asset_compiles_and_opens()
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_LAYOUT_WORKBENCH_TOML,
         "editor.layout_workbench",
-        "res://ui/editor/layout_workbench.ui.toml",
+        "res://ui/editor/layout_workbench.zui",
         "layout_workbench_root [VerticalBox]",
         "LayoutWorkbenchRoot",
     );
@@ -84,7 +84,7 @@ fn ui_asset_editor_additional_editor_preview_state_lab_asset_compiles_and_opens(
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_PREVIEW_STATE_LAB_TOML,
         "editor.preview_state_lab",
-        "res://ui/editor/preview_state_lab.ui.toml",
+        "res://ui/editor/preview_state_lab.zui",
         "preview_state_lab_root [VerticalBox]",
         "PreviewStateLabRoot",
     );

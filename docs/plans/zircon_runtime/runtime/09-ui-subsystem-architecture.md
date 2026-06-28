@@ -65,6 +65,19 @@ last_refined: 2026-06-21
 3. layout 管线权威化：taffy_bridge 为唯一布局后端入口、pass 序显式、virtualization 与 scroll 的边界声明。
 4. template 编译/实例化边界定稿，与 02-M4 generated 规则衔接（模板产物若属生成物必须带标记）。
 
+## 与 editor_layout / editor_ui / render 的关系(职责链单源)
+
+本子系统(`zircon_runtime/src/ui/**`)是 UI 职责链的**引擎实现层**,位置:
+
+```
+editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(运行时能力) → 本子系统(引擎 UI 实现) → render(rhi_wgpu 上屏)
+```
+
+- **本子系统实现谁的契约**:`editor_layout/` 定义的契约在此落地——`13`/`02` 约束求解 → `ui/layout/{taffy_bridge,style_mapping,pass}`;`18` 输入响应/命中 + `19` 焦点导航 → `ui/surface/{input,pointer,navigation,focus,frame_hit_test}`(本计划目标 2 的 dispatch 单点权威正是 `18` 的"路由次序单源 + 命中单源");`20` USS 级联样式 → `ui/v2/style.rs`(伪状态/选择器/computed,本计划与 `editor_ui/04` 协同);`17` 文本测量=绘制 → `ui/text`;`21` 提交契约的提取侧 → `ui/surface/render`。
+- **契约单源**:对应 DTO 住 `zircon_runtime_interface::ui`(本计划只负责 runtime 侧形状,契约同步守卫归子计划 10);**不在本子系统另立设计语言/约束语义**,语义以 `editor_layout/NN` 为准。
+- **下游**:GPU 提交/批次/裁剪/图集上屏归 `render`(见 `docs/plans/zircon_runtime/render/14` 2D/UI stack + `editor_layout/21` 提交契约);本子系统只产出 render extract,不直接发 wgpu。
+- **勾稽**:`editor_layout/index §6.1` ↔ `editor_ui/index §3.1` ↔ 本节 ↔ `render/14`。
+
 ## 非目标
 
 - 文本栈（shaper/SDF/glyphon 职责）归 01-M2；GPU 提交与 render extract 消费侧归 render 计划。

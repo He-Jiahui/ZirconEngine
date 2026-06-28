@@ -20,6 +20,12 @@ pub struct PhysicsDriver;
 pub struct PhysicsModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_manager(None)
+}
+
+pub(crate) fn module_descriptor_with_manager(
+    shared_manager: Option<Arc<DefaultPhysicsManager>>,
+) -> ModuleDescriptor {
     ModuleDescriptor::new(
         PHYSICS_MODULE_NAME,
         "Physics world, queries, and backend selection",
@@ -38,7 +44,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|core| {
+        factory(move |core| {
+            if let Some(manager) = shared_manager.as_ref() {
+                manager.attach_core(core.clone());
+                return Ok(manager.clone() as ServiceObject);
+            }
             Ok(Arc::new(DefaultPhysicsManager::new(Some(core.clone()))) as ServiceObject)
         }),
     ))

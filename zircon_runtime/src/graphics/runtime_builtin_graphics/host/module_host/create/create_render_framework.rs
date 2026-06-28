@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderFramework;
+use crate::core::framework::render::{RenderFramework, ShadingModelDescriptor};
 use crate::core::CoreHandle;
 use crate::graphics::{GraphicsError, WgpuRenderFramework};
 use crate::graphics::{
@@ -14,6 +14,7 @@ use super::resolve_project_asset_manager::resolve_project_asset_manager;
 pub fn create_render_framework_with_render_features(
     core: &CoreHandle,
     render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
@@ -32,6 +33,7 @@ pub fn create_render_framework_with_render_features(
             hybrid_gi_runtime_providers,
             solari_runtime_providers,
             virtual_geometry_runtime_providers,
+            plugin_shading_models,
             core.task_pools().compute().clone(),
         )?,
     ))

@@ -6,7 +6,8 @@ license.workspace = true
 description = "Opus audio asset importer runtime plugin package for Zircon."
 
 [dependencies]
-zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
+zircon_runtime = { workspace = true }
 
 [dev-dependencies]
 zircon_plugin_audio_importer_runtime = { path = "../../audio_importer/runtime" }

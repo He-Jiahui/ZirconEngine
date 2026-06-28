@@ -9,7 +9,6 @@ supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = [
     "runtime.plugin.asset_importer.shader",
-    "runtime.asset.importer.shader.wgsl",
     "runtime.asset.importer.shader.naga",
 ]
 maturity = "experimental"
@@ -60,7 +59,6 @@ crate_name = "zircon_plugin_asset_importer_shader_runtime"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.shader",
-    "runtime.asset.importer.shader.wgsl",
     "runtime.asset.importer.shader.naga",
 ]
 
@@ -71,6 +69,5 @@ crate_name = "zircon_plugin_asset_importer_shader_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.shader",
-    "runtime.asset.importer.shader.wgsl",
     "runtime.asset.importer.shader.naga",
 ]

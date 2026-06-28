@@ -1,8 +1,9 @@
 use crate::{
-    plugin_registration, NET_AUTHORING_CAPABILITY, NET_AUTHORING_VIEW_ID, NET_DIAGNOSTICS_VIEW_ID,
-    NET_DRAWER_ID, NET_LISTENER_CONFIG_OPERATION, NET_REPLICATION_SCHEMA_ASSET_KIND,
-    NET_REPLICATION_SCHEMA_CREATE_OPERATION, NET_REPLICATION_SCHEMA_PALETTE_ID,
-    NET_REPLICATION_SCHEMA_TEMPLATE_ID, NET_ROUTE_CONFIG_OPERATION, NET_TEMPLATE_ID,
+    editor_plugin, plugin_registration, NET_AUTHORING_CAPABILITY, NET_AUTHORING_VIEW_ID,
+    NET_DIAGNOSTICS_VIEW_ID, NET_DRAWER_ID, NET_LISTENER_CONFIG_OPERATION,
+    NET_REPLICATION_SCHEMA_ASSET_KIND, NET_REPLICATION_SCHEMA_CREATE_OPERATION,
+    NET_REPLICATION_SCHEMA_PALETTE_ID, NET_REPLICATION_SCHEMA_TEMPLATE_ID,
+    NET_ROUTE_CONFIG_OPERATION, NET_TEMPLATE_ID, PLUGIN_ID,
 };
 
 #[test]
@@ -11,6 +12,18 @@ fn net_editor_plugin_contributes_authoring_extensions() {
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
     assert!(registration
+        .capabilities
+        .contains(&NET_AUTHORING_CAPABILITY.to_string()));
+    assert_eq!(
+        editor_plugin().declaration().mirrored_runtime_package_id(),
+        Some(PLUGIN_ID)
+    );
+    assert!(registration
+        .package_manifest
+        .capabilities
+        .contains(&zircon_plugin_net_runtime::NET_RUNTIME_CAPABILITY.to_string()));
+    assert!(registration
+        .package_manifest
         .capabilities
         .contains(&NET_AUTHORING_CAPABILITY.to_string()));
     assert!(registration

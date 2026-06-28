@@ -99,7 +99,7 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     paths.ensure_layout().unwrap();
     ProjectManifest::new(
         "UiSandbox",
-        AssetUri::parse("res://ui/panel.ui.toml").unwrap(),
+        AssetUri::parse("res://ui/panel.zui").unwrap(),
         1,
     )
     .save(paths.manifest_path())
@@ -107,27 +107,24 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
 
     let ui_dir = paths.assets_root().join("ui");
     fs::create_dir_all(&ui_dir).unwrap();
-    fs::write(ui_dir.join("panel.ui.toml"), LAYOUT_UI_TOML).unwrap();
-    fs::write(ui_dir.join("button.ui.toml"), WIDGET_UI_TOML).unwrap();
-    fs::write(ui_dir.join("theme.ui.toml"), STYLE_UI_TOML).unwrap();
+    fs::write(ui_dir.join("panel.zui"), V2_VIEW_UI_TOML).unwrap();
+    fs::write(ui_dir.join("button.zui"), V2_COMPONENT_UI_TOML).unwrap();
+    fs::write(ui_dir.join("theme.zui"), V2_STYLE_UI_TOML).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
-    manager
-        .register_first_wave_plugin_fixture_importers_for_test()
-        .unwrap();
     manager.scan_and_import().unwrap();
 
     let layout = manager
         .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/panel.ui.toml").unwrap())
+        .get_by_locator(&AssetUri::parse("res://ui/panel.zui").unwrap())
         .unwrap();
     let widget = manager
         .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/button.ui.toml").unwrap())
+        .get_by_locator(&AssetUri::parse("res://ui/button.zui").unwrap())
         .unwrap();
     let style = manager
         .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/theme.ui.toml").unwrap())
+        .get_by_locator(&AssetUri::parse("res://ui/theme.zui").unwrap())
         .unwrap();
 
     assert_eq!(layout.kind, AssetKind::UiLayout);
@@ -135,11 +132,11 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     assert_eq!(style.kind, AssetKind::UiStyle);
 
     match manager
-        .load_artifact(&AssetUri::parse("res://ui/panel.ui.toml").unwrap())
+        .load_artifact(&AssetUri::parse("res://ui/panel.zui").unwrap())
         .unwrap()
     {
-        ImportedAsset::UiLayout(asset) => {
-            assert_eq!(asset.document.asset.id, "editor.ui_asset_editor");
+        ImportedAsset::UiV2View(asset) => {
+            assert_eq!(asset.document.asset.id, "runtime.ui.panel");
         }
         other => panic!("unexpected project layout asset: {other:?}"),
     }

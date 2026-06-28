@@ -60,99 +60,99 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
     let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
-            builtin_host_template_path("editor_main_frame.v2.ui.toml"),
+            builtin_host_template_path("editor_main_frame.zui"),
         ),
         (
             WORKBENCH_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("workbench_window.v2.ui.toml"),
+            builtin_window_template_path("workbench_window.zui"),
         ),
         (
             ASSET_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("asset_window.v2.ui.toml"),
+            builtin_window_template_path("asset_window.zui"),
         ),
         (
             UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("ui_layout_editor_window.v2.ui.toml"),
+            builtin_window_template_path("ui_layout_editor_window.zui"),
         ),
         (
             UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID,
-            builtin_editor_template_path("component_showcase.v2.ui.toml"),
+            builtin_editor_template_path("component_showcase.zui"),
         ),
         (
             MATERIAL_DEMO_WINDOW_DOCUMENT_ID,
-            builtin_editor_template_path("material_demo_window.v2.ui.toml"),
+            builtin_editor_template_path("material_demo_window.zui"),
         ),
         (
             MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID,
-            builtin_editor_template_path("material_component_lab.v2.ui.toml"),
+            builtin_editor_template_path("material_component_lab.zui"),
         ),
         (
             UI_HOST_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("workbench_shell.v2.ui.toml"),
+            builtin_host_template_path("workbench_shell.zui"),
         ),
         (
             FLOATING_WINDOW_SOURCE_DOCUMENT_ID,
-            builtin_host_template_path("floating_window_source.v2.ui.toml"),
+            builtin_host_template_path("floating_window_source.zui"),
         ),
         (
             SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID,
-            builtin_host_template_path("scene_viewport_toolbar.v2.ui.toml"),
+            builtin_host_template_path("scene_viewport_toolbar.zui"),
         ),
         (
             ASSET_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("asset_surface_controls.v2.ui.toml"),
+            builtin_host_template_path("asset_surface_controls.zui"),
         ),
         (
             WELCOME_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("startup_welcome_controls.v2.ui.toml"),
+            builtin_host_template_path("startup_welcome_controls.zui"),
         ),
         (
             INSPECTOR_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("inspector_surface_controls.v2.ui.toml"),
+            builtin_host_template_path("inspector_surface_controls.zui"),
         ),
         (
             PANE_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("pane_surface_controls.v2.ui.toml"),
+            builtin_host_template_path("pane_surface_controls.zui"),
         ),
         (
             PANE_CONSOLE_BODY_DOCUMENT_ID,
-            builtin_host_template_path("console_body.v2.ui.toml"),
+            builtin_host_template_path("console_body.zui"),
         ),
         (
             PANE_INSPECTOR_BODY_DOCUMENT_ID,
-            builtin_host_template_path("inspector_body.v2.ui.toml"),
+            builtin_host_template_path("inspector_body.zui"),
         ),
         (
             PANE_HIERARCHY_BODY_DOCUMENT_ID,
-            builtin_host_template_path("hierarchy_body.v2.ui.toml"),
+            builtin_host_template_path("hierarchy_body.zui"),
         ),
         (
             PANE_ANIMATION_SEQUENCE_BODY_DOCUMENT_ID,
-            builtin_host_template_path("animation_sequence_body.v2.ui.toml"),
+            builtin_host_template_path("animation_sequence_body.zui"),
         ),
         (
             PANE_ANIMATION_GRAPH_BODY_DOCUMENT_ID,
-            builtin_host_template_path("animation_graph_body.v2.ui.toml"),
+            builtin_host_template_path("animation_graph_body.zui"),
         ),
         (
             PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
-            builtin_host_template_path("runtime_diagnostics_body.v2.ui.toml"),
+            builtin_host_template_path("runtime_diagnostics_body.zui"),
         ),
         (
             PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID,
-            builtin_host_template_path("performance_timeline_body.v2.ui.toml"),
+            builtin_host_template_path("performance_timeline_body.zui"),
         ),
         (
             PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID,
-            builtin_host_template_path("module_plugins_body.v2.ui.toml"),
+            builtin_host_template_path("module_plugins_body.zui"),
         ),
         (
             PANE_BUILD_EXPORT_BODY_DOCUMENT_ID,
-            builtin_host_template_path("build_export_desktop_body.v2.ui.toml"),
+            builtin_host_template_path("build_export_desktop_body.zui"),
         ),
         (
             PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID,
-            builtin_host_template_path("generated_bottom_body.v2.ui.toml"),
+            builtin_host_template_path("generated_bottom_body.zui"),
         ),
     ];
 

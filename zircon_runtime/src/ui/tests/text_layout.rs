@@ -59,6 +59,83 @@ wrap = "word"
 }
 
 #[test]
+fn render_extract_preserves_logical_start_text_align() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root/text"))
+            .with_frame(UiFrame::new(0.0, 0.0, 80.0, 16.0))
+            .with_state_flags(visible_state())
+            .with_template_metadata(UiTemplateNodeMetadata {
+                component: "Label".to_string(),
+                control_id: Some("LogicalAlignLabel".to_string()),
+                classes: Vec::new(),
+                attributes: toml::from_str(
+                    r#"
+text = "שלום"
+font_size = 10.0
+line_height = 12.0
+text_align = "start"
+text_direction = "right_to_left"
+wrap = "none"
+"#,
+                )
+                .unwrap(),
+                slot_attributes: Default::default(),
+                style_overrides: Default::default(),
+                style_tokens: Default::default(),
+                bindings: Vec::new(),
+                ..Default::default()
+            }),
+    );
+
+    surface.rebuild();
+
+    let layout = first_text_layout(&surface);
+    assert_eq!(layout.text_align, UiTextAlign::Start);
+    assert_eq!(layout.direction, UiTextDirection::RightToLeft);
+    assert!((layout.lines[0].frame.right() - 80.0).abs() < 0.01);
+}
+
+#[test]
+fn render_extract_auto_direction_uses_first_strong_for_logical_start_align() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root/text"))
+            .with_frame(UiFrame::new(0.0, 0.0, 120.0, 16.0))
+            .with_state_flags(visible_state())
+            .with_template_metadata(UiTemplateNodeMetadata {
+                component: "Label".to_string(),
+                control_id: Some("AutoDirectionLabel".to_string()),
+                classes: Vec::new(),
+                attributes: toml::from_str(
+                    r#"
+text = "שלום abc"
+font_size = 10.0
+line_height = 12.0
+text_align = "start"
+text_direction = "auto"
+wrap = "none"
+"#,
+                )
+                .unwrap(),
+                slot_attributes: Default::default(),
+                style_overrides: Default::default(),
+                style_tokens: Default::default(),
+                bindings: Vec::new(),
+                ..Default::default()
+            }),
+    );
+
+    surface.rebuild();
+
+    let layout = first_text_layout(&surface);
+    assert_eq!(layout.text_align, UiTextAlign::Start);
+    assert_eq!(layout.direction, UiTextDirection::RightToLeft);
+    assert_eq!(layout.lines[0].direction, UiTextDirection::RightToLeft);
+    assert!((layout.lines[0].frame.right() - 120.0).abs() < 0.01);
+}
+
+#[test]
 fn render_extract_clips_text_layout_to_clip_frame() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
     surface.tree.insert_root(
@@ -137,7 +214,7 @@ rich_text = true
         .text_layout
         .as_ref()
         .unwrap();
-    assert_eq!(layout.direction, UiTextDirection::Mixed);
+    assert_eq!(layout.direction, UiTextDirection::LeftToRight);
     assert_eq!(layout.overflow, UiTextOverflow::Ellipsis);
     assert_eq!(layout.lines.len(), 1);
     assert!(layout.lines[0].ellipsized);
@@ -183,8 +260,8 @@ wrap = "none"
         .as_ref()
         .unwrap();
     let line = &layout.lines[0];
-    assert_eq!(layout.direction, UiTextDirection::Mixed);
-    assert_eq!(line.direction, UiTextDirection::Mixed);
+    assert_eq!(layout.direction, UiTextDirection::LeftToRight);
+    assert_eq!(line.direction, UiTextDirection::LeftToRight);
     assert_eq!(line.text, "abc םולש def");
     assert_eq!(line.source_range, UiTextRange { start: 0, end: 16 });
     assert_eq!(line.visual_range, UiTextRange { start: 0, end: 16 });
@@ -244,7 +321,7 @@ wrap = "none"
         .as_ref()
         .unwrap();
     let line = &layout.lines[0];
-    assert_eq!(layout.direction, UiTextDirection::Mixed);
+    assert_eq!(layout.direction, UiTextDirection::LeftToRight);
     assert_eq!(line.text, "abc םלוע-םולש def");
     assert_eq!(line.source_range, UiTextRange { start: 0, end: 25 });
     assert_eq!(line.visual_range, UiTextRange { start: 0, end: 25 });

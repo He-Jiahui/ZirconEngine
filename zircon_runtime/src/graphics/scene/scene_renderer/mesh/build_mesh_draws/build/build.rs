@@ -689,8 +689,8 @@ mod tests {
                 },
             ],
             render_layer_masks: vec![
-                RenderLayerSet::from_legacy_mask(u32::MAX),
-                RenderLayerSet::from_legacy_mask(u32::MAX),
+                RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
             ],
             relevance: vec![opaque_shadow_relevance(), opaque_shadow_relevance()],
             relevance_generation: 0,

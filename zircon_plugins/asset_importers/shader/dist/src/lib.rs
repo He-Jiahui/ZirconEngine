@@ -4,14 +4,15 @@ const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
 const PLUGIN_ID: &[u8] = b"asset_importer.shader\0";
 const RUNTIME_ENTRY: &[u8] = b"zircon_plugin_asset_importer_shader_runtime_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] = b"runtime.plugin.asset_importer.shader\nruntime.asset.importer.shader.wgsl\nruntime.asset.importer.shader.naga\0";
+const REQUESTED_CAPABILITIES: &[u8] =
+    b"runtime.plugin.asset_importer.shader\nruntime.asset.importer.shader.naga\0";
 const NEGOTIATED_CAPABILITIES: &[u8] = REQUESTED_CAPABILITIES;
 const RUNTIME_DIAGNOSTICS: &[u8] =
     b"shader asset importer dist entry ready; importers remain hosted by the runtime module\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] =
     b"shader asset importer dist entry requires runtime.plugin.asset_importer.shader host capability\0";
 const EMPTY_MANIFEST: &[u8] = b"\0";
-const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.asset_importer.shader\", \"runtime.asset.importer.shader.wgsl\", \"runtime.asset.importer.shader.naga\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[extensions]]\npoint = \"runtime.asset.importer.shader\"\ncontribution = \"plugin.asset_importer.shader.runtime\"\nschema = \"zircon.runtime.asset-importer.shader/1\"\n\0";
+const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.asset_importer.shader\", \"runtime.asset.importer.shader.naga\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[extensions]]\npoint = \"runtime.asset.importer.shader\"\ncontribution = \"plugin.asset_importer.shader.runtime\"\nschema = \"zircon.runtime.asset-importer.shader/1\"\n\0";
 
 zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
     plugin_id: PLUGIN_ID,

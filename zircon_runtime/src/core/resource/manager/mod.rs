@@ -1,6 +1,7 @@
 mod events;
 mod lease_ops;
 mod payload_ops;
+mod registry_export;
 mod registry_ops;
 mod resource_manager;
 mod revision;

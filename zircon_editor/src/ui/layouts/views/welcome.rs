@@ -7,11 +7,11 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 
-const WELCOME_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/welcome.v2.ui.toml";
-const WELCOME_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.v2.ui.toml";
-const WELCOME_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.v2.ui.toml";
-const WELCOME_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.v2.ui.toml";
-const WELCOME_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.v2.ui.toml";
+const WELCOME_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/welcome.zui";
+const WELCOME_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
+const WELCOME_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
+const WELCOME_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
+const WELCOME_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
 
 pub(crate) fn welcome_pane_nodes(size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     model_rc(

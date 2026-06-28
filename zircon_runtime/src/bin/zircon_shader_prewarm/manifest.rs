@@ -16,12 +16,13 @@ use zircon_runtime::dynamic_api::{
 };
 
 mod paths;
+pub(crate) mod permutation_registry;
 pub(crate) mod resource_registry;
 mod revision;
 
 use self::paths::{
-    collect_files_with_extension, has_extension, is_inside_compound_shader_source, is_zmeta,
-    meta_path_for_single_source, stable_label_for_path,
+    collect_files_with_extension, has_extension, has_sidecar_zmeta,
+    is_inside_compound_shader_source, is_zmeta, meta_path_for_single_source, stable_label_for_path,
 };
 use self::resource_registry::ShaderPrewarmResourceRegistryOverlay;
 use self::revision::{
@@ -33,12 +34,13 @@ const ASSET_SCAN_TEMPLATE_REVISION: &str = "asset-scan-mesh-template-v1";
 const ASSET_SCAN_NAGA_VERSION: &str = "naga-29.0.1";
 const ASSET_SCAN_WGPU_VERSION: &str = "wgpu-29.0.1";
 const ASSET_SCAN_PLATFORM_TOKEN: &str = "wgpu-runtime";
-const ASSET_SCAN_FULL_MATERIAL_PASSES: [ShaderPassType; 5] = [
+const ASSET_SCAN_FULL_MATERIAL_PASSES: [ShaderPassType; 6] = [
     ShaderPassType::Forward,
     ShaderPassType::GBuffer,
     ShaderPassType::DepthPrepass,
     ShaderPassType::Shadow,
     ShaderPassType::Velocity,
+    ShaderPassType::TaaReactiveMask,
 ];
 const ASSET_SCAN_VERTEX_ONLY_PASSES: [ShaderPassType; 3] = [
     ShaderPassType::DepthPrepass,
@@ -270,6 +272,9 @@ fn collect_shader_sources(
             continue;
         }
         if is_inside_compound_shader_source(&path) {
+            continue;
+        }
+        if has_sidecar_zmeta(&path) {
             continue;
         }
         if has_extension(&path, "zshader") {
@@ -545,7 +550,7 @@ fn prewarm_requests_for_source_with_dimensions(
     geometry_sources: &[GeometrySourceId],
 ) -> Vec<ShaderVariantPrewarmRequest> {
     let ShaderPrewarmSource {
-        stable_label: _,
+        stable_label,
         resource_id,
         revision,
         wgsl_source,
@@ -570,6 +575,7 @@ fn prewarm_requests_for_source_with_dimensions(
                         quality: *quality,
                         platform_token: ASSET_SCAN_PLATFORM_TOKEN.to_string(),
                     },
+                    source_label: stable_label.clone(),
                     wgsl_source: wgsl_source.clone(),
                     include_content_hashes: include_content_hashes.clone(),
                     template_revision: ASSET_SCAN_TEMPLATE_REVISION.to_string(),

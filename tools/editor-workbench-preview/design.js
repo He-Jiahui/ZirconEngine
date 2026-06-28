@@ -96,7 +96,7 @@ const FULL_DESIGNS = [
     center: "ui-asset-editor",
     right: "ui-asset-inspector",
     bottom: "ui-asset-diagnostics",
-    status: "UI Asset: workbench_shell.v2.ui.toml",
+    status: "UI Asset: workbench_shell.zui",
   },
   {
     id: "animation-workbench",
@@ -3877,12 +3877,12 @@ function floatingWindowConfig(name) {
       body: () => {
         const win = workbenchWindow("Find In Project", "Search assets, UI documents, scripts, and editor settings", "find large");
         const toolbar = el("div", "floating-toolbar");
-        toolbar.append(field("Find: WorkbenchShell"), selectBtn("Scope: Project"), selectBtn("File mask: *.ui.toml"), button("Search", "primary-btn"));
+        toolbar.append(field("Find: WorkbenchShell"), selectBtn("Scope: Project"), selectBtn("File mask: *.zui"), button("Search", "primary-btn"));
         const layout = el("div", "find-layout");
         const results = renderMiniDataGrid([
           ["Result", "File", "Line", "Match", ""],
-          ["WorkbenchShellReferenceImage", "workbench_shell.v2.ui.toml", "42", "Image brush", ""],
-          ["WorkbenchShellRoot", "workbench_window.v2.ui.toml", "18", "Root node", ""],
+          ["WorkbenchShellReferenceImage", "workbench_shell.zui", "42", "Image brush", ""],
+          ["WorkbenchShellRoot", "workbench_window.zui", "18", "Root node", ""],
           ["WorkbenchShellPreview", "design.js", "212", "Render shell", ""],
           ["WorkbenchShellStyle", "design.css", "86", "Top chrome", ""],
         ]);
@@ -8736,7 +8736,7 @@ function renderMaterialLog() {
 }
 
 function renderUiAssetDiagnostics() {
-  return tabbedLog(["Diagnostics", "Bindings", "Resources"], ["Compiled workbench_shell.v2.ui.toml", "Binding route Workbench.OpenScene valid", "No missing icon references"]);
+  return tabbedLog(["Diagnostics", "Bindings", "Resources"], ["Compiled workbench_shell.zui", "Binding route Workbench.OpenScene valid", "No missing icon references"]);
 }
 
 function renderAnimationTimeline() {

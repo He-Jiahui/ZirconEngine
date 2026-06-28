@@ -189,8 +189,8 @@ props = { text = "Row" }
 }
 
 #[test]
-fn ui_zui_loader_rejects_view_assets() {
-    let error = UiZuiAssetLoader::load_zui_str(
+fn ui_zui_loader_accepts_view_root_assets() {
+    let document = UiZuiAssetLoader::load_zui_str(
         r#"
 [asset]
 kind = "view"
@@ -204,12 +204,14 @@ node = "root"
 component = "Container"
 "#,
     )
-    .unwrap_err();
+    .unwrap();
 
-    assert!(matches!(
-        error,
-        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
-    ));
+    assert_eq!(document.asset.kind, UiV2AssetKind::View);
+    assert_eq!(
+        document.root.as_ref().map(|root| root.node.as_str()),
+        Some("root")
+    );
+    assert!(document.nodes.contains_key("root"));
 }
 
 #[test]
@@ -339,8 +341,8 @@ component = "Container"
 }
 
 #[test]
-fn ui_zui_loader_rejects_style_assets() {
-    let error = UiZuiAssetLoader::load_zui_str(
+fn ui_zui_loader_accepts_style_assets() {
+    let document = UiZuiAssetLoader::load_zui_str(
         r#"
 [asset]
 kind = "style"
@@ -351,12 +353,10 @@ version = 2
 id = "editor_theme"
 "#,
     )
-    .unwrap_err();
+    .unwrap();
 
-    assert!(matches!(
-        error,
-        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
-    ));
+    assert_eq!(document.asset.kind, UiV2AssetKind::Style);
+    assert_eq!(document.stylesheets.len(), 1);
 }
 
 #[test]

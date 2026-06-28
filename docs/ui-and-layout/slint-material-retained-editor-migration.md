@@ -27,7 +27,7 @@ related_code:
   - dev/material-rust-template/material-1.0/ui/components/navigation_bar.slint
   - dev/material-rust-template/material-1.0/ui/components/tab_bar.slint
   - zircon_editor/Cargo.toml
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
@@ -41,7 +41,7 @@ related_code:
 implementation_files:
   - docs/ui-and-layout/slint-material-retained-editor-migration.md
   - docs/ui-and-layout/index.md
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/ui/boundary/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
@@ -68,7 +68,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs
   - cargo metadata --locked --no-deps --format-version 1
-  - git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/ui-and-layout/index.md zircon_editor/assets/ui/theme/editor_material.v2.ui.toml zircon_editor/src/tests/ui/boundary/mod.rs zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
+  - git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/ui-and-layout/index.md zircon_editor/assets/ui/theme/editor_material.zui zircon_editor/src/tests/ui/boundary/mod.rs zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
 doc_type: milestone-detail
 ---
 
@@ -76,7 +76,7 @@ doc_type: milestone-detail
 
 ## Purpose
 
-This document is the M0/M1/M2 control record for migrating `dev/material-rust-template/material-1.0` into Zircon Editor retained UI. It records the source inventory, retained owner for each Slint Material export, the no-direct-Slint Editor fence, the foundation tokens now present in `editor_material.v2.ui.toml`, and the retained state-layer/ripple/elevation metadata contract.
+This document is the M0/M1/M2 control record for migrating `dev/material-rust-template/material-1.0` into Zircon Editor retained UI. It records the source inventory, retained owner for each Slint Material export, the no-direct-Slint Editor fence, the foundation tokens now present in `editor_material.zui`, and the retained state-layer/ripple/elevation metadata contract.
 
 The accepted behavior target is a retained reproduction of Slint Material behavior. `zircon_editor` must keep `.ui.toml` / `.zui` / Rust retained host contracts as the business UI truth and must not link Slint runtime or import `@material`.
 
@@ -96,7 +96,7 @@ The accepted behavior target is a retained reproduction of Slint Material behavi
 | Source file | Covered signal | Retained target |
 |---|---|---|
 | `material.slint` | Full export inventory for components, items, and styling globals. | M0 mapping and boundary test export coverage. |
-| `ui/styling/material_palette.slint` | MD3 palette roles, light/dark schemes, state-layer opacities, disabled opacity, modal background, shadow alpha roles. | `editor_material.v2.ui.toml` `slint_material_*` palette and state tokens. |
+| `ui/styling/material_palette.slint` | MD3 palette roles, light/dark schemes, state-layer opacities, disabled opacity, modal background, shadow alpha roles. | `editor_material.zui` `slint_material_*` palette and state tokens. |
 | `ui/styling/material_schemes.slint` | Scheme field names for primary/secondary/tertiary/error/surface/outline/fixed/inverse roles. | Retained theme token naming and future scheme-switch support. |
 | `ui/styling/material_style_metrics.slint` | Size ladder, icon sizes, padding, spacing, radius ladder. | Retained density/metric tokens and component layout defaults. |
 | `ui/styling/material_typography.slint` | Text style scale and font weights. | Retained typography token scale. |
@@ -163,7 +163,7 @@ The accepted behavior target is a retained reproduction of Slint Material behavi
 
 ## M1 Foundation Token Landing
 
-`editor_material.v2.ui.toml` keeps existing compact Editor tokens and now also carries source-aligned `slint_material_*` tokens. These names are intentionally separate from older `material_*` tokens so later milestones can migrate selectors gradually without breaking current Editor density.
+`editor_material.zui` keeps existing compact Editor tokens and now also carries source-aligned `slint_material_*` tokens. These names are intentionally separate from older `material_*` tokens so later milestones can migrate selectors gradually without breaking current Editor density.
 
 The token groups are:
 
@@ -233,7 +233,7 @@ M2 metadata fields on `TemplatePaneNodeData` are:
 
 `elevation.slint` remains the source authority for level 1 through 5 shadow token values. The boundary tokens include the exact light/dark offsets and blurs, including `drop_shadow_offset_y: 8px` at level 5. The retained painter consumes an `elevation` numeric metadata field and emits a host shadow command through `template_nodes.rs`; the current painter keeps this as a static retained shadow, while exact two-layer light/dark Slint shadow parity remains part of later card/surface visual refinement.
 
-M2 metadata tokens now guarded in `editor_material.v2.ui.toml` are:
+M2 metadata tokens now guarded in `editor_material.zui` are:
 
 | Token | Value |
 |---|---|
@@ -310,7 +310,7 @@ The focused M0/M1/M2 boundary test checks these facts:
 - every export in `material.slint` appears in this mapping doc;
 - this document and the spec/plan name the no-direct-Slint Editor fence;
 - `zircon_editor/Cargo.toml` does not declare Slint runtime/build dependencies;
-- `editor_material.v2.ui.toml` includes source-derived Slint Material foundation tokens with exact values for representative palette, metric, typography, state, animation, and elevation roles.
+- `editor_material.zui` includes source-derived Slint Material foundation tokens with exact values for representative palette, metric, typography, state, animation, and elevation roles.
 - M2 state-layer/ripple/elevation metadata tokens are present and documented;
 - source behavior strings from `state_layer.slint` and `elevation.slint` remain visible for static review.
 

@@ -90,14 +90,14 @@ impl HubRuntimeSession {
                 );
                 self.task_status = TaskStatus::success(
                     "Resource opened",
-                    HubMessage::legacy(resource.path.to_string_lossy().into_owned()),
+                    HubMessage::raw_text(resource.path.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Hub, resource.title.clone());
                 self.persist(None)
             }
             Err(error) => self.record_open_resource_failure(
                 resource.title.clone(),
-                HubMessage::legacy(error.to_string()),
+                HubMessage::raw_text(error.to_string()),
                 HubMessage::new(HubMessageId::Delivery(
                     DeliveryMessageId::OpenContainingFolderRecovery,
                 )),

@@ -10,8 +10,7 @@ use zircon_runtime_interface::ui::template::{
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2CompiledDocument};
 
 use super::{
-    UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder,
-    UiZuiAssetLoader,
+    UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder, UiZuiAssetLoader,
 };
 use crate::ui::template::{UiCompiledArtifactKey, UiCompiledArtifactStore};
 
@@ -518,21 +517,7 @@ fn build_v2_asset_id_index(source_path: &Path) -> BTreeMap<String, PathBuf> {
 }
 
 fn should_replace_v2_asset_id_index_path(existing: &Path, candidate: &Path) -> bool {
-    let existing_priority = v2_asset_id_index_path_priority(existing);
-    let candidate_priority = v2_asset_id_index_path_priority(candidate);
-    candidate_priority > existing_priority
-        || (candidate_priority == existing_priority
-            && candidate.to_string_lossy() < existing.to_string_lossy())
-}
-
-fn v2_asset_id_index_path_priority(path: &Path) -> u8 {
-    if is_zui_source_path(path) {
-        return 2;
-    }
-    if is_v2_toml_source_path(path) {
-        return 1;
-    }
-    0
+    candidate.to_string_lossy() < existing.to_string_lossy()
 }
 
 fn resource_alias_for_path(path: &Path) -> Option<String> {
@@ -565,23 +550,11 @@ fn asset_root_for_path(path: &Path) -> Option<&Path> {
 }
 
 fn load_ui_v2_source_file(path: &Path) -> Result<UiV2AssetDocument, UiV2AssetError> {
-    if is_zui_source_path(path) {
-        return UiZuiAssetLoader::load_zui_file(path);
-    }
-    UiV2AssetLoader::load_toml_file(path)
+    UiZuiAssetLoader::load_zui_file(path)
 }
 
 fn is_ui_v2_source_path(path: &Path) -> bool {
-    lower_file_name(path)
-        .is_some_and(|name| name.ends_with(".zui") || name.ends_with(".v2.ui.toml"))
-}
-
-fn is_zui_source_path(path: &Path) -> bool {
     lower_file_name(path).is_some_and(|name| name.ends_with(".zui"))
-}
-
-fn is_v2_toml_source_path(path: &Path) -> bool {
-    lower_file_name(path).is_some_and(|name| name.ends_with(".v2.ui.toml"))
 }
 
 fn lower_file_name(path: &Path) -> Option<String> {

@@ -14,8 +14,6 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, Resource
 
 use crate::graphics::types::GraphicsError;
 
-use crate::graphics::material::builtin_shading_model_registry;
-
 use super::super::prepared::PreparedMaterial;
 use super::super::{
     default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
@@ -134,9 +132,9 @@ impl ResourceStreamer {
         } else {
             descriptor.lighting_model.clone()
         };
-        let shading_model_registry = builtin_shading_model_registry();
-        let shading_model_descriptor =
-            shading_model_registry.resolve_lighting_model(&lighting_model);
+        let shading_model_descriptor = self
+            .shading_model_registry
+            .resolve_lighting_model(&lighting_model);
         let shading_model_id = shading_model_descriptor
             .map(|descriptor| descriptor.id)
             .unwrap_or(SHADING_MODEL_ID_STANDARD_PBR);

@@ -1,11 +1,13 @@
+use zircon_plugin_sdk::{
+    importer_runtime_supported_platforms, importer_runtime_supported_targets,
+    ImporterRuntimeManifestBuilder,
+};
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind, FunctionAssetImporter};
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, ExportTargetPlatform, PluginDistributionManifest,
-    PluginModuleManifest, PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
 };
 
 use crate::{
@@ -17,10 +19,6 @@ use crate::{
 pub const ASSET_IMPORTER_DATA_DIST_CRATE_NAME: &str = "zircon_plugin_asset_importer_data_dist";
 pub const ASSET_IMPORTER_DATA_DIST_RUNTIME_ENTRY: &str =
     "zircon_plugin_asset_importer_data_runtime_entry_v3";
-
-const ASSET_IMPORTER_DATA_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
-const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
-const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
 pub struct DataAssetImporterRuntimePlugin {
@@ -76,9 +74,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     .build()
 }
 
-pub fn runtime_plugin() -> DataAssetImporterRuntimePlugin {
-    DataAssetImporterRuntimePlugin::new()
-}
+zircon_plugin_sdk::runtime_plugin_exports!(DataAssetImporterRuntimePlugin);
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
     &[
@@ -91,18 +87,11 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
 }
 
 pub fn supported_targets() -> [RuntimeTargetMode; 2] {
-    [
-        RuntimeTargetMode::ClientRuntime,
-        RuntimeTargetMode::EditorHost,
-    ]
+    importer_runtime_supported_targets()
 }
 
 pub fn supported_platforms() -> [ExportTargetPlatform; 3] {
-    [
-        ExportTargetPlatform::Windows,
-        ExportTargetPlatform::Linux,
-        ExportTargetPlatform::Macos,
-    ]
+    importer_runtime_supported_platforms()
 }
 
 pub fn module_descriptor() -> ModuleDescriptor {
@@ -122,53 +111,29 @@ pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
     ]
 }
 
-pub fn package_manifest() -> PluginPackageManifest {
-    RuntimePlugin::package_manifest(&runtime_plugin())
-}
-
 pub fn runtime_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::runtime("asset_importer.data.runtime", RUNTIME_CRATE_NAME)
-        .with_target_modes(supported_targets())
-        .with_capabilities(runtime_capabilities().iter().copied())
+    importer_manifest_builder().runtime_module_manifest()
 }
 
 pub fn dist_module_manifest() -> PluginModuleManifest {
-    PluginModuleManifest::native(
-        "asset_importer.data.dist",
-        ASSET_IMPORTER_DATA_DIST_CRATE_NAME,
-    )
-    .with_target_modes(supported_targets())
-    .with_capabilities(runtime_capabilities().iter().copied())
-}
-
-pub fn runtime_selection() -> ProjectPluginSelection {
-    RuntimePlugin::project_selection(&runtime_plugin())
-}
-
-pub fn plugin_registration() -> RuntimePluginRegistrationReport {
-    RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())
+    importer_manifest_builder().dist_module_manifest()
 }
 
 fn package_manifest_from_descriptor(descriptor: &RuntimePluginDescriptor) -> PluginPackageManifest {
-    let mut manifest = descriptor.package_manifest();
-    manifest
-        .default_packaging
-        .push(ExportPackagingStrategy::NativeDynamic);
-    manifest = manifest.with_native_module(dist_module_manifest());
-    manifest = manifest.with_distribution(PluginDistributionManifest {
-        forms: vec!["dist".to_string()],
-        default_packaging: vec![ExportPackagingStrategy::NativeDynamic],
-        abi_version: Some(NATIVE_ABI_VERSION_V3),
-        engine_compat: ASSET_IMPORTER_DATA_DIST_ENGINE_COMPAT.to_string(),
-        dist_crate: ASSET_IMPORTER_DATA_DIST_CRATE_NAME.to_string(),
-        descriptor_symbol: NATIVE_DESCRIPTOR_SYMBOL_V3.to_string(),
-        runtime_entry: ASSET_IMPORTER_DATA_DIST_RUNTIME_ENTRY.to_string(),
-        ..PluginDistributionManifest::default()
-    });
-    for importer in asset_importer_descriptors() {
-        manifest = manifest.with_asset_importer(importer);
-    }
-    manifest
+    importer_manifest_builder()
+        .with_asset_importers(asset_importer_descriptors())
+        .build_package_manifest(descriptor)
+}
+
+fn importer_manifest_builder() -> ImporterRuntimeManifestBuilder {
+    ImporterRuntimeManifestBuilder::new(
+        "asset_importer.data.runtime",
+        RUNTIME_CRATE_NAME,
+        "asset_importer.data.dist",
+        ASSET_IMPORTER_DATA_DIST_CRATE_NAME,
+        ASSET_IMPORTER_DATA_DIST_RUNTIME_ENTRY,
+    )
+    .with_capabilities(runtime_capabilities().iter().copied())
 }
 
 fn register_asset_importers(

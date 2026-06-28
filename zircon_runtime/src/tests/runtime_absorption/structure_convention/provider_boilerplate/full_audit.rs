@@ -190,6 +190,38 @@ fn runtime_15_no_duplicated_provider_boilerplate() {
         "particle feedback should not be forced through the dual-payload feedback owner because it has no visibility feedback payload"
     );
 
+    let f13_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F13 |"))
+        .expect("F13 review findings top row");
+    assert!(
+        f13_row.contains(
+            "f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred"
+        ),
+        "F13 top row should record the provider/diagnostics closed-status sync anchor"
+    );
+    assert!(
+        f13_row.ends_with("| convention + Runtime 15 / review closed |"),
+        "F13 top row should end with the closed Runtime 15 review status"
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 F13/F14 provider diagnostics top-row closed status sync",
+                "f13_f14_provider_diagnostics_top_row_closed_status_static_passed_cargo_deferred",
+            ],
+        );
+    }
+
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),

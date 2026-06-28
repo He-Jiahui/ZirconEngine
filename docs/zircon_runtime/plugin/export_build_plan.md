@@ -22,6 +22,7 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
+  - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
@@ -53,6 +54,7 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
+  - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
@@ -160,6 +162,15 @@ aggregation can use the same stage identities instead of maintaining a separate 
 The `zircon_export_validate` binary is a thin shell around this DTO. It loads `ProjectManifest`,
 calls `ExportBuildPlan::from_project_manifest`, writes optional `report.json`, prints the same JSON
 to stdout, and exits with code `2` when the report is fatal.
+
+Runtime 15 F5 export CLI typed errors (`runtime_15_export_cli_typed_errors_static_passed_cargo_deferred`)
+keeps that shell thin while giving it a typed internal error boundary. `zircon_export_validate/error.rs`
+owns `ExportValidateError` / `ExportValidateResult`; argument usage, report JSON encoding, report
+directory creation, and report file writes are no longer transported as `Result<_, String>`.
+Project-manifest load and build-plan validation failures still become `ExportValidateReport`
+diagnostics, because those are user-facing stage-report fields rather than internal Rust errors.
+`review_f5_export_cli_uses_typed_errors_before_cli_boundary` locks the boundary together with the
+Pack binary.
 
 ## LibraryEmbed CompileHost Plan
 

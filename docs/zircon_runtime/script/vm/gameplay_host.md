@@ -1,6 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/error.rs
+  - zircon_runtime/src/script/vm/gameplay_host/combat.rs
+  - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
+  - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
@@ -12,6 +17,11 @@ related_code:
   - examples/vampire/scripts/vampire_game/main.zr
 implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/error.rs
+  - zircon_runtime/src/script/vm/gameplay_host/combat.rs
+  - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
+  - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
@@ -30,6 +40,7 @@ tests:
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
   - cargo test -p zircon_runtime --lib runtime_15_gameplay_host_tests_are_folder_backed --no-default-features --features core-min --locked: deferred in Runtime 15 M3 gameplay host test folder split
+  - cargo test -p zircon_runtime --lib review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary --no-default-features --features core-min --locked: deferred while external cargo/rustc lanes are active
   - cargo check -p zircon_runtime --lib --message-format short --color never
 doc_type: module-detail
 ---
@@ -59,6 +70,16 @@ Per-frame gameplay state for the current vampire slice remains intentionally sma
 The focused host registration test verifies that the built-in gameplay module exposes the reflected gameplay API. The `gameplay_host_component_string_reads_string_dynamic_state` unit test locks the string-component read helper used by the vampire menu command flow. `gameplay_host_script_property_match_and_heal_update_bindings` now also covers `entity_exists` and `script_number_at_most`, and `host_function_registry_matches_documented_ledger` keeps the ledger aligned at 52 fixed host functions / 39 gameplay callbacks. The vampire project manifest test verifies that the project script imports this host module and drives gameplay through generic markers such as `gameplay.key_pressed`, `gameplay.translate`, `gameplay.face_direction`, `gameplay.camera_follow`, `gameplay.follow_position`, `gameplay.nearest_by_script_property`, `gameplay.nav_move_towards_entity`, `gameplay.component_string`, `gameplay.entity_exists`, `gameplay.script_number_at_most`, `gameplay.damage_entity`, `gameplay.set_world_hud_bar`, `gameplay.set_animation_bool`, and `gameplay.set_particle_sprites`.
 
 The 2026-06-11 real VM diagnostic run reported `fps_current=60.872053031732605` and `last_ui_command_count=0` for the vampire scene after disabled duplicate bindings and the fixed-update phase skip, which confirms the gameplay host path is driving scene-following HUD data and not a screen-space upper-left combat HUD.
+
+## Runtime 15 F5 gameplay host typed errors
+
+状态：`runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred`。
+
+Runtime 15 E1/E2/F5 的当前切片新增 `script/vm/gameplay_host/error.rs`，由 `GameplayHostError` / `GameplayHostResult` 承接 gameplay host 内部 mutation 与 navigation 错误。`combat.rs`、`lifecycle.rs`、`navigation.rs` 与 `transform.rs` 不再用内部 `Result<_, String>`、`Err(format!(...))` 或 `.map_err(|error| error.to_string())` 表达 world mutation、navigation tick、JSON serialization 或 missing-entity failure。
+
+该 typed-error owner 保留 `SceneError`、`NavigationError` 与 `serde_json::Error` source，并用 `GameplayHostError::MissingEntity` 表达 host-local missing entity category。VM 可见边界仍返回 `ScriptHostError`，所以脚本调用方看到的 host-call 诊断形状不变；字符串化只发生在这个边界。
+
+守卫：`review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary` 检查 `mod error;`、`GameplayHostError` / `GameplayHostResult`、四个 domain owner 的无 String-error 回流，以及 Runtime 15 子计划、runtime index、结构规范、review findings、host ledger、module-convention 和 status-output expectations 的同步锚点。验证：scoped rustfmt/static scans 通过；Cargo 因并行 cargo/rustc lane active deferred，不计通过。
 
 ## Runtime 15 M3 gameplay host test folder split
 

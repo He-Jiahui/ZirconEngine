@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
-    ShadingModelRegistrationError,
+    ShadingModelRegistrationError, SHADING_MODEL_PLUGIN_ID_START,
 };
 
 #[derive(Clone, Debug)]
@@ -42,6 +42,20 @@ impl ShadingModelRegistry {
         &mut self,
         descriptor: ShadingModelDescriptor,
     ) -> Result<(), ShadingModelRegistrationError> {
+        self.register(descriptor)
+    }
+
+    pub(crate) fn register_plugin_descriptor(
+        &mut self,
+        descriptor: ShadingModelDescriptor,
+    ) -> Result<(), ShadingModelRegistrationError> {
+        if !descriptor.id.is_plugin_range() {
+            return Err(ShadingModelRegistrationError::PluginIdReserved {
+                token: descriptor.token.trim().to_ascii_lowercase(),
+                id: descriptor.id,
+                minimum: SHADING_MODEL_PLUGIN_ID_START,
+            });
+        }
         self.register(descriptor)
     }
 
@@ -85,6 +99,7 @@ mod tests {
     use crate::core::framework::render::{
         GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
         ShadingModelRegistrationError, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_PLUGIN_ID_START,
     };
 
     use super::ShadingModelRegistry;
@@ -135,7 +150,10 @@ mod tests {
     fn shading_model_registry_resolves_registered_lighting_model_tokens() {
         let mut registry = ShadingModelRegistry::new(GBufferChannelMask::standard_deferred_v1());
         registry
-            .register_builtin(descriptor(4, "custom:subsurface"))
+            .register_plugin_descriptor(descriptor(
+                SHADING_MODEL_PLUGIN_ID_START,
+                "custom:subsurface",
+            ))
             .unwrap();
 
         let resolved = registry
@@ -143,21 +161,41 @@ mod tests {
                 name: "subsurface".to_string(),
             })
             .unwrap();
-        assert_eq!(resolved.id, ShadingModelId::new(4));
+        assert_eq!(
+            resolved.id,
+            ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START)
+        );
+    }
+
+    #[test]
+    fn shading_model_registry_rejects_plugin_descriptor_in_builtin_id_range() {
+        let mut registry = ShadingModelRegistry::new(GBufferChannelMask::standard_deferred_v1());
+
+        let error = registry
+            .register_plugin_descriptor(descriptor(
+                SHADING_MODEL_ID_STANDARD_PBR.value(),
+                "custom:subsurface",
+            ))
+            .unwrap_err();
+
+        assert!(matches!(
+            error,
+            ShadingModelRegistrationError::PluginIdReserved { .. }
+        ));
     }
 
     #[test]
     fn shading_model_registry_rejects_unsupported_required_channels() {
         let mut registry = ShadingModelRegistry::new(GBufferChannelMask::standard_deferred_v1());
         let descriptor = ShadingModelDescriptor::new(
-            crate::core::framework::render::ShadingModelId::new(4),
+            crate::core::framework::render::ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START),
             "subsurface",
             "forward",
             "gbuffer",
             "deferred",
             GBufferChannelMask::standard_lit().union(GBufferChannelMask::CUSTOM0),
         );
-        let error = registry.register_builtin(descriptor).unwrap_err();
+        let error = registry.register_plugin_descriptor(descriptor).unwrap_err();
         assert!(matches!(
             error,
             ShadingModelRegistrationError::RequiredChannelsUnsupported { .. }

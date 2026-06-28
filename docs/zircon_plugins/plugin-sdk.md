@@ -2,6 +2,12 @@
 related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
+  - zircon_plugins/plugin_sdk/src/test.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_runtime/src/core/framework/physics/query_interface.rs
+  - zircon_plugins/physics/runtime/src/plugin.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
@@ -11,6 +17,7 @@ related_code:
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/plugin_sdk/src/manifest/defaults.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
+  - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/tests.rs
@@ -49,6 +56,15 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
@@ -79,6 +95,7 @@ implementation_files:
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/plugin_sdk/src/manifest/defaults.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
+  - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/tests.rs
@@ -117,6 +134,15 @@ implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
+  - zircon_plugins/animation/editor/Cargo.toml
+  - zircon_plugins/animation/editor/src/plugin.rs
+  - zircon_plugins/animation/editor/src/tests.rs
+  - zircon_plugins/physics/editor/Cargo.toml
+  - zircon_plugins/physics/editor/src/plugin.rs
+  - zircon_plugins/physics/editor/src/tests.rs
+  - zircon_plugins/net/editor/Cargo.toml
+  - zircon_plugins/net/editor/src/plugin.rs
+  - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/runtime_diagnostics/plugin.toml
@@ -185,8 +211,9 @@ Ownership stays split as follows:
 
 - `zircon_runtime::plugin` owns `PluginPackageManifest`, `PluginModuleManifest`, `RuntimePluginDescriptor`, target modes, packaging strategies, and maturity/status enums.
 - `zircon_plugin_sdk::manifest` owns author-facing builders for package and module manifest declarations.
+- `zircon_plugin_sdk::manifest::ImporterRuntimeManifestBuilder` owns shared importer runtime targets/platforms/module/native distribution manifest projection, with `NATIVE_ABI_VERSION_V3` and `NATIVE_DESCRIPTOR_SYMBOL_V3` exported through SDK lib/prelude.
 - `zircon_plugin_sdk::runtime` owns a thin declaration helper that projects one runtime descriptor into both `RuntimePluginDescriptor` and `PluginPackageManifest`.
-- `zircon_plugin_sdk::registration` owns runtime registration builders that hide plugin module owner-token sequencing for module and runtime scene system registration.
+- `zircon_plugin_sdk::registration` owns runtime registration builders that hide plugin module owner-token sequencing for module, option/catalog metadata, typed event, and runtime scene system registration.
 - `zircon_plugin_sdk::runtime_plugin_exports!` owns the standard runtime export helper functions for trait-backed runtime plugins.
 - `zircon_plugin_sdk::editor` owns editor authoring declaration helpers and the `authoring_plugin!` macro for editor plugin boilerplate.
 - `zircon_plugin_sdk::native` owns the author-facing native ABI v3 declarations, callback helpers, SDK-owned byte buffers, entry capability checks, export macros, and registration manifest TOML DTOs. Its feature depends on `zircon_runtime_interface`, `serde`, and `toml`, not the full runtime crate.
@@ -217,6 +244,12 @@ The builder then accepts category, description, maturity, target modes, capabili
 
 `PluginFeatureBundleBuilder` standardizes optional feature bundles. It declares feature dependencies, capabilities, runtime modules, editor modules, target modes, enabled-by-default status, and default packaging from one owner. The helper methods `with_runtime_capability_module(...)` and `with_editor_capability_module(...)` project the same feature capability into `PluginFeatureBundleManifest` and the generated `PluginModuleManifest`, so feature-level capability strings do not drift between manifest sections.
 
+The 2026-06-28 D1 capability single-source review/status sync records that M4/T1 and M4/T2 are now mirrored into the Runtime 15 review guard. `review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror` checks the 15 trait-backed first-party runtime roots, the `plugins_12_capability_single_source_conformance` catalog guard, `m4_runtime_capability_gate_status = runtime-capability-single-source-clean`, `capability_source_mismatches = 0`, `m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`, and `sdk_builder_mirror_violations = 0`. Status anchor: `d1_capability_single_source_review_synced_static_passed_cargo_deferred`.
+
+`ImporterRuntimeManifestBuilder` standardizes the D13 importer runtime manifest shape. The 2026-06-28 D13 importer runtime manifest builder convergence owns the shared `ClientRuntime + EditorHost` target modes, `windows/linux/macos` platforms, runtime module manifest, native dist module manifest, NativeDynamic distribution manifest, ABI v3 descriptor symbol/version, default engine compatibility, and asset-importer manifest projection. Importer crates still own their `RuntimePlugin` descriptor, importer descriptors, and registry mutation, but targets/platforms/module/dist-module distribution boilerplate now lives in the SDK. Guard `review_d13_importer_runtime_manifests_use_sdk_builder` and status `d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred` lock this D13 manifest builder convergence.
+
+The 2026-06-28 D13 importer manifest parity guard adds `importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity` so the SDK tests the actual manifest output, not just source text. The test checks shared targets/platforms, runtime/dist modules, NativeDynamic packaging, `NATIVE_ABI_VERSION_V3`, and `NATIVE_DESCRIPTOR_SYMBOL_V3`; guard `review_d13_importer_manifest_parity_guard_lives_in_sdk_builder` and status `d13_importer_manifest_parity_guard_static_passed_cargo_deferred` keep that parity owner from drifting.
+
 The first consumer is `zircon_plugin_sdk_examples_editor`. Its `plugin.rs` now uses `authoring_plugin!` to build the base package manifest and generate the primary editor plugin implementation. The generated `EditorPlugin` implementation still lets `zircon_editor::EditorPlugin::package_manifest(...)` attach the editor module so module ownership stays with the editor plugin descriptor.
 
 ## Editor Authoring Macro
@@ -226,9 +259,14 @@ The `editor` feature adds `zircon_plugin_sdk::editor`:
 - `EditorPluginDeclaration` keeps descriptor, base manifest, capability list, asset/content roots, maturity, and registration projection in one authoring object.
 - `EditorPluginDeclaration::mirrors_runtime(...)` and `mirrors_runtime_manifest(...)` let an editor plugin explicitly mirror a runtime package manifest while preserving editor-specific capabilities and roots; `mirrored_runtime_package_id()` exposes the linked runtime id for guards and tests.
 - `authoring_plugin!` generates the common editor plugin struct, `Default`/`new`, descriptor access, package manifest projection, capability extraction, registration report helper, and `EditorPlugin::register_editor_extensions` forwarding.
-- `authoring_plugin!` accepts `mirrors_runtime: ...` for editor/runtime capability symmetry declarations.
-- `zircon_plugins/Cargo.toml` now defines `[workspace.dependencies]` for core path dependencies, and `plugin_sdk_examples/editor` consumes `zircon_editor`, `zircon_plugin_sdk`, and `zircon_runtime` through `workspace = true`.
-- `plugin_structure_audits::skeleton` checks the blessed sample for workspace dependency inheritance and reports `sample_workspace_dependency_status = sample-workspace-deps-clean`.
+- `authoring_plugin!` accepts `mirrors_runtime: ...` and `mirrors_runtime_manifest: ...` for editor/runtime capability symmetry declarations.
+- `zircon_plugins/Cargo.toml` now defines `[workspace.dependencies]` for core path dependencies. All member crates consume `zircon_runtime`, `zircon_editor`, and `zircon_runtime_interface` through `workspace = true`; `zircon_plugins/Cargo.lock` is synchronized with that offline resolution. Plugin-to-plugin path dependencies are tracked separately.
+- `plugin_structure_audits::skeleton` checks the blessed sample for workspace dependency inheritance and reports `sample_workspace_dependency_status = sample-workspace-deps-clean`. It also reports the global core dependency guard as `core_workspace_dependency_status = core-workspace-deps-clean`, `core_workspace_dependency_count = 117`, and `core_workspace_dependency_violation_count = 0`.
+- Status anchor: `d7_core_workspace_dependency_inheritance_guard_static_passed_cargo_deferred`; `cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --offline` passes, while catalog Cargo test execution remains deferred by compile-time window.
+
+The 2026-06-28 D5 editor authoring macro consumer guard moves the first real consumers onto the SDK macro path. `animation`, `physics`, and `net` editor plugins use `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest:` and keep only their plugin-specific extension registration bodies outside the macro. Status anchor: `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`; guard: `review_d5_editor_authoring_plugins_use_sdk_macro`.
+
+The 2026-06-28 D9 editor/runtime mirror consumer guard keeps those macro consumers tied to runtime package manifests through the same `EditorPluginDeclaration::mirrors_runtime_manifest` projection. `animation`, `physics`, and `net` editor tests assert `mirrored_runtime_package_id()`, and `tools/audit_plugin_structure.py --json` reports `editor_runtime_mirror_violations = 0` plus `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`. Status anchor: `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred`; guard: `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`.
 
 ## Native ABI Helper
 
@@ -263,10 +301,13 @@ The intended runtime path is:
 
 - `RuntimePluginRegistrationBuilder::new(registry).module(module_name, module_descriptor())`
 - `module.runtime_scene_system(system_id, stage, system_fn)`
+- optional `module.event::<EventType>(manifest)`, `module.plugin_option(manifest)`, or `module.plugin_event_catalog(manifest)` for plugin-owned runtime metadata
 - optional `.in_set(...)`, `.with_order(...)`, `.before(...)`, or `.after(...)`
 - `.register()`
 
-The first representative consumer is `zircon_plugin_animation_runtime`. Its `AnimationRuntimePlugin::register(...)` now registers the animation runtime module and `animation.evaluate` scene system through the SDK module registration handle instead of calling `intern_plugin_module(...)`, `register_module(...)`, and `register_runtime_scene_system(...)` directly. This closes the SDK/helper side of Plugins 12 M3/T2 for D8 on one representative plugin; the importer free-function migration and D12 forwarding helper still remain separate M3 work.
+The 2026-06-28 D8 runtime registration builder original evidence paths slice extends the representative animation migration to `zircon_plugin_physics_runtime` and `zircon_plugin_net_runtime`. `AnimationRuntimePlugin::register(...)`, `PhysicsRuntimePlugin::register(...)`, and `NetRuntimePlugin::register(...)` now register their runtime module through the SDK builder and pass only a `RuntimePluginModuleRegistration` handle to system registration code. `physics.step`, `net.poll_ingress`, `net.flush_egress`, and the net typed runtime event are all declared through that module handle instead of direct `PluginModuleId` / `RuntimeExtensionRegistry` calls. Guard `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` and status `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred` lock this D8 convergence; module-only and importer-private registry mutation remain separate ownership cases.
+
+The 2026-06-28 D10 animation/physics bridge call migration adds the SDK owner-tracked `RuntimePluginModuleRegistration::export_interface::<T>(...)` helper and re-exports `PluginInterface`, `WeakBridge`, and `BridgeError` through the SDK runtime surface. Physics now exports the runtime-owned `physics.query.v1` contract as `dyn PhysicsQueryInterface`, and the animation/physics contract test resolves it through `WeakBridge<dyn PhysicsQueryInterface>` instead of concrete manager lookup. Guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred`; Cargo remains deferred for this implementation slice.
 
 ## Runtime Export Macro
 
@@ -279,11 +320,15 @@ The first representative consumer is `zircon_plugin_animation_runtime`. Its `Ani
 
 The generated helpers call the `RuntimePlugin` trait methods rather than reading the descriptor directly. This preserves plugin-specific `package_manifest(...)` overrides such as `NetRuntimePlugin`, while still removing the copied forwarding blocks from each crate root.
 
-The D12 first-party rollout now covers the trait-backed runtime plugin crates that owned copied helper blocks: `ai`, `animation`, `hybrid_gi`, `navigation`, `net`, `particles`, `physics`, `prefab_tools`, `rendering`, `solari`, `terrain`, `texture`, `tilemap_2d`, `virtual_geometry`, and `zr_vm_language`. Each keeps plugin-specific descriptor/register behavior in its `RuntimePlugin` implementation and delegates the repeated helper exports to the SDK macro. The remaining `asset_importers/audio` and `asset_importers/texture` `package_manifest()` functions are legacy importer-package surfaces, not trait-backed D12 helper blocks.
+The D12 runtime helper export macro rollout covers the trait-backed runtime plugin crates that owned copied helper blocks: `ai`, `animation`, `hybrid_gi`, `navigation`, `net`, `particles`, `physics`, `prefab_tools`, `rendering`, `solari`, `terrain`, `texture`, `tilemap_2d`, `virtual_geometry`, and `zr_vm_language`. Each keeps plugin-specific descriptor/register behavior in its `RuntimePlugin` implementation and delegates the repeated helper exports to the SDK macro. The original Plugins 12 status is `plugins_12_runtime_export_macro_rollout_check_passed`; the Runtime 15 mirror guard `review_d12_runtime_helper_exports_use_sdk_macro` records this as `d12_runtime_export_macro_review_synced_static_passed_cargo_deferred` and keeps the guard in `tests/runtime_absorption/code_review_findings/plugin_importer_dx/d12_runtime_exports.rs`.
+
+The 2026-06-28 D13 importer runtime export macro convergence extends the same helper owner to every first-party importer runtime crate: `asset_importers/{audio,data,model,shader,texture}` plus split importers `audio_importer`, `gltf_importer`, `obj_importer`, `opus_importer`, `shader_wgsl_importer`, `texture_importer`, and `ui_document_importer`. These 12/12 importer runtime `plugin.rs` owners now use `zircon_plugin_sdk::runtime_plugin_exports!`; none hand-writes `ProjectPluginSelection` or `RuntimePluginRegistrationReport` helper blocks. The importer `RuntimePlugin` implementations still own descriptors, importer descriptors, and private registry mutation, while repeated targets/platforms/module/dist-module manifest projection goes through `ImporterRuntimeManifestBuilder`. Guards `review_d13_importer_runtime_exports_use_sdk_macro` and `review_d13_importer_runtime_manifests_use_sdk_builder` lock this helper/manifest convergence with statuses `d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred` and `d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred`.
 
 ## Runtime Test Fixture
 
 The `test` module adds `TestRuntime::builder()` for cross-plugin integration tests.
+
+The 2026-06-28 D11 animation/physics TestRuntime fixture migration moves the original animation/physics contract test onto this SDK fixture. `runtime_physics_animation_tick_contract/runtime_helpers.rs` now owns the `TestRuntime::builder()` setup with physics and animation plugins, while the test body uses `runtime.create_default_level()` and `runtime.tick_level_seconds(...)` instead of rebuilding CoreRuntime, Scene modules, fixed-step clocks, or world extension installation locally. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` and status `d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred` lock the migration.
 
 `TestRuntimeBuilder` defaults to the common runtime stack used by plugin tests:
 
@@ -306,15 +351,22 @@ Completed in this area:
 - M2/T2 first skeleton sample using `zircon_plugin_sdk_examples_editor`, with `plugins_12_crate_skeleton_conformance` keeping that sample clean.
 - M2/T3 native ABI helper feature and macros, with `native_dynamic_fixture` consuming SDK-owned runtime ABI helpers and `runtime_diagnostics` consuming the editor-only dist helper.
 - Plugins 13 M2/T1 native registration manifest schema/DTO round-trip for dist registration declarations.
-- M2/T4 editor `authoring_plugin!` macro and first workspace dependency inheritance guard/sample.
+- M2/T4 editor `authoring_plugin!` macro plus sample and global core workspace dependency inheritance guards.
 - M2/T5 `plugin_sdk::test::TestRuntime::builder()` fixture with SDK self-tests covering module activation and level ticking.
+- D11 animation/physics TestRuntime fixture migration with `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` and `d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred`.
+- D10 animation/physics bridge call migration with `physics.query.v1`, `WeakBridge<dyn PhysicsQueryInterface>`, `review_d10_animation_physics_tests_use_sdk_bridge_call`, and `d10_animation_physics_bridge_call_static_passed_cargo_deferred`.
 - M3/T1 importer family and split importer registration entry cutover, with trait-backed reports and descriptor-derived selections.
 - M3/T2 runtime registration builder plus animation runtime representative migration.
 - M3/D12 `runtime_plugin_exports!` macro plus first-party trait-backed runtime helper rollout across ai, animation, hybrid_gi, navigation, net, particles, physics, prefab_tools, rendering, solari, terrain, texture, tilemap_2d, virtual_geometry, and zr_vm_language.
+- D12 runtime helper export macro review/status sync with `review_d12_runtime_helper_exports_use_sdk_macro` and `d12_runtime_export_macro_review_synced_static_passed_cargo_deferred`.
+- M3/D13 importer runtime export macro and `ImporterRuntimeManifestBuilder` rollout across all 12 first-party importer runtime owners.
+- D1 capability single-source review/status sync with `review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror`, `plugins_12_runtime_capability_single_source_guard_passed`, `plugins_12_capability_single_source_conformance`, and `d1_capability_single_source_review_synced_static_passed_cargo_deferred`.
 - M4/T2 SDK guard for `PluginFeatureBundleBuilder` and editor `mirrors_runtime(...)`, with `m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`.
+- M2/D5 editor authoring macro consumer guard for animation/physics/net editor plugins, with `zircon_plugin_sdk::authoring_plugin!`, `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`, and `review_d5_editor_authoring_plugins_use_sdk_macro`.
+- M4/D9 editor/runtime mirror consumer guard for animation/physics/net editor plugins, with `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` and `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`.
 - M5 RuntimePluginId open string-newtype convergence; plugin ids can now carry valid external keys without adding engine core enum variants.
 
 Still open:
 
-- M4/M5 broader capability rollout across sound/importer/editor plugins beyond the SDK guard.
+- Broader editor/runtime capability rollout beyond the D1 audited first-party runtime roots, SDK builder mirror, and animation/physics/net editor mirror consumers.
 - M5 touch-it-conform-it replacement of remaining local long-test fixtures with `plugin_sdk::test`.

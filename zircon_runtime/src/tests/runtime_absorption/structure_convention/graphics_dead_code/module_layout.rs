@@ -1,4 +1,5 @@
 use super::super::{assert_contains_all, runtime_src_path};
+use super::DEAD_CODE_ALLOW_ATTRIBUTE;
 
 #[test]
 fn runtime_15_graphics_dead_code_guard_is_folder_backed() {
@@ -215,4 +216,135 @@ fn runtime_15_graphics_dead_code_guard_is_folder_backed() {
             ],
         );
     }
+}
+
+#[test]
+fn runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_backed() {
+    let parent_guard =
+        runtime_src_path("tests/runtime_absorption/structure_convention/graphics_dead_code/mod.rs");
+    let backend_owner_guards = runtime_src_path(
+        "tests/runtime_absorption/structure_convention/graphics_dead_code/backend_owners.rs",
+    );
+    let gpu_resource_owner_guards = runtime_src_path(
+        "tests/runtime_absorption/structure_convention/graphics_dead_code/gpu_resource_owners.rs",
+    );
+    let resource_streamer_guards = runtime_src_path(
+        "tests/runtime_absorption/structure_convention/graphics_dead_code/resource_streamer_cleanup.rs",
+    );
+    let renderer_output_guards = runtime_src_path(
+        "tests/runtime_absorption/structure_convention/graphics_dead_code/renderer_output_accessors.rs",
+    );
+
+    let parent_source = std::fs::read_to_string(&parent_guard)
+        .expect("graphics dead-code parent should be readable");
+    assert!(
+        !parent_source.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
+        "graphics_dead_code/mod.rs should construct the forbidden attribute constant without embedding the direct literal"
+    );
+    assert_contains_all(
+        "graphics dead-code forbidden attribute constant",
+        &parent_source,
+        &[
+            "pub(super) const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!(\"#[allow(\", \"dead_code\", \")]\");",
+            "mod backend_owners;",
+            "mod gpu_resource_owners;",
+            "mod renderer_output_accessors;",
+            "mod resource_streamer_cleanup;",
+        ],
+    );
+
+    for (path, expected_guard, source) in [
+        (
+            "graphics_dead_code/backend_owners.rs",
+            "runtime_15_offscreen_target_texture_owner_cleanup",
+            std::fs::read_to_string(&backend_owner_guards)
+                .expect("backend owner guard module should be readable"),
+        ),
+        (
+            "graphics_dead_code/gpu_resource_owners.rs",
+            "runtime_15_gpu_texture_resource_owner_cleanup",
+            std::fs::read_to_string(&gpu_resource_owner_guards)
+                .expect("GPU resource owner guard module should be readable"),
+        ),
+        (
+            "graphics_dead_code/resource_streamer_cleanup.rs",
+            "runtime_15_material_runtime_capture_seed_cleanup",
+            std::fs::read_to_string(&resource_streamer_guards)
+                .expect("resource-streamer cleanup guard module should be readable"),
+        ),
+        (
+            "graphics_dead_code/renderer_output_accessors.rs",
+            "runtime_15_particle_gpu_readback_output_accessor_cleanup",
+            std::fs::read_to_string(&renderer_output_guards)
+                .expect("renderer output accessor guard module should be readable"),
+        ),
+    ] {
+        assert!(
+            !source.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
+            "{path} should use DEAD_CODE_ALLOW_ATTRIBUTE instead of embedding the forbidden attribute literal"
+        );
+        assert_contains_all(
+            path,
+            &source,
+            &["DEAD_CODE_ALLOW_ATTRIBUTE", expected_guard],
+        );
+    }
+
+    let runtime_15_plan = super::read_repo(
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+    );
+    let runtime_index = super::read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = super::read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention_doc =
+        super::read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = super::read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let session_note =
+        super::read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
+    let status_rows = super::read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+    );
+    let status_map = super::read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+    );
+    let date_map = super::read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention_doc.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 graphics dead-code guard forbidden attribute literal cleanup",
+                "runtime_15_graphics_dead_code_guard_literal_cleanup_static_passed_cargo_deferred",
+                "graphics_dead_code/mod.rs",
+                "DEAD_CODE_ALLOW_ATTRIBUTE",
+                "runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_backed",
+            ],
+        );
+    }
+    assert_contains_all(
+        "Runtime 15 status map",
+        &status_map,
+        &[
+            "Runtime 15 M3 graphics dead-code guard forbidden attribute literal cleanup",
+            "runtime_15_graphics_dead_code_guard_literal_cleanup_static_passed_cargo_deferred",
+        ],
+    );
+    assert_contains_all(
+        "Runtime 15 date map",
+        &date_map,
+        &[
+            "Runtime 15 M3 graphics dead-code guard forbidden attribute literal cleanup",
+            "2026-06-27",
+        ],
+    );
 }

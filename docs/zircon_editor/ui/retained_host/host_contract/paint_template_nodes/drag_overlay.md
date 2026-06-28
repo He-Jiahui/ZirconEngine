@@ -33,7 +33,7 @@ doc_type: module-detail
 
 The retained data comes from `pane_component_projection/drag_overlay.rs`. That projector maps `payload_kind`, `payload_label`, `payload_reference`, `cursor_x/y`, `offset_x/y`, `preview_width/height`, `drop_allowed`, `drop_target_*`, `drop_indicator_edge`, and `drop_indicator_text` into dedicated `TemplatePaneNodeData` fields. It also treats `dragging = true` as an open overlay so native preview paint does not depend on a separate `popup_open` flag.
 
-The Workbench primitive is `workbench_drag_overlay.zui`. It exposes the same descriptor-facing drag visual contract under asset governance and is imported by `workbench_window.v2.ui.toml` for reachability. This keeps authored Workbench surfaces, runtime render extract, and the retained native host on the same payload/cursor/drop-target vocabulary.
+The Workbench primitive is `workbench_drag_overlay.zui`. It exposes the same descriptor-facing drag visual contract under asset governance and is imported by `workbench_window.zui` for reachability. This keeps authored Workbench surfaces, runtime render extract, and the retained native host on the same payload/cursor/drop-target vocabulary.
 
 The runtime render equivalent is `zircon_runtime/src/ui/surface/render/drag_overlay.rs`. Both paths consume closed overlays, suppress generic owner text/image/surface output, draw cursor-offset preview chips, and preserve allowed versus blocked drop-indicator color. The native painter uses a compact payload marker rather than the runtime icon command because the host command layer currently has no tinted vector-icon primitive; the marker still preserves the state color lane needed by native pixel tests.
 

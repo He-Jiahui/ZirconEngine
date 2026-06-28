@@ -39,7 +39,7 @@ impl HubError {
     ) -> (crate::state::HubMessage, Option<crate::state::HubMessage>) {
         match self {
             Self::Status { detail, recovery } => (*detail, recovery.map(|message| *message)),
-            other => (crate::state::HubMessage::legacy(other.to_string()), None),
+            other => (crate::state::HubMessage::raw_text(other.to_string()), None),
         }
     }
 }

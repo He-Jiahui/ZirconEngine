@@ -34,7 +34,7 @@ fn minimal_and_headless_profiles_skip_render_bridge_bootstrap() {
 fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
     let source = include_str!("../session.rs");
     let tick_start = source
-        .find("fn tick_frame(&mut self) -> Result<(), String>")
+        .find("fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>")
         .expect("runtime dynamic session tick_frame implementation");
     let level_tick = source[tick_start..]
         .find(".tick(&self.runtime.handle(), advance)")
@@ -96,13 +96,13 @@ fn project_sessions_open_assets_before_loading_default_level() {
         .find("runtime_session_level")
         .expect("runtime dynamic session project level bootstrap");
     let open_assets = source[level_start..]
-        .find("project_config.open_project_assets(&core)?;")
+        .find(".open_project_assets(&core)")
         .expect("project sessions should open and sync project assets");
     let load_scripts = source[level_start..]
-        .find("project_config.load_startup_scripts(&core)?;")
+        .find(".load_startup_scripts(&core)")
         .expect("project sessions should load startup scripts");
     let load_level = source[level_start..]
-        .find("project_config.load_default_level(&core)?")
+        .find(".load_default_level(&core)")
         .expect("project sessions should load the default level");
 
     assert!(

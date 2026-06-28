@@ -1,5 +1,5 @@
 use super::super::assert_contains_all;
-use super::{read_repo, read_runtime_src};
+use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
 #[test]
 fn runtime_15_material_runtime_capture_seed_cleanup() {
@@ -21,7 +21,7 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !material_runtime.contains("#[allow(dead_code)]"),
+        !material_runtime.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "MaterialRuntime and MaterialCaptureSeed should not hide production dead-code surfaces behind suppressions"
     );
     assert_contains_all(
@@ -109,7 +109,7 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !resource_streamer_accessors.contains("#[allow(dead_code)]"),
+        !resource_streamer_accessors.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "ResourceStreamer diagnostics accessors should be test-only or production-live, not dead-code suppressions"
     );
     assert_contains_all(
@@ -216,7 +216,7 @@ fn runtime_15_resource_streamer_resolve_texture_id_cleanup() {
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert!(
-        !resolve_texture.contains("#[allow(dead_code)]"),
+        !resolve_texture.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
         "ResourceStreamer texture-reference resolution should not hide unused helpers behind dead-code suppression"
     );
     assert!(

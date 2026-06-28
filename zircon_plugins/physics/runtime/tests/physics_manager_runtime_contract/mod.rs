@@ -36,10 +36,10 @@ fn create_runtime_with_scene_and_physics() -> CoreRuntime {
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     let mut extensions = RuntimeExtensionRegistry::default();
-    let owner = extensions
-        .intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)
+    let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(&mut extensions)
+        .module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())
         .unwrap();
-    register_runtime_system(&mut extensions, owner).unwrap();
+    register_runtime_system(&mut module).unwrap();
     runtime
         .install_world_runtime_extensions(&extensions)
         .unwrap();

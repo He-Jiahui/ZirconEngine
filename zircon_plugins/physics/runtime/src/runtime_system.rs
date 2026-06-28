@@ -1,9 +1,7 @@
 use zircon_runtime::core::framework::physics::PhysicsWorldStepPlan;
 use zircon_runtime::core::manager::resolve_physics_manager;
 use zircon_runtime::core::CoreError;
-use zircon_runtime::plugin::{
-    PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-};
+use zircon_runtime::plugin::RuntimeExtensionRegistryError;
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
 use zircon_runtime::scene::SystemStage;
 
@@ -14,18 +12,15 @@ pub const PHYSICS_SYSTEM_SET: &str = "physics.simulation";
 pub const PHYSICS_STEP_SYSTEM: &str = "physics.step";
 
 pub fn register_runtime_system(
-    registry: &mut RuntimeExtensionRegistry,
-    owner: PluginModuleId,
+    module: &mut zircon_plugin_sdk::RuntimePluginModuleRegistration<'_>,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let physics_set = registry.intern_system_set(PHYSICS_SYSTEM_SET)?;
-    registry
-        .register_runtime_scene_system(
-            owner,
+    module
+        .runtime_scene_system(
             PHYSICS_STEP_SYSTEM,
             SystemStage::FixedUpdate,
             run_physics_runtime_system,
         )
-        .in_set(physics_set)
+        .in_set(PHYSICS_SYSTEM_SET)
         .register()
 }
 

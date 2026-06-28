@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTreeNode};
 const COMPILED_TEMPLATE: &str = r#"
 [asset]
 kind = "layout"
-id = "res://ui/views/main.v2.ui.toml"
+id = "res://ui/views/main.zui"
 version = 1
 
 [root]
@@ -27,7 +27,7 @@ fn theme_watch_report_routes_to_restyle_without_template_rebuild() {
     let report = report_for_change(
         "res://ui/theme/editor.theme.toml",
         &[(
-            "res://ui/views/main.v2.ui.toml",
+            "res://ui/views/main.zui",
             "res://ui/theme/editor.theme.toml",
         )],
     );
@@ -38,10 +38,7 @@ fn theme_watch_report_routes_to_restyle_without_template_rebuild() {
         plan.theme_restyle_assets,
         vec!["res://ui/theme/editor.theme.toml"]
     );
-    assert_eq!(
-        plan.theme_restyle_targets,
-        vec!["res://ui/views/main.v2.ui.toml"]
-    );
+    assert_eq!(plan.theme_restyle_targets, vec!["res://ui/views/main.zui"]);
     assert!(plan.template_rebuild_targets.is_empty());
     assert!(!plan.rebuild_required);
     assert!(plan.dirty.style);
@@ -57,10 +54,7 @@ fn theme_watch_report_routes_to_restyle_without_template_rebuild() {
 fn icon_watch_report_routes_to_resource_damage_without_rebuild() {
     let report = report_for_change(
         "res://ui/icons/run.icon.toml",
-        &[(
-            "res://ui/views/main.v2.ui.toml",
-            "res://ui/icons/run.icon.toml",
-        )],
+        &[("res://ui/views/main.zui", "res://ui/icons/run.icon.toml")],
     );
 
     let plan = UiAssetHotReloadPlan::from_watch_report(&report);
@@ -71,7 +65,7 @@ fn icon_watch_report_routes_to_resource_damage_without_rebuild() {
     );
     assert_eq!(
         plan.resource_damage_targets,
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
     assert!(plan.template_rebuild_targets.is_empty());
     assert!(plan.theme_restyle_targets.is_empty());
@@ -85,10 +79,7 @@ fn icon_watch_report_routes_to_resource_damage_without_rebuild() {
 fn font_watch_report_marks_referencing_targets_for_text_layout_and_render() {
     let report = report_for_change(
         "res://fonts/inter.font.toml",
-        &[(
-            "res://ui/views/main.v2.ui.toml",
-            "res://fonts/inter.font.toml",
-        )],
+        &[("res://ui/views/main.zui", "res://fonts/inter.font.toml")],
     );
 
     let plan = UiAssetHotReloadPlan::from_watch_report(&report);
@@ -99,7 +90,7 @@ fn font_watch_report_marks_referencing_targets_for_text_layout_and_render() {
     );
     assert_eq!(
         plan.resource_damage_targets,
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
     assert!(plan.dirty.text);
     assert!(plan.dirty.layout);
@@ -113,7 +104,7 @@ fn font_watch_report_marks_referencing_targets_for_text_layout_and_render() {
 fn template_watch_report_rebuilds_changed_template_and_transitive_dependents() {
     let mut index = UiAssetDependencyIndex::new();
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -126,10 +117,7 @@ fn template_watch_report_rebuilds_changed_template_and_transitive_dependents() {
 
     assert_eq!(
         plan.template_rebuild_targets,
-        vec![
-            "res://ui/components/button.zui",
-            "res://ui/views/main.v2.ui.toml",
-        ]
+        vec!["res://ui/components/button.zui", "res://ui/views/main.zui",]
     );
     assert!(plan.rebuild_required);
     assert!(plan.dirty.layout);
@@ -149,7 +137,7 @@ fn removed_template_evicts_compiled_asset_and_rebuilds_dependents() {
         &[asset_ref("res://ui/theme/editor.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -166,7 +154,7 @@ fn removed_template_evicts_compiled_asset_and_rebuilds_dependents() {
     );
     assert_eq!(
         plan.template_rebuild_targets,
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
     assert!(plan.rebuild_required);
 }
@@ -175,10 +163,7 @@ fn removed_template_evicts_compiled_asset_and_rebuilds_dependents() {
 fn texture_source_watch_report_routes_to_resource_damage() {
     let report = report_for_change(
         "res://ui/textures/checker.png",
-        &[(
-            "res://ui/views/main.v2.ui.toml",
-            "res://ui/textures/checker.png",
-        )],
+        &[("res://ui/views/main.zui", "res://ui/textures/checker.png")],
     );
 
     let plan = UiAssetHotReloadPlan::from_watch_report(&report);
@@ -189,7 +174,7 @@ fn texture_source_watch_report_routes_to_resource_damage() {
     );
     assert_eq!(
         plan.resource_damage_targets,
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
     assert!(plan.dirty.render);
     assert!(!plan.rebuild_required);
@@ -222,8 +207,16 @@ fn classifier_matches_ui_asset_suffixes_and_keeps_unknown_visible() {
         UiHotReloadAssetKind::Template
     );
     assert_eq!(
-        classify_ui_hot_reload_asset("res://ui/views/main.v2.ui.toml"),
+        classify_ui_hot_reload_asset("res://ui/views/main.zui"),
         UiHotReloadAssetKind::Template
+    );
+    assert_eq!(
+        classify_ui_hot_reload_asset("res://ui/views/main.v2.ui.toml"),
+        UiHotReloadAssetKind::Other
+    );
+    assert_eq!(
+        classify_ui_hot_reload_asset("res://ui/views/main.ui.toml"),
+        UiHotReloadAssetKind::Other
     );
     assert_eq!(
         classify_ui_hot_reload_asset("res://ui/textures/checker.ktx2"),
@@ -242,7 +235,7 @@ fn hot_reload_plan_evicts_compiled_template_cache_entries() {
     let mut cache = UiAssetCompileCache::new();
     let mut index = UiAssetDependencyIndex::new();
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -272,10 +265,7 @@ fn hot_reload_plan_evicts_compiled_template_cache_entries() {
 fn hot_reload_plan_marks_surface_roots_dirty_with_aggregate_dirty_domains() {
     let report = report_for_change(
         "res://fonts/inter.font.toml",
-        &[(
-            "res://ui/views/main.v2.ui.toml",
-            "res://fonts/inter.font.toml",
-        )],
+        &[("res://ui/views/main.zui", "res://fonts/inter.font.toml")],
     );
     let plan = UiAssetHotReloadPlan::from_watch_report(&report);
     let mut surface = dirty_test_surface();
@@ -300,10 +290,7 @@ fn hot_reload_plan_marks_surface_roots_dirty_with_aggregate_dirty_domains() {
 fn hot_reload_plan_rebuild_dirty_surface_consumes_planned_dirty_domains() {
     let report = report_for_change(
         "res://ui/icons/run.icon.toml",
-        &[(
-            "res://ui/views/main.v2.ui.toml",
-            "res://ui/icons/run.icon.toml",
-        )],
+        &[("res://ui/views/main.zui", "res://ui/icons/run.icon.toml")],
     );
     let plan = UiAssetHotReloadPlan::from_watch_report(&report);
     let mut surface = dirty_test_surface();

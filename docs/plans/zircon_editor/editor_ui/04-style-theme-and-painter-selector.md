@@ -150,7 +150,7 @@ impl UiV2StyleResolver {
 |---|------|---------|---------|--------|
 | M1.S1 | style.rs 拆 style/ 目录（纯平移，零行为变化） | interface style/ | `cargo test -p zircon_runtime_interface --locked` | style.rs 删除（被目录取代） |
 | M1.S2 | `UiThemeDocument` + 默认 dark theme TOML + ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `cargo test -p zircon_runtime --lib theme --locked` | 无删除 |
-| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui`/`*.v2.ui.toml`/`paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | 中立绘制族内重复常量表删除 |
+| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui` UI 文档与 `paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | 中立绘制族内重复常量表删除 |
 | M2.S1 | `UiPainterState` 状态集盘点补全（checked/open/dragging 字段与折叠规则） | interface style/selector.rs | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
 | M2.S2 | 生产者唯一化：交互态只由 01 reply 写入、语义态只由 reducer 写入（依赖 01 M3） | surface 组件状态写入点 | `cargo test -p zircon_runtime --lib --locked` | 散落写入点删除 |
 | M3.S1 | v2 伪状态匹配 + `resolve_with_state`（折叠调 selector，不复制优先级） | v2/style.rs、ui_style_resolver.rs | `cargo test -p zircon_runtime --lib v2_style --locked` | 无删除 |
@@ -221,3 +221,9 @@ impl UiV2StyleResolver {
 | 注册式样式集 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Styling` | — | FSlateStyleSet/Brush 注册表：token id → 视觉资源的回溯链样板 |
 | 控件主题查询链 | `dev/godot/scene/gui/control.cpp` | — | Godot theme 项的 control → theme owner → default 级联查找（token source-chain 对照） |
 | 状态装饰器 | `dev/Fyrox/fyrox-ui/src/{decorator.rs, brush.rs}` | — | hover/pressed/selected 的装饰器切换实现（selector 的另一种形态，对照取舍） |
+
+## 14. 状态与产出记录
+
+| 日期 | 范围 | 状态 | 完成项目 | 验证 |
+| --- | --- | --- | --- | --- |
+| 2026-06-28 | Plan 11 M5 style/theme token scan `.zui` target guard | editor_ui_11_m5_style_theme_token_scan_zui_guard_passed | M1.S3 的裸 hex 扫描目标已从 `.zui` + `*.v2.ui.toml` 双后缀改为 `.zui` UI 文档与 `paint_template_nodes` 源；后续 token 检查不再把退役 `.v2.ui.toml` 写成未来扫描目标。 | 新增 `test_style_theme_plan_token_scan_targets_zui_documents_only`；RED 先失败列出旧 `*.v2.ui.toml` 扫描目标，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |

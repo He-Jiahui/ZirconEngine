@@ -23,13 +23,13 @@ mod dock_header;
 mod menu_chrome;
 mod status_bar;
 
-const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
+const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
 #[cfg(test)]
-const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.v2.ui.toml";
-const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.v2.ui.toml";
-const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.v2.ui.toml";
-const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.v2.ui.toml";
-const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.v2.ui.toml";
+const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.zui";
+const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.zui";
+const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.zui";
+const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.zui";
+const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.zui";
 
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 pub(super) const MENU_SLOT_COUNT: usize = 7;

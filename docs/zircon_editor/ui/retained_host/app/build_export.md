@@ -246,7 +246,7 @@ Keeping wizard option construction outside the session owner separates active-pr
 
 ## Host Wizard Runtime
 
-`ui/host/editor_manager_plugins_export/export_build/wizard/session.rs` owns the shared desktop export wizard panel registration used by retained-host Build/Export sessions. It now registers the v2 panel template together with the `editor_base.v2.ui.toml` import source through `EditorUiHostRuntime::register_v2_template_document_files(...)`, so retained projection can resolve declared v2 imports from a single registered document group.
+`ui/host/editor_manager_plugins_export/export_build/wizard/session.rs` owns the shared desktop export wizard panel registration used by retained-host Build/Export sessions. It now registers the v2 panel template together with the `editor_base.zui` import source through `EditorUiHostRuntime::register_v2_template_document_files(...)`, so retained projection can resolve declared v2 imports from a single registered document group.
 
 `wizard/execution.rs` and `wizard/run.rs` own pipeline execution and job event sequencing. Cancellation is classified by the point where the cancel signal is observed: during command execution remains an in-stage cancellation, while a signal observed after stage completion is reported as phase-boundary cancellation by the job runner.
 

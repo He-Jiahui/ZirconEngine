@@ -142,7 +142,7 @@ fn canonical_render_frame_extract_populates_scene_sections_directly() {
         snapshot.node_id == mesh
             && snapshot.transform.translation == Vec3::new(4.0, 5.0, 6.0)
             && snapshot.mobility == Mobility::Static
-            && snapshot.render_layer_mask.to_legacy_mask_lossy() == 0b1010
+            && snapshot.render_layer_mask.to_scene_schema_v1_mask_lossy() == 0b1010
     }));
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     assert!(extract.geometry.virtual_geometry.is_some());
@@ -254,13 +254,13 @@ fn render_extract_filters_meshes_by_active_camera_layers() {
         .all(|mesh| mesh.node_id != hidden_mesh));
     assert!(extract.geometry.meshes.iter().all(|mesh| mesh
         .render_layer_mask
-        .to_legacy_mask_lossy()
+        .to_scene_schema_v1_mask_lossy()
         & 0b0010
         != 0));
     assert!(extract
         .view
         .selected_camera_layers()
-        .intersects_legacy_mask(0b0010));
+        .intersects_scene_schema_v1_mask(0b0010));
 }
 
 #[test]
@@ -294,7 +294,7 @@ fn explicit_render_camera_snapshot_layers_override_scene_camera_layers() {
     assert!(extract
         .view
         .selected_camera_layers()
-        .intersects_legacy_mask(0b0100));
+        .intersects_scene_schema_v1_mask(0b0100));
 }
 
 #[test]
@@ -367,7 +367,7 @@ fn render_extract_projects_scene_camera_component_product_fields() {
 fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
     let mut camera =
         CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
-    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.culling_mask = RenderLayerSet::from_scene_schema_v1_mask(mask);
     camera.volume_mask = camera.culling_mask.clone();
     camera
 }

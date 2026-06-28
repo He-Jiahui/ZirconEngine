@@ -159,7 +159,7 @@ zircon_plugins/sound/runtime/
 | 任务  | 内容                                                              | 改动文件                                   | 依赖                                 | 新增测试                                                                                      |
 | ----- | ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------ | --------------------------------------------------------------------------------------------- |
 | M5-T1 | timeline 曲线 → Tween/Clock 编译；Modulator 绑定                 | automation/、timeline/                     | M2                                   | `automation_curve_compiles_to_tween_sequence`、`clock_scheduled_start_is_sample_accurate` |
-| M5-T2 | Mixer Console 面板实化（电平表取 kira track 监测、send 矩阵编辑） | sound/editor、`mixer_console.v2.ui.toml` | M1、[10 规范](10-editor-integration.md) | editor 契约测试                                                                               |
+| M5-T2 | Mixer Console 面板实化（电平表取 kira track 监测、send 矩阵编辑） | sound/editor、`mixer_console.zui` | M1、[10 规范](10-editor-integration.md) | editor 契约测试                                                                               |
 | M5-T3 | View/Debug Overlays/Sound：AudioVolume/衰减球 overlay             | sound/editor                               | 10-规范                              | overlay 注册快照测试                                                                          |
 
 ## 6. 验收命令

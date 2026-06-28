@@ -122,7 +122,7 @@ fn compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_l
             size: 1.0,
             color: Vec4::ONE,
             intensity: 1.0,
-            render_layer_mask: RenderLayerSet::from_legacy_mask(1 << 1),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1 << 1),
             ..RenderParticleSpriteSnapshot::default()
         });
 

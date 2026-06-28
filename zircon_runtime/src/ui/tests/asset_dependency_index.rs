@@ -6,12 +6,12 @@ use crate::ui::template::{UiAssetDependencyIndex, UiAssetWatchInvalidationReport
 const VIEW_WITH_REFERENCES: &str = r##"
 [asset]
 kind = "view"
-id = "res://ui/views/main.v2.ui.toml"
+id = "res://ui/views/main.zui"
 version = 2
 
 [imports]
 widgets = ["res://ui/components/toolbar_button.zui#ToolbarButton"]
-styles = ["res://ui/theme/base.v2.ui.toml"]
+styles = ["res://ui/theme/base.zui"]
 resources = [
   { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },
   { kind = "image", uri = "res://ui/icons/run.svg", fallback = { mode = "optional" } },
@@ -32,28 +32,28 @@ fn dependency_index_records_bidirectional_refs_from_v2_asset_references() {
     let references = ui_v2_asset_references(&view.document);
     let mut index = UiAssetDependencyIndex::new();
 
-    index.record_compiled("res://ui/views/main.v2.ui.toml", &references);
+    index.record_compiled("res://ui/views/main.zui", &references);
 
     assert_eq!(index.asset_count(), 1);
     assert_eq!(
-        reference_uris(index.references_of("res://ui/views/main.v2.ui.toml")),
+        reference_uris(index.references_of("res://ui/views/main.zui")),
         vec![
             "res://fonts/inter.font.toml",
             "res://fonts/system.ttf",
             "res://ui/components/toolbar_button.zui",
             "res://ui/icons/run.svg",
-            "res://ui/theme/base.v2.ui.toml",
+            "res://ui/theme/base.zui",
         ]
     );
     assert_eq!(
         index
-            .dependents_of("res://ui/theme/base.v2.ui.toml")
+            .dependents_of("res://ui/theme/base.zui")
             .collect::<Vec<_>>(),
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
     assert_eq!(
         index.cascade_invalidation_targets("res://fonts/inter.font.toml"),
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
 }
 
@@ -65,16 +65,13 @@ fn dependency_index_cascades_invalidation_through_reverse_edges() {
         &[asset_ref("res://ui/theme/base.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
     assert_eq!(
         index.cascade_invalidation_targets("res://ui/theme/base.theme.toml"),
-        vec![
-            "res://ui/components/button.zui",
-            "res://ui/views/main.v2.ui.toml",
-        ]
+        vec!["res://ui/components/button.zui", "res://ui/views/main.zui",]
     );
 }
 
@@ -82,11 +79,11 @@ fn dependency_index_cascades_invalidation_through_reverse_edges() {
 fn dependency_index_replaces_stale_edges_and_removes_assets() {
     let mut index = UiAssetDependencyIndex::new();
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/theme/old.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/theme/new.theme.toml")],
     );
 
@@ -98,10 +95,10 @@ fn dependency_index_replaces_stale_edges_and_removes_assets() {
         index
             .dependents_of("res://ui/theme/new.theme.toml")
             .collect::<Vec<_>>(),
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
 
-    let removed = index.remove("res://ui/views/main.v2.ui.toml").unwrap();
+    let removed = index.remove("res://ui/views/main.zui").unwrap();
 
     assert_eq!(
         reference_uris(&removed),
@@ -118,24 +115,18 @@ fn dependency_index_replaces_stale_edges_and_removes_assets() {
 fn dependency_index_deduplicates_and_avoids_readding_changed_asset_in_cycles() {
     let mut index = UiAssetDependencyIndex::new();
     index.record_compiled(
-        "res://ui/a.v2.ui.toml",
-        &[
-            asset_ref("res://ui/b.v2.ui.toml"),
-            asset_ref("res://ui/b.v2.ui.toml"),
-        ],
+        "res://ui/a.zui",
+        &[asset_ref("res://ui/b.zui"), asset_ref("res://ui/b.zui")],
     );
-    index.record_compiled(
-        "res://ui/b.v2.ui.toml",
-        &[asset_ref("res://ui/a.v2.ui.toml")],
-    );
+    index.record_compiled("res://ui/b.zui", &[asset_ref("res://ui/a.zui")]);
 
     assert_eq!(
-        reference_uris(index.references_of("res://ui/a.v2.ui.toml")),
-        vec!["res://ui/b.v2.ui.toml"]
+        reference_uris(index.references_of("res://ui/a.zui")),
+        vec!["res://ui/b.zui"]
     );
     assert_eq!(
-        index.cascade_invalidation_targets("res://ui/a.v2.ui.toml"),
-        vec!["res://ui/b.v2.ui.toml"]
+        index.cascade_invalidation_targets("res://ui/a.zui"),
+        vec!["res://ui/b.zui"]
     );
 }
 
@@ -150,7 +141,7 @@ fn dependency_index_reports_browser_query_for_references_and_dependents() {
         ],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -163,10 +154,7 @@ fn dependency_index_reports_browser_query_for_references_and_dependents() {
     );
     assert_eq!(
         theme.cascade_dependents,
-        vec![
-            "res://ui/components/button.zui",
-            "res://ui/views/main.v2.ui.toml",
-        ]
+        vec!["res://ui/components/button.zui", "res://ui/views/main.zui",]
     );
 
     let component = index.query_asset("res://ui/components/button.zui");
@@ -177,13 +165,10 @@ fn dependency_index_reports_browser_query_for_references_and_dependents() {
             "res://ui/theme/base.theme.toml",
         ]
     );
-    assert_eq!(
-        component.direct_dependents,
-        vec!["res://ui/views/main.v2.ui.toml"]
-    );
+    assert_eq!(component.direct_dependents, vec!["res://ui/views/main.zui"]);
     assert_eq!(
         component.cascade_dependents,
-        vec!["res://ui/views/main.v2.ui.toml"]
+        vec!["res://ui/views/main.zui"]
     );
 }
 
@@ -195,7 +180,7 @@ fn dependency_index_maps_modified_watch_changes_to_cascade_rebuild_targets() {
         &[asset_ref("res://ui/theme/base.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -211,7 +196,7 @@ fn dependency_index_maps_modified_watch_changes_to_cascade_rebuild_targets() {
             changed_assets: vec!["res://ui/theme/base.theme.toml".to_string()],
             rebuild_targets: vec![
                 "res://ui/components/button.zui".to_string(),
-                "res://ui/views/main.v2.ui.toml".to_string(),
+                "res://ui/views/main.zui".to_string(),
             ],
             removed_assets: vec![],
         }
@@ -226,7 +211,7 @@ fn dependency_index_removes_deleted_assets_after_capturing_dependents() {
         &[asset_ref("res://ui/theme/base.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[asset_ref("res://ui/components/button.zui")],
     );
 
@@ -240,7 +225,7 @@ fn dependency_index_removes_deleted_assets_after_capturing_dependents() {
         report,
         UiAssetWatchInvalidationReport {
             changed_assets: vec!["res://ui/components/button.zui".to_string()],
-            rebuild_targets: vec!["res://ui/views/main.v2.ui.toml".to_string()],
+            rebuild_targets: vec!["res://ui/views/main.zui".to_string()],
             removed_assets: vec!["res://ui/components/button.zui".to_string()],
         }
     );
@@ -261,11 +246,11 @@ fn dependency_index_renamed_watch_changes_remove_old_key_and_invalidate_new_depe
         &[asset_ref("res://ui/theme/base.theme.toml")],
     );
     index.record_compiled(
-        "res://ui/views/old_consumer.v2.ui.toml",
+        "res://ui/views/old_consumer.zui",
         &[asset_ref("res://ui/components/old_button.zui")],
     );
     index.record_compiled(
-        "res://ui/views/new_consumer.v2.ui.toml",
+        "res://ui/views/new_consumer.zui",
         &[asset_ref("res://ui/components/new_button.zui")],
     );
 
@@ -280,8 +265,8 @@ fn dependency_index_renamed_watch_changes_remove_old_key_and_invalidate_new_depe
         UiAssetWatchInvalidationReport {
             changed_assets: vec!["res://ui/components/new_button.zui".to_string()],
             rebuild_targets: vec![
-                "res://ui/views/old_consumer.v2.ui.toml".to_string(),
-                "res://ui/views/new_consumer.v2.ui.toml".to_string(),
+                "res://ui/views/old_consumer.zui".to_string(),
+                "res://ui/views/new_consumer.zui".to_string(),
             ],
             removed_assets: vec!["res://ui/components/old_button.zui".to_string()],
         }
@@ -299,7 +284,7 @@ fn dependency_index_renamed_watch_changes_remove_old_key_and_invalidate_new_depe
 fn dependency_index_deduplicates_watch_rebuild_targets_across_changes() {
     let mut index = UiAssetDependencyIndex::new();
     index.record_compiled(
-        "res://ui/views/main.v2.ui.toml",
+        "res://ui/views/main.zui",
         &[
             asset_ref("res://ui/theme/base.theme.toml"),
             asset_ref("res://ui/icons/run.icon.toml"),
@@ -326,7 +311,7 @@ fn dependency_index_deduplicates_watch_rebuild_targets_across_changes() {
                 "res://ui/theme/base.theme.toml".to_string(),
                 "res://ui/icons/run.icon.toml".to_string(),
             ],
-            rebuild_targets: vec!["res://ui/views/main.v2.ui.toml".to_string()],
+            rebuild_targets: vec!["res://ui/views/main.zui".to_string()],
             removed_assets: vec![],
         }
     );

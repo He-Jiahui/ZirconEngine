@@ -93,11 +93,11 @@ impl MeshPipelineVariantRegistry {
     ) -> MeshPipelineVariantId {
         let key = MeshPipelineVariantKey::new(kind, pipeline_key, geometry_source, shader_quality);
         if let Some(id) = self.variant_ids.get(&key) {
-            self.miss_report = self.miss_report.with_memory_hit();
+            self.miss_report.record_memory_hit(key.shader_variant_key());
             return *id;
         }
 
-        self.miss_report = self.miss_report.with_request();
+        self.miss_report.record_request(key.shader_variant_key());
         let id = MeshPipelineVariantId::new(
             FIRST_CACHE_PIPELINE_VARIANT_ID + self.variant_keys.len() as u32,
         );
@@ -116,28 +116,28 @@ impl MeshPipelineVariantRegistry {
         self.variant_keys.get(index)
     }
 
-    pub(crate) const fn miss_report(&self) -> ShaderVariantMissReport {
-        self.miss_report
+    pub(crate) fn miss_report(&self) -> ShaderVariantMissReport {
+        self.miss_report.clone()
     }
 
     pub(crate) fn reset_miss_report(&mut self) {
         self.miss_report = ShaderVariantMissReport::default();
     }
 
-    pub(crate) fn record_disk_hit(&mut self) {
-        self.miss_report = self.miss_report.with_disk_hit();
+    pub(crate) fn record_disk_hit(&mut self, key: &ShaderVariantKey) {
+        self.miss_report.record_disk_hit(key);
     }
 
-    pub(crate) fn record_disk_write(&mut self) {
-        self.miss_report = self.miss_report.with_disk_write();
+    pub(crate) fn record_disk_write(&mut self, key: &ShaderVariantKey) {
+        self.miss_report.record_disk_write(key);
     }
 
-    pub(crate) fn record_disk_error(&mut self) {
-        self.miss_report = self.miss_report.with_disk_error();
+    pub(crate) fn record_disk_error(&mut self, key: &ShaderVariantKey) {
+        self.miss_report.record_disk_error(key);
     }
 
-    pub(crate) fn record_compile_miss(&mut self) {
-        self.miss_report = self.miss_report.with_compile_miss();
+    pub(crate) fn record_compile_miss(&mut self, key: &ShaderVariantKey) {
+        self.miss_report.record_compile_miss(key);
     }
 
     #[cfg(test)]
@@ -149,14 +149,14 @@ impl MeshPipelineVariantRegistry {
 fn shader_pass_type_for_mesh_pipeline_kind(kind: MeshPassPipelineKind) -> ShaderPassType {
     match kind {
         MeshPassPipelineKind::GBuffer => ShaderPassType::GBuffer,
-        MeshPassPipelineKind::DepthPrepass => ShaderPassType::GBuffer,
+        MeshPassPipelineKind::DepthPrepass => ShaderPassType::DepthPrepass,
         MeshPassPipelineKind::Base => ShaderPassType::Forward,
         MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
             ShaderPassType::Shadow
         }
         MeshPassPipelineKind::Velocity => ShaderPassType::Velocity,
         MeshPassPipelineKind::TaaReactiveMask | MeshPassPipelineKind::TaaReactiveMaterialMask => {
-            ShaderPassType::Forward
+            ShaderPassType::TaaReactiveMask
         }
     }
 }
@@ -318,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn mesh_pipeline_variant_registry_maps_depth_prepass_to_normal_gbuffer_template() {
+    fn mesh_pipeline_variant_registry_maps_depth_prepass_to_depth_prepass_pass_type() {
         let mut registry = MeshPipelineVariantRegistry::default();
         let key = default_pipeline_key();
 
@@ -331,7 +331,7 @@ mod tests {
 
         assert_eq!(
             variant_key.shader_variant_key().pass_type,
-            ShaderPassType::GBuffer
+            ShaderPassType::DepthPrepass
         );
     }
 
@@ -364,19 +364,60 @@ mod tests {
     }
 
     #[test]
+    fn mesh_pipeline_variant_registry_maps_taa_reactive_to_taa_reactive_pass_type() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let reactive_variant = registry.resolve_variant(
+            MeshPassPipelineKind::TaaReactiveMask,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        let material_variant = registry.resolve_variant(
+            MeshPassPipelineKind::TaaReactiveMaterialMask,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        let reactive_key = registry
+            .key_for_variant(reactive_variant)
+            .expect("TAA reactive mask variant key");
+        let material_key = registry
+            .key_for_variant(material_variant)
+            .expect("TAA reactive material mask variant key");
+
+        assert_eq!(
+            reactive_key.shader_variant_key().pass_type,
+            ShaderPassType::TaaReactiveMask
+        );
+        assert_eq!(
+            material_key.shader_variant_key().pass_type,
+            ShaderPassType::TaaReactiveMask
+        );
+        assert_ne!(reactive_variant, material_variant);
+    }
+
+    #[test]
     fn mesh_pipeline_variant_registry_counts_variant_misses_and_memory_hits() {
         let mut registry = MeshPipelineVariantRegistry::default();
         let key = default_pipeline_key();
 
-        registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
-        registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        let first =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        let second =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        assert_eq!(first, second);
 
         let report = registry.miss_report();
         assert_eq!(report.request_count, 2);
         assert_eq!(report.compile_miss_count, 0);
         assert_eq!(report.memory_hit_count, 1);
 
-        registry.record_compile_miss();
+        let variant_key = registry
+            .key_for_variant(first)
+            .expect("base variant key")
+            .shader_variant_key()
+            .clone();
+        registry.record_compile_miss(&variant_key);
         assert_eq!(registry.miss_report().compile_miss_count, 1);
 
         registry.reset_miss_report();

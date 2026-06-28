@@ -13,6 +13,8 @@ pub struct ExtensionOwnership {
     pub modules: Vec<ExtensionSlot>,
     pub render_features: Vec<ExtensionSlot>,
     pub render_pass_executors: Vec<ExtensionSlot>,
+    pub geometry_sources: Vec<ExtensionSlot>,
+    pub shading_models: Vec<ExtensionSlot>,
     pub runtime_prepare_collectors: Vec<ExtensionSlot>,
     pub hybrid_gi_runtime_providers: Vec<ExtensionSlot>,
     pub solari_runtime_providers: Vec<ExtensionSlot>,
@@ -36,6 +38,8 @@ impl ExtensionOwnership {
             && self.modules.is_empty()
             && self.render_features.is_empty()
             && self.render_pass_executors.is_empty()
+            && self.geometry_sources.is_empty()
+            && self.shading_models.is_empty()
             && self.runtime_prepare_collectors.is_empty()
             && self.hybrid_gi_runtime_providers.is_empty()
             && self.solari_runtime_providers.is_empty()

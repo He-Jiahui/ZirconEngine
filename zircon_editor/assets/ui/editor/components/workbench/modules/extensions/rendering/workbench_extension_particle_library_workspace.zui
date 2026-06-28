@@ -141,7 +141,7 @@ control_id = "WorkbenchExtensionParticleLibraryTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
 props = { background_color = "#10161a", border_color = "#263239", border_width = 1.0, corner_radius = 6.0 }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "particle_library_gpu_spark_row" }, { node = "particle_library_cpu_dust_row" }, { node = "particle_library_impact_gpu_row" }, { node = "particle_library_deprecated_row" }]
+children = [{ node = "particle_library_gpu_spark_row" }, { node = "particle_library_cpu_dust_row" }, { node = "particle_library_impact_gpu_row" }, { node = "particle_library_archived_row" }]
 
 [nodes.particle_library_gpu_spark_row]
 component = "WorkbenchTableRow"
@@ -167,13 +167,13 @@ props = { text = "Impact GPU Burst", value_text = "GPU   bounds fixed   Ready" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ParticleLibraryImpactGpuRow", event = "Click", route = "workbench.extension.particle_library.row.impact_gpu" }]
 
-[nodes.particle_library_deprecated_row]
+[nodes.particle_library_archived_row]
 component = "WorkbenchTableRow"
-control_id = "WorkbenchExtensionParticleLibraryDeprecatedRow"
+control_id = "WorkbenchExtensionParticleLibraryArchivedRow"
 classes = ["workbench-table-row"]
-props = { text = "Legacy Smoke", value_text = "CPU   deprecated   Warning" }
+props = { text = "Archived Smoke", value_text = "CPU   archived   Warning" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ParticleLibraryDeprecatedRow", event = "Click", route = "workbench.extension.particle_library.row.deprecated" }]
+events = [{ id = "WorkbenchExtension/ParticleLibraryArchivedRow", event = "Click", route = "workbench.extension.particle_library.row.archived" }]
 
 [nodes.particle_library_output]
 component = "WorkbenchTableRow"

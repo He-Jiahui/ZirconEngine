@@ -20,6 +20,11 @@ SKELETON_EXEMPT_ROOTS = {
     "native_dynamic_fixture": "native-only ABI fixture uses plugin_sdk::native and is exempt from runtime/editor skeleton rules",
 }
 OWNER_MODULE_KINDS = {"runtime", "editor"}
+CORE_WORKSPACE_DEPENDENCIES = (
+    "zircon_editor",
+    "zircon_runtime",
+    "zircon_runtime_interface",
+)
 SAMPLE_WORKSPACE_DEPENDENCIES = {
     "plugin_sdk_examples/editor": (
         "zircon_editor",
@@ -28,12 +33,15 @@ SAMPLE_WORKSPACE_DEPENDENCIES = {
     ),
 }
 MAX_MIGRATION_DEBT_DETAILS = 64
+MAX_CORE_WORKSPACE_DEPENDENCY_DETAILS = 64
 
 
 @dataclass(frozen=True)
 class PluginSkeletonAudit:
     sample_roots: list[str]
     sample_violation_details: list[str]
+    core_workspace_dependency_count: int
+    core_workspace_dependency_violation_details: list[str]
     migration_debt_roots: list[str]
     migration_debt_details: list[str]
     exempt_roots: dict[str, str]
@@ -54,6 +62,9 @@ class PluginSkeletonAudit:
             if not self.sample_violation_details
             else "sample-violations-present"
         )
+        core_workspace_dependency_violations = len(
+            self.core_workspace_dependency_violation_details
+        )
         return {
             "sample_conformance_status": sample_status,
             "sample_roots": self.sample_roots,
@@ -68,6 +79,24 @@ class PluginSkeletonAudit:
             ),
             "sample_workspace_dependency_violation_count": len(
                 workspace_dependency_violations
+            ),
+            "core_workspace_dependency_status": (
+                "core-workspace-deps-clean"
+                if core_workspace_dependency_violations == 0
+                else "core-workspace-deps-violations-present"
+            ),
+            "core_workspace_dependency_count": self.core_workspace_dependency_count,
+            "core_workspace_dependency_violation_count": (
+                core_workspace_dependency_violations
+            ),
+            "core_workspace_dependency_violations": (
+                self.core_workspace_dependency_violation_details[
+                    :MAX_CORE_WORKSPACE_DEPENDENCY_DETAILS
+                ]
+            ),
+            "core_workspace_dependency_violations_truncated": (
+                core_workspace_dependency_violations
+                > MAX_CORE_WORKSPACE_DEPENDENCY_DETAILS
             ),
             "migration_debt_count": len(self.migration_debt_roots),
             "migration_debt_roots": self.migration_debt_roots,
@@ -94,6 +123,10 @@ def audit_plugin_skeleton_conformance(repo_root: Path) -> PluginSkeletonAudit:
     plugin_workspace = repo_root / "zircon_plugins"
     expected_roots = expected_plugin_manifest_roots(plugin_workspace)
     module_paths = workspace_module_paths_by_root(plugin_workspace)
+    (
+        core_workspace_dependency_count,
+        core_workspace_dependency_violations,
+    ) = collect_core_workspace_dependency_state(plugin_workspace)
 
     sample_roots = [root for root in SKELETON_SAMPLE_ROOTS if root in expected_roots]
     sample_violations: list[str] = []
@@ -118,6 +151,8 @@ def audit_plugin_skeleton_conformance(repo_root: Path) -> PluginSkeletonAudit:
     return PluginSkeletonAudit(
         sample_roots=sample_roots,
         sample_violation_details=sample_violations,
+        core_workspace_dependency_count=core_workspace_dependency_count,
+        core_workspace_dependency_violation_details=core_workspace_dependency_violations,
         migration_debt_roots=migration_debt_roots,
         migration_debt_details=migration_debt_details,
         exempt_roots={
@@ -150,6 +185,76 @@ def workspace_module_paths_by_root(plugin_workspace: Path) -> dict[str, list[str
         root: sorted(paths)
         for root, paths in sorted(module_paths.items(), key=lambda item: item[0])
     }
+
+
+def collect_core_workspace_dependency_state(
+    plugin_workspace: Path,
+) -> tuple[int, list[str]]:
+    cargo_manifest = tomllib.loads(
+        (plugin_workspace / "Cargo.toml").read_text(encoding="utf-8")
+    )
+    workspace = cargo_manifest.get("workspace", {})
+    workspace_dependencies = (
+        workspace.get("dependencies", {}) if isinstance(workspace, dict) else {}
+    )
+    violations: list[str] = []
+    dependency_count = 0
+    if not isinstance(workspace_dependencies, dict):
+        violations.append(
+            "zircon_plugins/Cargo.toml: [workspace.dependencies] must be a table"
+        )
+        workspace_dependencies = {}
+    for dependency_name in CORE_WORKSPACE_DEPENDENCIES:
+        spec = workspace_dependencies.get(dependency_name)
+        if not isinstance(spec, dict) or "path" not in spec:
+            violations.append(
+                "zircon_plugins/Cargo.toml: "
+                f"[workspace.dependencies].{dependency_name} must declare the root path"
+            )
+
+    members = workspace.get("members", []) if isinstance(workspace, dict) else []
+    for member in members:
+        if not isinstance(member, str) or not member.strip():
+            continue
+        cargo_toml = plugin_workspace / Path(PurePosixPath(member)) / "Cargo.toml"
+        manifest = tomllib.loads(cargo_toml.read_text(encoding="utf-8"))
+        for section, dependencies in dependency_tables(manifest):
+            for dependency_name in CORE_WORKSPACE_DEPENDENCIES:
+                spec = dependencies.get(dependency_name)
+                if spec is None:
+                    continue
+                dependency_count += 1
+                if not isinstance(spec, dict) or spec.get("workspace") is not True:
+                    violations.append(
+                        f"{member}: {section}.{dependency_name} must use "
+                        "`workspace = true`"
+                    )
+                    continue
+                if "path" in spec:
+                    violations.append(
+                        f"{member}: {section}.{dependency_name} must not repeat `path`"
+                    )
+    return dependency_count, violations
+
+
+def dependency_tables(
+    crate_manifest: dict[str, Any],
+) -> list[tuple[str, dict[str, Any]]]:
+    tables: list[tuple[str, dict[str, Any]]] = []
+    for section in ("dependencies", "build-dependencies"):
+        dependencies = crate_manifest.get(section, {})
+        if isinstance(dependencies, dict):
+            tables.append((section, dependencies))
+    target = crate_manifest.get("target", {})
+    if isinstance(target, dict):
+        for target_name, target_table in target.items():
+            if not isinstance(target_table, dict):
+                continue
+            for section in ("dependencies", "build-dependencies"):
+                dependencies = target_table.get(section, {})
+                if isinstance(dependencies, dict):
+                    tables.append((f"target.{target_name}.{section}", dependencies))
+    return tables
 
 
 def collect_plugin_root_skeleton_violations(

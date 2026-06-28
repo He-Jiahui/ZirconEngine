@@ -4,6 +4,13 @@ related_code:
   - tools/zircon_export/__main__.py
   - tools/zircon_export/cli.py
   - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/plugin_validate.py
+  - tools/zircon_export/plugin_validate_report.py
+  - tools/zircon_export/plugin_validate_engine_version.py
+  - tools/zircon_export/plugin_validate_distribution_contract.py
+  - tools/zircon_export/plugin_validate_dist_crate.py
+  - tools/zircon_export/plugin_validate_target_discovery.py
+  - tools/zircon_export/plugin_validate_distribution_modules.py
   - tools/zircon_export/compile_host.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
@@ -91,6 +98,9 @@ related_code:
   - tools/zircon_export/tests/test_native_dynamic_payload_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_path_resolve_errors.py
   - tools/zircon_export/tests/test_plugin_build.py
+  - tools/zircon_export/tests/test_plugin_validate.py
+  - tools/tests/test_plugin_standalone_ci_matrix.py
+  - .github/workflows/ci.yml
   - tools/zircon_export/tests/test_native_dynamic_stage.py
   - tools/zircon_export/tests/test_pipeline_report_source_template.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_validate_build_plan.py
@@ -174,9 +184,11 @@ related_code:
   - tools/zircon_export/__main__.py
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
+  - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/bin/zircon_export_pack/main.rs
   - zircon_runtime/src/bin/zircon_export_pack/args.rs
+  - zircon_runtime/src/bin/zircon_export_pack/error.rs
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/pack/delta.rs
@@ -192,6 +204,8 @@ related_code:
 implementation_files:
   - tools/zircon_export/cli.py
   - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/plugin_validate.py
+  - tools/zircon_export/plugin_validate_distribution_modules.py
   - tools/zircon_export/compile_host.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
@@ -268,6 +282,7 @@ implementation_files:
   - tools/zircon_export/tests/test_native_dynamic_payload_file_reads.py
   - tools/zircon_export/tests/test_native_dynamic_stage.py
   - tools/zircon_export/tests/test_plugin_build.py
+  - tools/zircon_export/tests/test_plugin_validate.py
   - tools/zircon_export/tests/test_platform_bundle_native_dynamic.py
   - tools/zircon_export/tests/test_platform_bundle_native_dynamic_operation_audit.py
   - tools/zircon_export/tests/test_platform_bundle_native_payload_loader_manifest.py
@@ -342,9 +357,11 @@ implementation_files:
   - tools/zircon_export/__main__.py
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
+  - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/bin/zircon_export_pack/main.rs
   - zircon_runtime/src/bin/zircon_export_pack/args.rs
+  - zircon_runtime/src/bin/zircon_export_pack/error.rs
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/pack/delta.rs
@@ -496,6 +513,10 @@ tests:
   - python -m tools.zircon_export --help
   - python -m py_compile tools/zircon_export/plugin_build.py tools/zircon_export/cli.py tools/zircon_export/tests/test_plugin_build.py: passed 2026-06-23
   - python -m unittest tools.zircon_export.tests.test_plugin_build: 4 passed, 0 failed on 2026-06-23
+  - python -m py_compile tools/zircon_export/plugin_validate.py tools/zircon_export/tests/test_plugin_validate.py tools/zircon_export/cli.py tools/tests/test_plugin_standalone_ci_matrix.py: passed 2026-06-28
+  - python -m unittest tools.zircon_export.tests.test_plugin_validate: 7 passed, 0 failed on 2026-06-28
+  - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 2 passed, 0 failed on 2026-06-28 after plugin validate all-target CI preflight
+  - python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-28, target_count=39, failed_count=0, diagnostics=0
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-package-fixture --target-dir D:\cargo-targets\zircon-plugin-m3-build-fixture: passed 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-a --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-b --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23; package sha256 comparison returned MATCH
@@ -2919,6 +2940,50 @@ binary with `--determinism-check`; use `--packer <path>` to point at a prebuilt 
 running it through Cargo. The command uses its own `--target-dir` and does not create profile
 pipeline output under `<out>/stages`. Package reports use package-relative paths so two runs from
 the same source can be compared byte-for-byte without out/target absolute path drift.
+`plugin validate <id>` and `plugin validate --all` perform the same standalone distribution
+contract checks without running Cargo or writing package output. The validator now also binds entry
+direction to the declared dist module target modes: `distribution.runtime_entry` requires the
+module that declares `distribution.dist_crate` to include `client_runtime` or `server_runtime`, and
+`distribution.editor_entry` requires `editor_host`. The rule applies to root `[[modules]]` and to
+selected feature-provider `[[optional_features]].modules` entries. The same preflight rejects
+dist module `target_modes` values outside `client_runtime`, `server_runtime`, and `editor_host`.
+All-target discovery for root and feature-provider distributions is owned by
+`plugin_validate_target_discovery.py`, keeping target scanning and duplicate-target diagnostics out
+of the validate command orchestration owner.
+Distribution manifest contract checks are owned by `plugin_validate_distribution_contract.py`, keeping
+forms/default packaging, engine compatibility, descriptor symbol, entries, and asset glob validation
+out of the validate command orchestration owner.
+Dist crate workspace-member resolution and Cargo-manifest preflight are owned by
+`plugin_validate_dist_crate.py`, so cdylib member diagnostics, `[features].dist`, SDK dependency,
+ABI helper, and forbidden dependency-route checks stay out of the validate command orchestration
+owner.
+Report dictionary assembly and text rendering are owned by `plugin_validate_report.py`, keeping the
+single-target and all-target presentation layer out of `plugin_validate.py`. The all-target report
+owner also assembles `target_count`, `failed_count`, `fatal`, `diagnostics`, and `items`, so the
+validate command owner only discovers targets and runs per-target validation.
+Engine-version discovery is owned by `plugin_validate_engine_version.py`, so root `Cargo.toml`
+version reading and shape diagnostics stay out of the validate command orchestration owner.
+The independent plugin structure audit applies the same target value set to every `plugin.toml`
+root `supported_targets` entry and every root or `optional_features.modules` `target_modes` entry,
+so malformed manifests fail the schema gate even before a distribution target is selected.
+The same schema gate also rejects unknown root `supported_platforms`, root `maturity`, and root or
+optional feature module `kind` values while leaving root `category` open for planned plugin-family
+expansion.
+Optional feature rows are schema-checked before their nested modules: `id`, `display_name`,
+`owner_plugin_id`, `capabilities`, `default_packaging`, and `enabled_by_default` must have the
+current manifest shape, and `default_packaging` uses the same packaging value set as distribution
+preflight.
+When an optional feature declares `provider_package_id`, that id must be a non-empty trimmed string,
+matching the `plugin build` and `plugin validate --all` provider-target discovery rule.
+Optional feature dependency rows are also schema-checked when present: every
+`[[optional_features.dependencies]]` row must be a table with non-empty `plugin_id`, non-empty
+`capability`, and bool `primary`, so malformed owner dependency declarations are rejected before
+feature-provider package projection or build validation.
+Feature-provider distribution declarations are schema-checked at the same layer when
+`[optional_features.distribution]` is present: forms/default packaging are non-empty arrays with the
+current closed value sets, ABI is a positive integer, distribution strings are non-empty, and at
+least one runtime/editor entry is declared before `plugin validate` or `plugin build` consumes the
+provider target.
 `--sign-command` enables an external signer for per-plugin dist build output, with
 `--native-dynamic-sign-command` kept as the profile-stage spelling. Repeat `--sign-arg` or
 `--native-dynamic-sign-arg` for signer arguments and use placeholders such as `{artifact}`,
@@ -3567,6 +3632,16 @@ by resume, final Report aggregation, and the editor wizard.
 packer exits non-zero without creating `<out>/stages/pack/report.json`: Python writes a fatal Pack
 report with the intended asset manifest, pack path, zero asset/chunk counts, and a diagnostic naming
 the missing report instead of returning a bare exit code.
+
+Runtime 15 F5 export CLI typed errors (`runtime_15_export_cli_typed_errors_static_passed_cargo_deferred`)
+keeps the Rust `zircon_export_pack` and `zircon_export_validate` binaries from collapsing internal
+failures into `Result<_, String>`. `ExportPackError::ReadAssetManifest` and its sibling variants in
+`zircon_export_pack/error.rs` preserve argument usage, JSON decode/encode, file IO, ZRPK/ZRPD
+verification, delta apply, and deterministic-comparison sources until `main.rs` prints the final CLI
+diagnostic. `ExportValidateError::EncodeReport` and its report IO variants do the same for
+`zircon_export_validate`. Stage report diagnostics remain human-readable JSON strings because they
+are part of the export report schema rather than the Rust internal error transport.
+
 `test_pack_reports_successful_packer_without_stage_report` covers the same report gate when a launched
 packer exits with code `0` but still omits `<out>/stages/pack/report.json`: Python now writes the fatal
 Pack report and returns exit code `2`, because stage success requires a concrete Pack report for resume

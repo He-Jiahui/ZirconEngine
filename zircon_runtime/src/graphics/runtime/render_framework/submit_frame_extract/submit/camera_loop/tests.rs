@@ -1,10 +1,11 @@
 use super::*;
 use crate::core::framework::render::{
-    CameraRenderType, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTarget,
-    RenderLayerSet, RenderOverlayExtract, RenderParticleGpuReadbackOutputs,
-    RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderViewportRect, RenderVirtualGeometryExtract,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    resolve_camera_sequence, resolve_camera_sequence_borrowed, CameraRenderType,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet,
+    RenderOverlayExtract, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderPreparedRuntimeSidebands, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportRect, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -16,7 +17,7 @@ mod frame;
 fn camera_loop_extracts(
     extract: &RenderFrameExtract,
 ) -> Result<Vec<RenderFrameExtract>, RenderFrameworkError> {
-    let sequence = resolve_camera_sequence(extract.view.cameras.clone());
+    let sequence = resolve_camera_sequence_borrowed(&extract.view.cameras);
     if sequence.sequence.is_empty() {
         return Err(RenderFrameworkError::UnsupportedCapability {
             capability: "active camera sequence".to_string(),
@@ -120,14 +121,14 @@ fn camera_loop_extracts_select_each_sequence_descriptor() {
         extracts[0]
             .view
             .selected_camera_layers()
-            .to_legacy_mask_lossy(),
+            .to_scene_schema_v1_mask_lossy(),
         1 << 2
     );
     assert_eq!(
         extracts[1]
             .view
             .selected_camera_layers()
-            .to_legacy_mask_lossy(),
+            .to_scene_schema_v1_mask_lossy(),
         1 << 5
     );
 }
@@ -163,7 +164,7 @@ fn submit_camera_loop_streams_source_extract_and_restores_derived_state() {
         extract,
         Some(UiRenderExtract::default()),
         submissions,
-        |extract, ui, output_policy| {
+        |extract, _source_payloads, ui, output_policy| {
             observed.push((
                 extract.view.scene_camera_entity,
                 extract.view.target_size,

@@ -12,6 +12,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/ordering.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/specialized.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports.rs
@@ -61,6 +62,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/files/save.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/asset.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests/runtime.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
@@ -103,6 +106,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/ordering.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/specialized.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports.rs
@@ -152,6 +156,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/files/save.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/asset.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests/runtime.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
@@ -202,6 +208,10 @@ tests:
   - cargo test -p zircon_editor --lib asset_placeholder_visual --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib asset_placeholder_visual_uses_single_recessed_well_and_svg_icon --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 1 passed)
   - cargo test -p zircon_editor --lib template_asset_placeholder_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 4 passed)
+  - cargo test -p zircon_editor --lib asset_placeholder_visual --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0627-thumb-icons --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 5 passed)
+  - cargo test -p zircon_editor --lib semantic_shell_icon_aliases_load_as_real_pixels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0627-thumb-icons --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 1 passed)
+  - cargo test -p zircon_editor --lib asset_placeholder_visual --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0627-thumb-plate --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 6 passed)
+  - cargo test -p zircon_editor --lib semantic_shell_icon_aliases_load_as_real_pixels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0627-thumb-plate --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 1 passed)
   - cargo test -p zircon_editor --lib template_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never
   - cargo test -p zircon_editor --lib template_fields --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: passed, 15 passed after Quick Import placeholder slice)
   - cargo test -p zircon_editor --lib inactive_workbench_module_tab_keeps_toolbar_surface_clear --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
@@ -214,6 +224,8 @@ tests:
   - cargo test -p zircon_editor --lib table_header_and_tail_use_recessed_table_surface --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: red then passed)
   - cargo test -p zircon_editor --lib workbench_table_row --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: passed, 8 passed)
   - cargo test -p zircon_editor --lib template_table_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-26: passed, 17 passed)
+  - cargo test -p zircon_editor --lib workbench_table_row_action_stays_hidden_until_marked_or_hot --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 1 passed)
+  - cargo test -p zircon_editor --lib template_table_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27: passed, 19 passed)
   - cargo test -p zircon_editor --lib workbench_popup_row --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626-panel --message-format short --color never --no-run (2026-06-27: passed)
   - direct D:\cargo-targets\zircon-editor-components-0626-panel\debug\deps\zircon_editor-b22e0a71937e69f5.exe workbench_popup_row --test-threads=1 --nocapture (2026-06-27: 2 passed)
   - direct D:\cargo-targets\zircon-editor-components-0626-panel\debug\deps\zircon_editor-b22e0a71937e69f5.exe template_popup_rows --test-threads=1 --nocapture (2026-06-27: 6 passed)
@@ -228,6 +240,8 @@ tests:
   - paint-template-nodes root re-export ownership scan
   - scoped trailing-whitespace scan
   - scoped git diff --check
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs zircon_editor/src/ui/layouts/views/asset_browser/tests.rs zircon_editor/src/ui/asset_editor/node_projection.rs zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs (2026-06-28 logical text-align support gate: passed)
+  - cargo test -q -p zircon_editor --lib aligned_text_x_resolves_logical_start_end_against_text_direction --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-badge-muted -- --test-threads=1 --nocapture (2026-06-28: passed, 1/1)
 doc_type: module-detail
 ---
 
@@ -238,6 +252,8 @@ doc_type: module-detail
 `template_node_pipeline.rs` owns the public draw pipeline entry. Its `draw.rs` child iterates node models, applies clipping, orders runtime commands, and reports whether any visible node was painted. Its `clip.rs` child owns node clip resolution, and `test_support.rs` owns image-buffer helpers used by the template paint regression suite.
 
 `template_nodes.rs` owns command emission for a single template node. The `template_nodes/` child owners keep command production separated into command orchestration, fallback rendering, frame geometry, ordering, and specialized component dispatch. Rendering DTO conversion remains in `render_command_conversion.rs`, while `render_commands.rs` owns the runtime command paint harness used by tests.
+
+The 2026-06-28 logical text-align support gate keeps runtime render-command text positioning inside `render_command_conversion/style/text.rs`. Projection code may preserve `UiTextAlign::Start` and `UiTextAlign::End` as semantic strings for metadata, but the paint conversion leaf resolves those logical values against `UiTextDirection` before computing x placement. `Auto`, `LeftToRight`, and `Mixed` use the LTR fallback; `RightToLeft` flips Start and End. The focused regression locks this in the retained paint owner so future runtime-interface enum additions do not reopen non-exhaustive matches or push alignment policy into Asset Browser or view assembly roots.
 
 `style_selector/mod.rs` is now the structural Workbench style-selector entry. `style_selector/exports.rs` owns the selector re-export surface for the child style modules while each `workbench_*` child keeps the family-specific style resolution.
 
@@ -280,6 +296,8 @@ The 2026-06-26 table selected-row follow-up keeps Workbench table row selection 
 
 The 2026-06-26 table recessed-surface follow-up keeps Workbench table list chrome in the same table-row owner. `style_selector/workbench_table_row/palette.rs` now maps header and tail/empty-fill backgrounds to the same recessed row surface used by ordinary rows, matching the Unreal Slate `TableView` pattern and removing extra black bands around Asset Browser tables. `style_selector/workbench_table_row/tests.rs` locks the behavior before wider table composition changes.
 
+The 2026-06-27 table row action follow-up keeps inline row affordance visibility local to the table-row action leaf owner. `style_selector/workbench_table_row/state.rs` remains the single source for hot row states, and `template_table_rows/actions/entry.rs` now paints data-row `more-horizontal.svg` only for selected, checked, pressed, or hot rows. Table headers still paint their settings gear unconditionally. The regression in `template_table_rows_tests/paint.rs` locks neutral rows to zero action image-pixel commands while hovered and selected rows keep the shared shell SVG affordance.
+
 The 2026-06-26 status-bar flat-control follow-up keeps status chip/icon behavior inside the status-control owners. `style_selector/workbench_status_control` makes normal chip/icon surfaces transparent while retaining interaction feedback, and `template_status_controls` skips transparent quads instead of painting button-like blocks. Status chips no longer draw the down-chevron; text spacing now uses `METRICS.gap_s`, while `template_status_controls/chips/text.rs` continues to own label/value splitting and right alignment.
 
 The 2026-06-26 status-signal marker follow-up keeps bottom-left status signals as one inline `METRICS.gap_m` round marker plus one text run. Signal geometry ignores legacy per-asset `icon_size`, `layout_icon_size`, vertical icon offsets, and stroke/mark widths; `template_status_glyphs/signals.rs` now paints the same circle for Ready, Success, Warning, and Info. The old success/check, warning-triangle, and info-circle signal glyph modules were removed so the status bar cannot drift back to large composite icons through a compatibility path.
@@ -292,6 +310,14 @@ The 2026-06-26 Asset Browser selected-preview follow-up keeps selected preview c
 
 The 2026-06-26 Asset Browser thumbnail-placeholder follow-up introduced a dedicated image placeholder owner. The 2026-06-27 refinement keeps that owner but removes the noisy hand-drawn dot, ridge, shadow, and baseline vocabulary. `template_asset_placeholder_visuals.rs` now recognizes `asset-placeholder-visual` and `asset-preview-visual`, paints one recessed thumbnail well with no inner border, and centers the real `image` SVG asset through the existing `visual_assets` pipeline. The fallback pipeline still invokes this owner after the base surface and before optional image commands, so real image resources can replace the placeholder while plain `asset-placeholder` cards remain simple inset containers. Pixel and command regressions in the same module lock the single-well contract, real SVG pixels, selected preview visuals, and plain placeholders separately.
 
+The later 2026-06-27 asset-type icon refinement keeps that same placeholder owner boundary. `template_asset_placeholder_visuals.rs` treats nodes with `component_role=asset-thumbnail-visual` as typed thumbnail wells and uses the node `component_variant` as the icon name before falling back to `icon_name` or `image`. The semantic names are resolved in `visual_assets/candidates/aliases.rs`, so `asset-texture`, `asset-material`, `asset-scene`, `asset-mesh`, `asset-shader`, and sibling variants load real SVG pixels through the existing visual-asset path. This keeps asset-type selection out of the root painter while allowing Asset Browser thumbnail and preview nodes to share one typed visual contract.
+
+The follow-up typed-thumbnail plate refinement keeps the same split. `template_asset_placeholder_visuals.rs` now paints typed thumbnail visuals as one recessed well, one centered low-emphasis icon plate, and one tinted 28 px SVG icon; plain generic `image` placeholders keep the smaller 20 px icon and do not receive a plate. Type tinting stays local to the placeholder visual owner, while `visual_assets/candidates/aliases.rs` adds `asset-ui-layout`, `asset-ui-widget`, and `asset-ui-style` aliases so UI resources do not collapse to script/file symbols. The command regressions lock the extra plate command, icon size, generic fallback size, and real-pixel alias resolution without adding a root painter branch.
+
+The follow-up thumbnail type-badge pass keeps tile metadata styling in the shared template-style owner instead of drawing a custom Asset Browser badge. `thumbnail_nodes.rs` emits an `asset-type-badge` panel plus a separate type label and muted status label, while `thumbnail_layout.rs` sizes the badge from the type text and information-band width. `template_style/colors/surface/variants.rs` maps `asset-type-badge` to the low-emphasis hover layer and `template_style_tests/surface.rs` locks that it draws without a border. This gives thumbnail tiles a Content Browser-like type/status row while keeping the root painter free of asset-browser-specific branches.
+
 The 2026-06-26 text/search-field follow-up keeps input-field visual density in the text-field owner rather than authored per-instance pixels. `style_selector/workbench_text_field/palette.rs` now resolves normal fields to the central Slate-like panel surface, hover/focus to the hover surface, borders to the stronger separator role, and placeholders to muted text instead of disabled text. `template_fields/search.rs` owns search-specific compact paint geometry using `METRICS.row_height` plus border-derived padding, so over-tall authored search fields center a stable 28 px control while normal fields keep their authored height. `template_fields/geometry.rs` only delegates the search-specific clamp after pixel alignment and layout offsets. Focused regressions in `template_fields_tests/style.rs` lock the palette role, placeholder role, and compact search geometry before the Asset Browser search and Quick Import fields are re-composed into the wider Workbench window.
 
 The Quick Import placeholder follow-up keeps the empty path field in that same field-text path instead of drawing ad-hoc overlay text from the Asset Browser layout. `template_fields/text.rs` treats `AssetBrowserImportPathField` with empty `value_text` and non-empty projected label as a placeholder label, so the shared Workbench text-field style paints it with `PALETTE.text_muted`. The regression in `template_fields_tests/style.rs` also asserts that a non-empty path value returns to the normal field text color.
+
+The 2026-06-27 content-panel surface follow-up keeps content container semantics inside the template-style owners. `template_style/surface_roles.rs` classifies `content-panel` and `asset-content`, `template_style/colors/surface/variants.rs` maps them to the recessed content layer, `template_style/colors/surface/interaction.rs` prevents hover/focus/selected state from repainting them as command or input controls, and `template_style/dimensions.rs` plus `template_style/colors/border.rs` preserve a 1 px muted outline. The regression in `template_style_tests/surface.rs` locks that selected/focused content panels remain low-emphasis containers instead of focus-ring boxes.

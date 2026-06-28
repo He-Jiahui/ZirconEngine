@@ -4,7 +4,7 @@ const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
 fn editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface() {
-    let document_path = write_theme_probe_v2_document();
+    let document_path = write_theme_probe_zui_document();
     let mut runtime = EditorUiHostRuntime::default();
     runtime
         .register_document_file("editor.theme_probe", &document_path)
@@ -217,13 +217,13 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
         .contains(&"v2/StatusBarRoot=0,696,1280,24".to_string()));
 }
 
-fn write_theme_probe_v2_document() -> std::path::PathBuf {
+fn write_theme_probe_zui_document() -> std::path::PathBuf {
     let unique = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system clock should be after unix epoch")
         .as_nanos();
     let temp_dir = std::env::temp_dir().join(format!("zircon_editor_theme_probe_{unique}"));
-    let document_path = temp_dir.join("theme_probe.v2.ui.toml");
+    let document_path = temp_dir.join("theme_probe.zui");
     std::fs::create_dir_all(&temp_dir).unwrap();
     std::fs::write(
         &document_path,

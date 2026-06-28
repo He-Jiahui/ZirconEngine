@@ -532,9 +532,11 @@ fn clamp_text_boundary(text: &str, offset: usize) -> usize {
 
 fn parse_text_align(value: &str) -> Option<UiTextAlign> {
     match value.trim().to_ascii_lowercase().as_str() {
-        "left" | "start" => Some(UiTextAlign::Left),
+        "left" => Some(UiTextAlign::Left),
         "center" | "middle" => Some(UiTextAlign::Center),
-        "right" | "end" => Some(UiTextAlign::Right),
+        "right" => Some(UiTextAlign::Right),
+        "start" => Some(UiTextAlign::Start),
+        "end" => Some(UiTextAlign::End),
         _ => None,
     }
 }

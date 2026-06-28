@@ -48,8 +48,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
   - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/theme/editor_material.zui
 implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
@@ -96,8 +96,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/theme/editor_material.zui
 plan_sources:
   - user: 2026-05-15 continue Zircon Editor Demo first-screen and .zui showcase plan
   - user: 2026-05-20 migrate Slint Material component behavior into retained Editor UI without direct Slint runtime
@@ -223,7 +223,7 @@ The state-layer/ripple fields are:
 
 Projection accepts both retained names and source-compatible names. `pane_component_projection::host_template_node(...)` maps `state_layer_enabled` / `display_state_layer`, `state_layer_color` / `ripple_color` / `color`, `ripple_enabled` / `ripple`, `ripple_pressed_x` / `pressed_x`, `ripple_pressed_y` / `pressed_y`, and `clip_ripple`. Older conversion paths in `template_node_conversion.rs` default all M2 metadata to inactive values so existing template nodes do not accidentally draw overlays.
 
-`host_contract/paint_template_nodes/material_state_layer.rs` applies the retained priority `disabled > focus/selected/checked > pressed/enter_pressed > drag > hover/drop/active-drag-target > default`. Disabled uses focus opacity to preserve the source `root.state_layer_opacity: MaterialPalette.state_layer_opacity_focus` behavior for disabled display backgrounds. `ripple_enabled` does not imply `state_layer_enabled`, so callers may request only the static press ripple without the full overlay. Ripple is intentionally static in M2: it draws a width-derived press-origin circle with press opacity while animation timing remains metadata in `editor_material.v2.ui.toml` for a later motion layer.
+`host_contract/paint_template_nodes/material_state_layer.rs` applies the retained priority `disabled > focus/selected/checked > pressed/enter_pressed > drag > hover/drop/active-drag-target > default`. Disabled uses focus opacity to preserve the source `root.state_layer_opacity: MaterialPalette.state_layer_opacity_focus` behavior for disabled display backgrounds. `ripple_enabled` does not imply `state_layer_enabled`, so callers may request only the static press ripple without the full overlay. Ripple is intentionally static in M2: it draws a width-derived press-origin circle with press opacity while animation timing remains metadata in `editor_material.zui` for a later motion layer.
 
 ## Structured Popup Rows
 

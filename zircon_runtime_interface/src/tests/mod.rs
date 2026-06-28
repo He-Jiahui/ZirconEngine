@@ -12,6 +12,7 @@ mod render_contracts;
 mod resource_contracts;
 mod surface_frame_contracts;
 mod ui_contract_spine;
+mod ui_dispatch_error_contracts;
 mod ui_ecs_projection_contracts;
 mod ui_geometry_metrics;
 mod ui_layout;

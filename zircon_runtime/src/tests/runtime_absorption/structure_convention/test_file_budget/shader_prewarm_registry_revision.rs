@@ -1,7 +1,9 @@
 use super::*;
 
 const STATUS: &str =
-    "render_plan08_asset_root_resource_registry_revision_overlay_static_passed_cargo_timeout_no_result";
+    "render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result";
+const READY_RECORD_STATUS: &str =
+    "render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
@@ -10,6 +12,8 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let registry = read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let registry_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
     let build_tool = read_repo("tools/zircon_build.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
@@ -55,6 +59,7 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             "ShaderPrewarmResourceRegistryOverlay",
             "ResourceRecord",
             "ResourceKind::Shader",
+            "record.state != ResourceState::Ready",
             "record.revision == 0",
             "revision_for",
             "serde_json::from_value::<Vec<ResourceRecord>>",
@@ -69,6 +74,17 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             "ResourceLocator::parse(\"res://shaders/example\")",
             "record.revision = 77",
             "material_revision == 77",
+        ],
+    );
+    assert_contains_all(
+        "resource registry child tests reject non-ready revision overlays",
+        &registry_tests,
+        &[
+            "shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only",
+            "ResourceState::Error",
+            "error_only_overlay.revision_for",
+            "ResourceState::Ready",
+            "Some(77)",
         ],
     );
     assert_contains_all(
@@ -99,6 +115,10 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),
         ),
+        (
+            "bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",
+            registry_tests.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -122,8 +142,10 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             &[
                 "Asset-root resource registry revision overlay",
                 STATUS,
+                READY_RECORD_STATUS,
                 "bin/zircon_shader_prewarm/manifest/resource_registry.rs",
                 "shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay",
+                "shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only",
                 "runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired",
             ],
         );

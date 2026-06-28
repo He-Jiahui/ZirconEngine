@@ -34,6 +34,32 @@ fn virtual_geometry_registration_contributes_render_feature_descriptor() {
         .package_manifest
         .capabilities
         .contains(&VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY.to_string()));
+    assert_eq!(
+        report.package_manifest.geometry_sources,
+        vec![virtual_geometry_source_descriptor()]
+    );
+    assert_eq!(report.extensions.geometry_sources().len(), 1);
+    assert_eq!(
+        report.extensions.geometry_sources()[0].token,
+        VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN
+    );
+    assert_eq!(
+        report
+            .package_manifest
+            .shader_permutation
+            .geometry_source_ids,
+        vec![
+            zircon_runtime::plugin::PluginShaderPermutationIdManifest::new(
+                VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN,
+                VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_ID,
+            )
+        ]
+    );
+    assert!(report
+        .package_manifest
+        .shader_permutation
+        .shading_model_ids
+        .is_empty());
     assert!(report.package_manifest.modules[0]
         .capabilities
         .contains(&VIRTUAL_GEOMETRY_ADVANCED_RENDER_CAPABILITY.to_string()));

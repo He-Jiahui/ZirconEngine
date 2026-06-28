@@ -1,8 +1,10 @@
+mod error;
 mod garbage_collection;
 mod hot_reload;
 mod memory;
 mod policy;
 
+pub use error::{VmPluginManagementPolicyError, VmPluginManagementPolicyResult};
 pub use garbage_collection::{VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy};
 pub use hot_reload::VmPluginHotReloadPolicy;
 pub use memory::VmPluginMemoryPolicy;
@@ -12,7 +14,7 @@ pub use policy::VmPluginManagementPolicy;
 mod tests {
     use super::{
         VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
-        VmPluginManagementPolicy, VmPluginMemoryPolicy,
+        VmPluginManagementPolicy, VmPluginManagementPolicyError, VmPluginMemoryPolicy,
     };
 
     #[test]
@@ -40,12 +42,29 @@ mod tests {
             .with_garbage_collection(disabled_gc_with_interval)
             .validate()
             .unwrap_err();
-        assert!(error.contains("disabled garbage collection"));
+        assert!(matches!(
+            error,
+            VmPluginManagementPolicyError::GarbageCollectionDisabledWithInterval
+        ));
+        assert_eq!(
+            error.to_string(),
+            "disabled garbage collection cannot set interval_frames"
+        );
 
         let error = VmPluginManagementPolicy::default()
             .with_memory(VmPluginMemoryPolicy::with_limits(Some(2048), Some(1024)))
             .validate()
             .unwrap_err();
-        assert!(error.contains("soft_limit_bytes 2048 exceeds hard_limit_bytes 1024"));
+        assert!(matches!(
+            error,
+            VmPluginManagementPolicyError::MemorySoftLimitExceedsHardLimit {
+                soft_limit_bytes: 2048,
+                hard_limit_bytes: 1024,
+            }
+        ));
+        assert_eq!(
+            error.to_string(),
+            "memory soft_limit_bytes 2048 exceeds hard_limit_bytes 1024"
+        );
     }
 }

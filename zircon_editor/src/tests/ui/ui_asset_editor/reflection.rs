@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::template::UiAssetKind;
 #[test]
 fn ui_asset_editor_reflection_model_tracks_source_selection_and_style_state() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/editor/ui_asset_editor.v2.ui.toml",
+        "asset://ui/editor/ui_asset_editor.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

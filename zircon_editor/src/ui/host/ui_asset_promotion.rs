@@ -85,8 +85,8 @@ fn asset_id_to_path(project_root: &Path, asset_id: &str) -> PathBuf {
 }
 
 fn suffixed_asset_id(asset_id: &str, suffix: usize) -> String {
-    if let Some(base) = asset_id.strip_suffix(".ui.toml") {
-        format!("{base}_{suffix}.ui.toml")
+    if let Some(base) = asset_id.strip_suffix(".zui") {
+        format!("{base}_{suffix}.zui")
     } else {
         format!("{asset_id}_{suffix}")
     }

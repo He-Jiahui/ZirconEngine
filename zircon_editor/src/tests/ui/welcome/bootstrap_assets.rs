@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 const WELCOME_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/welcome.v2.ui.toml"
+    "/assets/ui/editor/welcome.zui"
 ));
 
 #[test]

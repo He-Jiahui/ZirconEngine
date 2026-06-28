@@ -154,10 +154,25 @@ pub enum CameraSequenceViolationReason {
 pub fn resolve_camera_sequence(
     cameras: impl IntoIterator<Item = CameraRenderDescriptor>,
 ) -> CameraSequenceReport {
-    let mut active = cameras
+    let active = cameras
         .into_iter()
         .filter(CameraRenderDescriptor::is_active)
         .collect::<Vec<_>>();
+    resolve_active_camera_sequence(active)
+}
+
+pub fn resolve_camera_sequence_borrowed<'a>(
+    cameras: impl IntoIterator<Item = &'a CameraRenderDescriptor>,
+) -> CameraSequenceReport {
+    let active = cameras
+        .into_iter()
+        .filter(|camera| camera.is_active())
+        .cloned()
+        .collect::<Vec<_>>();
+    resolve_active_camera_sequence(active)
+}
+
+fn resolve_active_camera_sequence(mut active: Vec<CameraRenderDescriptor>) -> CameraSequenceReport {
     active.sort_by(|left, right| {
         (
             left.render_order,
@@ -376,6 +391,31 @@ mod tests {
             ]
         );
         assert!(report.sequence[0].overlays.is_empty());
+    }
+
+    #[test]
+    fn render_camera_sequence_resolves_borrowed_descriptors_without_consuming_source() {
+        let base = descriptor(
+            0,
+            1,
+            CameraRenderType::Base,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let overlay = descriptor(
+            0,
+            2,
+            CameraRenderType::Overlay,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let cameras = vec![base.with_stack([2]), overlay];
+
+        let report = resolve_camera_sequence_borrowed(&cameras);
+
+        assert_eq!(report.sequence.len(), 1);
+        assert_eq!(report.sequence[0].base.entity, Some(1));
+        assert_eq!(report.sequence[0].overlays[0].entity, Some(2));
+        assert_eq!(cameras.len(), 2);
+        assert!(!report.has_violations());
     }
 
     fn descriptor(

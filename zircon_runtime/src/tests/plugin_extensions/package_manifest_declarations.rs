@@ -1,5 +1,11 @@
 use crate::asset::AssetImporterDescriptor;
 use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::render::{
+    GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
+};
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
@@ -254,6 +260,63 @@ fn plugin_package_manifest_declares_asset_importer_descriptors() {
 }
 
 #[test]
+fn plugin_package_manifest_declares_custom_shading_model_descriptors() {
+    let descriptor = ShadingModelDescriptor::new(
+        ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START),
+        "custom:toon",
+        "zr_shading_toon",
+        "zr_gbuffer_encode_toon",
+        "zr_shade_deferred_toon",
+        GBufferChannelMask::standard_lit(),
+    );
+    let manifest = PluginPackageManifest::new("toon", "Toon")
+        .with_shading_model_descriptor(descriptor.clone())
+        .with_shader_shading_model_id("custom:toon", SHADING_MODEL_PLUGIN_ID_START);
+
+    assert_eq!(manifest.shading_models, vec![descriptor]);
+    assert_eq!(
+        manifest.shader_permutation.shading_model_ids,
+        vec![crate::plugin::PluginShaderPermutationIdManifest::new(
+            "custom:toon",
+            SHADING_MODEL_PLUGIN_ID_START,
+        )]
+    );
+
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("[[shading_models]]"));
+    assert!(encoded.contains("token = \"custom:toon\""));
+    assert!(encoded.contains("required_channels = 7"));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn plugin_package_manifest_declares_custom_geometry_source_descriptors() {
+    let descriptor = virtual_geometry_source_descriptor();
+    let manifest = PluginPackageManifest::new("virtual_geometry", "Virtual Geometry")
+        .with_geometry_source_descriptor(descriptor.clone())
+        .with_shader_geometry_source_id("custom:virtual_geometry", GEOMETRY_SOURCE_PLUGIN_ID_START);
+
+    assert_eq!(manifest.geometry_sources, vec![descriptor]);
+    assert_eq!(
+        manifest.shader_permutation.geometry_source_ids,
+        vec![crate::plugin::PluginShaderPermutationIdManifest::new(
+            "custom:virtual_geometry",
+            GEOMETRY_SOURCE_PLUGIN_ID_START,
+        )]
+    );
+
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("[[geometry_sources]]"));
+    assert!(encoded.contains("token = \"custom:virtual_geometry\""));
+    assert!(encoded.contains("wgsl_include = \"zr_geometry_virtual_geometry.wgsl\""));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(decoded, manifest);
+}
+
+#[test]
 fn plugin_package_manifest_overrides_default_packaging() {
     let manifest = PluginPackageManifest::new("weather", "Weather")
         .with_default_packaging([ExportPackagingStrategy::NativeDynamic]);
@@ -310,6 +373,28 @@ fn plugin_package_manifest_declares_feature_extension_packages() {
     let decoded: PluginPackageManifest =
         toml::from_str(&encoded).expect("feature extension manifest roundtrip");
     assert_eq!(decoded, manifest);
+}
+
+fn virtual_geometry_source_descriptor() -> GeometrySourceDescriptor {
+    GeometrySourceDescriptor {
+        id: GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START),
+        token: "custom:virtual_geometry".to_string(),
+        wgsl_include: "zr_geometry_virtual_geometry.wgsl".to_string(),
+        vertex_attributes: vec![
+            GeometrySourceVertexAttribute::Position,
+            GeometrySourceVertexAttribute::Normal,
+            GeometrySourceVertexAttribute::Tangent,
+            GeometrySourceVertexAttribute::Uv0,
+        ],
+        required_bindings: vec![GeometrySourceBindingRequirement::new(
+            GeometrySourceBindingKind::VirtualGeometryPages,
+            "virtual_geometry.pages",
+        )],
+        shader_defines: vec![RenderShaderDefinitionValue::bool(
+            "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
+            true,
+        )],
+    }
 }
 
 fn sound_timeline_feature_manifest() -> PluginFeatureBundleManifest {

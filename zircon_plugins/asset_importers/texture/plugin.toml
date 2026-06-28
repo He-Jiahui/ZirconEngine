@@ -9,8 +9,6 @@ supported_targets = ["client_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = [
     "runtime.plugin.asset_importer.texture",
-    "runtime.asset.importer.texture.container",
-    "runtime.asset.importer.texture.psd",
 ]
 maturity = "experimental"
 asset_roots = []
@@ -86,8 +84,6 @@ crate_name = "zircon_plugin_asset_importer_texture_runtime"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.texture",
-    "runtime.asset.importer.texture.container",
-    "runtime.asset.importer.texture.psd",
 ]
 
 [[modules]]
@@ -97,6 +93,4 @@ crate_name = "zircon_plugin_asset_importer_texture_dist"
 target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.asset_importer.texture",
-    "runtime.asset.importer.texture.container",
-    "runtime.asset.importer.texture.psd",
 ]

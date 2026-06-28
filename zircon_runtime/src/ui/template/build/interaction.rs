@@ -115,7 +115,7 @@ fn bool_attr(node: &UiTemplateNode, key: &str) -> Option<bool> {
 }
 
 fn component_name_interaction_fallback(node: &UiTemplateNode) -> bool {
-    // Temporary authored-asset fallback: future .ui.toml controls should use bindings
+    // Temporary authored-asset fallback: future .zui controls should use bindings
     // or explicit input_* metadata instead of relying on component names.
     matches!(
         node.component.as_deref(),

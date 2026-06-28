@@ -158,6 +158,7 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
         "core_resource_registry_typed_errors_coremin_check_passed",
         "review_f6_core_resource_registry_rename_uses_core_error",
         "MissingResourceRecordForLocator",
+        "f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred",
     ] {
         assert!(
             review_findings.contains(doc_anchor)
@@ -168,4 +169,13 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
             "F6 docs should record `{doc_anchor}`"
         );
     }
+    let f6_row = review_findings
+        .lines()
+        .find(|line| line.starts_with("| F6 |"))
+        .expect("F6 review findings top row");
+    assert!(
+        f6_row.contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred")
+            && f6_row.ends_with("| Runtime 02 / review closed |"),
+        "F6 top row should record typed-error review closed status"
+    );
 }

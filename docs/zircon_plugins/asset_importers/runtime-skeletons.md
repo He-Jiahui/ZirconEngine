@@ -8,6 +8,8 @@ related_code:
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_plugins/Cargo.toml
+  - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
+  - zircon_plugins/plugin_sdk/src/runtime_exports.rs
   - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
@@ -328,12 +330,31 @@ Each runtime-backed importer crate exposes:
 The package manifest records the runtime crate, editor/client targets, platform support, package
 capabilities, and the `AssetImporterDescriptor` rows for that importer package.
 
-Importer runtime crates no longer expose public `pub fn register(...)` free functions. For
-`asset_importers/{data,model,shader}` and the root-level split importers, `plugin_registration()`
-delegates to `RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())`,
-`runtime_selection()` is derived from the runtime descriptor, and direct registry mutation is private
-to `RuntimePlugin::register`. `asset_importers/audio` and `asset_importers/texture` are
-trait-backed family skeletons rather than public free-function registration owners.
+Importer runtime crates no longer expose public `pub fn register(...)` free functions. As of the
+2026-06-28 D13 importer runtime export macro convergence, all 12 importer runtime `plugin.rs` owners
+generate `runtime_plugin()`, `package_manifest()`, `runtime_selection()`, and `plugin_registration()`
+through `zircon_plugin_sdk::runtime_plugin_exports!`. No importer runtime crate hand-writes
+`ProjectPluginSelection` or `RuntimePluginRegistrationReport` helper blocks.
+
+As of the 2026-06-28 D13 importer runtime manifest builder convergence, those same `plugin.rs`
+owners route shared targets, platforms, runtime module manifest, native dist module manifest,
+NativeDynamic distribution, ABI v3 symbol/version, and asset-importer manifest projection through
+`ImporterRuntimeManifestBuilder`. The `RuntimePlugin` implementation remains the owner of the
+descriptor, importer descriptors, private registry mutation, and crate-specific registration logic.
+Guards `review_d13_importer_runtime_exports_use_sdk_macro` and
+`review_d13_importer_runtime_manifests_use_sdk_builder`, with statuses
+`d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred` and
+`d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred`, lock this helper
+and manifest builder surface.
+
+The 2026-06-28 D13 importer manifest parity guard adds SDK-level output coverage instead of
+repeating manifest assertions in each importer crate. `zircon_plugins/plugin_sdk/src/manifest/tests.rs`
+now owns `importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity`,
+which checks shared targets/platforms, runtime/dist modules, NativeDynamic distribution packaging,
+`NATIVE_ABI_VERSION_V3`, and `NATIVE_DESCRIPTOR_SYMBOL_V3`. Guard
+`review_d13_importer_manifest_parity_guard_lives_in_sdk_builder` and status
+`d13_importer_manifest_parity_guard_static_passed_cargo_deferred` keep importer runtime owners from
+reintroducing local manifest parity boilerplate.
 
 ## Boundaries
 

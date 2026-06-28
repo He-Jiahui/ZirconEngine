@@ -426,7 +426,7 @@ mod tests {
             action: crate::state::HubActionKind::OpenEditor,
             status: crate::state::HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: HubMessage::legacy("pid 42"),
+            detail: HubMessage::raw_text("pid 42"),
             log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: Some(42),
@@ -475,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn loads_legacy_string_action_history_alongside_structured_messages() {
+    fn loads_archived_string_action_history_alongside_structured_messages() {
         let text = r#"
 [[action_history]]
 finished_unix_ms = 2
@@ -491,9 +491,9 @@ finished_unix_ms = 1
 action = "open-output"
 status = "failed"
 target = "Old Output"
-detail = "legacy detail"
-log_excerpt = "legacy log"
-recovery = "legacy recovery"
+detail = "archived detail"
+log_excerpt = "archived log"
+recovery = "archived recovery"
 command_line = []
 "#;
 
@@ -512,11 +512,11 @@ command_line = []
         );
         assert_eq!(
             config.action_history[1].detail,
-            HubMessage::legacy("legacy detail")
+            HubMessage::raw_text("archived detail")
         );
         assert_eq!(
             config.action_history[1].recovery.as_ref(),
-            Some(&HubMessage::legacy("legacy recovery"))
+            Some(&HubMessage::raw_text("archived recovery"))
         );
     }
 

@@ -29,8 +29,9 @@ struct VisualTextFragment {
     neutral: bool,
 }
 
-// This is a low-fidelity BiDi scaffold: it preserves source/visual byte ranges while
-// deferring full glyph shaping, mirroring, and cluster handling to the text backends.
+// This is a low-fidelity BiDi scaffold: it preserves source/visual byte ranges and
+// mirrors single-codepoint RTL punctuation while deferring full glyph shaping, UAX#9
+// level resolution, and cluster handling to the text backends.
 pub(super) fn apply_visual_order(line: &mut CandidateLine, base_direction: UiTextDirection) {
     if line.runs.is_empty() {
         return;
@@ -219,7 +220,7 @@ fn visual_token(
     VisualTextToken {
         kind: run.kind,
         text: run.text[start..end].to_string(),
-        source_range: source_subrange(run.source_range, start, end),
+        source_range: source_subrange(run.source_range, run.text.len(), start, end),
         direction,
     }
 }
@@ -244,7 +245,7 @@ fn push_visual_cluster(
             fragments,
             VisualTextFragment {
                 kind: token.kind,
-                text: token.text,
+                text: mirrored_visual_text(token.text, direction),
                 source_range: token.source_range,
                 direction,
                 neutral: cluster.neutral,
@@ -265,6 +266,51 @@ fn source_text_direction(ch: char) -> Option<UiTextDirection> {
 
 fn grapheme_direction(grapheme: &str) -> Option<UiTextDirection> {
     grapheme.chars().find_map(source_text_direction)
+}
+
+fn mirrored_visual_text(text: String, direction: UiTextDirection) -> String {
+    if !matches!(direction, UiTextDirection::RightToLeft) {
+        return text;
+    }
+    let mirrored = {
+        let mut chars = text.chars();
+        let Some(ch) = chars.next() else {
+            return text;
+        };
+        if chars.next().is_some() {
+            return text;
+        }
+        mirrored_bidi_char(ch)
+    };
+    mirrored.map(|ch| ch.to_string()).unwrap_or(text)
+}
+
+fn mirrored_bidi_char(ch: char) -> Option<char> {
+    Some(match ch {
+        '(' => ')',
+        ')' => '(',
+        '[' => ']',
+        ']' => '[',
+        '{' => '}',
+        '}' => '{',
+        '<' => '>',
+        '>' => '<',
+        '«' => '»',
+        '»' => '«',
+        '‹' => '›',
+        '›' => '‹',
+        '≤' => '≥',
+        '≥' => '≤',
+        '∈' => '∋',
+        '∋' => '∈',
+        '⊂' => '⊃',
+        '⊃' => '⊂',
+        '⊆' => '⊇',
+        '⊇' => '⊆',
+        '←' => '→',
+        '→' => '←',
+        _ => return None,
+    })
 }
 
 fn push_visual_fragment(fragments: &mut Vec<VisualTextFragment>, fragment: VisualTextFragment) {

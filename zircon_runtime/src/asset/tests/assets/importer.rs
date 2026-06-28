@@ -14,7 +14,6 @@ use crate::asset::{
     FunctionAssetImporter, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
-use zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 mod builtin_data;
 mod physics_animation;
@@ -36,22 +35,6 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
 fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.4, 0.2, 1.0);
 }
-"#
-}
-
-fn version_one_ui_layout_toml() -> &'static str {
-    r#"
-[asset]
-kind = "layout"
-id = "source_fixture.layout"
-version = 1
-display_name = "Source Fixture Layout"
-
-[root]
-node_id = "source_fixture_root"
-kind = "native"
-type = "VerticalBox"
-control_id = "SourceFixtureRoot"
 "#
 }
 

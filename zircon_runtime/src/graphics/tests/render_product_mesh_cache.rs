@@ -594,7 +594,7 @@ fn static_command_cache_mesh(material_id: ResourceId) -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::new(true, 1, 1),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }
 

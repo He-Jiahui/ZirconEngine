@@ -11,7 +11,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_c
     if option_cells_look_like_declared_cells(&option_cells) {
         return option_cells;
     }
-    split_legacy_table_text(node.text.as_str())
+    split_archived_table_text(node.text.as_str())
 }
 
 fn option_cells_look_like_declared_cells(cells: &[String]) -> bool {
@@ -20,12 +20,12 @@ fn option_cells_look_like_declared_cells(cells: &[String]) -> bool {
     }
     let whole_row_like_count = cells
         .iter()
-        .filter(|cell| split_legacy_table_text(cell.as_str()).len() > 1)
+        .filter(|cell| split_archived_table_text(cell.as_str()).len() > 1)
         .count();
     whole_row_like_count * 2 <= cells.len()
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn split_legacy_table_text(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn split_archived_table_text(
     text: &str,
 ) -> Vec<String> {
     let tokens = text.split_whitespace().collect::<Vec<_>>();

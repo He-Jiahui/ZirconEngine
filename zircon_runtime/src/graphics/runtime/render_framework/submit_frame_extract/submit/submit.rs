@@ -13,7 +13,9 @@ use super::super::super::graphics_debugger_capture::{
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
-use super::super::build_frame_submission_context::build_frame_submission_context_from_runtime_frame_extract;
+use super::super::build_frame_submission_context::{
+    build_frame_submission_context_from_runtime_frame_extract, FrameSubmissionSourcePayloads,
+};
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_submission;
 use super::super::update_stats::{update_stats, SharedViewportProductReports};
@@ -58,6 +60,7 @@ fn submit_selected_camera_frame(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: &mut Arc<RenderFrameExtract>,
+    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
     ui: Option<UiRenderExtract>,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
@@ -71,6 +74,7 @@ fn submit_selected_camera_frame(
             viewport,
             extract,
             ui.as_ref(),
+            source_payloads,
         ) {
             Ok(context) => context,
             Err(error) => {

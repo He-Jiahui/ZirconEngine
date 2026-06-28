@@ -10,41 +10,41 @@ related_code:
   - zircon_editor/assets/icons/editor_pages/ui_layout_editor/layout/canvas.svg
   - zircon_editor/assets/icons/editor_pages/console_profiler/logs/log-info.svg
   - zircon_editor/assets/icons/editor_pages/build_plugins/build/build.svg
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
   - zircon_editor/assets/icons/editor_pages/**
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/superpowers/specs/2026-05-23-editor-pages-template-icon-wiring-design.md
@@ -273,13 +273,13 @@ Remaining `gap` mappings should not be wired to `editor_pages` until a future co
 
 | Template path | Control id or local node | Current icon/value | Gap reason |
 | --- | --- | --- | --- |
-| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `SetTransformSpace` / `set_transform_space` | `resize-outline` | Requires local/world transform-space icon coverage or a more specific transform-space UI decision. |
-| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `SetPreviewSkybox` / `set_preview_skybox` | `cloud-outline` | Requires skybox, cloud, or environment icon coverage. |
-| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml` | `AlignView` / `align_view` | `navigate-outline` | Requires view-align or axis-alignment icon coverage. |
-| `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml` | `SelectItem` / `select_item` | `cube-outline` | Requires a generic asset item or selected-asset role, or a future decision to specialize this control by asset type. |
-| `zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml` | `SetViewMode` / `view_mode` | `list-outline` | Requires asset browser list/grid view-mode icon coverage. |
-| `zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml` | `TriggerAction` / `trigger_action` | `flash-outline` | Requires a generic flash/action icon only if this placeholder-like pane action becomes a stable page/function role. |
-| `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml` | `CreateProject` / `create` | `add-circle-outline` | Requires new-project or project-create icon coverage. |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui` | `SetTransformSpace` / `set_transform_space` | `resize-outline` | Requires local/world transform-space icon coverage or a more specific transform-space UI decision. |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui` | `SetPreviewSkybox` / `set_preview_skybox` | `cloud-outline` | Requires skybox, cloud, or environment icon coverage. |
+| `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui` | `AlignView` / `align_view` | `navigate-outline` | Requires view-align or axis-alignment icon coverage. |
+| `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui` | `SelectItem` / `select_item` | `cube-outline` | Requires a generic asset item or selected-asset role, or a future decision to specialize this control by asset type. |
+| `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui` | `SetViewMode` / `view_mode` | `list-outline` | Requires asset browser list/grid view-mode icon coverage. |
+| `zircon_editor/assets/ui/editor/host/pane_surface_controls.zui` | `TriggerAction` / `trigger_action` | `flash-outline` | Requires a generic flash/action icon only if this placeholder-like pane action becomes a stable page/function role. |
+| `zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui` | `CreateProject` / `create` | `add-circle-outline` | Requires new-project or project-create icon coverage. |
 
 ## Template Wiring Follow-Up
 

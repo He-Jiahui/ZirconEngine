@@ -5,7 +5,6 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
-use crate::graphics::material::builtin_shading_model_registry;
 
 use super::super::super::MaterialCaptureSeed;
 use super::super::ResourceStreamer;
@@ -25,7 +24,8 @@ impl ResourceStreamer {
                         } else {
                             descriptor.lighting_model.clone()
                         };
-                        let shading_model_id = shading_model_id_for_lighting_model(&lighting_model);
+                        let shading_model_id =
+                            self.shading_model_id_for_lighting_model(&lighting_model);
                         MaterialCaptureSeed {
                             base_color: Vec4::from_array(descriptor.base_color),
                             emissive: Vec3::from_array(descriptor.emissive),
@@ -101,13 +101,16 @@ impl ResourceStreamer {
                 .and_then(|texture| sample_texture_asset_rgba(&texture, uv))
         })
     }
-}
 
-fn shading_model_id_for_lighting_model(model: &RenderMaterialLightingModel) -> ShadingModelId {
-    builtin_shading_model_registry()
-        .resolve_lighting_model(model)
-        .map(|descriptor| descriptor.id)
-        .unwrap_or(SHADING_MODEL_ID_STANDARD_PBR)
+    fn shading_model_id_for_lighting_model(
+        &self,
+        model: &RenderMaterialLightingModel,
+    ) -> ShadingModelId {
+        self.shading_model_registry
+            .resolve_lighting_model(model)
+            .map(|descriptor| descriptor.id)
+            .unwrap_or(SHADING_MODEL_ID_STANDARD_PBR)
+    }
 }
 
 fn sample_texture_asset_rgba(texture: &TextureAsset, uv: [f32; 2]) -> Option<Vec4> {

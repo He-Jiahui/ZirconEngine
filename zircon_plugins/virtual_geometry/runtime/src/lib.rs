@@ -26,8 +26,10 @@ pub use capability::{
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
-    runtime_plugin_descriptor, VirtualGeometryRuntimePlugin, VIRTUAL_GEOMETRY_DIST_CRATE_NAME,
-    VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY,
+    runtime_plugin_descriptor, virtual_geometry_source_descriptor, VirtualGeometryRuntimePlugin,
+    VIRTUAL_GEOMETRY_DIST_CRATE_NAME, VIRTUAL_GEOMETRY_DIST_RUNTIME_ENTRY,
+    VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_ID, VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_TOKEN,
+    VIRTUAL_GEOMETRY_SHADER_GEOMETRY_SOURCE_WGSL_INCLUDE,
 };
 pub use provider::PluginVirtualGeometryRuntimeProvider;
 

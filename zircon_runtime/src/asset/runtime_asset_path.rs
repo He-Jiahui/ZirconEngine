@@ -197,14 +197,14 @@ mod tests {
 
     #[test]
     fn runtime_asset_path_accepts_paths_with_or_without_assets_prefix() {
-        let direct = runtime_asset_path("ui/runtime/fixtures/hud_overlay.v2.ui.toml");
-        let prefixed = runtime_asset_path("assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml");
-        let rooted = runtime_asset_path("/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml");
+        let direct = runtime_asset_path("ui/runtime/fixtures/hud_overlay.zui");
+        let prefixed = runtime_asset_path("assets/ui/runtime/fixtures/hud_overlay.zui");
+        let rooted = runtime_asset_path("/assets/ui/runtime/fixtures/hud_overlay.zui");
 
         assert_eq!(direct, prefixed);
         assert_eq!(direct, rooted);
         assert!(
-            direct.ends_with("ui/runtime/fixtures/hud_overlay.v2.ui.toml"),
+            direct.ends_with("ui/runtime/fixtures/hud_overlay.zui"),
             "unexpected runtime asset path: {}",
             direct.display()
         );
@@ -216,12 +216,12 @@ mod tests {
             "zircon_runtime_asset_path_dev_root_{}",
             std::process::id()
         ));
-        let expected = dev_root.join("ui/editor/editor_main_frame.v2.ui.toml");
+        let expected = dev_root.join("ui/editor/editor_main_frame.zui");
         std::fs::create_dir_all(expected.parent().unwrap()).unwrap();
         std::fs::write(&expected, b"fixture").unwrap();
 
         let resolved = runtime_asset_path_with_dev_asset_root(
-            "assets/ui/editor/editor_main_frame.v2.ui.toml",
+            "assets/ui/editor/editor_main_frame.zui",
             &dev_root,
         );
 

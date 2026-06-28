@@ -74,7 +74,7 @@ fn desktop_export_panel_template_path() -> Option<PathBuf> {
             .join("zircon_plugins")
             .join("editor_build_export_desktop")
             .join("editor")
-            .join("panel.v2.ui.toml"),
+            .join("panel.zui"),
     )
 }
 

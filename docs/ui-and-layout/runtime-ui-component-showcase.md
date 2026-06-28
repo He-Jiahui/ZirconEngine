@@ -136,7 +136,7 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/build.rs
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
@@ -146,16 +146,16 @@ related_code:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-showcase-state-matrix.mjs
-  - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
+  - zircon_editor/assets/ui/theme/editor_unreal_dark.zui
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -292,7 +292,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/build.rs
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_command_toolbar.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_bottom_log.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_category_nav.zui
@@ -309,11 +309,11 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/console_body.ui.toml
   - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -397,9 +397,9 @@ tests:
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 input-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 selection-section .zui extraction: passed)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-zui-state-panel --message-format short (2026-05-15 collections-section .zui extraction: passed)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
-  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0832-showcase-zui-input.md (2026-05-15 input-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 selection-section .zui extraction: passed with only Windows LF-to-CRLF notices)
+  - git diff --check -- zircon_editor/assets/ui/editor/component_showcase.zui zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui zircon_editor/src/tests/ui/boundary/template_assets.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs docs/ui-and-layout/runtime-ui-component-showcase.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260515-0850-showcase-zui-selection.md (2026-05-15 collections-section .zui extraction: passed with only Windows LF-to-CRLF notices)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15: passed)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 state-panel .zui extraction: passed and included showcase_state_panel.zui in the editor build output)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15 visual-section .zui extraction: passed and included showcase_visual_section.zui in the editor build output)
@@ -562,15 +562,15 @@ The `.ui.toml` compiler now consults `UiComponentDescriptorRegistry::editor_show
 
 ## Showcase Assets
 
-The active builtin showcase window is now declared in `zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml`. The builtin document registry routes `editor.window.ui_component_showcase` to this v2 asset, so host projection builds it through the heap-backed v2 prototype store and flat arena compiler instead of the legacy recursive asset loader.
+The active builtin showcase window is now declared in `zircon_editor/assets/ui/editor/component_showcase.zui`. The builtin document registry routes `editor.window.ui_component_showcase` to this v2 asset, so host projection builds it through the heap-backed v2 prototype store and flat arena compiler instead of the legacy recursive asset loader.
 
-The 2026-05-15 Material visual pass makes the showcase import `editor_material.v2.ui.toml` directly and aligns its local shell/panel/control tokens with the retained editor Material palette. Showcase panels use 12px rounded surfaces, field/control rows use 10px rounded corners, and action/selection controls share the same teal primary, stronger focus ring, and warning/error/success/info tones as the workbench and Inspector. This keeps the showcase useful as a visual reference for the retained editor instead of demonstrating a separate Unreal-dark palette.
+The 2026-05-15 Material visual pass makes the showcase import `editor_material.zui` directly and aligns its local shell/panel/control tokens with the retained editor Material palette. Showcase panels use 12px rounded surfaces, field/control rows use 10px rounded corners, and action/selection controls share the same teal primary, stronger focus ring, and warning/error/success/info tones as the workbench and Inspector. This keeps the showcase useful as a visual reference for the retained editor instead of demonstrating a separate Unreal-dark palette.
 
 No-argument editor startup now resolves an `EditorStartupSessionDocument` with `open_builtin_view = "editor.ui_component_showcase"`. The retained host consumes that request by opening the descriptor through `EditorManager::open_view(...)`, and the descriptor uses `PreferredHost::ExclusiveMainPage` so the first visible page is the component showcase rather than the default Workbench Scene/Game layout. Explicit `--project` and `--create-project` startup requests still return project sessions and do not set the builtin-view request.
 
 The v2 showcase no longer imports `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` on the main runtime path. Section shells are authored as flat layout nodes, and Material-like controls are direct catalog nodes (`Button`, `IconButton`, `ToggleButton`, `Checkbox`, `InputField`, `TextField`, `NumberField`, `RangeField`, `ComboBox`, `Group`, `ListRow`, `TableRow`, `VirtualList`, and `ContextActionMenu`) with retained control ids and route ids preserved. Common Material measurement and interaction metadata is declared by the showcase catalog as runtime projection metadata, then authored as v2 props so retained host layout keeps the same padding, minimum size, and clickable/focusable semantics.
 
-The showcase now imports `.zui` component prototypes for its Unreal-style command toolbar, left category navigation, all four center gallery sections, right retained-state panel, and bottom output log via `res://ui/editor/components/showcase\showcase_command_toolbar.zui#ShowcaseCommandToolbar`, `res://ui/editor/components/showcase\showcase_category_nav.zui#ShowcaseCategoryNav`, `res://ui/editor/components/showcase\showcase_visual_section.zui#ShowcaseVisualSection`, `res://ui/editor/components/showcase\showcase_input_section.zui#ShowcaseInputSection`, `res://ui/editor/components/showcase\showcase_selection_section.zui#ShowcaseSelectionSection`, `res://ui/editor/components/showcase\showcase_collections_section.zui#ShowcaseCollectionsSection`, `res://ui/editor/components/showcase\showcase_state_panel.zui#ShowcaseStatePanel`, and `res://ui/editor/components/showcase\showcase_bottom_log.zui#ShowcaseBottomLog`. Each `.zui` file declares exactly one component and is loaded by the same v2 prototype store path as other imported component assets. The root view remains `.v2.ui.toml` because it is a full view document, while `.zui` is reserved for component prototypes.
+The showcase now imports `.zui` component prototypes for its Unreal-style command toolbar, left category navigation, all four center gallery sections, right retained-state panel, and bottom output log via `res://ui/editor/components/showcase\showcase_command_toolbar.zui#ShowcaseCommandToolbar`, `res://ui/editor/components/showcase\showcase_category_nav.zui#ShowcaseCategoryNav`, `res://ui/editor/components/showcase\showcase_visual_section.zui#ShowcaseVisualSection`, `res://ui/editor/components/showcase\showcase_input_section.zui#ShowcaseInputSection`, `res://ui/editor/components/showcase\showcase_selection_section.zui#ShowcaseSelectionSection`, `res://ui/editor/components/showcase\showcase_collections_section.zui#ShowcaseCollectionsSection`, `res://ui/editor/components/showcase\showcase_state_panel.zui#ShowcaseStatePanel`, and `res://ui/editor/components/showcase\showcase_bottom_log.zui#ShowcaseBottomLog`. Each component `.zui` file declares exactly one component and is loaded by the same v2 prototype store path as other imported component assets. The showcase root view is still in the deprecated root-document suffix until the editor main asset M3 batch migrates it to `.zui`.
 
 The window layout now follows an Unreal-style editor demo shape:
 
@@ -675,7 +675,7 @@ Runtime/editor tests cover:
 
 ## Recent Validation
 
-On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, Slint-free fixture. The active source has since been hard-cut to `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`, alongside the other v2 runtime fixtures. Focused validation passed with `cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, `cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, and `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`.
+On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, Slint-free fixture. The active source has since been hard-cut to `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui`, alongside the other v2 runtime fixtures. Focused validation passed with `cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, `cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, and `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`.
 
 On 2026-04-30, Task 7 Runtime UI graphics fixture acceptance was added and validated under the existing `runtime-ui-integration-tests` feature. `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test / 0 failed / 1195 filtered out after waiting for an artifact lock, and `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 7 tests / 0 failed.
 
@@ -1240,7 +1240,7 @@ Related code:
 - `zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs`
 - `zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs`
 - `zircon_runtime/src/core/framework/render/framework.rs`
-- `zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs`
 
 The editor Runtime UI host has been hard-cut to consume `zircon_runtime::ui::*` for the active UI implementation path. This removes the duplicated `zircon_runtime_interface::ui::*` versus `zircon_runtime::ui::*` type split that previously blocked descriptor re-export validation and downstream Asset Editor / world-space submission checks.
@@ -1308,7 +1308,7 @@ This closes the stale direct-dispatch expectation caught after the broader inspe
 
 Related code:
 - `zircon_runtime/src/core/framework/render/framework.rs`
-- `zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs`
 - `zircon_runtime/src/graphics/tests/render_framework_bridge.rs`
 
@@ -1413,11 +1413,11 @@ Related code:
 - `zircon_editor/assets/ui/theme/editor_material.ui.toml`
 - `zircon_editor/assets/ui/theme/editor_base.ui.toml`
 - `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui`
+- `zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui`
+- `zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui`
+- `zircon_runtime/assets/ui/runtime/fixtures/inventory_list.zui`
+- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui`
 - `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs`
 - `zircon_editor/src/tests/host/retained_window/native_material_painter.rs`
 
@@ -1438,12 +1438,12 @@ Validation evidence on `E:\zircon-build\targets\global-ui`:
 
 Related code:
 - `zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs`
-- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui`
 - `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs`
 - `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs`
 - `zircon_editor/src/tests/host/retained_window/native_viewport_image.rs`
 
-The original M4.3 semantic golden compared editor-owned and runtime-owned Quest Log `.ui.toml` assets through the legacy loader path. The active golden is now v2-only: it loads `quest_log_dialog.v2.ui.toml` and the other runtime v2 fixtures through the v2 prototype cache/surface builder, snapshots semantic control ids, visible text, button counts, and Click binding routes, and keeps `RuntimeAction.TrackQuest` / `RuntimeAction.CloseQuestLog` on the authored v2 button events.
+The original M4.3 semantic golden compared editor-owned and runtime-owned Quest Log `.ui.toml` assets through the legacy loader path. The active golden is now v2-only: it loads `quest_log_dialog.zui` and the other runtime v2 fixtures through the v2 prototype cache/surface builder, snapshots semantic control ids, visible text, button counts, and Click binding routes, and keeps `RuntimeAction.TrackQuest` / `RuntimeAction.CloseQuestLog` on the authored v2 button events.
 
 The same validation pass closed a native painter regression in projected image authority. `TemplatePaneNodeData.preview_image` is the host-projected frame fact for plain `Image` nodes, so the native painter now uses those preview pixels before trying to reload `media_source`. Icon-like nodes still prefer source-based SVG rasterization so they can follow the target frame and Material tint state. This split keeps ordinary template images stable under editor/runtime projection while preserving crisp SVG icon scaling.
 
@@ -1537,7 +1537,7 @@ Validation evidence:
 ## 2026-06-15 L1 showcase state matrix contract
 
 Related code:
-- `zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml`
+- `zircon_editor/assets/ui/editor/component_showcase.zui`
 - `zircon_editor/assets/ui/editor/components/showcase/showcase_input_section.zui`
 - `zircon_editor/assets/ui/editor/components/showcase/showcase_visual_section.zui`
 - `zircon_editor/assets/ui/editor/components/showcase/showcase_selection_section.zui`
@@ -1567,7 +1567,7 @@ The focused Cargo follow-up also closed the remaining retained-host projection g
 
 Validation evidence:
 - `node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-showcase-state-matrix.mjs`: passed, 47 checks across 60 demo controls and 91 authored showcase events.
-- Python `tomllib` parse of `component_showcase.v2.ui.toml`, `showcase_input_section.zui`, and `showcase_visual_section.zui`: passed.
+- Python `tomllib` parse of `component_showcase.zui`, `showcase_input_section.zui`, and `showcase_visual_section.zui`: passed.
 - `node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`: passed.
 - `rustfmt --edition 2021 --check` over the touched showcase binding, event-input, action-projection, mapping, category, retained-host projection, and category-filter Rust files: passed.
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --test-threads=1 --nocapture`: passed, 24 passed / 0 failed / 1970 filtered. Earlier same-target attempts either timed out during cold compile or were blocked before showcase execution by the now-cleared render/temporal `RenderQualityProfile::with_history_resolve` API drift.
@@ -1588,7 +1588,7 @@ Validation evidence:
 - `cargo test -p zircon_editor --lib workbench_overlay_primitives_expose_popup_shell_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --nocapture --test-threads=1`: timed out after 304s with no diagnostics; direct execution of `E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe workbench_overlay_primitives_expose_popup_shell_contract --nocapture --test-threads=1` then passed, 1 passed / 0 failed / 1994 filtered, proving the Workbench CommandPalette overlay still satisfies the shared popup-shell primitive contract.
 - Direct execution of `E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe drag_overlay --nocapture --test-threads=1`: passed, 4 passed / 0 failed / 1991 filtered, covering Workbench DragOverlay asset governance, retained drag/drop projection, open preview/drop-indicator native painting, and closed-overlay no-fallback consumption.
 - Direct execution of `E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe notification_center --nocapture --test-threads=1`: passed, 3 passed / 0 failed / 1992 filtered, covering retained NotificationCenter row projection, open native panel/row painting, and closed-overlay no-fallback consumption.
-- Direct execution of `E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe zui_asset_governance --nocapture --test-threads=1`: initially failed 65 passed / 1 failed / 1929 filtered because six newer Workbench feedback overlay primitives were registered but not reachable from the production `.v2.ui.toml` widget import graph. After `workbench_window.v2.ui.toml` imported Alert, CommandPalette, ConfirmDialog, ContextMenu, Dialog, and DropdownPopup, the focused reachability test passed 1/0/1994 and the full governance batch passed 66/0/1929.
+- Direct execution of `E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe zui_asset_governance --nocapture --test-threads=1`: initially failed 65 passed / 1 failed / 1929 filtered because six newer Workbench feedback overlay primitives were registered but not reachable from the production `.v2.ui.toml` widget import graph. After `workbench_window.zui` imported Alert, CommandPalette, ConfirmDialog, ContextMenu, Dialog, and DropdownPopup, the focused reachability test passed 1/0/1994 and the full governance batch passed 66/0/1929.
 - Broader native editor live/manual showcase visual/interaction acceptance is still pending.
 
 ## 2026-06-22 Showcase demo-state event owner split

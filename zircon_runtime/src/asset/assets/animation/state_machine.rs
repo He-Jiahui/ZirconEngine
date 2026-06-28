@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::binary::{decode_binary_asset, encode_binary_asset, AnimationBinaryAssetKind};
+use super::error::{AnimationAssetError, AnimationAssetResult};
 use super::reference::{push_unique_reference, AnimationAssetReferenceBinary};
 use crate::asset::AssetReference;
 use crate::core::framework::animation::AnimationParameterValue;
@@ -28,7 +29,7 @@ impl From<&AnimationStateAsset> for AnimationStateBinaryAsset {
 }
 
 impl TryFrom<AnimationStateBinaryAsset> for AnimationStateAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationStateBinaryAsset) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -97,7 +98,7 @@ impl From<&AnimationStateMachineAsset> for AnimationStateMachineBinaryAsset {
 }
 
 impl TryFrom<AnimationStateMachineBinaryAsset> for AnimationStateMachineAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationStateMachineBinaryAsset) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -114,7 +115,7 @@ impl TryFrom<AnimationStateMachineBinaryAsset> for AnimationStateMachineAsset {
 }
 
 impl AnimationStateMachineAsset {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset::<AnimationStateMachineBinaryAsset>(
             AnimationBinaryAssetKind::StateMachine,
             bytes,
@@ -122,7 +123,7 @@ impl AnimationStateMachineAsset {
         .and_then(AnimationStateMachineAsset::try_from)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(
             AnimationBinaryAssetKind::StateMachine,
             &AnimationStateMachineBinaryAsset::from(self),

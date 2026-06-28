@@ -1,9 +1,7 @@
 use zircon_runtime::core::framework::net::NetDiagnostics;
 use zircon_runtime::core::manager::resolve_net_manager;
 use zircon_runtime::core::{CoreError, CoreHandle};
-use zircon_runtime::plugin::{
-    PluginEventManifest, PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-};
+use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError};
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
 use zircon_runtime::scene::SystemStage;
 
@@ -29,35 +27,28 @@ pub const NET_DIAGNOSTIC_PATHS: &[&str] = &[
 const NET_POLL_INGRESS_EVENT_BUDGET: usize = 256;
 
 pub fn register_runtime_systems(
-    registry: &mut RuntimeExtensionRegistry,
-    owner: PluginModuleId,
+    module: &mut zircon_plugin_sdk::RuntimePluginModuleRegistration<'_>,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let transport_set = registry.intern_system_set(NET_SYSTEM_SET)?;
-    registry.register_event::<zircon_runtime::core::framework::net::NetEvent>(
-        owner,
-        PluginEventManifest {
-            id: NET_EVENT_ID.to_string(),
-            display_name: "Network Runtime Event".to_string(),
-            payload_schema: NET_EVENT_SCHEMA.to_string(),
-        },
-    )?;
-    registry
-        .register_runtime_scene_system(
-            owner,
+    module.event::<zircon_runtime::core::framework::net::NetEvent>(PluginEventManifest {
+        id: NET_EVENT_ID.to_string(),
+        display_name: "Network Runtime Event".to_string(),
+        payload_schema: NET_EVENT_SCHEMA.to_string(),
+    })?;
+    module
+        .runtime_scene_system(
             NET_POLL_INGRESS_SYSTEM,
             SystemStage::First,
             run_net_poll_ingress,
         )
-        .in_set(transport_set.clone())
+        .in_set(NET_SYSTEM_SET)
         .register()?;
-    registry
-        .register_runtime_scene_system(
-            owner,
+    module
+        .runtime_scene_system(
             NET_FLUSH_EGRESS_SYSTEM,
             SystemStage::Last,
             run_net_flush_egress,
         )
-        .in_set(transport_set)
+        .in_set(NET_SYSTEM_SET)
         .register()
 }
 

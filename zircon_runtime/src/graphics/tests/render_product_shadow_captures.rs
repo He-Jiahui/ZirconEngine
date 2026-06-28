@@ -381,7 +381,9 @@ fn spot_shadow_pcf_capture_extract(
                 spot_lights: vec![RenderSpotLightSnapshot {
                     node_id: 52_200,
                     light_id: 52_200,
-                    layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                    layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                        DEFAULT_RENDER_LAYER_MASK,
+                    ),
                     position: Vec3::new(-0.30, -1.85, 2.05),
                     direction: (Vec3::new(-0.65, 0.02, 0.04) - Vec3::new(-0.30, -1.85, 2.05))
                         .normalize(),
@@ -414,7 +416,7 @@ fn multi_spot_shadow_capture_light(index: usize, x: f32) -> RenderSpotLightSnaps
     RenderSpotLightSnapshot {
         node_id: 51_300 + index as u64,
         light_id: 51_400 + index as u64,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position,
         direction: (target - position).normalize(),
         color: Vec3::ONE,
@@ -469,7 +471,7 @@ fn shadow_capture_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
     }
 }
 

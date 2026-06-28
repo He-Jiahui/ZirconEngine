@@ -2,7 +2,37 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+import json
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+
+try:
+    from .zircon_build_shader_resource_registry import (
+        validate_shader_resource_registry_export_contract,
+    )
+    from .zircon_build_shader_prewarm_report_contract import (
+        parse_shader_id_record,
+        shader_prewarm_dimension_summary_lines,
+        shader_prewarm_report_dimension_summary_lines,
+        validate_shader_prewarm_report_contract,
+    )
+except ImportError:  # pragma: no cover - exercised when run as a script.
+    from zircon_build_shader_resource_registry import (
+        validate_shader_resource_registry_export_contract,
+    )
+    from zircon_build_shader_prewarm_report_contract import (
+        parse_shader_id_record,
+        shader_prewarm_dimension_summary_lines,
+        shader_prewarm_report_dimension_summary_lines,
+        validate_shader_prewarm_report_contract,
+    )
+
+__all__ = (
+    "shader_prewarm_dimension_summary_lines",
+    "shader_prewarm_report_dimension_summary_lines",
+    "validate_shader_resource_registry_export_contract",
+    "validate_shader_prewarm_report_contract",
+)
 
 
 def parse_shader_quality_tiers(raw: Sequence[str]) -> tuple[str, ...]:
@@ -19,21 +49,148 @@ def parse_shader_geometry_sources(raw: Sequence[str]) -> tuple[str, ...]:
     return _unique_in_order(values)
 
 
+def parse_shader_geometry_source_ids(raw: Sequence[str]) -> tuple[str, ...]:
+    return _unique_in_order(tuple(raw))
+
+
 def parse_shader_shading_model_ids(raw: Sequence[str]) -> tuple[str, ...]:
     return _unique_in_order(tuple(raw))
 
 
 def print_shader_prewarm_plan(config) -> None:
     print("  shader prewarm: enabled")
+    if getattr(config, "validate_wgpu_shaders", False):
+        print("  shader WGPU module validation: enabled")
     print(f"  shader quality tiers: {','.join(config.shader_quality_tiers)}")
     print(f"  shader geometry sources: {','.join(config.shader_geometry_sources)}")
-    if config.shader_shading_model_ids:
+    print(
+        "  shader asset roots: "
+        f"{','.join(str(path) for path in shader_asset_root_paths_for_prewarm(config))}"
+    )
+    print(f"  shader prewarm cache root: {config.shader_prewarm_cache_root}")
+    print(f"  shader prewarm report: {config.shader_prewarm_report_path}")
+    print(
+        "  shader runtime fallback root: "
+        f"{config.engine_root / 'cache' / 'shader_variants'}"
+    )
+    geometry_source_ids = shader_geometry_source_id_specs(config)
+    shading_model_ids = shader_shading_model_id_specs(config)
+    if geometry_source_ids:
+        print(
+            "  shader geometry source ids: "
+            f"{','.join(geometry_source_ids)}"
+        )
+    if shading_model_ids:
         print(
             "  shader shading model ids: "
-            f"{','.join(config.shader_shading_model_ids)}"
+            f"{','.join(shading_model_ids)}"
         )
+    if config.shader_permutation_registries:
+        print(
+            "  shader permutation registries: "
+            f"{','.join(str(path) for path in config.shader_permutation_registries)}"
+        )
+    else:
+        registry_path = generated_shader_permutation_registry_path(config)
+        if registry_path:
+            print(f"  shader permutation registry export: {registry_path}")
     if config.shader_resource_registry:
         print(f"  shader resource registry: {config.shader_resource_registry}")
+    else:
+        print(
+            "  shader resource registry export: "
+            f"{config.shader_prewarm_resource_registry_path}"
+        )
+
+
+def print_shader_prewarm_report_dimensions(report_path: Path) -> None:
+    for line in shader_prewarm_report_dimension_summary_lines(report_path):
+        print(line)
+
+
+def validate_shader_permutation_registry_export_contract(
+    registry_path: Path,
+    *,
+    config,
+) -> None:
+    registry_path = Path(registry_path)
+    try:
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    except OSError as error:
+        raise RuntimeError(
+            "shader prewarm permutation registry export unavailable "
+            f"({registry_path}: {error})"
+        ) from error
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            "shader prewarm permutation registry export is not valid JSON "
+            f"({registry_path}: {error})"
+        ) from error
+
+    if not isinstance(registry, Mapping):
+        raise RuntimeError(
+            "shader prewarm permutation registry export did not produce "
+            "a registry object"
+        )
+    _validate_expected_shader_id_specs(
+        registry,
+        "geometry_source_ids",
+        "selected shader geometry source ids",
+        shader_geometry_source_id_specs(config),
+    )
+    _validate_expected_shader_id_specs(
+        registry,
+        "shading_model_ids",
+        "selected shader shading model ids",
+        shader_shading_model_id_specs(config),
+    )
+
+
+def _validate_expected_shader_id_specs(
+    registry: Mapping[str, object],
+    field: str,
+    label: str,
+    raw_specs: Sequence[str],
+) -> None:
+    if not raw_specs:
+        return
+    try:
+        expected = {
+            parse_shader_id_record(raw_spec, label) for raw_spec in tuple(raw_specs)
+        }
+    except ValueError as error:
+        raise RuntimeError(str(error)) from error
+    records = registry.get(field)
+    if not isinstance(records, list):
+        found: set[tuple[str, int]] = set()
+    else:
+        found = _shader_id_record_set(records)
+    missing = [
+        f"{token}={id_value}"
+        for token, id_value in sorted(expected)
+        if (token, id_value) not in found
+    ]
+    if missing:
+        raise RuntimeError(
+            "shader prewarm permutation registry export is missing "
+            f"{label}: {', '.join(missing)}"
+        )
+
+
+def _shader_id_record_set(records: list[object]) -> set[tuple[str, int]]:
+    ids: set[tuple[str, int]] = set()
+    for record in records:
+        if not isinstance(record, Mapping):
+            continue
+        token = record.get("token")
+        id_value = record.get("id")
+        if (
+            isinstance(token, str)
+            and isinstance(id_value, int)
+            and not isinstance(id_value, bool)
+        ):
+            ids.add((token, id_value))
+    return ids
 
 
 def build_shader_prewarm_command(config) -> list[str]:
@@ -68,21 +225,251 @@ def build_shader_prewarm_command(config) -> list[str]:
             str(config.shader_prewarm_cache_root),
             "--report",
             str(config.shader_prewarm_report_path),
-            "--asset-root",
-            str(config.engine_root / "assets"),
             "--builtin-fallback",
             "--pretty",
         ]
     )
+    if getattr(config, "validate_wgpu_shaders", False):
+        command.append("--validate-wgpu-modules")
+    for asset_root in shader_asset_root_paths_for_prewarm(config):
+        command.extend(["--asset-root", str(asset_root)])
     for quality_tier in config.shader_quality_tiers:
         command.extend(["--quality-tier", quality_tier])
     for geometry_source in config.shader_geometry_sources:
         command.extend(["--geometry-source", geometry_source])
+    for geometry_source_id in config.shader_geometry_source_ids:
+        command.extend(["--geometry-source-id", geometry_source_id])
     for shading_model_id in config.shader_shading_model_ids:
         command.extend(["--shading-model-id", shading_model_id])
+    for registry in shader_permutation_registry_paths_for_prewarm(config):
+        command.extend(["--shader-permutation-registry", str(registry)])
     if config.shader_resource_registry:
         command.extend(["--resource-registry", str(config.shader_resource_registry)])
+    else:
+        command.extend(
+            [
+                "--export-resource-registry",
+                str(config.shader_prewarm_resource_registry_path),
+            ]
+        )
+    validate_shader_prewarm_command_contract(config, command)
     return command
+
+
+def validate_shader_prewarm_command_contract(config, command: Sequence[str]) -> None:
+    command = tuple(str(value) for value in command)
+    _require_command_flag(command, "--builtin-fallback", "builtin fallback")
+    _require_command_flag(command, "--pretty", "pretty report output")
+    _require_flag_values(command, "--project-root", (config.engine_root,), "project root")
+    _require_flag_values(
+        command,
+        "--cache-dir",
+        (config.shader_prewarm_cache_root,),
+        "staged cache root",
+    )
+    _require_flag_values(
+        command,
+        "--report",
+        (config.shader_prewarm_report_path,),
+        "prewarm report path",
+    )
+    if getattr(config, "validate_wgpu_shaders", False):
+        _require_command_flag(
+            command,
+            "--validate-wgpu-modules",
+            "WGPU module validation",
+        )
+    else:
+        _forbid_command_flag(
+            command,
+            "--validate-wgpu-modules",
+            "WGPU module validation",
+        )
+    _require_flag_values(
+        command,
+        "--asset-root",
+        shader_asset_root_paths_for_prewarm(config),
+        "shader asset roots",
+    )
+    _require_flag_values(
+        command,
+        "--quality-tier",
+        config.shader_quality_tiers,
+        "shader quality tiers",
+    )
+    _require_flag_values(
+        command,
+        "--geometry-source",
+        config.shader_geometry_sources,
+        "shader geometry sources",
+    )
+    _require_flag_values(
+        command,
+        "--geometry-source-id",
+        config.shader_geometry_source_ids,
+        "explicit shader geometry source ids",
+    )
+    _require_flag_values(
+        command,
+        "--shading-model-id",
+        config.shader_shading_model_ids,
+        "explicit shader shading model ids",
+    )
+    _require_flag_values(
+        command,
+        "--shader-permutation-registry",
+        shader_permutation_registry_paths_for_prewarm(config),
+        "shader permutation registries",
+    )
+    if config.shader_resource_registry:
+        _require_flag_values(
+            command,
+            "--resource-registry",
+            (config.shader_resource_registry,),
+            "shader resource registry input",
+        )
+        _require_flag_values(
+            command,
+            "--export-resource-registry",
+            (),
+            "shader resource registry export",
+        )
+    else:
+        _require_flag_values(
+            command,
+            "--resource-registry",
+            (),
+            "shader resource registry input",
+        )
+        _require_flag_values(
+            command,
+            "--export-resource-registry",
+            (config.shader_prewarm_resource_registry_path,),
+            "shader resource registry export",
+        )
+
+
+def shader_asset_root_paths_for_prewarm(config) -> tuple[Path, ...]:
+    roots = [Path(config.engine_root) / "assets"]
+    for plugin in getattr(config, "plugins", ()):
+        roots.extend(Path(root) for root in getattr(plugin, "asset_roots", ()))
+    return _unique_path_values(roots)
+
+
+def shader_permutation_registry_paths_for_prewarm(config) -> tuple[Path, ...]:
+    if config.shader_permutation_registries:
+        return tuple(config.shader_permutation_registries)
+    registry_path = generated_shader_permutation_registry_path(config)
+    if registry_path:
+        return (registry_path,)
+    return ()
+
+
+def generated_shader_permutation_registry_path(config) -> Path | None:
+    if config.shader_permutation_registries:
+        return None
+    if not (shader_geometry_source_id_specs(config) or shader_shading_model_id_specs(config)):
+        return None
+    return Path(config.shader_prewarm_permutation_registry_path)
+
+
+def write_generated_shader_permutation_registry(config) -> Path | None:
+    registry_path = generated_shader_permutation_registry_path(config)
+    if registry_path is None:
+        return None
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        document = generated_shader_permutation_registry_document(config)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
+    registry_path.write_text(
+        json.dumps(document, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return registry_path
+
+
+def generated_shader_permutation_registry_document(config) -> dict[str, list[dict[str, object]]]:
+    return {
+        "geometry_source_ids": _shader_id_records(
+            shader_geometry_source_id_specs(config),
+            "shader geometry source id",
+        ),
+        "shading_model_ids": _shader_id_records(
+            shader_shading_model_id_specs(config),
+            "shader shading model id",
+        ),
+    }
+
+
+def shader_geometry_source_id_specs(config) -> tuple[str, ...]:
+    return _combined_plugin_id_specs(config, "shader_geometry_source_ids")
+
+
+def shader_shading_model_id_specs(config) -> tuple[str, ...]:
+    return _combined_plugin_id_specs(config, "shader_shading_model_ids")
+
+
+def _shader_id_records(raw_values: Sequence[str], label: str) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    seen: set[tuple[str, int]] = set()
+    for raw_value in raw_values:
+        token, id_value = parse_shader_id_record(raw_value, label)
+        key = (token, id_value)
+        if key in seen:
+            continue
+        seen.add(key)
+        records.append({"token": token, "id": id_value})
+    return records
+
+
+def _combined_plugin_id_specs(config, field: str) -> tuple[str, ...]:
+    values = list(getattr(config, field, ()))
+    for plugin in getattr(config, "plugins", ()):
+        values.extend(getattr(plugin, field, ()))
+    return _unique_in_order(tuple(values))
+
+
+def _require_command_flag(command: Sequence[str], flag: str, label: str) -> None:
+    if flag not in command:
+        raise RuntimeError(
+            f"shader prewarm command missing {label} flag: {flag}"
+        )
+
+
+def _forbid_command_flag(command: Sequence[str], flag: str, label: str) -> None:
+    if flag in command:
+        raise RuntimeError(
+            f"shader prewarm command unexpectedly enabled {label}: {flag}"
+        )
+
+
+def _require_flag_values(
+    command: Sequence[str],
+    flag: str,
+    expected: Sequence[object],
+    label: str,
+) -> None:
+    actual_values = _command_flag_values(command, flag)
+    expected_values = tuple(str(value) for value in expected)
+    if actual_values != expected_values:
+        raise RuntimeError(
+            f"shader prewarm command {label} mismatch for {flag}: "
+            f"expected {expected_values}, got {actual_values}"
+        )
+
+
+def _command_flag_values(command: Sequence[str], flag: str) -> tuple[str, ...]:
+    values: list[str] = []
+    for index, value in enumerate(command):
+        if value != flag:
+            continue
+        if index + 1 >= len(command):
+            raise RuntimeError(
+                f"shader prewarm command flag {flag} is missing a value"
+            )
+        values.append(str(command[index + 1]))
+    return tuple(values)
 
 
 def _unique_in_order(values: Sequence[str]) -> tuple[str, ...]:
@@ -92,5 +479,17 @@ def _unique_in_order(values: Sequence[str]) -> tuple[str, ...]:
         if value in seen:
             continue
         seen.add(value)
+        ordered.append(value)
+    return tuple(ordered)
+
+
+def _unique_path_values(values: Sequence[Path]) -> tuple[Path, ...]:
+    seen: set[str] = set()
+    ordered: list[Path] = []
+    for value in values:
+        key = str(value)
+        if key in seen:
+            continue
+        seen.add(key)
         ordered.append(value)
     return tuple(ordered)

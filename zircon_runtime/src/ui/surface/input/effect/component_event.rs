@@ -4,12 +4,13 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
+use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 use super::node::require_node;
 
 pub(super) fn apply_component_event_effect(
     surface: &UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::EmitComponentEvent { target, policy, .. } => {
             require_node(surface, *target)?;
@@ -19,7 +20,9 @@ pub(super) fn apply_component_event_effect(
                 | UiComponentEmissionPolicy::Coalesce => Ok(Some(*target)),
             }
         }
-        _ => Err("expected component event effect".to_string()),
+        _ => Err(UiSurfaceInputEffectError::UnexpectedEffect {
+            expected: "component event",
+        }),
     }
 }
 

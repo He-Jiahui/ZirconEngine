@@ -299,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_resident_parent_depth_breaks_probe_parent_cycles() {
+    fn extract_resident_parent_depth_breaks_probe_parent_cycles() {
         let probes_by_id = BTreeMap::from([
             (
                 100,
@@ -326,33 +326,33 @@ mod tests {
     }
 
     #[test]
-    fn legacy_resolve_weight_uses_first_probe_payload_for_duplicate_probe_ids() {
+    fn extract_resolve_weight_uses_first_probe_payload_for_duplicate_probe_ids() {
         let weight = hierarchy_resolve_weight_with_duplicate_middle_probe_payloads();
 
         assert!(
             weight < 1.45,
-            "expected legacy hierarchy resolve weight to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of applying a stale grandparent boost; weight={weight:.3}"
+            "expected extract hierarchy resolve weight to keep the first RenderHybridGiProbe payload for a duplicate probe id instead of applying a stale grandparent boost; weight={weight:.3}"
         );
     }
 
     #[test]
-    fn flat_runtime_blocks_legacy_resolve_weight_parent_depth_fallback() {
-        let weight = hierarchy_resolve_weight_with_flat_runtime_and_legacy_parent_depth();
+    fn flat_runtime_blocks_extract_resolve_weight_parent_depth_fallback() {
+        let weight = hierarchy_resolve_weight_with_flat_runtime_and_extract_parent_depth();
 
         assert!(
             (weight - 1.0).abs() < 0.05,
-            "expected flat runtime topology to stop legacy RenderHybridGiProbe parent-depth resolve-weight fallback; weight={weight:.3}"
+            "expected flat runtime topology to stop extract-sourced RenderHybridGiProbe parent-depth resolve-weight fallback; weight={weight:.3}"
         );
     }
 
     #[test]
-    fn scene_representation_budget_blocks_legacy_resolve_weight_parent_depth_fallback() {
+    fn scene_representation_budget_blocks_extract_resolve_weight_parent_depth_fallback() {
         let weight =
-            hierarchy_resolve_weight_with_budgeted_scene_representation_and_legacy_parent_depth();
+            hierarchy_resolve_weight_with_budgeted_scene_representation_and_extract_parent_depth();
 
         assert!(
             (weight - 1.0).abs() < 0.05,
-            "expected budgeted scene-representation extracts to stop legacy RenderHybridGiProbe parent-depth resolve-weight fallback; weight={weight:.3}"
+            "expected budgeted scene-representation extracts to stop extract-sourced RenderHybridGiProbe parent-depth resolve-weight fallback; weight={weight:.3}"
         );
     }
 
@@ -510,7 +510,7 @@ mod tests {
         hybrid_gi_hierarchy_resolve_weight(&frame, &child_probe)
     }
 
-    fn hierarchy_resolve_weight_with_budgeted_scene_representation_and_legacy_parent_depth() -> f32
+    fn hierarchy_resolve_weight_with_budgeted_scene_representation_and_extract_parent_depth() -> f32
     {
         let grandparent_probe = RenderHybridGiProbe {
             probe_id: 100,
@@ -588,7 +588,7 @@ mod tests {
         hybrid_gi_hierarchy_resolve_weight(&frame, &child_probe)
     }
 
-    fn hierarchy_resolve_weight_with_flat_runtime_and_legacy_parent_depth() -> f32 {
+    fn hierarchy_resolve_weight_with_flat_runtime_and_extract_parent_depth() -> f32 {
         let grandparent_probe = RenderHybridGiProbe {
             probe_id: 100,
             resident: true,

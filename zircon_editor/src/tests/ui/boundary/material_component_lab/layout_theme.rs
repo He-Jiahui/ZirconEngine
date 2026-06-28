@@ -70,9 +70,8 @@ fn material_component_lab_masonry_sample_uses_runtime_descriptor_and_theme_selec
         Some(true)
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in MASONRY_THEME_SELECTORS {
         assert!(

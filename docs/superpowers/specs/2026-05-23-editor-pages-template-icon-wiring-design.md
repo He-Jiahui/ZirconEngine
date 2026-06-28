@@ -1,40 +1,40 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/assets/icons/editor_pages/**
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/performance_timeline_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs

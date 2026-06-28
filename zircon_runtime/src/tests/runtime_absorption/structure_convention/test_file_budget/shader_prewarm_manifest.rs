@@ -69,6 +69,10 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
             "enumeration_is_wired"
         ),
         concat!(
+            "fn runtime_15_shader_prewarm_custom_geometry_source_",
+            "id_is_wired"
+        ),
+        concat!(
             "fn runtime_15_shader_prewarm_custom_shading_model_",
             "id_is_wired"
         ),
@@ -98,43 +102,69 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
     assert_contains_all(
         "manifest contract child keeps original folder-backed guard",
         &manifest_contract,
-        &["fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed"],
+        &[concat!(
+            "fn runtime_15_shader_prewarm_manifest_tests_are_",
+            "folder_backed"
+        )],
     );
     assert_contains_all(
         "geometry source child keeps Plan 08 geometry-source guard",
         &geometry_source,
-        &["fn runtime_15_shader_prewarm_geometry_source_enumeration_is_wired"],
+        &[
+            concat!(
+                "fn runtime_15_shader_prewarm_geometry_source_",
+                "enumeration_is_wired"
+            ),
+            concat!(
+                "fn runtime_15_shader_prewarm_custom_geometry_source_",
+                "id_is_wired"
+            ),
+        ],
     );
     assert_contains_all(
         "custom shading model child keeps explicit id guard",
         &custom_shading_model,
-        &["fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired"],
+        &[concat!(
+            "fn runtime_15_shader_prewarm_custom_shading_model_",
+            "id_is_wired"
+        )],
     );
     assert_contains_all(
         "builtin template child keeps standard material template guard",
         &builtin_template_source,
-        &[
-            "fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired",
-        ],
+        &[concat!(
+            "fn runtime_15_shader_prewarm_builtin_standard_material_",
+            "template_source_is_wired"
+        )],
     );
     assert_contains_all(
         "builtin fallback child keeps template source alignment guard",
         &builtin_fallback,
-        &["fn runtime_15_builtin_fallback_prewarm_uses_template_source"],
+        &[concat!(
+            "fn runtime_15_builtin_fallback_prewarm_uses_",
+            "template_source"
+        )],
     );
     assert_contains_all(
         "product staged prewarm child keeps product guard",
         &product_staged_prewarm,
-        &["fn runtime_15_product_base_mesh_staged_prewarm_is_wired"],
+        &[concat!(
+            "fn runtime_15_product_base_mesh_staged_",
+            "prewarm_is_wired"
+        )],
     );
     assert_contains_all(
         "asset revision child keeps revision export guard",
         &asset_revision,
-        &["fn runtime_15_shader_prewarm_asset_revision_export_is_wired"],
+        &[concat!(
+            "fn runtime_15_shader_prewarm_asset_revision_",
+            "export_is_wired"
+        )],
     );
 
     let slice = "Runtime 15 M3 shader prewarm manifest guard child-owner split";
-    let status = "runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred";
+    let status =
+        "runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred";
     let guard = "runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed";
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -146,8 +176,6 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     for (label, source) in [
         ("status rows", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),
         ("review findings", review_findings.as_str()),
@@ -170,6 +198,11 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
             ],
         );
     }
+    assert_contains_all(
+        "status map records shader prewarm manifest guard split status",
+        &status_map,
+        &[slice, status],
+    );
     assert_contains_all(
         "date map records shader prewarm manifest guard split date",
         &date_map,

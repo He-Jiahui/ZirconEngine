@@ -422,7 +422,7 @@ impl RuntimePlugin for ShadowedInvalidComponentRuntimePlugin {
             .with_ui_component(UiComponentDescriptor::new(
                 "weather.Ui.CloudLayerInspector",
                 "weather",
-                "asset://weather/editor/cloud_layer_inspector.ui.toml",
+                "asset://weather/editor/cloud_layer_inspector.zui",
             ))
     }
 

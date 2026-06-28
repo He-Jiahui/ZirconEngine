@@ -75,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn trace_region_inputs_limit_legacy_scheduled_trace_region_budget_before_tail_payload() {
+    fn trace_region_inputs_limit_extract_scheduled_trace_region_budget_before_tail_payload() {
         let live_tail_region_id = 10_000;
         let mut scheduled_trace_region_ids =
             (0..MAX_GPU_TRACE_REGION_INPUTS as u32).collect::<Vec<_>>();
@@ -102,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn trace_region_inputs_prefers_runtime_scene_data_over_legacy_extract_payload() {
+    fn trace_region_inputs_prefers_runtime_scene_data_over_extract_input_payload() {
         let prepare = HybridGiPrepareFrame {
             scheduled_trace_region_ids: vec![40],
             ..Default::default()
@@ -131,19 +131,20 @@ mod tests {
     }
 
     #[test]
-    fn trace_region_inputs_filters_legacy_backed_runtime_scene_data_when_runtime_has_scene_truth() {
-        let legacy_region_id = 40;
+    fn trace_region_inputs_filters_extract_backed_runtime_scene_data_when_runtime_has_scene_truth()
+    {
+        let extract_region_id = 40;
         let prepare = HybridGiPrepareFrame {
-            scheduled_trace_region_ids: vec![legacy_region_id],
+            scheduled_trace_region_ids: vec![extract_region_id],
             ..Default::default()
         };
         let extract = RenderHybridGiExtract {
             enabled: true,
-            trace_regions: vec![trace_region(legacy_region_id)],
+            trace_regions: vec![trace_region(extract_region_id)],
             ..Default::default()
         };
         let runtime = runtime_scene_truth_with_trace_regions(BTreeMap::from([(
-            legacy_region_id,
+            extract_region_id,
             runtime_trace_region_scene_data([240, 96, 48]),
         )]));
 
@@ -151,17 +152,17 @@ mod tests {
 
         assert!(
             inputs.is_empty(),
-            "runtime scene truth must keep legacy-backed RenderHybridGiTraceRegion data out of GPU trace inputs"
+            "runtime scene truth must keep extract-backed RenderHybridGiTraceRegion data out of GPU trace inputs"
         );
     }
 
     #[test]
-    fn trace_region_inputs_keeps_runtime_only_region_when_legacy_payload_is_scheduled() {
-        let legacy_region_id = 40;
+    fn trace_region_inputs_keeps_runtime_only_region_when_extract_payload_is_scheduled() {
+        let extract_region_id = 40;
         let runtime_only_region_id = 41;
         let prepare = HybridGiPrepareFrame {
             scheduled_trace_region_ids: vec![
-                legacy_region_id,
+                extract_region_id,
                 runtime_only_region_id,
                 runtime_only_region_id,
             ],
@@ -169,12 +170,12 @@ mod tests {
         };
         let extract = RenderHybridGiExtract {
             enabled: true,
-            trace_regions: vec![trace_region(legacy_region_id)],
+            trace_regions: vec![trace_region(extract_region_id)],
             ..Default::default()
         };
         let runtime = runtime_scene_truth_with_trace_regions(BTreeMap::from([
             (
-                legacy_region_id,
+                extract_region_id,
                 runtime_trace_region_scene_data([240, 96, 48]),
             ),
             (
@@ -190,7 +191,7 @@ mod tests {
         assert_eq!(
             inputs[0].rt_lighting_rgb,
             pack_rgb8([32, 64, 240]),
-            "runtime-only trace region data should survive the legacy-backed id filter"
+            "runtime-only trace region data should survive the extract-backed id filter"
         );
     }
 

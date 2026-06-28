@@ -126,7 +126,7 @@ fn render_product_csm_directional() {
         directional_lights: vec![RenderDirectionalLightSnapshot {
             node_id: 901,
             light_id: 9_001,
-            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
             direction: Vec3::new(0.0, -1.0, -1.0),
             color: Vec3::ONE,
             intensity: 2.0,
@@ -287,7 +287,7 @@ fn product_spot_light(index: u64) -> RenderSpotLightSnapshot {
     RenderSpotLightSnapshot {
         node_id: 1_000 + index,
         light_id: 10_000 + index,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(index as f32 * 2.0 - 2.0, 4.0, 1.0),
         direction: Vec3::new(0.0, -1.0, -0.25),
         color: Vec3::ONE,

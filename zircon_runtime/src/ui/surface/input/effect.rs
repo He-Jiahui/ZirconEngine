@@ -28,6 +28,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::surface::UiSurface;
+use super::UiSurfaceInputEffectResult;
 use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
 pub(crate) fn apply_dispatch_reply(
@@ -114,11 +115,11 @@ fn apply_dispatch_effect_at_index(
                 result.component_events.push(report);
             }
         }
-        Err(reason) => {
+        Err(error) => {
             result.rejected_effects.push(UiDispatchRejectedEffect {
                 effect_index,
                 effect,
-                reason,
+                reason: error.to_string(),
             });
         }
     }
@@ -185,7 +186,7 @@ pub(crate) fn apply_dispatch_reply_steps(
 fn apply_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
-) -> Result<Option<UiNodeId>, String> {
+) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::SetFocus { .. }
         | UiDispatchEffect::ClearFocus { .. }

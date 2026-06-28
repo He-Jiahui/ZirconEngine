@@ -54,7 +54,7 @@ The mapping is documented in `docs/ui-and-layout/slint-material-retained-editor-
 
 M0 Evidence and Spec freezes the source inventory, migration rules, no-Slint Editor dependency fence, docs index link, and boundary tests that tie the docs to `material.slint`.
 
-M1 Foundation Tokens brings Slint Material dark palette roles, state-layer opacities, metric ladder, typography scale, animation durations/easings, and elevation-shadow roles into `zircon_editor/assets/ui/theme/editor_material.v2.ui.toml`. Existing compact Editor-specific selectors may remain, but the Slint Material source roles must be present under stable token names.
+M1 Foundation Tokens brings Slint Material dark palette roles, state-layer opacities, metric ladder, typography scale, animation durations/easings, and elevation-shadow roles into `zircon_editor/assets/ui/theme/editor_material.zui`. Existing compact Editor-specific selectors may remain, but the Slint Material source roles must be present under stable token names.
 
 M2 State Layer, Ripple, Elevation defines retained state-layer behavior from `state_layer.slint`: hover/focus/press/disabled/drag opacity priority, keyboard activation through focus touch areas, tooltip gating, ripple data, and elevation shadow levels. Production implementation belongs in shared runtime UI and retained host painter modules, not in docs-only assets.
 
@@ -70,7 +70,7 @@ M6 Validation and Cutover runs the declared focused Cargo gates, static dependen
 
 M0 is complete when the spec, implementation plan, mapping doc, docs index entry, session note, and boundary tests exist, and the tests enforce the full `material.slint` export inventory plus the no direct `zircon_editor` Slint dependency fence.
 
-M1 is complete when `editor_material.v2.ui.toml` exposes Slint Material foundation tokens with stable names and the boundary test proves palette, metric, typography, animation, state-layer, and elevation roles are present with values derived from the local Slint Material template.
+M1 is complete when `editor_material.zui` exposes Slint Material foundation tokens with stable names and the boundary test proves palette, metric, typography, animation, state-layer, and elevation roles are present with values derived from the local Slint Material template.
 
 This session only claims focused static validation. Full Cargo build/test remains the milestone testing-stage responsibility because the worktree is heavily dirty and unrelated UI/render/session lanes currently own broad compile blockers.
 

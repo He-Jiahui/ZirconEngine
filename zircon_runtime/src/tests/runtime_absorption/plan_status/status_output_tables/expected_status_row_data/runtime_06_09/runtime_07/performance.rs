@@ -20,12 +20,75 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 07 render submit viewport/provider errors",
+        &[
+            "render_submit_viewport_provider_errors_review_guard_static_passed_cargo_timeout_no_result_full_runtime07_pending",
+            "viewport_record_mut_after_generation_check",
+            "RenderFrameworkError::UnsupportedCapability",
+            "review_f4_render_submit_capability_gaps_return_typed_errors",
+        ],
+    ),
+    (
         "Runtime 07 render camera-loop descriptor submissions",
         &[
             "render_camera_loop_descriptor_submissions_coremin_check_passed_partial",
             "camera_loop_submissions",
             "CameraLoopSubmission",
             "camera: CameraRenderDescriptor",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop borrowed sequence resolution",
+        &[
+            "render_camera_loop_borrowed_sequence_resolution_static_passed_cargo_deferred",
+            "resolve_camera_sequence_borrowed",
+            "extract.view.cameras.clone",
+            "runtime_07_submit_context_shares_large_extract_payloads",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop source view restore narrowing",
+        &[
+            "render_camera_loop_source_view_restore_narrowed_static_passed_cargo_deferred",
+            "CameraLoopExtractSourceState",
+            "view_target_size: Option<crate::core::math::UVec2>",
+            "extract.view.target_size = self.view_target_size",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop post-process source restore narrowing",
+        &[
+            "render_camera_loop_post_process_restore_narrowed_static_passed_cargo_deferred",
+            "CameraLoopPostProcessSourceState",
+            "post_process: CameraLoopPostProcessSourceState",
+            "self.post_process.restore_to(&mut extract.post_process)",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop VG/HGI conditional source restore",
+        &[
+            "render_camera_loop_vg_hgi_conditional_restore_static_passed_cargo_deferred",
+            "restore_optional_payload_source",
+            "restore_optional_payload_source(&self.virtual_geometry",
+            "restore_optional_payload_source(&self.hybrid_global_illumination",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop single-child source-state capture skip",
+        &[
+            "render_camera_loop_single_child_source_state_capture_skipped_static_passed_cargo_deferred",
+            "Some(CameraLoopExtractSourceState::capture(source))",
+            "(submissions.len() > 1).then(|| CameraLoopFrameSourceState::capture(&mut frame))",
+            "if submission_index > 0",
+        ],
+    ),
+    (
+        "Runtime 07 render camera-loop source payload slot ownership",
+        &[
+            "render_camera_loop_source_payload_slot_owned_static_passed_cargo_deferred",
+            "FrameSubmissionSourcePayloads",
+            "virtual_geometry: extract.geometry.virtual_geometry.take()",
+            "FrameHistoryValidationKey::from_extract_with_hybrid_gi",
         ],
     ),
     (
@@ -116,6 +179,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "build_frame_submission_context_from_runtime_frame_extract",
             "Arc::make_mut(extract_source)",
             "Arc::clone(extract_source)",
+        ],
+    ),
+    (
+        "Runtime 07 F16 compiled-scene split status guard",
+        &[
+            "compiled_scene_render_split_review_guard_static_passed_cargo_deferred",
+            "review_f16_compiled_scene_render_path_uses_split_owners",
+            "bind_compiled_scene_graph_resources.rs",
+            "submit_compiled_scene_frame.rs",
         ],
     ),
     (

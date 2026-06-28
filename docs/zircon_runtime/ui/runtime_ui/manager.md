@@ -53,7 +53,7 @@ The index is updated only after the surface computes layout successfully, so fai
 
 ## Hot Reload Bridge
 
-The runtime manager exposes `asset_surface_index()` for runtime tests and future hot-reload executors. A watch event for `res://ui/runtime/fixtures/quest_log_dialog.v2.ui.toml` can now flow through:
+The runtime manager exposes `asset_surface_index()` for runtime tests and future hot-reload executors. A watch event for `res://ui/runtime/fixtures/quest_log_dialog.zui` can now flow through:
 
 1. `UiAssetDependencyIndex::apply_watch_changes(...)`
 2. `UiAssetHotReloadPlan::from_watch_report(...)`

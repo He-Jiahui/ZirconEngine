@@ -71,6 +71,16 @@ def build_report(root: Path) -> dict[str, Any]:
             "importer_free_function_registration_sites": (
                 registration_conformance["importer_free_function_registration_sites"]
             ),
+            "runtime_registration_builder_violation_count": (
+                registration_conformance[
+                    "runtime_registration_builder_violation_count"
+                ]
+            ),
+            "m3_t2_runtime_registration_builder_status": (
+                registration_conformance[
+                    "m3_t2_runtime_registration_builder_status"
+                ]
+            ),
             "capability_source_mismatches": capability_conformance[
                 "capability_source_mismatches"
             ],
@@ -85,6 +95,12 @@ def build_report(root: Path) -> dict[str, Any]:
             ],
             "m4_t2_builder_mirror_gate_status": capability_conformance[
                 "m4_t2_builder_mirror_gate_status"
+            ],
+            "editor_runtime_mirror_violations": capability_conformance[
+                "editor_runtime_mirror_violations"
+            ],
+            "d9_editor_runtime_mirror_gate_status": capability_conformance[
+                "d9_editor_runtime_mirror_gate_status"
             ],
             "dist_capable_plugin_count": dependency_boundary[
                 "dist_capable_plugin_count"
@@ -125,6 +141,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Missing plugin.toml: {manifest_schema['missing_plugin_toml']}",
         f"- Manifest schema violations: {manifest_schema['manifest_schema_violations']}",
         f"- Skeleton sample status: `{report['skeleton_conformance']['sample_conformance_status']}`",
+        f"- Core workspace dependency status: `{report['skeleton_conformance']['core_workspace_dependency_status']}`",
+        f"- Core workspace dependency count: {report['skeleton_conformance']['core_workspace_dependency_count']}",
+        f"- Core workspace dependency violations: {report['skeleton_conformance']['core_workspace_dependency_violation_count']}",
         f"- Skeleton migration debt roots: {report['skeleton_conformance']['migration_debt_count']}",
         f"- Skeleton migration debt details: {report['skeleton_conformance']['migration_debt_detail_count']}",
         f"- Asset importer family free-function registration sites: {report['registration_conformance']['asset_importer_family_free_function_registration_sites']}",
@@ -132,11 +151,17 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Split importer free-function registration sites: {report['registration_conformance']['split_importer_free_function_registration_sites']}",
         f"- Split importer registration gate status: `{report['registration_conformance']['m3_split_importer_gate_status']}`",
         f"- Importer registration gate status: `{report['registration_conformance']['m3_importer_gate_status']}`",
+        f"- Runtime registration builder roots: {len(report['registration_conformance']['runtime_registration_builder_roots'])}",
+        f"- Runtime registration builder violations: {report['registration_conformance']['runtime_registration_builder_violation_count']}",
+        f"- Runtime registration builder gate status: `{report['registration_conformance']['m3_t2_runtime_registration_builder_status']}`",
         f"- Capability audited runtime roots: {capability['audited_runtime_root_count']}",
         f"- Capability source mismatches: {capability['capability_source_mismatches']}",
         f"- M4 runtime capability gate status: `{capability['m4_runtime_capability_gate_status']}`",
         f"- SDK builder/mirror violations: {capability['sdk_builder_mirror_violations']}",
         f"- M4/T2 builder mirror gate status: `{capability['m4_t2_builder_mirror_gate_status']}`",
+        f"- Editor-runtime mirror roots: {capability['editor_runtime_mirror_root_count']}",
+        f"- Editor-runtime mirror violations: {capability['editor_runtime_mirror_violations']}",
+        f"- D9 editor/runtime mirror gate status: `{capability['d9_editor_runtime_mirror_gate_status']}`",
         f"- Dist-capable plugins: {standalone['dist_capable_plugin_count']}",
         f"- Dist build matrix entries: {standalone['dist_build_matrix_count']}",
         f"- Distribution section violations: {standalone['distribution_section_violations']}",
@@ -159,6 +184,13 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         lines.append("## Skeleton Sample Violations")
         lines.extend(f"- {violation}" for violation in skeleton["sample_violations"])
+    if skeleton["core_workspace_dependency_violations"]:
+        lines.append("")
+        lines.append("## Core Workspace Dependency Violations")
+        lines.extend(
+            f"- {violation}"
+            for violation in skeleton["core_workspace_dependency_violations"]
+        )
     if skeleton["migration_debt_roots"]:
         lines.append("")
         lines.append("## Skeleton Migration Debt Roots")
@@ -182,6 +214,13 @@ def render_markdown(report: dict[str, Any]) -> str:
                 "split_importer_free_function_registration_site_details"
             ]
         )
+    if registration["runtime_registration_builder_violations"]:
+        lines.append("")
+        lines.append("## Runtime Registration Builder Violations")
+        lines.extend(
+            f"- `{violation}`"
+            for violation in registration["runtime_registration_builder_violations"]
+        )
     if capability["capability_source_mismatch_details"]:
         lines.append("")
         lines.append("## Capability Source Mismatches")
@@ -195,6 +234,13 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             f"- `{violation}`"
             for violation in capability["sdk_builder_mirror_violation_details"]
+        )
+    if capability["editor_runtime_mirror_violation_details"]:
+        lines.append("")
+        lines.append("## Editor Runtime Mirror Violations")
+        lines.extend(
+            f"- `{violation}`"
+            for violation in capability["editor_runtime_mirror_violation_details"]
         )
     if standalone["distribution_section_violation_details"]:
         lines.append("")

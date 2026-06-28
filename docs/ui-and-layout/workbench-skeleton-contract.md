@@ -86,13 +86,13 @@ Each region has one fixed role:
 
 `RegionBinding::new(...)` validates the role before accepting a panel asset. This keeps author-facing layout declarations from putting inspector content into a project-tree slot or console content into the center document slot.
 
-The layout-owned skeleton and floating-window assets import `editor_tokens.v2.ui.toml` and reference `editor.*` token names for their shell chrome colors. That keeps new layout assets aligned with the design-language contract while older shell/module assets are migrated in later token cleanup slices.
+The layout-owned skeleton and floating-window assets import `editor_tokens.zui` and reference `editor.*` token names for their shell chrome colors. That keeps new layout assets aligned with the design-language contract while older shell/module assets are migrated in later token cleanup slices.
 
 `WorkbenchSkeleton::preferred_region_extents_from_tokens(...)` projects each declared region `size_token` into shell-region preferred extents. The result feeds the existing `compute_workbench_shell_geometry(..., transient_region_preferred)` path, so authored layout declarations can influence shell autolayout without adding another layout solver or hard-coded shell dimensions.
 
 `WorkbenchShellRegionsAsset::from_toml_str(...)` parses the dedicated `shell_regions.toml` layout asset into a typed asset header plus validated `RegionBinding` rows. The loader rejects wrong asset kind/id/version, duplicate regions, missing regions, and region-role mismatches before the rows can replace the built-in skeleton regions. `WorkbenchSkeleton::from_shell_regions_asset(...)` keeps the default workbench chrome assets and swaps only the verified region declarations.
 
-`workbench_main_band.zui`, `workbench_scene_tree_panel.zui`, and `workbench_inspector_panel.zui` now import `editor_tokens.v2.ui.toml` and reference `$--left-drawer-width` / `$--right-drawer-width` for fixed drawer widths. The old inline `332.0` and `404.0` drawer sizes are no longer the source for those shell assets.
+`workbench_main_band.zui`, `workbench_scene_tree_panel.zui`, and `workbench_inspector_panel.zui` now import `editor_tokens.zui` and reference `$--left-drawer-width` / `$--right-drawer-width` for fixed drawer widths. The old inline `332.0` and `404.0` drawer sizes are no longer the source for those shell assets.
 
 The docking command model now treats drawer collapse, drawer tab activation, center split creation, and view focus as layout-owned state transitions. Collapsing a drawer keeps its tab stack but clears the active view. Activating a drawer tab restores the drawer to pinned mode and sets both the tab stack active tab and drawer active view. Center splits remain `DocumentNode::SplitNode` trees with active document tabs owned by the tab stack. Expected mutation failures return `LayoutCommandError` instead of an unstructured string inside the layout owner.
 

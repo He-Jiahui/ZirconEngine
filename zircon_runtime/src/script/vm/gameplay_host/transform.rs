@@ -2,6 +2,7 @@ use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, Scr
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::script::current_script_runtime_call_context;
 
+use super::error::{GameplayHostError, GameplayHostResult};
 use super::navigation::navigation_next_point;
 use super::values::{expect_entity, expect_float, expect_vec3_json, to_json_string, vec3_to_array};
 
@@ -127,21 +128,22 @@ pub(super) fn camera_follow(
         expect_float(context, 4)?,
     );
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let Some(target) = world.world_transform(target_entity) else {
-            return Err(format!(
-                "camera follow target entity {target_entity} is missing"
-            ));
-        };
-        let eye = target.translation + offset;
-        let focus = target.translation + Vec3::Y;
-        world
-            .update_transform(entity, Transform::looking_at(eye, focus, Vec3::Y))
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let Some(target) = world.world_transform(target_entity) else {
+                return Err(GameplayHostError::missing_entity(
+                    "camera follow target",
+                    target_entity,
+                ));
+            };
+            let eye = target.translation + offset;
+            let focus = target.translation + Vec3::Y;
+            Ok(world.update_transform(entity, Transform::looking_at(eye, focus, Vec3::Y))?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn set_entity_position(
@@ -149,18 +151,18 @@ pub(super) fn set_entity_position(
     position: Vec3,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let mut transform = world
-            .world_transform(entity)
-            .unwrap_or_else(Transform::default);
-        transform.translation = position;
-        world
-            .update_transform(entity, transform)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let mut transform = world
+                .world_transform(entity)
+                .unwrap_or_else(Transform::default);
+            transform.translation = position;
+            Ok(world.update_transform(entity, transform)?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn translate_entity(
@@ -168,18 +170,18 @@ pub(super) fn translate_entity(
     delta: Vec3,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let mut transform = world
-            .world_transform(entity)
-            .unwrap_or_else(Transform::default);
-        transform.translation += delta;
-        world
-            .update_transform(entity, transform)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let mut transform = world
+                .world_transform(entity)
+                .unwrap_or_else(Transform::default);
+            transform.translation += delta;
+            Ok(world.update_transform(entity, transform)?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn face_entity_direction(
@@ -192,18 +194,18 @@ pub(super) fn face_entity_direction(
     }
     let yaw = planar.x.atan2(-planar.z);
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let mut transform = world
-            .world_transform(entity)
-            .unwrap_or_else(Transform::default);
-        transform.rotation = Quat::from_rotation_y(yaw);
-        world
-            .update_transform(entity, transform)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let mut transform = world
+                .world_transform(entity)
+                .unwrap_or_else(Transform::default);
+            transform.rotation = Quat::from_rotation_y(yaw);
+            Ok(world.update_transform(entity, transform)?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn set_entity_scale(
@@ -211,18 +213,18 @@ pub(super) fn set_entity_scale(
     scale: Vec3,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let mut transform = world
-            .world_transform(entity)
-            .unwrap_or_else(Transform::default);
-        transform.scale = scale;
-        world
-            .update_transform(entity, transform)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let mut transform = world
+                .world_transform(entity)
+                .unwrap_or_else(Transform::default);
+            transform.scale = scale;
+            Ok(world.update_transform(entity, transform)?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn follow_entity_position(
@@ -231,21 +233,24 @@ pub(super) fn follow_entity_position(
     offset: Vec3,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = current_script_runtime_call_context()?;
-    let result = runtime.level.with_world_mut(|world| {
-        let Some(target) = world.world_transform(target_entity) else {
-            return Err(format!("follow target entity {target_entity} is missing"));
-        };
-        let mut transform = world
-            .world_transform(entity)
-            .unwrap_or_else(Transform::default);
-        transform.translation = target.translation + offset;
-        world
-            .update_transform(entity, transform)
-            .map_err(|error| error.to_string())
-    });
+    let result = runtime
+        .level
+        .with_world_mut(|world| -> GameplayHostResult<bool> {
+            let Some(target) = world.world_transform(target_entity) else {
+                return Err(GameplayHostError::missing_entity(
+                    "follow target",
+                    target_entity,
+                ));
+            };
+            let mut transform = world
+                .world_transform(entity)
+                .unwrap_or_else(Transform::default);
+            transform.translation = target.translation + offset;
+            Ok(world.update_transform(entity, transform)?)
+        });
     result
         .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::new)
+        .map_err(ScriptHostError::from)
 }
 
 pub(super) fn move_entity_towards_target(
@@ -267,12 +272,10 @@ pub(super) fn move_entity_towards_target(
         )
     });
     let Some(start) = start else {
-        return Err(ScriptHostError::new(format!("entity {entity} is missing")));
+        return Err(GameplayHostError::missing_entity("move source", entity).into());
     };
     let Some(target) = target else {
-        return Err(ScriptHostError::new(format!(
-            "target entity {target_entity} is missing"
-        )));
+        return Err(GameplayHostError::missing_entity("move target", target_entity).into());
     };
     let target = if prefer_navigation {
         navigation_next_point(&runtime, start, target).unwrap_or(target)

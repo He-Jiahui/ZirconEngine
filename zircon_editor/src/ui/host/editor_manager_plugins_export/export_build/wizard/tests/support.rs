@@ -140,7 +140,7 @@ pub(super) fn desktop_export_panel_template_path() -> PathBuf {
         .join("zircon_plugins")
         .join("editor_build_export_desktop")
         .join("editor")
-        .join("panel.v2.ui.toml")
+        .join("panel.zui")
 }
 
 pub(super) fn find_projection_node<'a>(

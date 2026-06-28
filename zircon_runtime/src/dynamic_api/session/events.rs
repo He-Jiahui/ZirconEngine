@@ -162,7 +162,7 @@ impl RuntimeDynamicSession {
         let wheel = MouseWheelEvent::new(unit, delta_x, delta_y);
         self.input_manager
             .submit_event(InputEvent::MouseWheel(wheel));
-        self.handle_scroll(wheel.legacy_vertical_delta());
+        self.handle_scroll(wheel.vertical_line_delta());
         ZrStatus::ok()
     }
 

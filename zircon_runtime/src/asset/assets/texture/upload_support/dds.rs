@@ -61,10 +61,12 @@ pub(super) fn dds_upload_plan(
     }
     let value = format.trim().to_ascii_lowercase();
     let (normalized, data_offset, bytes_per_block) = match value.as_str() {
-        "dds/dxt1" => dds_legacy_upload_layout(&value, bytes, 8)?,
-        "dds/dxt3" | "dds/dxt5" => dds_legacy_upload_layout(&value, bytes, 16)?,
-        "dds/ati1" | "dds/bc4u" | "dds/bc4s" => dds_legacy_upload_layout(&value, bytes, 8)?,
-        "dds/ati2" | "dds/bc5u" | "dds/bc5s" => dds_legacy_upload_layout(&value, bytes, 16)?,
+        "dds/dxt1" => dds_classic_fourcc_upload_layout(&value, bytes, 8)?,
+        "dds/dxt3" | "dds/dxt5" => dds_classic_fourcc_upload_layout(&value, bytes, 16)?,
+        "dds/ati1" | "dds/bc4u" | "dds/bc4s" => dds_classic_fourcc_upload_layout(&value, bytes, 8)?,
+        "dds/ati2" | "dds/bc5u" | "dds/bc5s" => {
+            dds_classic_fourcc_upload_layout(&value, bytes, 16)?
+        }
         value if value.starts_with("dds/dxgi-") => {
             if dds_fourcc(bytes)? != "DX10" {
                 return None;
@@ -97,7 +99,7 @@ pub(super) fn dds_upload_plan(
     })
 }
 
-fn dds_legacy_upload_layout(
+fn dds_classic_fourcc_upload_layout(
     normalized: &str,
     bytes: &[u8],
     bytes_per_block: u32,
@@ -174,7 +176,7 @@ fn dds_header_mip_count(bytes: &[u8]) -> Option<u32> {
 
 fn dds_header_layer_count(bytes: &[u8]) -> Option<u32> {
     let caps2 = read_u32_le(bytes, 112)?;
-    let legacy_faces = if caps2 & DDSCAPS2_CUBEMAP != 0 { 6 } else { 1 };
+    let classic_faces = if caps2 & DDSCAPS2_CUBEMAP != 0 { 6 } else { 1 };
     if dds_fourcc(bytes)? == "DX10" {
         let misc_flag = read_u32_le(bytes, 136)?;
         let dx10_faces = if misc_flag & DDS_RESOURCE_MISC_TEXTURECUBE != 0 {
@@ -184,7 +186,7 @@ fn dds_header_layer_count(bytes: &[u8]) -> Option<u32> {
         };
         return read_u32_le(bytes, 140)?.max(1).checked_mul(dx10_faces);
     }
-    Some(legacy_faces)
+    Some(classic_faces)
 }
 
 fn dds_dx10_extension_header_is_upload_ready(bytes: &[u8]) -> Option<bool> {
@@ -198,12 +200,14 @@ fn dds_dx10_extension_header_is_upload_ready(bytes: &[u8]) -> Option<bool> {
     }
 
     let caps2 = read_u32_le(bytes, 112)?;
-    let legacy_cubemap = caps2 & DDSCAPS2_CUBEMAP != 0;
+    let classic_header_cubemap = caps2 & DDSCAPS2_CUBEMAP != 0;
     let dx10_texturecube = misc_flag & DDS_RESOURCE_MISC_TEXTURECUBE != 0;
-    if legacy_cubemap && dx10_texturecube {
+    if classic_header_cubemap && dx10_texturecube {
         return Some(false);
     }
-    if (legacy_cubemap || dx10_texturecube) && read_u32_le(bytes, 108)? & DDSCAPS_COMPLEX == 0 {
+    if (classic_header_cubemap || dx10_texturecube)
+        && read_u32_le(bytes, 108)? & DDSCAPS_COMPLEX == 0
+    {
         return Some(false);
     }
 

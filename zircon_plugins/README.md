@@ -29,6 +29,36 @@ optional-feature `display_name`, and capability status `note`) must be trimmed
 before plugin-window, readiness-report, runtime-report, or export diagnostics
 consume them. Unknown top-level fields and unknown nested row fields are rejected
 so misspelled static metadata cannot be silently ignored by parser defaults.
+
+Rendering plugins may declare optional shader permutation ids in
+`[shader_permutation]` with `[[shader_permutation.geometry_source_ids]]` and
+`[[shader_permutation.shading_model_ids]]` entries. Each row uses a custom
+`token` plus plugin-range `id` (`GeometrySourceId >= 4`,
+`ShadingModelId >= 16`). Staged builds consume only the selected plugins'
+manifest rows when generating `shader_permutation_registry.json`; explicit
+`--shader-permutation-registry` still overrides automatic generation. The first
+closed slice is Plugin shader permutation registry auto-export:
+`virtual_geometry` declares `custom:virtual_geometry = 4`, and
+`test_zircon_build_discovers_plugin_shader_permutation_records` plus
+`runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired`
+lock this schema. Status:
+`render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred`.
+The generated handoff is also validated before staged prewarm runs: Plugin
+shader permutation registry export contract checks that the generated registry
+contains the selected plugin and explicit CLI geometry/shading ids through
+`test_validate_generated_registry_requires_selected_plugin_ids` and
+`runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired`.
+Status:
+`render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred`.
+Rendering plugins that define custom shading models should prefer
+`[[shading_models]]` descriptor rows with `id`, `token`, include names, and a
+`required_channels` mask. Staged builds derive selected-plugin
+`shader_shading_model_ids` from those descriptor rows, so plugins do not need to
+duplicate the same id under `shader_permutation.shading_model_ids`. The focused
+regression is
+`test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids`;
+status:
+`render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`.
 Static package ids must use lowercase snake-style tokens and match the package
 directory name in `zircon_plugins/<plugin_id>/plugin.toml`.
 Static `version` and `sdk_api_version` values must use `MAJOR.MINOR.PATCH`
@@ -176,7 +206,10 @@ runtime report metadata.
 static manifests and built-in catalog descriptors publish rendering category,
 client/editor target set, primary runtime capability, and advanced render
 capability rows so export planning and quality-profile filtering see the same
-metadata shape before module-local declarations.
+metadata shape before module-local declarations. `virtual_geometry` also
+publishes the first plugin shader permutation manifest row
+(`custom:virtual_geometry = 4`) so selected-plugin staged builds can prewarm its
+custom geometry source through the generated permutation registry.
 
 The Authoring plugin family follows the same package rules: `terrain`,
 `tilemap_2d`, and `prefab_tools` own runtime asset/component descriptors and

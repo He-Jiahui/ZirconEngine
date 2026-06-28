@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy, VmPluginMemoryPolicy};
+use super::{
+    VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy, VmPluginManagementPolicyResult,
+    VmPluginMemoryPolicy,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VmPluginManagementPolicy {
@@ -41,7 +44,7 @@ impl VmPluginManagementPolicy {
         self
     }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> VmPluginManagementPolicyResult<()> {
         self.garbage_collection.validate()?;
         self.memory.validate()
     }

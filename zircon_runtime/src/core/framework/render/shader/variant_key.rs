@@ -22,6 +22,7 @@ pub enum ShaderPassType {
     DepthPrepass,
     Shadow,
     Velocity,
+    TaaReactiveMask,
 }
 
 impl ShaderPassType {
@@ -32,6 +33,7 @@ impl ShaderPassType {
             Self::DepthPrepass => 2,
             Self::Shadow => 3,
             Self::Velocity => 4,
+            Self::TaaReactiveMask => 5,
         }
     }
 
@@ -42,6 +44,7 @@ impl ShaderPassType {
             Self::DepthPrepass => "depth_prepass",
             Self::Shadow => "shadow",
             Self::Velocity => "velocity",
+            Self::TaaReactiveMask => "taa_reactive_mask",
         }
     }
 }
@@ -206,5 +209,12 @@ mod tests {
         assert!(features.contains(ShaderFeatureBits::ALPHA_TEST));
         assert!(features.contains(ShaderFeatureBits::INSTANCED_PREV_TRANSFORM));
         assert!(!features.contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+    }
+
+    #[test]
+    fn render_shader_pass_type_names_taa_reactive_mask_separately_from_forward() {
+        assert_eq!(ShaderPassType::Forward.packed_value(), 0);
+        assert_eq!(ShaderPassType::TaaReactiveMask.packed_value(), 5);
+        assert_eq!(ShaderPassType::TaaReactiveMask.token(), "taa_reactive_mask");
     }
 }

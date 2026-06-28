@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiTextAlign,
-    UiTextPaintDecorationKind, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+    UiTextDirection, UiTextPaintDecorationKind, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
 };
 
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
@@ -59,6 +59,7 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) font_size: f32,
     pub(super) line_height: f32,
     pub(super) text_align: UiTextAlign,
+    pub(super) text_direction: UiTextDirection,
     pub(super) wrap: UiTextWrap,
     pub(super) style: UiTextRunPaintStyle,
 }
@@ -390,6 +391,7 @@ fn push_text_batches(
                     run.line_height,
                     run_color,
                     UiTextAlign::Left,
+                    command.style.text_direction,
                     UiTextWrap::None,
                     run.style,
                     plan,
@@ -413,6 +415,7 @@ fn push_text_batches(
                 layout.line_height,
                 color,
                 command.style.text_align,
+                line.direction,
                 command.style.wrap,
                 UiTextRunPaintStyle::default(),
                 plan,
@@ -431,6 +434,7 @@ fn push_text_batches(
             command.style.line_height.max(font_size),
             color,
             command.style.text_align,
+            command.style.text_direction,
             command.style.wrap,
             UiTextRunPaintStyle::default(),
             plan,
@@ -458,6 +462,7 @@ fn push_text_batch(
     line_height: f32,
     color: [f32; 4],
     text_align: UiTextAlign,
+    text_direction: UiTextDirection,
     wrap: UiTextWrap,
     style: UiTextRunPaintStyle,
     plan: &mut PlannedScreenSpaceUi,
@@ -476,6 +481,7 @@ fn push_text_batch(
         font_size: font_size.max(1.0),
         line_height: line_height.max(font_size.max(1.0)),
         text_align,
+        text_direction,
         wrap,
         style,
     };

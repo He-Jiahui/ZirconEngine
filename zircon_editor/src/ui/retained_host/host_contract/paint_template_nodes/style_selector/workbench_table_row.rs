@@ -16,3 +16,4 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palett
     WORKBENCH_TABLE_TAIL_BG,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_table_row_style;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::is_hot as is_hot_workbench_table_row_state;

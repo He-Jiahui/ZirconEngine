@@ -1,16 +1,17 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::FontFaceId;
+use crate::graphics::text::font::FontDatabase;
 
-use super::font_asset::load_ui_font_manifest_with_asset_manager;
+use super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
 use super::sdf_atlas::{SdfAtlasGlyphKey, SdfAtlasPlan, SdfAtlasRect};
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const FALLBACK_ADVANCE_RATIO: f32 = 0.6;
 
 pub(super) struct SdfFontBakeCache {
-    fonts: HashMap<PathBuf, fontsdf::Font>,
+    fonts: HashMap<FontFaceId, fontsdf::Font>,
 }
 
 #[derive(Clone, Debug)]
@@ -56,6 +57,7 @@ impl SdfFontBakeCache {
     pub(super) fn build_atlas(
         &mut self,
         plan: &SdfAtlasPlan,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> SdfAtlasBake {
         let width = plan.atlas_size.x.max(1);
@@ -64,7 +66,7 @@ impl SdfFontBakeCache {
         let mut glyphs = Vec::with_capacity(plan.slots.len());
 
         for slot in &plan.slots {
-            let baked = self.bake_glyph(&slot.key, asset_manager);
+            let baked = self.bake_glyph(&slot.key, font_database, asset_manager);
             write_glyph_bitmap(
                 &mut pixels,
                 width,
@@ -103,6 +105,7 @@ impl SdfFontBakeCache {
         font: Option<&str>,
         font_family: Option<&str>,
         font_size: f32,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> SdfGlyphMetrics {
         let key = SdfAtlasGlyphKey {
@@ -111,16 +114,17 @@ impl SdfFontBakeCache {
             font_family: font_family.map(str::to_string),
             font_size_milli: font_size_milli(font_size),
         };
-        self.measure_key(&key, asset_manager)
+        self.measure_key(&key, font_database, asset_manager)
     }
 
     fn measure_key(
         &mut self,
         key: &SdfAtlasGlyphKey,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> SdfGlyphMetrics {
         let px = key.font_size_milli as f32 / 1000.0;
-        let Some(font) = self.font_for_key(key, asset_manager) else {
+        let Some(font) = self.font_for_key(key, font_database, asset_manager) else {
             return fallback_metrics(px);
         };
         let index = glyph_index(font, key.glyph);
@@ -131,10 +135,11 @@ impl SdfFontBakeCache {
     fn bake_glyph(
         &mut self,
         key: &SdfAtlasGlyphKey,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> RawBakedGlyph {
         let px = key.font_size_milli as f32 / 1000.0;
-        let Some(font) = self.font_for_key(key, asset_manager) else {
+        let Some(font) = self.font_for_key(key, font_database, asset_manager) else {
             return RawBakedGlyph::empty(fallback_metrics(px));
         };
         let index = glyph_index(font, key.glyph);
@@ -158,26 +163,47 @@ impl SdfFontBakeCache {
     fn font_for_key(
         &mut self,
         key: &SdfAtlasGlyphKey,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> Option<&fontsdf::Font> {
-        self.font_for_asset(key.font.as_deref(), asset_manager)
+        self.font_for_asset(key.font.as_deref(), font_database, asset_manager)
     }
 
     fn font_for_asset(
         &mut self,
         font_asset: Option<&str>,
+        font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> Option<&fontsdf::Font> {
-        let path = resolve_font_source_path(font_asset, asset_manager)
-            .or_else(|| resolve_font_source_path(Some(DEFAULT_FONT_ASSET), asset_manager))?;
+        let requested_face = resolve_font_face(font_asset, font_database, asset_manager);
+        let default_face =
+            resolve_font_face(Some(DEFAULT_FONT_ASSET), font_database, asset_manager);
+        let face = [requested_face, default_face]
+            .into_iter()
+            .flatten()
+            .find(|face| self.ensure_sdf_font(*face, font_database))?;
 
-        if !self.fonts.contains_key(&path) {
-            let bytes = std::fs::read(&path).ok()?;
-            let font = fontsdf::Font::from_bytes(&bytes).ok()?;
-            self.fonts.insert(path.clone(), font);
+        self.fonts.get(&face)
+    }
+
+    fn ensure_sdf_font(&mut self, face: FontFaceId, font_database: &FontDatabase) -> bool {
+        if self.fonts.contains_key(&face) {
+            return true;
         }
 
-        self.fonts.get(&path)
+        if font_database.face_index(face).ok() != Some(0) {
+            return false;
+        }
+
+        let Some(font) = font_database
+            .face_bytes(face)
+            .ok()
+            .and_then(|bytes| fontsdf::Font::from_bytes(bytes.as_ref()).ok())
+        else {
+            return false;
+        };
+        self.fonts.insert(face, font);
+        true
     }
 }
 
@@ -197,15 +223,36 @@ impl RawBakedGlyph {
     }
 }
 
-fn resolve_font_source_path(
+fn resolve_font_face(
     font_asset: Option<&str>,
+    font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
-) -> Option<PathBuf> {
+) -> Option<FontFaceId> {
     let asset = font_asset
         .filter(|asset| !asset.trim().is_empty())
         .unwrap_or(DEFAULT_FONT_ASSET);
-    load_ui_font_manifest_with_asset_manager(asset, Some(asset_manager))
-        .map(|manifest| manifest.source_path)
+    let manifest = load_ui_font_manifest_with_asset_manager(asset, Some(asset_manager))?;
+    register_loaded_font_manifest(font_database, &manifest)
+}
+
+fn register_loaded_font_manifest(
+    font_database: &mut FontDatabase,
+    manifest: &LoadedUiFontManifest,
+) -> Option<FontFaceId> {
+    if let Some(asset) = &manifest.asset {
+        return font_database
+            .register_font_asset(asset, &manifest.source_path)
+            .ok()
+            .and_then(|faces| faces.first().copied());
+    }
+
+    font_database
+        .register_font_file(
+            &manifest.source_path,
+            manifest.family.as_deref(),
+            manifest.face_index,
+        )
+        .ok()
 }
 
 fn glyph_index(font: &fontsdf::Font, glyph: char) -> u16 {
@@ -276,14 +323,16 @@ mod tests {
     use crate::asset::ProjectAssetManager;
     use crate::core::math::UVec2;
     use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{SdfAtlasPlan, SdfAtlasSlot};
+    use std::path::PathBuf;
 
     #[test]
     fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
         let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
         let asset_manager = ProjectAssetManager::default();
         let plan = atlas_plan_for_glyphs(&['A', 'I', 'O']);
 
-        let atlas = bake.build_atlas(&plan, &asset_manager);
+        let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
 
         let a = slot_pixels(&atlas.pixels, plan.atlas_size.x, plan.slots[0].rect);
         let i = slot_pixels(&atlas.pixels, plan.atlas_size.x, plan.slots[1].rect);
@@ -305,10 +354,11 @@ mod tests {
     #[test]
     fn sdf_font_bake_does_not_match_the_old_rounded_rect_placeholder() {
         let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
         let asset_manager = ProjectAssetManager::default();
         let plan = atlas_plan_for_glyphs(&['A']);
 
-        let atlas = bake.build_atlas(&plan, &asset_manager);
+        let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
 
         let actual = slot_pixels(&atlas.pixels, plan.atlas_size.x, plan.slots[0].rect);
         let placeholder =
@@ -320,6 +370,7 @@ mod tests {
     #[test]
     fn sdf_font_bake_measures_whitespace_without_atlas_bitmap() {
         let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
         let asset_manager = ProjectAssetManager::default();
 
         let metrics = bake.measure_glyph(
@@ -327,6 +378,7 @@ mod tests {
             Some(DEFAULT_FONT_ASSET),
             Some("Fira Mono"),
             18.0,
+            &mut font_database,
             &asset_manager,
         );
 
@@ -338,6 +390,7 @@ mod tests {
     #[test]
     fn sdf_font_bake_handles_missing_glyph_with_stable_empty_fallback() {
         let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
         let asset_manager = ProjectAssetManager::default();
         let plan = atlas_plan_for_glyphs(&['\u{10ffff}']);
 
@@ -346,12 +399,13 @@ mod tests {
             Some(DEFAULT_FONT_ASSET),
             Some("Fira Mono"),
             18.0,
+            &mut font_database,
             &asset_manager,
         );
 
         assert!(metrics.advance > 0.0);
 
-        let atlas = bake.build_atlas(&plan, &asset_manager);
+        let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
         assert_eq!(atlas.glyphs.len(), 1);
         assert!(atlas.glyphs[0].metrics.advance > 0.0);
         assert_eq!(
@@ -363,8 +417,24 @@ mod tests {
     }
 
     #[test]
+    fn sdf_font_bake_falls_back_when_fontsdf_cannot_open_requested_face_index() {
+        let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
+        let asset_manager = ProjectAssetManager::default();
+        let manifest = write_face_index_manifest(1);
+        let plan = atlas_plan_for_asset('A', manifest.path().to_string_lossy().as_ref());
+
+        let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+
+        assert_eq!(atlas.report.slot_count, 1);
+        assert_eq!(atlas.report.visible_glyph_count, 1);
+        assert!(atlas.report.nonzero_pixel_count > 0);
+    }
+
+    #[test]
     fn sdf_font_bake_report_handles_empty_atlas_plan() {
         let mut bake = SdfFontBakeCache::new();
+        let mut font_database = FontDatabase::with_default_fallbacks();
         let asset_manager = ProjectAssetManager::default();
         let plan = SdfAtlasPlan {
             atlas_size: UVec2::new(1, 1),
@@ -372,7 +442,7 @@ mod tests {
             runs: Vec::new(),
         };
 
-        let atlas = bake.build_atlas(&plan, &asset_manager);
+        let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
 
         assert_eq!(atlas.pixels, vec![0]);
         assert_eq!(
@@ -412,6 +482,69 @@ mod tests {
             slots,
             runs: Vec::new(),
         }
+    }
+
+    fn atlas_plan_for_asset(glyph: char, asset_ref: &str) -> SdfAtlasPlan {
+        SdfAtlasPlan {
+            atlas_size: UVec2::new(64, 64),
+            slots: vec![SdfAtlasSlot {
+                key: SdfAtlasGlyphKey {
+                    glyph,
+                    font: Some(asset_ref.to_string()),
+                    font_family: Some("Fira Unsupported Face".to_string()),
+                    font_size_milli: 24_000,
+                },
+                rect: SdfAtlasRect {
+                    x: 0,
+                    y: 0,
+                    width: 64,
+                    height: 64,
+                },
+            }],
+            runs: Vec::new(),
+        }
+    }
+
+    struct TemporaryFontManifest {
+        manifest: PathBuf,
+        source: PathBuf,
+    }
+
+    impl TemporaryFontManifest {
+        fn path(&self) -> &std::path::Path {
+            &self.manifest
+        }
+    }
+
+    impl Drop for TemporaryFontManifest {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.source);
+            let _ = std::fs::remove_file(&self.manifest);
+        }
+    }
+
+    fn write_face_index_manifest(face_index: u32) -> TemporaryFontManifest {
+        let root = std::env::temp_dir();
+        let stem = format!("zircon-runtime-text-sdf-face-index-{}", std::process::id());
+        let manifest = root.join(format!("{stem}.font.toml"));
+        let source_name = format!("{stem}.ttf");
+        let source = root.join(&source_name);
+        std::fs::copy(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("assets")
+                .join("fonts")
+                .join("FiraSans-Regular.ttf"),
+            &source,
+        )
+        .unwrap();
+        std::fs::write(
+            &manifest,
+            format!(
+                "source = \"{source_name}\"\nfamily = \"Fira Unsupported Face\"\nface_index = {face_index}\n"
+            ),
+        )
+        .unwrap();
+        TemporaryFontManifest { manifest, source }
     }
 
     fn slot_pixels(pixels: &[u8], atlas_width: u32, rect: SdfAtlasRect) -> Vec<u8> {

@@ -7,6 +7,8 @@ pub enum UiTextAlign {
     Left,
     Center,
     Right,
+    Start,
+    End,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

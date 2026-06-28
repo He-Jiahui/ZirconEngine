@@ -1,3 +1,4 @@
+use crate::graphics::text::layout::measure_line_width;
 use zircon_runtime_interface::ui::surface::UiTextWrap;
 
 use super::resolved_layout::{
@@ -13,18 +14,19 @@ impl UiWidthBucket {
             return Self(0);
         }
 
-        let advance = cache_text_advance(request.style.font_size.max(1.0));
-        let chars = (request.frame.width.max(advance) / advance).floor() as u32;
-        Self(chars.max(1))
+        let advance = measure_line_width("n", request.style)
+            .max(request.style.font_size.max(1.0) * 0.25)
+            .max(1.0);
+        Self(
+            (request.frame.width.max(advance) / advance)
+                .floor()
+                .max(1.0) as u32,
+        )
     }
 
     pub(crate) const fn value(self) -> u32 {
         self.0
     }
-}
-
-fn cache_text_advance(font_size: f32) -> f32 {
-    (font_size * 0.5).max(1.0)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

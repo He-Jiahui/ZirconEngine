@@ -5,8 +5,8 @@ use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn ui_layout_editor_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/windows/ui_layout_editor_window.v2.ui.toml");
-    fs::read_to_string(path).expect("ui_layout_editor_window.v2.ui.toml should be readable")
+        .join("assets/ui/editor/windows/ui_layout_editor_window.zui");
+    fs::read_to_string(path).expect("ui_layout_editor_window.zui should be readable")
 }
 
 #[test]

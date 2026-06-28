@@ -300,10 +300,7 @@ where
         self.variant_resolver.resolve_variant_for_geometry(
             pipeline_kind,
             &batch.pipeline_key,
-            batch
-                .queue_profile
-                .geometry_source()
-                .shader_geometry_source_id(),
+            batch.queue_profile.shader_geometry_source_id(),
             self.shader_quality,
         )
     }
@@ -321,12 +318,16 @@ pub(crate) trait MeshPassProcessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{RenderPhase, RenderPhaseSortComponents};
+    use crate::core::framework::render::{
+        GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    };
     use crate::core::framework::scene::Mobility;
-    use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
         MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
     };
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
     use super::{
         MeshBatchRef, MeshDrawArgs, MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
@@ -370,5 +371,52 @@ mod tests {
             Some(2)
         );
         assert!(base.previous_velocity_geometry.is_none());
+    }
+
+    #[test]
+    fn mesh_pass_build_context_resolves_prepared_gpu_skinning_as_skinned_variant() {
+        let mut resolver = CapturingVariantResolver::default();
+        let mut context =
+            super::MeshPassBuildContext::new(&mut resolver, ShaderQualityTier::Medium);
+        let batch = MeshBatchRef::new(
+            MeshDrawQueueProfile::new(
+                MeshDrawQueuePhase::Opaque,
+                MeshDrawGeometrySource::Prepared,
+                Mobility::Dynamic,
+                false,
+                true,
+                false,
+            ),
+            default_pipeline_key(),
+            RenderPhaseSortComponents::new(0.0, 10),
+            MeshGeometryHandle::test(1),
+            MeshDrawArgs::direct_indexed(0, 3),
+        );
+
+        let variant_id = context.pipeline_variant_id(MeshPassPipelineKind::Base, &batch);
+
+        assert_eq!(variant_id, MeshPipelineVariantId::new(9));
+        assert_eq!(
+            resolver.last_geometry_source,
+            Some(GEOMETRY_SOURCE_ID_SKINNED_MESH)
+        );
+    }
+
+    #[derive(Default)]
+    struct CapturingVariantResolver {
+        last_geometry_source: Option<GeometrySourceId>,
+    }
+
+    impl MeshPipelineVariantResolver for CapturingVariantResolver {
+        fn resolve_variant_for_geometry(
+            &mut self,
+            _kind: MeshPassPipelineKind,
+            _pipeline_key: &PipelineKey,
+            geometry_source: GeometrySourceId,
+            _shader_quality: ShaderQualityTier,
+        ) -> MeshPipelineVariantId {
+            self.last_geometry_source = Some(geometry_source);
+            MeshPipelineVariantId::new(9)
+        }
     }
 }

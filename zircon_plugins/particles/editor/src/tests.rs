@@ -3,9 +3,9 @@ use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_particles_runtime::PARTICLE_SYSTEM_COMPONENT_TYPE;
 
 const CPU_SPRITE_TEMPLATE: &str = include_str!("../../templates/cpu_sprite_system.toml");
-const AUTHORING_UI_TEMPLATE: &str = include_str!("../authoring.v2.ui.toml");
-const PREVIEW_UI_TEMPLATE: &str = include_str!("../preview.v2.ui.toml");
-const COMPONENT_DRAWER_UI_TEMPLATE: &str = include_str!("../particle_system.drawer.v2.ui.toml");
+const AUTHORING_UI_TEMPLATE: &str = include_str!("../authoring.zui");
+const PREVIEW_UI_TEMPLATE: &str = include_str!("../preview.zui");
+const COMPONENT_DRAWER_UI_TEMPLATE: &str = include_str!("../particle_system.drawer.zui");
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid particles test operation path")

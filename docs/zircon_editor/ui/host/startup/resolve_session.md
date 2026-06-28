@@ -12,8 +12,8 @@ related_code:
   - zircon_editor/src/ui/workbench/startup/editor_startup_session_document.rs
   - zircon_editor/src/ui/workbench/startup/stored_startup_session.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/component_showcase.zui
 implementation_files:
   - zircon_editor/src/ui/host/startup/resolve_session.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
@@ -24,7 +24,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/welcome_session.rs
   - zircon_editor/src/ui/workbench/startup/editor_startup_session_document.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
-  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.zui
 plan_sources:
   - user: 2026-05-15 continue Zircon Editor Demo front screen plan
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md

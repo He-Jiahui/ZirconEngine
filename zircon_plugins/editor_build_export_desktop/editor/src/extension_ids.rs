@@ -6,13 +6,13 @@ pub const LIBRARY_EMBED_REPORT_ID: &str = "editor_build_export_desktop.library_e
 pub const NATIVE_DYNAMIC_REPORT_ID: &str = "editor_build_export_desktop.native_dynamic_report";
 
 pub const EXPORT_PANEL_TEMPLATE_DOCUMENT: &str =
-    "asset://editor_build_export_desktop/editor/panel.v2.ui.toml";
+    "asset://editor_build_export_desktop/editor/panel.zui";
 pub const SOURCE_TEMPLATE_REPORT_DOCUMENT: &str =
-    "asset://editor_build_export_desktop/editor/source_template_report.v2.ui.toml";
+    "asset://editor_build_export_desktop/editor/source_template_report.zui";
 pub const LIBRARY_EMBED_REPORT_DOCUMENT: &str =
-    "asset://editor_build_export_desktop/editor/library_embed_report.v2.ui.toml";
+    "asset://editor_build_export_desktop/editor/library_embed_report.zui";
 pub const NATIVE_DYNAMIC_REPORT_DOCUMENT: &str =
-    "asset://editor_build_export_desktop/editor/native_dynamic_report.v2.ui.toml";
+    "asset://editor_build_export_desktop/editor/native_dynamic_report.zui";
 pub const EXPORT_PROFILE_TEMPLATE_DOCUMENT: &str =
     "asset://editor_build_export_desktop/templates/desktop_export_profile.toml";
 pub const EXPORT_PROFILE_DRAWER_DOCUMENT: &str =

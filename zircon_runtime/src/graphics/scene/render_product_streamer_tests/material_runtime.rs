@@ -1,5 +1,8 @@
 use super::*;
-use crate::core::framework::render::RenderQueueValue;
+use crate::core::framework::render::{
+    GBufferChannelMask, RenderQueueValue, ShadingModelDescriptor, ShadingModelId,
+    SHADING_MODEL_PLUGIN_ID_START,
+};
 
 mod pbr_projection;
 
@@ -45,6 +48,71 @@ fn render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key(
     assert_eq!(
         material.pipeline_key.shading_model_id,
         SHADING_MODEL_ID_BLINN_PHONG
+    );
+    assert!(material.readiness_report.is_ready());
+    assert!(material.readiness_report.validation_errors.is_empty());
+    assert!(material.readiness_report.fallback_usages.is_empty());
+}
+
+#[test]
+fn render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/custom-shading-model-key.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let plugin_shading_model_id = ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START);
+    let plugin_shading_model = ShadingModelDescriptor::new(
+        plugin_shading_model_id,
+        "custom:subsurface",
+        "plugin_subsurface_forward",
+        "plugin_subsurface_gbuffer",
+        "plugin_subsurface_deferred",
+        GBufferChannelMask::standard_lit(),
+    );
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material.property_values.insert(
+        "lighting_model".to_string(),
+        toml::Value::String("custom:subsurface".to_string()),
+    );
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer = ResourceStreamer::new_for_test_with_plugin_shading_models(
+        asset_manager,
+        &device,
+        &queue,
+        &texture_layout,
+        [plugin_shading_model],
+    )
+    .expect("plugin shading model registry prepares");
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("material prepares");
+
+    let material = streamer.material(&material_id).expect("runtime material");
+    let capture = material.capture_seed();
+    assert_eq!(
+        capture.lighting_model,
+        RenderMaterialLightingModel::Custom {
+            name: "subsurface".to_string()
+        }
+    );
+    assert_eq!(capture.shading_model_id, plugin_shading_model_id);
+    assert_eq!(
+        material.pipeline_key.shading_model_id,
+        plugin_shading_model_id
     );
     assert!(material.readiness_report.is_ready());
     assert!(material.readiness_report.validation_errors.is_empty());
@@ -274,7 +342,7 @@ fn render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot()
     let material_uri = locator("res://materials/alias-bridge.zmaterial");
     let material_id = ResourceId::from_locator(&material_uri);
     let shader_uri = locator("res://shaders/alias-bridge.zshader");
-    let legacy_texture_id = ResourceId::from_locator(&locator("res://textures/legacy-base.png"));
+    let stale_texture_id = ResourceId::from_locator(&locator("res://textures/stale-base.png"));
     let shader_texture_id = ResourceId::from_locator(&locator("res://textures/shader-albedo.png"));
     asset_manager
         .assets::<ShaderAsset>()
@@ -288,7 +356,7 @@ fn render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot()
         )
         .expect("shader insert");
     for texture_uri in [
-        "res://textures/legacy-base.png",
+        "res://textures/stale-base.png",
         "res://textures/shader-albedo.png",
     ] {
         asset_manager
@@ -305,7 +373,7 @@ fn render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot()
     }
     let mut material = material_with_refs(
         "res://shaders/alias-bridge.zshader",
-        Some("res://textures/legacy-base.png"),
+        Some("res://textures/stale-base.png"),
     );
     material.texture_slots.insert(
         "albedo".to_string(),
@@ -333,7 +401,7 @@ fn render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot()
     let material = streamer.material(&material_id).expect("runtime material");
     let capture = material.capture_seed();
     assert_eq!(capture.base_color_texture, Some(shader_texture_id));
-    assert_ne!(capture.base_color_texture, Some(legacy_texture_id));
+    assert_ne!(capture.base_color_texture, Some(stale_texture_id));
     assert!(material.pipeline_key.has_base_color_texture);
     assert!(!material.non_standard_texture_slots.contains_key("albedo"));
     assert!(material.readiness_report.is_ready());
@@ -342,7 +410,7 @@ fn render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot()
 }
 
 #[test]
-fn render_product_streamer_shader_standard_alias_shadows_unresolved_legacy_texture() {
+fn render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
     let RenderBackend { device, queue, .. } = backend;
     let texture_layout = texture_bind_group_layout(&device);
@@ -376,7 +444,7 @@ fn render_product_streamer_shader_standard_alias_shadows_unresolved_legacy_textu
         .expect("shader texture insert");
     let mut material = material_with_refs(
         "res://shaders/alias-shadow.zshader",
-        Some("res://textures/missing-legacy-base.png"),
+        Some("res://textures/missing-stale-base.png"),
     );
     material.texture_slots.insert(
         "albedo".to_string(),
@@ -399,7 +467,7 @@ fn render_product_streamer_shader_standard_alias_shadows_unresolved_legacy_textu
             &texture_layout,
             ResourceHandle::<MaterialMarker>::new(material_id),
         )
-        .expect("shader standard texture alias shadows stale legacy texture");
+        .expect("shader standard texture alias shadows stale schema texture");
 
     let material = streamer.material(&material_id).expect("runtime material");
     assert_eq!(material.base_color_texture, Some(shader_texture_id));
@@ -412,7 +480,7 @@ fn render_product_streamer_shader_standard_alias_shadows_unresolved_legacy_textu
         .dependencies
         .textures
         .iter()
-        .all(|reference| reference.locator != locator("res://textures/missing-legacy-base.png")));
+        .all(|reference| reference.locator != locator("res://textures/missing-stale-base.png")));
 }
 
 #[test]

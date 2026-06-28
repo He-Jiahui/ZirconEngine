@@ -1,4 +1,11 @@
 mod animation_resource;
 mod asset_loaders;
 mod asset_records;
+mod diagnostics;
+mod dynamic_api;
+mod export_cli;
 mod scene_world;
+mod script_host;
+mod ui_asset_documents;
+mod ui_input;
+mod ui_template_resource;

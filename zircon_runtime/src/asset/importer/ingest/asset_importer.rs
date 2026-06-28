@@ -5,7 +5,7 @@ use super::{
     import_ui_icon_asset, import_ui_theme_asset, import_ui_zui_asset,
 };
 #[cfg(test)]
-use super::{import_obj, import_sound, import_ui_asset, import_ui_v2_asset};
+use super::{import_obj, import_sound};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -171,8 +171,9 @@ impl AssetImporter {
             import_authoring_asset::import_navigation_settings,
         )?;
         self.register_function(
-            descriptor("zircon.builtin.ui_component.zui", AssetKind::UiWidget, 2)
-                .with_full_suffixes([".zui"]),
+            descriptor("zircon.builtin.ui_document.zui", AssetKind::UiWidget, 2)
+                .with_full_suffixes([".zui"])
+                .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle]),
             import_ui_zui_asset::import_ui_zui_asset,
         )?;
         self.register_function(
@@ -413,36 +414,14 @@ impl AssetImporter {
         vec![
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
-                    "ui_document_importer.zui_component",
+                    "ui_document_importer.zui_document",
                     "ui_document_importer",
                     AssetKind::UiWidget,
                 )
                 .with_full_suffixes([".zui"])
+                .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])
                 .with_required_capabilities(["runtime.asset.importer.ui_document"]),
                 import_ui_zui_asset::import_ui_zui_asset,
-            ),
-            FunctionAssetImporter::new(
-                plugin_fixture_descriptor(
-                    "ui_document_importer.v2_typed_toml",
-                    "ui_document_importer",
-                    AssetKind::UiLayout,
-                )
-                .with_full_suffixes([".v2.ui.toml"])
-                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle])
-                .with_required_capabilities(["runtime.asset.importer.ui_document.v2"]),
-                import_ui_v2_asset::import_ui_v2_asset,
-            ),
-            FunctionAssetImporter::new(
-                // Source-template import stays test-only for v1-to-v2 coverage after .zui cutover.
-                plugin_fixture_descriptor(
-                    "ui_document_importer.typed_toml",
-                    "ui_document_importer",
-                    AssetKind::UiLayout,
-                )
-                .with_full_suffixes([".ui.toml"])
-                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle])
-                .with_required_capabilities(["runtime.asset.importer.ui_document"]),
-                import_ui_asset::import_ui_asset,
             ),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(

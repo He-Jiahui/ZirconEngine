@@ -33,6 +33,7 @@ use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
 use super::surface::render_surface_descriptor;
 
 mod diagnostics;
+mod error;
 mod events;
 mod extract;
 mod extract_cache;
@@ -51,6 +52,7 @@ mod status;
 mod tests;
 
 use diagnostics::runtime_diagnostics_response;
+use error::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 pub(super) use host_requests::{
     runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
 };
@@ -160,7 +162,9 @@ pub(super) unsafe fn capture_accessibility_tree(
         match session
             .capture_accessibility_tree(request)
             .and_then(|snapshot| {
-                encode_accessibility_tree(&snapshot).map_err(|error| error.to_string())
+                encode_accessibility_tree(&snapshot).map_err(|source| {
+                    RuntimeDynamicSessionError::EncodeAccessibilityTree { source }
+                })
             }) {
             Ok(buffer) => write_accessibility_tree(out_tree, buffer),
             Err(error) => error_status(error),
@@ -250,7 +254,7 @@ pub(super) unsafe fn profile_control(
         };
         match encode_profile_response(&response) {
             Ok(buffer) => write_profile_response(out_json, buffer),
-            Err(error) => error_status(error.to_string()),
+            Err(error) => error_status(error),
         }
     })
 }
@@ -275,7 +279,7 @@ pub(super) unsafe fn drain_host_requests(
         let batch = session.drain_host_requests();
         match encode_host_request_batch(&batch) {
             Ok(buffer) => write_host_requests(out_requests, buffer),
-            Err(error) => error_status(error.to_string()),
+            Err(error) => error_status(error),
         }
     })
 }
@@ -299,7 +303,7 @@ impl RuntimeDynamicSession {
     fn new(
         profile: RuntimeDynamicSessionProfile,
         project_config: Option<RuntimeProjectConfig>,
-    ) -> Result<Self, String> {
+    ) -> RuntimeDynamicSessionResult<Self> {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_dynamic_session_new");
         crate::diagnostic_log::initialize_unity_process_log("runtime-dynamic");
         write_log(
@@ -333,7 +337,9 @@ impl RuntimeDynamicSession {
             .modules
             .push(Arc::new(crate::animation::AnimationModule));
         if !modules.errors.is_empty() {
-            return Err(modules.errors.join("; "));
+            return Err(RuntimeDynamicSessionError::ModuleDiscovery {
+                message: modules.errors.join("; "),
+            });
         }
         write_log(
             "runtime_session",
@@ -347,7 +353,10 @@ impl RuntimeDynamicSession {
             for module in &modules.modules {
                 runtime
                     .register_module(module.descriptor())
-                    .map_err(|error| runtime_session_error("register runtime module", error))?;
+                    .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                        step: "register runtime module",
+                        source,
+                    })?;
             }
         }
         write_log(
@@ -359,7 +368,10 @@ impl RuntimeDynamicSession {
             for module in &modules.modules {
                 runtime
                     .activate_module(module.module_name())
-                    .map_err(|error| runtime_session_error("activate runtime module", error))?;
+                    .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                        step: "activate runtime module",
+                        source,
+                    })?;
             }
         }
         write_log(
@@ -372,8 +384,7 @@ impl RuntimeDynamicSession {
                 "dynamic_api",
                 "runtime_session_install_scene_hooks"
             );
-            install_builtin_scene_runtime_hooks(&runtime)
-                .map_err(|error| runtime_session_error("install scene runtime hooks", error))?;
+            install_builtin_scene_runtime_hooks(&runtime)?;
         }
         write_log(
             "runtime_session",
@@ -382,13 +393,20 @@ impl RuntimeDynamicSession {
 
         let input_manager = {
             crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
-            resolve_input(&core).map_err(|error| runtime_session_error("resolve input", error))?
+            resolve_input(&core).map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                step: "resolve input",
+                source,
+            })?
         };
         write_log("runtime_session", "runtime_dynamic_session_input_ready");
         let render_bridge = if profile.uses_render_bridge() {
             crate::profile_scope!("runtime", "dynamic_api", "runtime_session_render_bridge");
-            let render_bridge = RuntimeRenderBridge::new(&core)
-                .map_err(|error| runtime_session_error("create render bridge", error))?;
+            let render_bridge = RuntimeRenderBridge::new(&core).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "create render bridge",
+                    source,
+                }
+            })?;
             write_log(
                 "runtime_session",
                 "runtime_dynamic_session_render_bridge_ready",
@@ -408,35 +426,50 @@ impl RuntimeDynamicSession {
                     write_log("runtime_session", "runtime_project_open_assets_start");
                     project_config
                         .open_project_assets(&core)
-                        .map_err(|error| runtime_session_error("open project assets", error))?;
+                        .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                            step: "open project assets",
+                            source,
+                        })?;
                     write_log("runtime_session", "runtime_project_open_assets_done");
                     write_log("runtime_session", "runtime_project_navigation_load_start");
                     project_config
                         .load_default_navigation(&core)
-                        .map_err(|error| {
-                            runtime_session_error("load default project navigation", error)
+                        .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                            step: "load default project navigation",
+                            source,
                         })?;
                     write_log("runtime_session", "runtime_project_navigation_load_done");
                     write_log("runtime_session", "runtime_project_scripts_load_start");
                     project_config
                         .load_startup_scripts(&core)
-                        .map_err(|error| {
-                            runtime_session_error("load startup script packages", error)
+                        .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                            step: "load startup script packages",
+                            source,
                         })?;
                     write_log("runtime_session", "runtime_project_scripts_load_done");
                     write_log("runtime_session", "runtime_project_level_load_start");
-                    project_config
-                        .load_default_level(&core)
-                        .map_err(|error| runtime_session_error("load default level", error))?
+                    project_config.load_default_level(&core).map_err(|source| {
+                        RuntimeDynamicSessionError::ProjectStep {
+                            step: "load default level",
+                            source,
+                        }
+                    })?
                 }
-                None => crate::scene::create_default_level(&core)
-                    .map_err(|error| runtime_session_error("create default level", error))?,
+                None => crate::scene::create_default_level(&core).map_err(|source| {
+                    RuntimeDynamicSessionError::CoreStep {
+                        step: "create default level",
+                        source,
+                    }
+                })?,
             }
         };
         write_log("runtime_session", "runtime_dynamic_session_level_ready");
         let scene_asset_reload_queue = match &project_config {
             Some(project_config) => Some(project_config.scene_asset_reload_queue(&core).map_err(
-                |error| runtime_session_error("create scene asset reload queue", error),
+                |source| RuntimeDynamicSessionError::ProjectStep {
+                    step: "create scene asset reload queue",
+                    source,
+                },
             )?),
             None => None,
         };
@@ -490,7 +523,7 @@ impl RuntimeDynamicSession {
         })
     }
 
-    fn tick_frame(&mut self) -> Result<(), String> {
+    fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()> {
         let advance = {
             crate::profile_scope!("runtime", "frame", "runtime_frame_time_update");
             self.runtime
@@ -501,7 +534,10 @@ impl RuntimeDynamicSession {
             crate::profile_scope!("runtime", "frame", "runtime_frame_update");
             self.level
                 .tick(&self.runtime.handle(), advance)
-                .map_err(|error| error.to_string())?;
+                .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                    step: "tick loaded level",
+                    source,
+                })?;
         }
         self.input_manager.begin_frame();
         if self.diagnostic_log_schedule.tick(advance.real_delta()) {
@@ -569,7 +605,7 @@ impl RuntimeDynamicSession {
     fn capture_frame(
         &mut self,
         request: ZrRuntimeFrameRequestV1,
-    ) -> Result<ZrRuntimeFrameV1, String> {
+    ) -> RuntimeDynamicSessionResult<ZrRuntimeFrameV1> {
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
@@ -577,7 +613,10 @@ impl RuntimeDynamicSession {
         let frame = if let Some(render_bridge) = &mut self.render_bridge {
             render_bridge
                 .submit_extract_with_ui(extract, self.camera_controller.viewport_size(), ui)
-                .map_err(|error| error.to_string())?
+                .map_err(|source| RuntimeDynamicSessionError::RenderBridgeStep {
+                    step: "submit render extract",
+                    source,
+                })?
                 .unwrap_or_else(|| empty_captured_frame(requested))
         } else {
             empty_captured_frame(requested)
@@ -588,26 +627,35 @@ impl RuntimeDynamicSession {
     fn bind_viewport_surface(
         &mut self,
         descriptor: RenderViewportSurfaceDescriptor,
-    ) -> Result<(), String> {
+    ) -> RuntimeDynamicSessionResult<()> {
         self.resize_viewport(descriptor.size);
         let Some(render_bridge) = &mut self.render_bridge else {
             return Ok(());
         };
-        render_bridge
-            .bind_surface(descriptor)
-            .map_err(|error| error.to_string())
+        render_bridge.bind_surface(descriptor).map_err(|source| {
+            RuntimeDynamicSessionError::RenderBridgeStep {
+                step: "bind viewport surface",
+                source,
+            }
+        })
     }
 
-    fn unbind_viewport_surface(&mut self) -> Result<(), String> {
+    fn unbind_viewport_surface(&mut self) -> RuntimeDynamicSessionResult<()> {
         let Some(render_bridge) = &mut self.render_bridge else {
             return Ok(());
         };
-        render_bridge
-            .unbind_surface()
-            .map_err(|error| error.to_string())
+        render_bridge.unbind_surface().map_err(|source| {
+            RuntimeDynamicSessionError::RenderBridgeStep {
+                step: "unbind viewport surface",
+                source,
+            }
+        })
     }
 
-    fn present_viewport(&mut self, request: ZrRuntimeFrameRequestV1) -> Result<(), String> {
+    fn present_viewport(
+        &mut self,
+        request: ZrRuntimeFrameRequestV1,
+    ) -> RuntimeDynamicSessionResult<()> {
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
@@ -617,13 +665,16 @@ impl RuntimeDynamicSession {
         };
         render_bridge
             .present_extract_with_ui(extract, self.camera_controller.viewport_size(), ui)
-            .map_err(|error| error.to_string())
+            .map_err(|source| RuntimeDynamicSessionError::RenderBridgeStep {
+                step: "present render extract",
+                source,
+            })
     }
 
     fn capture_accessibility_tree(
         &mut self,
         request: ZrRuntimeAccessibilityTreeRequestV1,
-    ) -> Result<UiAccessibilityTreeSnapshot, String> {
+    ) -> RuntimeDynamicSessionResult<UiAccessibilityTreeSnapshot> {
         self.resize_viewport(UVec2::new(
             request.size.width.max(1),
             request.size.height.max(1),
@@ -632,7 +683,7 @@ impl RuntimeDynamicSession {
     }
 }
 
-fn install_builtin_scene_runtime_hooks(runtime: &CoreRuntime) -> Result<(), String> {
+fn install_builtin_scene_runtime_hooks(runtime: &CoreRuntime) -> RuntimeDynamicSessionResult<()> {
     let mut extensions = RuntimeExtensionRegistry::default();
     register_missing_scene_hook(
         runtime,
@@ -651,15 +702,21 @@ fn install_builtin_scene_runtime_hooks(runtime: &CoreRuntime) -> Result<(), Stri
     )?;
     runtime
         .install_scene_runtime_hooks(&extensions)
-        .map_err(|error| error.to_string())
+        .map_err(
+            |source| RuntimeDynamicSessionError::RuntimeExtensionRegistryStep {
+                step: "install scene runtime hooks",
+                source,
+            },
+        )
 }
 
 fn register_missing_scene_hook(
     runtime: &CoreRuntime,
     extensions: &mut RuntimeExtensionRegistry,
     registration: crate::plugin::SceneRuntimeHookRegistration,
-) -> Result<(), String> {
+) -> RuntimeDynamicSessionResult<()> {
     let descriptor = registration.descriptor();
+    let hook = descriptor.id.clone();
     let already_installed = runtime
         .handle()
         .scene_runtime_hooks_for_stage(descriptor.stage)
@@ -670,14 +727,5 @@ fn register_missing_scene_hook(
     }
     extensions
         .register_scene_hook(registration)
-        .map_err(|error| error.to_string())
-}
-
-fn runtime_session_error(step: &'static str, error: impl ToString) -> String {
-    let error = error.to_string();
-    let error = error.trim();
-    if error.is_empty() {
-        return format!("{step} failed without additional diagnostics");
-    }
-    format!("{step}: {error}")
+        .map_err(|source| RuntimeDynamicSessionError::RegisterSceneRuntimeHook { hook, source })
 }

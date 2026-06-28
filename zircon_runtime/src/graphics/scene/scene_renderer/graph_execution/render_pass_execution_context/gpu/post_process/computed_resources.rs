@@ -227,7 +227,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         light_grid_params_resource_name: &str,
         light_zbins_resource_name: &str,
         light_tile_masks_resource_name: &str,
-        legacy_light_list_resource_name: &str,
+        light_list_resource_name: &str,
     ) -> Result<(), String> {
         let stack = self.post_process_stack.ok_or_else(|| {
             format!(
@@ -254,10 +254,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             light_tile_masks_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let legacy_light_list_buffer = Self::require_buffer_by_name(
+        let light_list_buffer = Self::require_buffer_by_name(
             resources,
             resource_resolver,
-            legacy_light_list_resource_name,
+            light_list_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
         let target = stack.target;
@@ -279,7 +279,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.encoder,
             target.size,
             target.cluster_dimensions,
-            legacy_light_list_buffer,
+            light_list_buffer,
             target.cluster_buffer_bytes,
             &self.frame.extract.lighting.directional_lights,
             enabled,
@@ -296,7 +296,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                         light_grid_params_resource_name.to_string(),
                         light_zbins_resource_name.to_string(),
                         light_tile_masks_resource_name.to_string(),
-                        legacy_light_list_resource_name.to_string(),
+                        light_list_resource_name.to_string(),
                     ],
                 ));
         }

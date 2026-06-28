@@ -133,7 +133,7 @@ pub fn register_export_wizard_panel_template(
     runtime.load_builtin_host_templates()?;
     let template_path = template_path.as_ref().to_path_buf();
     let editor_base_style_path =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui/theme/editor_base.v2.ui.toml");
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui/theme/editor_base.zui");
     runtime.register_v2_template_document_files(
         EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID,
         [template_path, editor_base_style_path],

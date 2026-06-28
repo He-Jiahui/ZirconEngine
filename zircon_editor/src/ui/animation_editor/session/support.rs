@@ -71,13 +71,13 @@ impl AnimationEditorSession {
             AnimationEditorDocument::Sequence(document) => document
                 .asset
                 .to_bytes()
-                .map_err(AnimationEditorSessionError),
-            AnimationEditorDocument::Graph(asset) => {
-                asset.to_bytes().map_err(AnimationEditorSessionError)
-            }
-            AnimationEditorDocument::StateMachine(asset) => {
-                asset.to_bytes().map_err(AnimationEditorSessionError)
-            }
+                .map_err(|error| AnimationEditorSessionError(error.to_string())),
+            AnimationEditorDocument::Graph(asset) => asset
+                .to_bytes()
+                .map_err(|error| AnimationEditorSessionError(error.to_string())),
+            AnimationEditorDocument::StateMachine(asset) => asset
+                .to_bytes()
+                .map_err(|error| AnimationEditorSessionError(error.to_string())),
         }
     }
 }

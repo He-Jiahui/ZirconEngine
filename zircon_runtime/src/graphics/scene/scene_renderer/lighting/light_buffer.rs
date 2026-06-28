@@ -150,7 +150,7 @@ fn shadow_slot_layer(
         .unwrap_or(0);
     [
         SHADOW_SLOT_NONE,
-        layer_mask.to_legacy_mask_lossy(),
+        layer_mask.to_scene_schema_v1_mask_lossy(),
         light_id as u32,
         flags,
     ]
@@ -182,7 +182,7 @@ mod tests {
             .map(|slot| RenderPointLightSnapshot {
                 node_id: slot,
                 light_id: slot + 100,
-                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(slot as f32, 1.0, -2.0),
                 color: Vec3::new(1.0, 0.5, 0.25),
                 intensity: 2.0,
@@ -208,7 +208,7 @@ mod tests {
             &[RenderDirectionalLightSnapshot {
                 node_id: 7,
                 light_id: 0x1234_5678_9ABC_DEF0,
-                layer_mask: RenderLayerSet::from_legacy_mask(0b1010),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(0b1010),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::new(0.8, 0.7, 0.6),
                 intensity: 4.0,
@@ -247,7 +247,7 @@ mod tests {
             &[RenderSpotLightSnapshot {
                 node_id: 3,
                 light_id: 3,
-                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(1.0, 2.0, 3.0),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,
@@ -260,7 +260,7 @@ mod tests {
             &[RenderRectLightSnapshot {
                 node_id: 4,
                 light_id: 4,
-                layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
                 position: Vec3::new(4.0, 5.0, 6.0),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::ONE,

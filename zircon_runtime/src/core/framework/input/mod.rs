@@ -47,7 +47,7 @@ pub use input_event::InputEvent;
 pub use input_event_record::InputEventRecord;
 pub use input_frame_snapshot::InputFrameSnapshot;
 pub use input_snapshot::InputSnapshot;
-pub use mouse_wheel::{MouseScrollUnit, MouseWheelEvent, LEGACY_PIXEL_SCROLL_SCALE};
+pub use mouse_wheel::{MouseScrollUnit, MouseWheelEvent, PIXEL_SCROLL_LINE_DELTA_SCALE};
 pub use touch::{TouchPhase, TouchPoint};
 pub use window_status::{WindowStatusEvent, WindowTheme};
 

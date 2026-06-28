@@ -184,7 +184,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         RenderDirectionalLightSnapshot {
             node_id: 701,
             light_id: 701,
-            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 4.0,
@@ -193,7 +193,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         RenderDirectionalLightSnapshot {
             node_id: 702,
             light_id: 702,
-            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
             direction: Vec3::new(1.0, -1.0, 0.0),
             color: Vec3::new(0.6, 0.7, 1.0),
             intensity: 2.0,
@@ -206,7 +206,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         .push(RenderPointLightSnapshot {
             node_id: 703,
             light_id: 703,
-            layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
             position: Vec3::new(-1.0, 1.0, 0.5),
             color: Vec3::new(0.9, 0.8, 1.0),
             intensity: 6.0,
@@ -216,7 +216,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     extract.lighting.spot_lights.push(RenderSpotLightSnapshot {
         node_id: 704,
         light_id: 704,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(0.0, 3.0, 2.0),
         direction: Vec3::new(0.0, -1.0, -0.5),
         color: Vec3::new(1.0, 0.95, 0.75),
@@ -229,7 +229,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 700,
         light_id: 700,
-        layer_mask: RenderLayerSet::from_legacy_mask(DEFAULT_RENDER_LAYER_MASK),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
@@ -305,7 +305,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
         }],
     );
 
@@ -367,7 +367,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
         }],
     );
 
@@ -438,7 +438,7 @@ fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }
 

@@ -11,7 +11,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
 ]
-styles = ["res://ui/editor/theme/editor_tokens.v2.ui.toml"]
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchSceneTreePanel]
 root = "scene_tree_panel"

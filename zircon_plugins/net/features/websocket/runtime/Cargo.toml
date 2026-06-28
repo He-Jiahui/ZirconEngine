@@ -10,4 +10,4 @@ futures-util = { version = "0.3", features = ["sink"] }
 tokio = { version = "1", features = ["net", "rt", "sync", "time"] }
 tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 zircon_plugin_net_runtime = { path = "../../../runtime" }
-zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+zircon_runtime = { workspace = true }

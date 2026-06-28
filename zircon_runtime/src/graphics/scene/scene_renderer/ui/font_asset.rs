@@ -3,11 +3,13 @@ use std::path::{Path, PathBuf};
 use crate::asset::{AssetUri, FontAsset, ProjectAssetManager};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LoadedUiFontManifest {
     pub(crate) source_path: PathBuf,
+    pub(crate) asset: Option<FontAsset>,
     pub(crate) family: Option<String>,
     pub(crate) render_mode: Option<UiTextRenderMode>,
+    pub(crate) face_index: u32,
 }
 
 #[cfg(test)]
@@ -31,18 +33,25 @@ pub(crate) fn load_ui_font_manifest_with_asset_manager(
         let manifest = FontAsset::from_toml_str(&manifest).ok()?;
         let source_path =
             resolve_manifest_source_path(asset_ref, &manifest_path, manifest.source.as_str())?;
+        let render_mode = effective_ui_font_render_mode(&manifest);
+        let family = manifest.family.clone();
+        let face_index = manifest.face_index;
         return Some(LoadedUiFontManifest {
             source_path,
-            family: manifest.family,
-            render_mode: manifest.render_mode,
+            asset: Some(manifest),
+            family,
+            render_mode,
+            face_index,
         });
     }
 
     let source_path = resolve_font_asset_path(asset_ref)?;
     Some(LoadedUiFontManifest {
         source_path,
+        asset: None,
         family: None,
         render_mode: None,
+        face_index: 0,
     })
 }
 
@@ -64,11 +73,20 @@ fn load_project_ui_font_manifest(
         manifest.source.as_str(),
         project.paths().assets_root(),
     )?;
+    let render_mode = effective_ui_font_render_mode(&manifest);
+    let family = manifest.family.clone();
+    let face_index = manifest.face_index;
     Some(LoadedUiFontManifest {
         source_path,
-        family: manifest.family,
-        render_mode: manifest.render_mode,
+        asset: Some(manifest),
+        family,
+        render_mode,
+        face_index,
     })
+}
+
+fn effective_ui_font_render_mode(manifest: &FontAsset) -> Option<UiTextRenderMode> {
+    manifest.effective_render_mode()
 }
 
 fn resolve_font_asset_path(asset_ref: &str) -> Option<PathBuf> {
@@ -120,4 +138,78 @@ fn resolve_manifest_source_path_with_allowed_root(
     canonical_resolved
         .starts_with(&canonical_allowed_root)
         .then_some(resolved)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::asset::FontAssetRenderStrategy;
+
+    #[test]
+    fn render_strategy_default_mode_feeds_ui_font_default() {
+        let manifest = font_manifest(
+            None,
+            FontAssetRenderStrategy {
+                default_mode: Some(UiTextRenderMode::Sdf),
+                allow_native: None,
+                allow_sdf: None,
+            },
+        );
+
+        assert_eq!(
+            effective_ui_font_render_mode(&manifest),
+            Some(UiTextRenderMode::Sdf)
+        );
+    }
+
+    #[test]
+    fn legacy_render_mode_takes_priority_over_strategy_default_mode() {
+        let manifest = font_manifest(
+            Some(UiTextRenderMode::Native),
+            FontAssetRenderStrategy {
+                default_mode: Some(UiTextRenderMode::Sdf),
+                allow_native: None,
+                allow_sdf: None,
+            },
+        );
+
+        assert_eq!(
+            effective_ui_font_render_mode(&manifest),
+            Some(UiTextRenderMode::Native)
+        );
+    }
+
+    #[test]
+    fn render_strategy_constraints_clamp_disallowed_auto_default() {
+        let manifest = font_manifest(
+            None,
+            FontAssetRenderStrategy {
+                default_mode: Some(UiTextRenderMode::Auto),
+                allow_native: Some(false),
+                allow_sdf: Some(true),
+            },
+        );
+
+        assert_eq!(
+            effective_ui_font_render_mode(&manifest),
+            Some(UiTextRenderMode::Sdf)
+        );
+    }
+
+    fn font_manifest(
+        render_mode: Option<UiTextRenderMode>,
+        render_strategy: FontAssetRenderStrategy,
+    ) -> FontAsset {
+        FontAsset {
+            source: "FiraMono-subset.ttf".to_string(),
+            family: Some("Fira Mono".to_string()),
+            render_mode,
+            face_index: 0,
+            family_members: Vec::new(),
+            variable_instances: Vec::new(),
+            fallback_families: Vec::new(),
+            render_strategy,
+            metadata: None,
+        }
+    }
 }

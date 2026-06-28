@@ -1,5 +1,6 @@
 mod args;
 mod core;
+mod error;
 mod manifest;
 mod pack;
 mod plugin;

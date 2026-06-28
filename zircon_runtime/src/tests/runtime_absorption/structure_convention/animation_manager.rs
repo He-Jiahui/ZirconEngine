@@ -28,7 +28,7 @@ fn runtime_15_animation_manager_is_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let animation_doc = read_repo("docs/zircon_runtime/animation/runtime.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
     );
 
     assert!(

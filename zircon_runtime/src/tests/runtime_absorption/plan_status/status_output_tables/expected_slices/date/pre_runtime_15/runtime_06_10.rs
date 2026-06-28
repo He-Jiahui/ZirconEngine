@@ -147,8 +147,22 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-22")
     } else if slice == "Runtime 07 render submit source-extract sharing" {
         Some("2026-06-22")
+    } else if slice == "Runtime 07 render submit viewport/provider errors" {
+        Some("2026-06-27")
     } else if slice == "Runtime 07 render camera-loop descriptor submissions" {
         Some("2026-06-22")
+    } else if slice == "Runtime 07 render camera-loop borrowed sequence resolution" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 07 render camera-loop source view restore narrowing" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 07 render camera-loop post-process source restore narrowing" {
+        Some("2026-06-27")
+    } else if slice == "Runtime 07 render camera-loop VG/HGI conditional source restore" {
+        Some("2026-06-28")
+    } else if slice == "Runtime 07 render camera-loop single-child source-state capture skip" {
+        Some("2026-06-28")
+    } else if slice == "Runtime 07 render camera-loop source payload slot ownership" {
+        Some("2026-06-28")
     } else if slice == "Runtime 07 render camera-loop frame terminal move" {
         Some("2026-06-22")
     } else if slice == "Runtime 07 render submit feedback sideband owned merge" {
@@ -169,6 +183,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-22")
     } else if slice == "Runtime 07 render submit effective extract projection" {
         Some("2026-06-22")
+    } else if slice == "Runtime 07 F16 compiled-scene split status guard" {
+        Some("2026-06-28")
     } else if slice == "Runtime 08 F5 world typed mutation errors" {
         Some("2026-06-22")
     } else if slice == "Runtime 08 F5 dynamic component typed errors" {

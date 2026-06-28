@@ -1,13 +1,13 @@
 use std::fs;
 
-use zircon_runtime::ui::v2::UiV2AssetLoader;
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::support::*;
 
 #[test]
 fn material_component_lab_shell_keeps_material_lab_layout_regions() {
-    let lab_path = editor_asset("assets/ui/editor/material_component_lab.v2.ui.toml");
-    let lab = UiV2AssetLoader::load_toml_file(&lab_path).unwrap_or_else(|error| {
+    let lab_path = editor_asset("assets/ui/editor/material_component_lab.zui");
+    let lab = UiZuiAssetLoader::load_zui_file(&lab_path).unwrap_or_else(|error| {
         panic!(
             "Material Component Lab should load as runtime UI v2 from {}: {error}",
             lab_path.display()
@@ -760,8 +760,8 @@ fn material_component_lab_shell_keeps_material_lab_layout_regions() {
 
 #[test]
 fn material_component_lab_shell_keeps_material_style_contract() {
-    let lab_path = editor_asset("assets/ui/editor/material_component_lab.v2.ui.toml");
-    let lab = UiV2AssetLoader::load_toml_file(&lab_path).unwrap_or_else(|error| {
+    let lab_path = editor_asset("assets/ui/editor/material_component_lab.zui");
+    let lab = UiZuiAssetLoader::load_zui_file(&lab_path).unwrap_or_else(|error| {
         panic!(
             "Material Component Lab should load as runtime UI v2 from {}: {error}",
             lab_path.display()
@@ -774,7 +774,7 @@ fn material_component_lab_shell_keeps_material_style_contract() {
         lab.imports
             .styles
             .iter()
-            .any(|style| style == "res://ui/theme/editor_material.v2.ui.toml"),
+            .any(|style| style == "res://ui/theme/editor_material.zui"),
         "Material Lab should import the shared dark Material v2 theme"
     );
     assert_node_class(&lab, "material_lab_root", "material-lab-shell");

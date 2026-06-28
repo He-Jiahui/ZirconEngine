@@ -112,8 +112,8 @@ impl MaterialAsset {
             version: 1,
             name: self.name.clone(),
             shader: self.shader.clone(),
-            overrides: self.property_overrides_with_legacy_defaults(),
-            textures: self.texture_slots_with_legacy_defaults(),
+            overrides: self.property_overrides_with_schema_v1_defaults(),
+            textures: self.texture_slots_with_schema_v1_defaults(),
             editor: toml::Table::new(),
             validation_diagnostics: self.validation_diagnostics.clone(),
         }
@@ -409,7 +409,7 @@ impl MaterialAsset {
 
     pub fn all_texture_slots(&self) -> Vec<(String, &AssetReference)> {
         let mut slots = self
-            .legacy_texture_slots()
+            .schema_v1_pbr_texture_slots()
             .into_iter()
             .map(|(slot, texture)| (slot.to_string(), texture))
             .collect::<Vec<_>>();
@@ -423,7 +423,7 @@ impl MaterialAsset {
         slots
     }
 
-    fn legacy_texture_slots(&self) -> Vec<(&'static str, &AssetReference)> {
+    fn schema_v1_pbr_texture_slots(&self) -> Vec<(&'static str, &AssetReference)> {
         [
             ("base_color_texture", self.base_color_texture.as_ref()),
             ("normal_texture", self.normal_texture.as_ref()),
@@ -439,7 +439,7 @@ impl MaterialAsset {
         .collect::<Vec<_>>()
     }
 
-    fn texture_slots_with_legacy_defaults(&self) -> BTreeMap<String, MaterialTextureSlotValue> {
+    fn texture_slots_with_schema_v1_defaults(&self) -> BTreeMap<String, MaterialTextureSlotValue> {
         let mut slots = self.texture_slots.clone();
         // Canonical PBR slots own serialized references; shader fallback metadata can stay.
         sync_texture_slot(&mut slots, "base_color", self.base_color_texture.as_ref());
@@ -481,7 +481,7 @@ impl MaterialAsset {
             .unwrap_or_default()
     }
 
-    fn property_overrides_with_legacy_defaults(&self) -> BTreeMap<String, toml::Value> {
+    fn property_overrides_with_schema_v1_defaults(&self) -> BTreeMap<String, toml::Value> {
         let mut overrides = self.property_values.clone();
         // Runtime PBR fields must overwrite hydrated maps so source rewrites are real edits.
         sync_vec4_override(

@@ -291,10 +291,9 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
     .map(|path| std::fs::read_to_string(root.join(path)).expect(path))
     .collect::<Vec<_>>()
     .join("\n");
-    let controls = std::fs::read_to_string(
-        root.join("assets/ui/editor/host/asset_surface_controls.v2.ui.toml"),
-    )
-    .expect("asset controls asset");
+    let controls =
+        std::fs::read_to_string(root.join("assets/ui/editor/host/asset_surface_controls.zui"))
+            .expect("asset controls asset");
 
     for needle in ["on_asset_control_changed", "on_asset_control_clicked"] {
         assert!(globals.contains(needle), "host globals missing `{needle}`");

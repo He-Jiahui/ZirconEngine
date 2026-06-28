@@ -41,7 +41,7 @@ fn runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name() {
     let ui_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_text(
         &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
         ),
         "Runtime 15 status rows should be readable",
     );
@@ -153,7 +153,7 @@ fn runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context() {
     let ui_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_text(
         &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
         ),
         "Runtime 15 status rows should be readable",
     );
@@ -215,6 +215,314 @@ fn runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context() {
                 "runtime_15_ui_table_sorting_mode_server_literal_allowed_context_static_passed_cargo_deferred",
                 "ui/surface/surface/default_interactions/table/columns.rs",
                 "runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_platform_input_uses_dom_keycode_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let keyboard_map = read_text(
+        &manifest_root.join("src/ui/platform_input/keyboard_map.rs"),
+        "platform input keyboard map should be readable",
+    );
+    let winit_translation = read_text(
+        &manifest_root.join("src/ui/platform_input/winit_translation.rs"),
+        "platform input winit translation should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+    );
+    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-review-findings-2026-06.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-structure-convention.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let platform_input_doc =
+        read_repo_text(manifest_root, "docs/zircon_runtime/ui/platform_input.md");
+    let status_rows = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
+        ),
+        "Runtime 15 status rows should be readable",
+    );
+    let status_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected status slice should be readable",
+    );
+    let date_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected date slice should be readable",
+    );
+
+    assert_contains_all(
+        "platform input keyboard map",
+        &keyboard_map,
+        &[
+            "pub(super) fn dom_key_code",
+            "Key::Character(text) => dom_character_key_code(text)",
+            "fn dom_character_key_code",
+        ],
+    );
+    assert!(
+        !keyboard_map.contains("legacy_key_code")
+            && !keyboard_map.contains("legacy_character_key_code"),
+        "platform input keyboard map should not keep legacy key-code helper names"
+    );
+    assert_contains_all(
+        "platform input winit translation",
+        &winit_translation,
+        &[
+            "dom_key_code(&event.logical_key)",
+            "const PIXEL_SCROLL_LINE_DELTA_SCALE",
+            "translate_winit_wheel_preserves_precise_delta_and_line_delta_scale",
+        ],
+    );
+    assert!(
+        !winit_translation.contains("legacy_key_code")
+            && !winit_translation.contains("PIXEL_SCROLL_LEGACY_LINE_SCALE")
+            && !winit_translation.contains("legacy_scalar"),
+        "platform input winit translation should not keep legacy naming"
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("platform input doc", platform_input_doc),
+        ("status row data", status_rows),
+        ("status slice", status_slice),
+        ("date slice", date_slice),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 platform input DOM keycode naming hard cutover",
+                "runtime_15_platform_input_dom_keycode_naming_hard_cutover_static_passed_cargo_timeout_no_result",
+                "ui/platform_input/keyboard_map.rs",
+                "dom_key_code",
+                "runtime_15_platform_input_uses_dom_keycode_names",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let winit_translation = read_text(
+        &manifest_root.join("src/ui/platform_input/winit_translation.rs"),
+        "platform input winit translation should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+    );
+    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-review-findings-2026-06.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-structure-convention.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let platform_input_doc =
+        read_repo_text(manifest_root, "docs/zircon_runtime/ui/platform_input.md");
+    let status_rows = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
+        ),
+        "Runtime 15 foundation status rows should be readable",
+    );
+    let status_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected status slice should be readable",
+    );
+    let date_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected date slice should be readable",
+    );
+
+    assert_contains_all(
+        "platform input winit translation runtime-input baseline tests",
+        &winit_translation,
+        &[
+            "translate_winit_keyboard_matrix_matches_runtime_input_baseline",
+            "translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline",
+        ],
+    );
+    assert!(
+        !winit_translation.contains("editor_baseline"),
+        "platform input runtime tests should not use editor_baseline names inside the runtime owner"
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("platform input doc", platform_input_doc),
+        ("status row data", status_rows),
+        ("status slice", status_slice),
+        ("date slice", date_slice),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 platform input runtime baseline test naming hard cutover",
+                "runtime_15_platform_input_runtime_baseline_test_naming_hard_cutover_static_passed_cargo_deferred",
+                "ui/platform_input/winit_translation.rs",
+                "runtime_input_baseline",
+                "runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_ui_template_schema_uses_source_fixture_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let schema_report = read_repo_text(
+        manifest_root,
+        "zircon_runtime_interface/src/ui/template/asset/schema/report.rs",
+    );
+    let schema_migrator = read_text(
+        &manifest_root.join("src/ui/template/asset/schema/migrator.rs"),
+        "UI template schema migrator should be readable",
+    );
+    let schema_tests = read_text(
+        &manifest_root.join("src/ui/tests/asset_schema_migration.rs"),
+        "UI asset schema migration tests should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+    );
+    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-review-findings-2026-06.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/engine-code-structure-convention.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let template_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/template/pipeline.md");
+    let interface_doc = read_repo_text(manifest_root, "docs/zircon_runtime_interface/ui/mod.md");
+    let status_rows = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
+        ),
+        "Runtime 15 status rows should be readable",
+    );
+    let status_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected status slice should be readable",
+    );
+    let date_slice = read_text(
+        &manifest_root.join(
+            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
+        ),
+        "Runtime 15 naming-boundary expected date slice should be readable",
+    );
+
+    assert_contains_all(
+        "UI asset schema report interface",
+        &schema_report,
+        &[
+            "UiAssetSchemaSourceKind::FutureVersion",
+            "SourceTemplateFixture",
+            "SourceTemplateFixtureConverted",
+        ],
+    );
+    assert!(
+        !schema_report.contains("LegacyTemplateFixture")
+            && !schema_report.contains("LegacyTemplateConverted"),
+        "UI asset schema report should not expose legacy template fixture enum names"
+    );
+    assert_contains_all(
+        "UI template schema migrator",
+        &schema_migrator,
+        &[
+            "UiAssetSchemaSourceKind::SourceTemplateFixture",
+            "UiAssetMigrationStep::SourceTemplateFixtureConverted",
+        ],
+    );
+    assert!(
+        !schema_migrator.contains("LegacyTemplateFixture")
+            && !schema_migrator.contains("LegacyTemplateConverted"),
+        "UI template schema migrator should not call retired legacy template enum variants"
+    );
+    assert_contains_all(
+        "UI asset schema migration tests",
+        &schema_tests,
+        &[
+            "SOURCE_TEMPLATE_FIXTURE_TOML",
+            "SourceFixtureRoot",
+            "UiAssetSchemaSourceKind::SourceTemplateFixture",
+            "UiAssetMigrationStep::SourceTemplateFixtureConverted",
+        ],
+    );
+    assert!(
+        !schema_tests.contains("LEGACY_TEMPLATE_TOML"),
+        "UI asset schema migration tests should use source fixture vocabulary"
+    );
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("UI template pipeline doc", template_doc),
+        ("runtime interface UI doc", interface_doc),
+        ("status row data", status_rows),
+        ("status slice", status_slice),
+        ("date slice", date_slice),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 UI template schema source fixture naming hard cutover",
+                "runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred",
+                "ui/template/asset/schema/migrator.rs",
+                "SourceTemplateFixture",
+                "runtime_15_ui_template_schema_uses_source_fixture_names",
             ],
         );
     }

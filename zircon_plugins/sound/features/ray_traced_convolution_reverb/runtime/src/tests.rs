@@ -11,6 +11,27 @@ fn ray_traced_feature_provider_manifest_matches_sound_owner_contract() {
         "Ray Traced Convolution Reverb"
     );
     assert_eq!(report.manifest.owner_plugin_id, "sound");
+    assert_eq!(
+        report.manifest.provider_package_id.as_deref(),
+        Some(DIST_PROVIDER_PACKAGE_ID)
+    );
+    let distribution = report
+        .manifest
+        .distribution
+        .as_ref()
+        .expect("ray traced feature declares native dist distribution");
+    assert_eq!(distribution.forms, vec!["dist"]);
+    assert_eq!(
+        distribution.default_packaging,
+        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+    );
+    assert_eq!(distribution.abi_version, Some(3));
+    assert_eq!(distribution.dist_crate, DIST_CRATE_NAME);
+    assert_eq!(
+        distribution.descriptor_symbol,
+        "zircon_native_plugin_descriptor_v3"
+    );
+    assert_eq!(distribution.runtime_entry, DIST_RUNTIME_ENTRY);
     assert!(!report.manifest.enabled_by_default);
     assert_eq!(
         report.manifest.default_packaging,

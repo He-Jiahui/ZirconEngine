@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_editor/assets/icons/editor_pages/**
-  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/zircon_editor/assets/icon-resource-audit.md
 implementation_files:
@@ -45,7 +45,7 @@ This pass intentionally excludes broad new coverage. New icon creation is allowe
 
 `docs/zircon_editor/assets/editor-page-function-svg-resources.md` documents the generated 204-icon page/function taxonomy. The previous acceptance gate confirmed A/B/C counts of 61, 54, and 89 icons, no external asset references, and ASCII-only content.
 
-Current Editor UI templates still use generic `icon = "..."` names and a small number of explicit `value = "ionicons/...svg"` references. Examples include `workbench_shell.v2.ui.toml`, `scene_viewport_toolbar.v2.ui.toml`, `asset_surface_controls.v2.ui.toml`, `workbench_activity_rail.v2.ui.toml`, and `workbench_dock_header.v2.ui.toml`. The mapping pass prepares a clean replacement policy but does not perform replacement.
+Current Editor UI templates still use generic `icon = "..."` names and a small number of explicit `value = "ionicons/...svg"` references. Examples include `workbench_shell.zui`, `scene_viewport_toolbar.zui`, `asset_surface_controls.zui`, `workbench_activity_rail.zui`, and `workbench_dock_header.zui`. The mapping pass prepares a clean replacement policy but does not perform replacement.
 
 ## A. Visual Polish Design
 
@@ -84,20 +84,20 @@ The mapping pass creates `docs/zircon_editor/assets/editor-page-function-icon-te
 
 The first mapping pass should focus on production Editor asset templates under `zircon_editor/assets/ui/editor`, especially:
 
-- `host/workbench_shell.v2.ui.toml`
-- `host/scene_viewport_toolbar.v2.ui.toml`
-- `host/asset_surface_controls.v2.ui.toml`
-- `host/startup_welcome_controls.v2.ui.toml`
-- `workbench_activity_rail.v2.ui.toml`
-- `workbench_dock_header.v2.ui.toml`
-- `host/console_body.v2.ui.toml`
-- `host/hierarchy_body.v2.ui.toml`
-- `host/animation_graph_body.v2.ui.toml`
-- `host/animation_sequence_body.v2.ui.toml`
-- `host/performance_timeline_body.v2.ui.toml`
-- `host/runtime_diagnostics_body.v2.ui.toml`
-- `host/build_export_desktop_body.v2.ui.toml`
-- `host/module_plugins_body.v2.ui.toml`
+- `host/workbench_shell.zui`
+- `host/scene_viewport_toolbar.zui`
+- `host/asset_surface_controls.zui`
+- `host/startup_welcome_controls.zui`
+- `workbench_activity_rail.zui`
+- `workbench_dock_header.zui`
+- `host/console_body.zui`
+- `host/hierarchy_body.zui`
+- `host/animation_graph_body.zui`
+- `host/animation_sequence_body.zui`
+- `host/performance_timeline_body.zui`
+- `host/runtime_diagnostics_body.zui`
+- `host/build_export_desktop_body.zui`
+- `host/module_plugins_body.zui`
 
 Material component lab `.zui` files can be listed as a secondary surface, but they should not dominate the first mapping because many of their icons are component showcase examples rather than core Editor shell chrome.
 

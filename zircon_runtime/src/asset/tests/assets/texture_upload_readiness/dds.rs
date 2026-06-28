@@ -13,7 +13,7 @@ fn texture_upload_readiness_rejects_dds_header_mip_mismatches() {
         4,
         4,
         "dds/DXT1",
-        dds_legacy_bytes("DXT1", 8),
+        dds_classic_fourcc_bytes("DXT1", 8),
         2,
         1,
     );
@@ -29,7 +29,7 @@ fn texture_upload_readiness_rejects_dds_header_mip_mismatches() {
         4,
         4,
         "dds/DXT1",
-        dds_legacy_mip_bytes("DXT1", 2, 16),
+        dds_classic_mip_bytes("DXT1", 2, 16),
         1,
         1,
     );
@@ -48,17 +48,17 @@ fn texture_upload_readiness_rejects_dds_header_layer_mismatches() {
         ..TextureUploadSupport::uncompressed_only()
     };
 
-    let stale_legacy_cubemap = TextureAsset::new_container(
-        AssetUri::parse("res://textures/stale-legacy-cubemap.dds").unwrap(),
+    let stale_classic_cubemap = TextureAsset::new_container(
+        AssetUri::parse("res://textures/stale-classic-cubemap.dds").unwrap(),
         4,
         4,
         "dds/DXT1",
-        dds_legacy_cubemap_bytes("DXT1", 48),
+        dds_classic_cubemap_bytes("DXT1", 48),
         1,
         1,
     );
     assert_eq!(
-        stale_legacy_cubemap
+        stale_classic_cubemap
             .upload_readiness(support)
             .unsupported_reason(),
         Some("texture container format dds/DXT1 is not upload-ready")
@@ -125,7 +125,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
         ("volume-caps2", 112, DDSCAPS2_VOLUME),
     ];
     for (name, offset, value) in invalid_headers {
-        let mut bytes = dds_legacy_bytes("DXT1", 8);
+        let mut bytes = dds_classic_fourcc_bytes("DXT1", 8);
         write_u32_le(&mut bytes, offset, value);
         let texture = TextureAsset::new_container(
             AssetUri::parse(&format!("res://textures/{name}.dds")).unwrap(),
@@ -142,7 +142,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
         );
     }
 
-    let mut missing_mip_caps = dds_legacy_mip_bytes("DXT1", 2, 16);
+    let mut missing_mip_caps = dds_classic_mip_bytes("DXT1", 2, 16);
     write_u32_le(&mut missing_mip_caps, 108, DDSCAPS_TEXTURE);
     let texture = TextureAsset::new_container(
         AssetUri::parse("res://textures/missing-mip-caps.dds").unwrap(),
@@ -163,7 +163,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
         4,
         4,
         "dds/DXT1",
-        dds_legacy_mip_bytes("DXT1", 0, 16),
+        dds_classic_mip_bytes("DXT1", 0, 16),
         1,
         1,
     );
@@ -174,7 +174,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
         Some("texture container format dds/DXT1 is not upload-ready")
     );
 
-    let mut missing_cubemap_face = dds_legacy_cubemap_bytes("DXT1", 48);
+    let mut missing_cubemap_face = dds_classic_cubemap_bytes("DXT1", 48);
     write_u32_le(&mut missing_cubemap_face, 112, DDSCAPS2_CUBEMAP);
     let texture = TextureAsset::new_container(
         AssetUri::parse("res://textures/missing-cubemap-face.dds").unwrap(),
@@ -190,7 +190,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
         Some("texture container format dds/DXT1 is not upload-ready")
     );
 
-    let mut face_without_cubemap = dds_legacy_bytes("DXT1", 8);
+    let mut face_without_cubemap = dds_classic_fourcc_bytes("DXT1", 8);
     write_u32_le(&mut face_without_cubemap, 112, DDSCAPS2_CUBEMAP_POSITIVEX);
     let texture = TextureAsset::new_container(
         AssetUri::parse("res://textures/face-without-cubemap.dds").unwrap(),
@@ -280,7 +280,7 @@ fn texture_upload_readiness_rejects_dds_descriptor_header_format_mismatches() {
         ..TextureUploadSupport::uncompressed_only()
     };
 
-    let mut bad_magic = dds_legacy_bytes("DXT1", 8);
+    let mut bad_magic = dds_classic_fourcc_bytes("DXT1", 8);
     bad_magic[0] = 0;
     let texture = TextureAsset::new_container(
         AssetUri::parse("res://textures/bad-magic.dds").unwrap(),
@@ -301,7 +301,7 @@ fn texture_upload_readiness_rejects_dds_descriptor_header_format_mismatches() {
         4,
         4,
         "dds/DXT1",
-        dds_legacy_bytes("DXT5", 16),
+        dds_classic_fourcc_bytes("DXT5", 16),
         1,
         1,
     );
@@ -317,7 +317,7 @@ fn texture_upload_readiness_rejects_dds_descriptor_header_format_mismatches() {
         4,
         4,
         "dds/dxgi-98",
-        dds_legacy_bytes("DXT5", 16),
+        dds_classic_fourcc_bytes("DXT5", 16),
         1,
         1,
     );

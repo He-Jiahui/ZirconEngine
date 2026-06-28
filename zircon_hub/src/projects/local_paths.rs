@@ -107,7 +107,7 @@ mod tests {
         let root = temp_dir("local-path-root");
         let missing_child = root.join("missing").join("child");
 
-        let result = reject_inside_root(&root, &missing_child, HubMessage::legacy("inside"));
+        let result = reject_inside_root(&root, &missing_child, HubMessage::raw_text("inside"));
 
         assert!(result.is_err());
         assert!(!missing_child.exists());
@@ -121,7 +121,7 @@ mod tests {
         let existing = root.join("existing");
         fs::create_dir(&existing).unwrap();
 
-        let error = create_owned_dir(&existing, || HubMessage::legacy("custom already exists"))
+        let error = create_owned_dir(&existing, || HubMessage::raw_text("custom already exists"))
             .unwrap_err();
 
         assert_eq!(error.to_string(), "custom already exists");
@@ -160,7 +160,7 @@ mod tests {
         let sibling = parent.join("GameBuild").join("out");
         fs::create_dir_all(&root).unwrap();
 
-        reject_inside_root(&root, &sibling, HubMessage::legacy("inside")).unwrap();
+        reject_inside_root(&root, &sibling, HubMessage::raw_text("inside")).unwrap();
 
         fs::remove_dir_all(parent).unwrap();
     }

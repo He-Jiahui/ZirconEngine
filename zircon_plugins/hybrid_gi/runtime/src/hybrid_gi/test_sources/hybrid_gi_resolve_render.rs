@@ -734,7 +734,7 @@ fn hybrid_gi_resolve_scene_driven_frame_ignores_trace_region_boost() {
     );
     assert!(
         right_luma_delta < 0.15,
-        "expected scene-driven GI frames to stay stable outside legacy trace-region boost even when scheduled trace ids remain for fixture/runtime scaffolding; right_delta={right_luma_delta:.2}"
+        "expected scene-driven GI frames to stay stable outside extract trace-region boost even when scheduled trace ids remain for fixture/runtime scaffolding; right_delta={right_luma_delta:.2}"
     );
 }
 
@@ -858,7 +858,7 @@ fn hybrid_gi_resolve_scene_driven_frame_ignores_trace_region_rt_lighting_tint_ch
     );
     assert!(
         (warm_blue - cool_blue).abs() < 0.2,
-        "expected scene-driven GI resolve to stay stable across legacy trace-region tint changes once the new scene representation path is active; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+        "expected scene-driven GI resolve to stay stable across extract trace-region tint changes once the new scene representation path is active; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
     );
 }
 
@@ -984,7 +984,7 @@ fn hybrid_gi_resolve_stripped_scene_prepare_runtime_truth_ignores_trace_region_r
     );
     assert!(
         (warm_blue - cool_blue).abs() < 0.2,
-        "expected stripped-scene-prepare runtime scene truth to keep current GI stable across legacy trace-region tint changes; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+        "expected stripped-scene-prepare runtime scene truth to keep current GI stable across extract trace-region tint changes; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
     );
 }
 

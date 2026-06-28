@@ -5,8 +5,8 @@ use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn editor_main_frame_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/host/editor_main_frame.v2.ui.toml");
-    fs::read_to_string(path).expect("editor_main_frame.v2.ui.toml should be readable")
+        .join("assets/ui/editor/host/editor_main_frame.zui");
+    fs::read_to_string(path).expect("editor_main_frame.zui should be readable")
 }
 
 #[test]

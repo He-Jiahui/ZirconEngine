@@ -158,6 +158,9 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/schema/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/policy.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
+  - zircon_runtime/src/ui/template/asset/schema/migrator.rs
+  - zircon_runtime/src/ui/tests/asset_schema_migration.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
   - zircon_runtime_interface/src/ui/template/asset/style.rs
   - zircon_runtime_interface/src/ui/template/document.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -448,6 +451,8 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 
 `ui::dispatch` contains pointer and navigation dispatch context, invocation, effect, result, and pointer event DTOs, but no dispatchers. Its `input` subtree adds the M5 shared input contract vocabulary: common metadata, pointer/keyboard/text/IME/navigation/analog/drag-drop/popup/tooltip events, transient dispatch replies/effects, input-method requests, dispatch diagnostics, host requests, and component event reports. These are serializable contract DTOs only; runtime/editor effect application is outside the interface crate.
 
+Runtime 15 F5 records `Runtime 15 F5 UI input surrounding-text error source` / `runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred`: `UiInputMethodSurroundingTextError` now implements `std::error::Error`, and `ui_dispatch_error_contracts.rs::ui_input_method_surrounding_text_error_is_std_error` locks that the interface validation error remains usable as a typed source in runtime error composition without adding runtime behavior to this crate.
+
 `ui::event_ui` contains control request/response, reflection descriptors, stable scalar/string ID wrappers, and a serde JSON binding codec helper. Its reflection module now also owns the neutral Widget Reflector DTO family: `UiWidgetLifecycleState`, `UiReflectedProperty`, `UiPropertyInvalidationReason`, `UiReflectorNode`, `UiReflectorHitContext`, and `UiReflectorSnapshot`. These are serializable debug/editor contracts only; runtime owns property mutation, lifecycle derivation, hit-test context production, and binding action projection.
 
 `ui::layout` contains constraints, geometry, scroll/container, virtualization, and M3 layout-engine selection contract structures without layout-pass execution, Taffy conversion, or virtualization window computation. `UiLayoutEngineCapability`, `UiLayoutEngineRequest`, and `UiLayoutEngineSelectionReport` let future runtime M3 work report whether a layout family used the current Legacy Zircon path or a Taffy-compatible path while preserving Zircon-owned Free, Overlay, Scrollable, and virtualized-list semantics. See `docs/zircon_runtime_interface/ui/layout.md` for the module detail.
@@ -457,6 +462,8 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 `UiRenderExtractKind` and `UiRenderStats` are additive M1 render-boundary DTOs. They classify the extract path and report command-family counts without adding required fields to the legacy `{ tree_id, list }` extract shape.
 
 `ui::template` contains template document DTOs plus asset binding, action-policy, localization, compile-cache key, package header/cache-record/manifest/report, component-contract, invalidation, resource-ref, schema-report, selector, and asset document contract records. Selector parsing stays as a contract helper; selector matching stays outside the interface crate. Runtime owns compiler-state builders such as `compile_cache_key_from_compiler(...)`, runtime binary artifact encoding/decoding through `UiRuntimeCompiledAssetArtifact`, and package-manifest assembly from runtime artifacts. The interface `UiCompiledAssetArtifact` name is neutral DTO data only and does not carry a runtime `UiTemplateInstance` payload.
+
+Runtime 15 M2 records `Runtime 15 M2 UI template schema source fixture naming hard cutover` / `runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred`: the schema-report DTO owner now names source-template fixture reports as `SourceTemplateFixture` and `SourceTemplateFixtureConverted`. Runtime migration behavior stays in `zircon_runtime/src/ui/template/asset/schema/migrator.rs`, while this interface crate owns the serializable report vocabulary in `zircon_runtime_interface/src/ui/template/asset/schema/report.rs`; `runtime_15_ui_template_schema_uses_source_fixture_names` guards both sides against restoring the retired legacy fixture enum names.
 
 `ui::template::asset::binding` is the canonical source for M18 neutral binding target, expression, diagnostic, and report DTOs. The runtime binding module keeps validation behavior in `zircon_runtime::ui::template::asset::binding::validation` and imports these DTOs directly; the deleted runtime-local `diagnostic.rs`, `expression.rs`, and `target.rs` files are not compatibility surfaces.
 

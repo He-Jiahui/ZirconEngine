@@ -1,4 +1,5 @@
 use crate::asset::AssetImporterRegistry;
+use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -10,6 +11,7 @@ pub(super) struct RuntimeModuleExtensionInputs {
     pub(super) asset_importers: AssetImporterRegistry,
     pub(super) asset_importer_errors: Vec<String>,
     pub(super) render_features: Vec<RenderFeatureDescriptor>,
+    pub(super) shading_models: Vec<ShadingModelDescriptor>,
     pub(super) render_pass_executors: Vec<RenderPassExecutorRegistration>,
     pub(super) runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
     pub(super) hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
@@ -27,6 +29,7 @@ pub(super) fn extension_inputs_from_extension_registries<'a>(
         asset_importers,
         asset_importer_errors,
         render_features: collect_render_features(&registries),
+        shading_models: collect_shading_models(&registries),
         render_pass_executors: collect_render_pass_executors(&registries),
         runtime_prepare_collectors: collect_runtime_prepare_collectors(&registries),
         hybrid_gi_runtime_providers: collect_hybrid_gi_runtime_providers(&registries),
@@ -56,6 +59,13 @@ fn collect_render_features(
     registries
         .iter()
         .flat_map(|registry| registry.render_features().iter().cloned())
+        .collect()
+}
+
+fn collect_shading_models(registries: &[&RuntimeExtensionRegistry]) -> Vec<ShadingModelDescriptor> {
+    registries
+        .iter()
+        .flat_map(|registry| registry.shading_models().iter().cloned())
         .collect()
 }
 

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use crate::core::framework::render::{
@@ -9,17 +10,22 @@ use crate::graphics::scene::{
     default_pipeline_key, mesh_pipeline_standard_material_template_source_for_shader_pass,
     MeshPipelineShaderSource, PipelineKey,
 };
-use crate::graphics::shader::{prewarm_shader_variants_to_disk, ShaderVariantCacheDisk};
+use crate::graphics::shader::{
+    prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_module_validation,
+    ShaderVariantCacheDisk,
+};
 
 const MESH_SHADER_NAGA_VERSION: &str = "naga-29.0.1";
 const MESH_SHADER_WGPU_VERSION: &str = "wgpu-29.0.1";
 const MESH_SHADER_PLATFORM_TOKEN: &str = "wgpu-runtime";
-const BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES: [ShaderPassType; 5] = [
+const BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL: &str = "builtin://shader/pbr.wgsl";
+const BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES: [ShaderPassType; 6] = [
     ShaderPassType::Forward,
     ShaderPassType::GBuffer,
     ShaderPassType::DepthPrepass,
     ShaderPassType::Shadow,
     ShaderPassType::Velocity,
+    ShaderPassType::TaaReactiveMask,
 ];
 
 pub fn prewarm_shader_variants(
@@ -27,6 +33,51 @@ pub fn prewarm_shader_variants(
     cache_dir: impl AsRef<Path>,
 ) -> ShaderVariantPrewarmReport {
     prewarm_shader_variants_to_disk(manifest, cache_dir)
+}
+
+pub fn prewarm_shader_variants_with_wgpu_module_validation(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_dir: impl AsRef<Path>,
+) -> ShaderVariantPrewarmReport {
+    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
+        Ok(backend) => backend,
+        Err(error) => {
+            return wgpu_module_validation_setup_failure_report(
+                manifest,
+                format!("failed to create offscreen WGPU backend: {error:?}"),
+            );
+        }
+    };
+    let device = &backend.device;
+    prewarm_shader_variants_to_disk_with_module_validation(manifest, cache_dir, |request| {
+        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("zircon-shader-prewarm-validation-module"),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(request.wgsl_source.as_str())),
+        });
+        match pollster::block_on(error_scope.pop()) {
+            Some(error) => Err(error.to_string()),
+            None => Ok(()),
+        }
+    })
+}
+
+fn wgpu_module_validation_setup_failure_report(
+    manifest: &ShaderVariantPrewarmManifest,
+    error: impl Into<String>,
+) -> ShaderVariantPrewarmReport {
+    let error = error.into();
+    let mut report = ShaderVariantPrewarmReport::default();
+    report.enable_wgpu_module_validation(manifest.variants.len());
+    for (variant_index, request) in manifest.variants.iter().enumerate() {
+        report.record_failure_request(
+            variant_index,
+            request,
+            format!("WGPU shader module validation setup failed: {error}"),
+        );
+        report.record_wgpu_module_validation_failed();
+    }
+    report
 }
 
 pub fn builtin_fallback_shader_prewarm_manifest() -> ShaderVariantPrewarmManifest {
@@ -114,6 +165,7 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             key.quality = quality;
             ShaderVariantPrewarmRequest {
                 key,
+                source_label: BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL.to_string(),
                 wgsl_source: wgsl_source.clone(),
                 include_content_hashes: cache_content_hashes.clone(),
                 template_revision: template_revision.clone(),
@@ -185,17 +237,25 @@ mod tests {
     fn builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source() {
         let manifest = builtin_fallback_shader_prewarm_manifest();
 
-        assert_eq!(manifest.variants.len(), 5);
+        assert_eq!(manifest.variants.len(), 6);
         assert_eq!(
             manifest
                 .variants
                 .iter()
                 .map(|request| request.key.pass_type.token())
                 .collect::<Vec<_>>(),
-            vec!["forward", "gbuffer", "depth_prepass", "shadow", "velocity"]
+            vec![
+                "forward",
+                "gbuffer",
+                "depth_prepass",
+                "shadow",
+                "velocity",
+                "taa_reactive_mask"
+            ]
         );
         assert!(manifest.variants.iter().all(|request| {
             request.template_revision == "zr-material-template-v1"
+                && request.source_label == "builtin://shader/pbr.wgsl"
                 && request.include_content_hashes.len() > 1
         }));
 
@@ -242,6 +302,22 @@ mod tests {
         assert!(!velocity_request
             .wgsl_source
             .contains("fn vs_velocity_object"));
+
+        let taa_request = manifest
+            .variants
+            .iter()
+            .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
+            .expect("TAA reactive mask builtin fallback prewarm request");
+        assert!(taa_request
+            .wgsl_source
+            .contains("// include: zr_template_taa_reactive_mask.wgsl"));
+        assert!(taa_request.wgsl_source.contains("fn fs_taa_reactive_mask("));
+        assert!(taa_request
+            .wgsl_source
+            .contains("fn fs_taa_reactive_material_mask("));
+        assert!(!taa_request
+            .wgsl_source
+            .contains("// include: zr_light_grid.wgsl"));
     }
 
     #[test]
@@ -257,7 +333,7 @@ mod tests {
             &[ShaderQualityTier::High, ShaderQualityTier::High],
         );
 
-        assert_eq!(manifest.variants.len(), 5);
+        assert_eq!(manifest.variants.len(), 6);
         assert!(manifest.variants.iter().all(|request| {
             request.key.quality == ShaderQualityTier::High
                 && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
@@ -279,7 +355,14 @@ mod tests {
                 .iter()
                 .map(|request| request.key.pass_type.token())
                 .collect::<Vec<_>>(),
-            vec!["forward", "gbuffer", "depth_prepass", "shadow", "velocity"]
+            vec![
+                "forward",
+                "gbuffer",
+                "depth_prepass",
+                "shadow",
+                "velocity",
+                "taa_reactive_mask"
+            ]
         );
 
         let forward_request = manifest
@@ -321,6 +404,18 @@ mod tests {
             forward_request.include_content_hashes,
             depth_request.include_content_hashes
         );
+
+        let taa_request = manifest
+            .variants
+            .iter()
+            .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
+            .expect("alpha TAA reactive mask standard material prewarm request");
+        assert!(taa_request
+            .wgsl_source
+            .contains("// include: zr_template_taa_reactive_mask.wgsl"));
+        assert!(taa_request
+            .wgsl_source
+            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
     }
 
     #[test]
@@ -333,7 +428,7 @@ mod tests {
             &[ShaderQualityTier::Medium],
         );
 
-        assert_eq!(manifest.variants.len(), 5);
+        assert_eq!(manifest.variants.len(), 6);
         assert!(manifest.variants.iter().all(|request| {
             request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH
                 && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
@@ -358,7 +453,14 @@ mod tests {
                 .iter()
                 .map(|request| request.key.pass_type.token())
                 .collect::<Vec<_>>(),
-            vec!["forward", "gbuffer", "depth_prepass", "shadow", "velocity"]
+            vec![
+                "forward",
+                "gbuffer",
+                "depth_prepass",
+                "shadow",
+                "velocity",
+                "taa_reactive_mask"
+            ]
         );
 
         let depth_request = manifest

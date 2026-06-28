@@ -17,6 +17,7 @@ pub(crate) mod runtime_provider;
 pub(crate) mod scene;
 pub(crate) mod shader;
 pub(crate) mod solari_runtime_provider;
+pub(crate) mod text;
 pub(crate) mod types;
 pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;

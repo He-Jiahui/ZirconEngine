@@ -21,7 +21,7 @@ use crate::ui::workbench::{
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 const EDITOR_TOKENS_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/theme/editor_tokens.v2.ui.toml");
+    include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const WORKBENCH_SKELETON_ASSET: &str =
     include_str!("../../../../assets/ui/editor/components/workbench/shell/workbench_skeleton.zui");
 const WORKBENCH_MAIN_BAND_ASSET: &str =
@@ -46,7 +46,7 @@ fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
     let binding = RegionBinding::new(
         EditorRegion::LeftBottom,
         EditorRegionRole::ProjectTree,
-        "res://ui/editor/host/asset_surface_controls.v2.ui.toml",
+        "res://ui/editor/host/asset_surface_controls.zui",
         Some(WorkbenchConstraintTokenName::new("--left-drawer-width")),
     )
     .expect("project tree belongs in left-bottom");
@@ -61,7 +61,7 @@ fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
     let error = RegionBinding::new(
         EditorRegion::LeftBottom,
         EditorRegionRole::DetailInspector,
-        "res://ui/editor/host/inspector_body.v2.ui.toml",
+        "res://ui/editor/host/inspector_body.zui",
         None,
     )
     .expect_err("inspector panels must not enter the project-tree slot");
@@ -111,7 +111,7 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
             .region(EditorRegion::LeftBottom)
             .unwrap()
             .panel_asset,
-        "res://ui/editor/asset_browser.v2.ui.toml"
+        "res://ui/editor/asset_browser.zui"
     );
     assert_eq!(
         skeleton.region(EditorRegion::Center).unwrap().panel_asset,
@@ -428,7 +428,7 @@ fn layout_skeleton_and_floating_assets_reference_editor_tokens_instead_of_hex_co
         ("workbench_preferences.zui", PREFERENCES_ASSET),
     ] {
         assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.v2.ui.toml"),
+            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
             "{asset_name} must import the editor token asset"
         );
         assert!(
@@ -682,7 +682,7 @@ fn shell_drawer_assets_use_constraint_tokens_instead_of_inline_drawer_widths() {
         ),
     ] {
         assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.v2.ui.toml"),
+            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
             "{asset_name} must import the editor token asset"
         );
         assert!(

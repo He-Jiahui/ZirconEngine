@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 const ASSET_BROWSER_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/asset_browser.v2.ui.toml"
+    "/assets/ui/editor/asset_browser.zui"
 ));
 const FRAME_EPSILON: f32 = 0.001;
 
@@ -302,8 +302,21 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         "AssetSurface/SetKindFilter"
     );
     assert_eq!(material_chip.value_text.to_string(), "Material");
-    assert!(import_panel.frame.y >= toolbar.frame.y + toolbar.frame.height);
-    assert!(main.frame.y >= import_panel.frame.y + import_panel.frame.height);
+    assert_frame_value(
+        "toolbar import panel y",
+        import_panel.frame.y,
+        toolbar.frame.y,
+    );
+    assert_frame_value(
+        "toolbar import panel height",
+        import_panel.frame.height,
+        toolbar.frame.height,
+    );
+    assert_frame_value(
+        "toolbar main panel y",
+        main.frame.y,
+        toolbar.frame.y + toolbar.frame.height + 6.0,
+    );
     assert!(sources.frame.x >= main.frame.x);
     assert!(content.frame.x >= sources.frame.x + sources.frame.width);
     assert!(details.frame.x >= content.frame.x + content.frame.width);
@@ -358,8 +371,8 @@ fn asset_browser_projection_keeps_only_preview_content_for_preview_tab() {
         selected_asset_uuid: Some("asset-ui-layout".to_string()),
         visible_assets: vec![sample_asset(
             "asset-ui-layout",
-            "res://ui/editor/workbench_host_window.ui.toml",
-            "workbench_host_window.ui.toml",
+            "res://ui/editor/workbench_page_chrome.zui",
+            "workbench_page_chrome.zui",
             ResourceKind::UiLayout,
             true,
         )],
@@ -383,13 +396,10 @@ fn asset_browser_projection_keeps_only_preview_content_for_preview_tab() {
         "asset-preview-visual"
     );
     assert_eq!(preview_visual.border_width, 1.0);
-    assert_eq!(
-        preview_name.text.to_string(),
-        "workbench_host_window.ui.toml"
-    );
+    assert_eq!(preview_name.text.to_string(), "workbench_page_chrome.zui");
     assert_eq!(
         preview_locator.text.to_string(),
-        "res://ui/editor/workbench_host_window.ui.toml"
+        "res://ui/editor/workbench_page_chrome.zui"
     );
     assert_eq!(utility_selection.text, preview_locator.text);
     assert!(content_card.selected);
@@ -415,15 +425,15 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
             selected_asset_uuid: Some("asset-ui-layout".to_string()),
             visible_assets: vec![sample_asset(
                 "asset-ui-layout",
-                "res://ui/editor/workbench_host_window.ui.toml",
-                "workbench_host_window.ui.toml",
+                "res://ui/editor/workbench_page_chrome.zui",
+                "workbench_page_chrome.zui",
                 ResourceKind::UiLayout,
                 true,
             )],
             selection: AssetSelectionSnapshot {
                 uuid: Some("asset-ui-layout".to_string()),
-                display_name: "workbench_host_window.ui.toml".to_string(),
-                locator: "res://ui/editor/workbench_host_window.ui.toml".to_string(),
+                display_name: "workbench_page_chrome.zui".to_string(),
+                locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
                 kind: Some(ResourceKind::UiLayout),
                 ..AssetSelectionSnapshot::default()
             },
@@ -439,7 +449,6 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     let toolbar_subtitle = find_node(&nodes, "AssetBrowserSubtitleText");
     let search_row = find_node(&nodes, "AssetBrowserToolbarSearchRow");
     let search_field = find_node(&nodes, "SearchEdited");
-    let locate_button = find_node(&nodes, "LocateSelectedAsset");
     let kind_row = find_node(&nodes, "AssetBrowserToolbarKindPrimaryRow");
     let all_chip = find_node(&nodes, "AssetBrowserKindAllChip");
     let shader_chip = find_node(&nodes, "AssetBrowserKindShaderChip");
@@ -464,65 +473,53 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     let table_row04 = find_node(&nodes, "WorkbenchAssetBrowserAssetRow04");
     let content_preview_card = find_node(&nodes, "AssetBrowserContentPreviewCard");
     let content_preview_name = find_node(&nodes, "AssetBrowserContentPreviewName");
+    let content_preview_name_continuation =
+        find_node(&nodes, "AssetBrowserContentPreviewNameContinuation");
     let details_panel = find_node(&nodes, "AssetBrowserDetailsPanel");
     let details_preview_name = find_node(&nodes, "AssetBrowserDetailsPreviewNameText");
 
-    assert_frame_value("compact toolbar height", toolbar.frame.height, 56.0);
+    assert_frame_value("compact toolbar height", toolbar.frame.height, 32.0);
     assert_eq!(toolbar_title_row.frame.height, 0.0);
     assert_eq!(toolbar_title.frame.height, 0.0);
     assert_eq!(toolbar_subtitle_row.frame.height, 0.0);
     assert_eq!(toolbar_subtitle.frame.height, 0.0);
-    assert_frame_value("compact search row height", search_row.frame.height, 28.0);
+    assert_frame_value("compact search row height", search_row.frame.height, 32.0);
     assert_frame_value("compact search row y", search_row.frame.y, toolbar.frame.y);
     assert_frame_value(
         "compact search field height",
         search_field.frame.height,
-        28.0,
+        30.0,
     );
-    assert!(search_field.frame.width >= 120.0);
+    assert!(search_field.frame.width >= 160.0);
+    assert_eq!(search_field.frame.y, toolbar.frame.y + 1.0);
     assert!(
-        search_field.frame.x < locate_button.frame.x
-            && locate_button.frame.x + locate_button.frame.width
-                <= toolbar.frame.x + toolbar.frame.width + FRAME_EPSILON,
-        "compact search and locate controls should share one toolbar row without overlap"
+        search_field.frame.x + search_field.frame.width < all_chip.frame.x,
+        "compact search and kind filter should share one toolbar row without overlap"
     );
-    assert_frame_value(
-        "compact locate button height",
-        locate_button.frame.height,
-        28.0,
+    assert_frame_value("compact kind row y", kind_row.frame.y, toolbar.frame.y);
+    assert_frame_value("compact kind row height", kind_row.frame.height, 32.0);
+    assert_eq!(all_chip.frame.y, toolbar.frame.y + 1.0);
+    assert_eq!(shader_chip.frame.height, 0.0);
+    assert_eq!(
+        shader_chip.frame.width, 0.0,
+        "short compact toolbar should keep only essential kind chips before view controls"
     );
-    assert_frame_value(
-        "compact kind row y offset",
-        kind_row.frame.y - toolbar.frame.y,
-        32.0,
-    );
-    assert_frame_value("compact kind row height", kind_row.frame.height, 24.0);
-    assert_eq!(all_chip.frame.y, kind_row.frame.y);
-    assert_eq!(shader_chip.frame.height, 24.0);
-    assert!(shader_chip.frame.x + shader_chip.frame.width < list_button.frame.x);
-    assert_frame_value("compact list button height", list_button.frame.height, 24.0);
+    assert_frame_value("compact list button height", list_button.frame.height, 30.0);
     assert_frame_value(
         "compact thumb button height",
         thumb_button.frame.height,
-        24.0,
+        30.0,
     );
     assert!(thumb_button.frame.x > list_button.frame.x);
-    assert_frame_value(
-        "compact import y offset",
-        import_panel.frame.y - toolbar.frame.y,
-        62.0,
-    );
+    assert_frame_value("compact import y", import_panel.frame.y, toolbar.frame.y);
     assert_frame_value("compact import height", import_panel.frame.height, 32.0);
     assert_frame_value(
         "compact import label height",
         import_label.frame.height,
-        14.0,
+        0.0,
     );
-    assert_frame_value(
-        "compact import field height",
-        import_path.frame.height,
-        28.0,
-    );
+    assert_frame_value("compact import field width", import_path.frame.width, 0.0);
+    assert_frame_value("compact import field height", import_path.frame.height, 0.0);
     assert_eq!(
         import_path.text.to_string(),
         "Drop or paste asset source path"
@@ -531,12 +528,11 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     assert_frame_value(
         "compact import button height",
         import_button.frame.height,
-        26.0,
+        30.0,
     );
     assert!(
-        import_label.frame.x < import_path.frame.x
-            && import_path.frame.x + import_path.frame.width < import_button.frame.x,
-        "compact import row should keep label, path, and action in one horizontal strip"
+        thumb_button.frame.x + thumb_button.frame.width < import_button.frame.x,
+        "compact import button should remain as the trailing command when the path field collapses"
     );
     assert_frame_value(
         "compact main panel y",
@@ -575,10 +571,16 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     assert_eq!(details_panel.frame.width, 0.0);
     assert_eq!(details_panel.frame.height, 0.0);
     assert!(content_preview_card.selected);
+    assert_eq!(content_preview_name.text.to_string(), "workbench_page");
     assert_eq!(
-        content_preview_name.text.to_string(),
-        "workbench_host_window.ui.toml"
+        content_preview_name_continuation.text.to_string(),
+        "chrome.zui"
     );
+    assert_eq!(
+        content_preview_name_continuation.frame.x,
+        content_preview_name.frame.x
+    );
+    assert!(content_preview_name_continuation.frame.y > content_preview_name.frame.y);
     assert!(
         content_panel.frame.x <= main.frame.x + 1.0 && content_panel.frame.width > 740.0,
         "short compact viewport should give the primary asset list the sources and details columns"

@@ -332,7 +332,7 @@ const PARTICLE_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionParticleLibraryGpuSparkRow",
     "WorkbenchExtensionParticleLibraryCpuDustRow",
     "WorkbenchExtensionParticleLibraryImpactGpuRow",
-    "WorkbenchExtensionParticleLibraryDeprecatedRow",
+    "WorkbenchExtensionParticleLibraryArchivedRow",
     "WorkbenchExtensionParticleLibraryOutputRow",
 ];
 const PARTICLE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
@@ -361,8 +361,8 @@ const PARTICLE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
         "WorkbenchExtensionParticleLibraryImpactGpuRow",
     ),
     action(
-        "workbench.extension.particle_library.deprecated_row.select",
-        "WorkbenchExtensionParticleLibraryDeprecatedRow",
+        "workbench.extension.particle_library.archived_row.select",
+        "WorkbenchExtensionParticleLibraryArchivedRow",
     ),
     action(
         "workbench.extension.particle_library.output.select",

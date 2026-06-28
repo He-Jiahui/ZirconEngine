@@ -35,7 +35,7 @@ pub(super) fn runtime_rt_lighting_selection<S: HybridGiProbeSource + ?Sized>(
             .hybrid_gi_resolve_runtime
             .as_ref()
             .and_then(|runtime| {
-                runtime_rt_lighting_packed_or_legacy_source(runtime, source_probe_id)
+                runtime_rt_lighting_packed_or_extract_source(runtime, source_probe_id)
             })
     } else {
         runtime_hierarchy_rt_lighting(frame, source, resident_prepare_by_id)
@@ -149,11 +149,11 @@ pub(super) fn runtime_rt_lighting_lineage_source(
     runtime: &HybridGiResolveRuntime,
     probe_id: u32,
 ) -> Option<([f32; 3], f32)> {
-    runtime_rt_lighting_packed_or_legacy_source(runtime, probe_id)
+    runtime_rt_lighting_packed_or_extract_source(runtime, probe_id)
         .map(|source| ([source[0], source[1], source[2]], source[3]))
 }
 
-pub(super) fn runtime_rt_lighting_packed_or_legacy_source(
+pub(super) fn runtime_rt_lighting_packed_or_extract_source(
     runtime: &HybridGiResolveRuntime,
     probe_id: u32,
 ) -> Option<[f32; 4]> {

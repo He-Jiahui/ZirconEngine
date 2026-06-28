@@ -4,6 +4,7 @@ use super::binary::{
     decode_binary_asset_with_v1_payload_fallback, encode_binary_asset, AnimationBinaryAssetKind,
 };
 use super::channel::AnimationChannelAsset;
+use super::error::{AnimationAssetError, AnimationAssetResult};
 use super::reference::AnimationAssetReferenceBinary;
 use crate::asset::AssetReference;
 use crate::core::math::Real;
@@ -78,7 +79,7 @@ impl From<&AnimationClipAsset> for AnimationClipBinaryAsset {
 }
 
 impl TryFrom<AnimationClipBinaryAsset> for AnimationClipAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationClipBinaryAsset) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -92,7 +93,7 @@ impl TryFrom<AnimationClipBinaryAsset> for AnimationClipAsset {
 }
 
 impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipBinaryAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationClipBinaryAssetV1) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -116,7 +117,7 @@ impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipBinaryAsset {
 }
 
 impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipAsset {
-    type Error = String;
+    type Error = AnimationAssetError;
 
     fn try_from(value: AnimationClipBinaryAssetV1) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -140,7 +141,7 @@ impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipAsset {
 }
 
 impl AnimationClipAsset {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset_with_v1_payload_fallback::<
             AnimationClipBinaryAsset,
             AnimationClipBinaryAssetV1,
@@ -148,7 +149,7 @@ impl AnimationClipAsset {
         .and_then(AnimationClipAsset::try_from)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(
             AnimationBinaryAssetKind::Clip,
             &AnimationClipBinaryAsset::from(self),

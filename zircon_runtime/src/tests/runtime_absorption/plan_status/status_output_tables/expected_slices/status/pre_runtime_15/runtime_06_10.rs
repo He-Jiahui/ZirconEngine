@@ -34,8 +34,22 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("scene_level_poison_recovery_coremin_passed_eventbus_guard_timeout")
     } else if slice == "Runtime 07 render submit source-extract sharing" {
         Some("render_submit_source_extract_shared_coremin_check_passed_partial")
+    } else if slice == "Runtime 07 render submit viewport/provider errors" {
+        Some("render_submit_viewport_provider_errors_review_guard_static_passed_cargo_timeout_no_result_full_runtime07_pending")
     } else if slice == "Runtime 07 render camera-loop descriptor submissions" {
         Some("render_camera_loop_descriptor_submissions_coremin_check_passed_partial")
+    } else if slice == "Runtime 07 render camera-loop borrowed sequence resolution" {
+        Some("render_camera_loop_borrowed_sequence_resolution_static_passed_cargo_deferred")
+    } else if slice == "Runtime 07 render camera-loop source view restore narrowing" {
+        Some("render_camera_loop_source_view_restore_narrowed_static_passed_cargo_deferred")
+    } else if slice == "Runtime 07 render camera-loop post-process source restore narrowing" {
+        Some("render_camera_loop_post_process_restore_narrowed_static_passed_cargo_deferred")
+    } else if slice == "Runtime 07 render camera-loop VG/HGI conditional source restore" {
+        Some("render_camera_loop_vg_hgi_conditional_restore_static_passed_cargo_deferred")
+    } else if slice == "Runtime 07 render camera-loop single-child source-state capture skip" {
+        Some("render_camera_loop_single_child_source_state_capture_skipped_static_passed_cargo_deferred")
+    } else if slice == "Runtime 07 render camera-loop source payload slot ownership" {
+        Some("render_camera_loop_source_payload_slot_owned_static_passed_cargo_deferred")
     } else if slice == "Runtime 07 render camera-loop frame terminal move" {
         Some("render_camera_loop_frame_terminal_move_coremin_check_passed_partial")
     } else if slice == "Runtime 07 render submit feedback sideband owned merge" {
@@ -56,6 +70,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending")
     } else if slice == "Runtime 07 render submit effective extract projection" {
         Some("render_submit_effective_extract_projection_coremin_check_passed_partial")
+    } else if slice == "Runtime 07 F16 compiled-scene split status guard" {
+        Some("compiled_scene_render_split_review_guard_static_passed_cargo_deferred")
     } else if slice == "Runtime 07 extract rebuild cache" {
         Some("extract_rebuild_cache_static_passed_cargo_deferred")
     } else if slice == "Runtime 07 extract cache hit/miss diagnostics" {

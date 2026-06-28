@@ -80,6 +80,7 @@ The runtime prelude exports:
 - module/service helper contracts such as `EngineModule`, `EngineService`, `EngineDriver`, `EngineManager`, and descriptor-construction helpers,
 - current foundation utilities such as `JobScheduler`, `TaskPools`, `TaskPoolKind`, `FrameClock`, `FoundationModule`, and core descriptor modules for log, tasks, time, frame count, diagnostics, and development log diagnostics,
 - platform/window/input contracts such as `PlatformCapabilityMatrix`, `PlatformFeatureSelection`, `PlatformTarget`, `PlatformConfig`, `PLATFORM_CONFIG_KEY`, `WindowBackend`, `WindowDescriptor`, `WindowResolution`, `WindowResizeConstraints`, `WindowPresentMode`, `PrimaryWindowHandle`, `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY`, `InputBackend`, `GamepadBackend`, `PlatformModule`, `InputModule`, `InputEvent`, `InputButton`, `InputFrameSnapshot`, and `DefaultInputManager`,
+- mouse-wheel input helpers such as `MouseScrollUnit`, `MouseWheelEvent`, and the line-delta conversion scalar `PIXEL_SCROLL_LINE_DELTA_SCALE`,
 - state contracts `StateSpec`, `State`, `NextState`, `StateTransitionEvent`, `OnEnter`, `OnExit`, and `OnTransition`,
 - time contracts and runtime clock snapshots such as `Time`, `Real`, `Virtual`, `Fixed`, `FixedStepPlan`, `RuntimeTimeClocks`, and `RuntimeTimeAdvance`,
 - Bevy-style runtime Time diagnostic path constants such as `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`,
@@ -110,3 +111,5 @@ Current coverage includes:
 - Time diagnostic path constants for frame count, fixed steps, frame time, and FPS, matching the runtime-owned Time diagnostics recorded by `CoreHandle::advance_time_by(...)`.
 
 Milestone acceptance still needs the repository validation gate from `.github/workflows/ci.yml` once concurrent workspace builds are clear. During implementation, formatting and diff hygiene checks are the lightweight guard for this prelude slice.
+
+Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`: the prelude now re-exports `PIXEL_SCROLL_LINE_DELTA_SCALE` from `zircon_runtime/src/core/framework/input/mouse_wheel.rs` and no longer carries the old mouse-wheel scalar name. This keeps the convenience surface aligned with `MouseWheelEvent::vertical_line_delta()` and `runtime_15_input_mouse_wheel_line_delta_uses_current_names` without adding a compatibility alias.

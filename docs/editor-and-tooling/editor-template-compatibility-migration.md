@@ -15,8 +15,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
 implementation_files:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
@@ -54,11 +54,11 @@ doc_type: module-detail
 
 ## Purpose
 
-This document records the completed cutover from the old compatibility migration to the current retained template runtime. The file name is historical; the active behavior is no longer a compatibility path. Editor UI templates are `.ui.toml` documents compiled into shared UI surfaces and consumed by Rust-owned retained host bridges.
+This document records the completed cutover from the old compatibility migration to the current retained template runtime. The file name is historical; the active behavior is no longer a compatibility path. Editor UI templates are `.zui` documents selected by `asset.kind`, compiled into shared UI surfaces, and consumed by Rust-owned retained host bridges.
 
 ## Current Template Path
 
-`EditorUiHostRuntime` is the editor-side runtime for builtin host templates and activity-window templates. It loads `.ui.toml` documents, registers component descriptors and stable bindings, builds shared `UiSurface` values, and projects host-neutral node lists for retained host consumers.
+`EditorUiHostRuntime` is the editor-side runtime for builtin host templates and activity-window templates. It loads `.zui` view documents, registers component descriptors and stable bindings, builds shared `UiSurface` values, and projects host-neutral node lists for retained host consumers.
 
 `RetainedUiHostAdapter` is the current adapter for host projections. It classifies nodes into retained host component kinds, preserves arranged frames and clip frames, maps TOML attributes into typed retained values, exposes component role and validation metadata, and carries binding routes forward as retained route projections.
 
@@ -66,18 +66,19 @@ The active adapter types are `RetainedUiHostProjection`, `RetainedUiHostNodeMode
 
 ## Builtin Host Documents
 
-Builtin host documents are source-controlled assets under `zircon_editor/assets/ui/editor/host`. The root host document identity is generic host-window authority even when the backing file remains named `workbench_shell.ui.toml`.
+Builtin host documents are source-controlled `.zui` assets under `zircon_editor/assets/ui/editor/host`. The root host document identity is generic host-window authority and is backed by `workbench_shell.zui`.
 
 Important builtin documents include:
 
-- `workbench_shell.ui.toml` for the root editor host shell
-- `workbench_drawer_source.ui.toml` for drawer-source frame authority
-- `floating_window_source.ui.toml` for floating-window default and clamp source frames
-- `scene_viewport_toolbar.ui.toml` for viewport toolbar controls
-- `asset_surface_controls.ui.toml` for asset browser and activity asset controls
-- `inspector_surface_controls.ui.toml` for inspector actions and editable fields
-- `pane_surface_controls.ui.toml` for generic pane actions
-- `startup_welcome_controls.ui.toml` for welcome page actions
+- `workbench_shell.zui` for the root editor host shell
+- `editor_main_frame.zui` for the main editor frame and workbench slot authority
+- `activity_drawer_window.zui` for activity drawer shell frames
+- `floating_window_source.zui` for floating-window default and clamp source frames
+- `scene_viewport_toolbar.zui` for viewport toolbar controls
+- `asset_surface_controls.zui` for asset browser and activity asset controls
+- `inspector_surface_controls.zui` for inspector actions and editable fields
+- `pane_surface_controls.zui` for generic pane actions
+- `startup_welcome_controls.zui` for welcome page actions
 
 These assets are the current business UI structure. Rust bridges consume their shared-surface frames and stable control ids; no generated source tree owns the structure.
 
@@ -106,9 +107,9 @@ The runtime path is consistent across these bridges: control id and event kind a
 
 ## Removed Compatibility Surface
 
-The older migration path used Slint host projections and generated source DTOs while `.ui.toml` templates were being introduced. That path has been hard-cut over. Current production and tests must not restore `SlintUiProjection`, generated include modules, `slint_build` seams, `slint_host` owner paths, or `workbench_slint*` test names as active authorities.
+The older migration path used Slint host projections and generated source DTOs while template assets were being introduced. That path has been hard-cut over. Current production and tests must not restore Slint projection types, generated include modules, Slint build seams, Slint host owner paths, or Slint-named workbench tests as active authorities.
 
-Historical references to Slint can remain in plans or deletion-guard prose, but they do not define current implementation. If a source, test, doc header, or validation command needs an owner name, use `retained_host`, `RetainedUiHost*`, `.ui.toml`, and `host_contract`.
+Historical references to Slint can remain in plans or deletion-guard prose, but they do not define current implementation. If a source, test, doc header, or validation command needs an owner name, use `retained_host`, `RetainedUiHost*`, `.zui`, and `host_contract`.
 
 ## Validation
 
@@ -116,7 +117,7 @@ Current validation should focus on:
 
 - template-runtime tests for builtin document identity, shared surface building, retained host model projection, route registration, and dual-host parity
 - retained host tests for each template bridge family and pointer bridge family
-- boundary tests that assert host template assets remain `.ui.toml` authority and active editor UI source trees contain no deleted generated files
+- boundary tests that assert host template assets remain `.zui` authority and active editor UI source trees contain no deleted generated files
 - `cargo check -p zircon_editor --lib --locked --message-format=short`
 
 Workspace-level validation remains the final milestone gate after unrelated active workstream blockers are either fixed by their owning sessions or classified as out of scope.

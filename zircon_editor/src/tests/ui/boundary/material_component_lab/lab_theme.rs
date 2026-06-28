@@ -274,9 +274,8 @@ fn material_component_lab_chip_sample_uses_runtime_descriptor_and_theme_selector
         "Chip",
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in CHIP_THEME_SELECTORS {
         assert!(
@@ -330,9 +329,8 @@ fn material_component_lab_badge_sample_uses_runtime_descriptor_and_theme_selecto
     assert_eq!(str_prop(node(&document, "badge_slot"), "text"), Some("12"));
     assert_non_dispatchable_child(node(&document, "badge_slot"), "badge_slot", "Badge");
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in BADGE_THEME_SELECTORS {
         assert!(
@@ -379,9 +377,8 @@ fn material_component_lab_skeleton_sample_uses_runtime_descriptor_and_theme_sele
         "Skeleton",
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in SKELETON_THEME_SELECTORS {
         assert!(
@@ -421,9 +418,8 @@ fn material_component_lab_avatar_sample_uses_runtime_descriptor_and_theme_select
         Some("material-avatar-fallback")
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in AVATAR_THEME_SELECTORS {
         assert!(
@@ -459,9 +455,8 @@ fn material_component_lab_list_sample_uses_runtime_descriptor_and_theme_selector
     );
     assert_eq!(slot_class_name(sample, "items"), Some("material-list-item"));
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in LIST_THEME_SELECTORS {
         assert!(
@@ -501,9 +496,8 @@ fn material_component_lab_image_list_sample_uses_runtime_descriptor_and_theme_se
         Some("material-image-list-item")
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in IMAGE_LIST_THEME_SELECTORS {
         assert!(
@@ -540,9 +534,8 @@ fn material_component_lab_table_sample_uses_runtime_descriptor_and_theme_selecto
     );
     assert_eq!(slot_class_name(sample, "row"), Some("material-table-row"));
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in TABLE_THEME_SELECTORS {
         assert!(
@@ -581,9 +574,8 @@ fn material_component_lab_divider_sample_uses_runtime_descriptor_and_theme_selec
         Some("material-divider-wrapper")
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in DIVIDER_THEME_SELECTORS {
         assert!(
@@ -620,9 +612,8 @@ fn material_component_lab_typography_sample_uses_runtime_descriptor_and_theme_se
     assert_eq!(table_str_prop(sample, "variantMapping", "h6"), Some("h2"));
     assert_eq!(table_str_prop(sample, "variantMapping", "body2"), Some("p"));
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in TYPOGRAPHY_THEME_SELECTORS {
         assert!(
@@ -706,9 +697,8 @@ fn material_component_lab_timeline_sample_uses_runtime_descriptor_and_theme_sele
         Some("material-timeline-content")
     );
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in TIMELINE_THEME_SELECTORS {
         assert!(
@@ -796,9 +786,8 @@ fn material_component_lab_transfer_list_sample_uses_runtime_descriptor_and_theme
         assert_non_dispatchable_child(node(&document, child_id), child_id, "TransferList");
     }
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in TRANSFER_LIST_THEME_SELECTORS {
         assert!(
@@ -894,9 +883,8 @@ fn material_component_lab_autocomplete_sample_uses_runtime_descriptor_and_theme_
         assert_non_dispatchable_child(node(&document, child_id), child_id, "Autocomplete");
     }
 
-    let theme_source =
-        fs::read_to_string(editor_asset("assets/ui/theme/editor_material.v2.ui.toml"))
-            .expect("Editor Material theme should be readable");
+    let theme_source = fs::read_to_string(editor_asset("assets/ui/theme/editor_material.zui"))
+        .expect("Editor Material theme should be readable");
     let selectors = theme_selectors(&theme_source);
     for selector in AUTOCOMPLETE_THEME_SELECTORS {
         assert!(

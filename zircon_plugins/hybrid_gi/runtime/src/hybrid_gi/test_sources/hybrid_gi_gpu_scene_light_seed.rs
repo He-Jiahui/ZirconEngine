@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::{
-    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
-    RenderPointLightSnapshot, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderWorldSnapshotHandle,
-};
 use crate::core::math::{UVec2, Vec3};
 use crate::scene::world::World;
 use crate::test_support::render_feature_fixtures::hybrid_gi_render_feature_descriptor;
@@ -13,6 +8,11 @@ use crate::{
     types::{HybridGiPrepareFrame, HybridGiPrepareUpdateRequest, ViewportRenderFrame},
     BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
     RenderPipelineAsset, RenderPipelineCompileOptions, SceneRenderer,
+};
+use zircon_runtime::core::framework::render::{
+    RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderPointLightSnapshot, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderWorldSnapshotHandle,
 };
 
 fn compile_hybrid_gi_pipeline(extract: &RenderFrameExtract) -> CompiledRenderPipeline {

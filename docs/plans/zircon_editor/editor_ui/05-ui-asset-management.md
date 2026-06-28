@@ -31,7 +31,7 @@ status: planned
 
 ## 1. 目标
 
-让 UI 资产（`.zui` 单组件、`.v2.ui.toml` 页面模板、theme、字体、图标、UI 用图片/材质）成为 runtime 资产大模块（facade / management / importer / watch）的一等公民：统一加载、依赖追踪、热重载、包验证、引用解析。补齐归档 M15（resource refs 全链）。本计划与 runtime asset 大模块协同推进，editor 侧只消费。
+让 UI 资产（`.zui` UI 文档，按 `asset.kind` 承载 component / view / style / theme_tokens profile，以及 theme、字体、图标、UI 用图片/材质）成为 runtime 资产大模块（facade / management / importer / watch）的一等公民：统一加载、依赖追踪、热重载、包验证、引用解析。`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前页面模板或布局描述入口；补齐归档 M15（resource refs 全链）。本计划与 runtime asset 大模块协同推进，editor 侧只消费。
 
 ## 2. 现状（按代码核实修正）
 
@@ -237,3 +237,9 @@ impl UiCompiledArtifactStore {
 | UI 资产加载器形态 | `dev/Fyrox/fyrox-ui/src/loader.rs` | — | UI 专属资产（字体/纹理）经引擎资源管线加载的接口边界 |
 | atlas/纹理资源管理 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Textures` | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Brushes` | Slate 的 atlas slot 分配与 brush 引用解析（UiResourceResolver 的消费级对照） |
 | 图标素材 | `dev/ionicons.designerpack` | `docs/ui-and-layout/ai-workbench-style/component-prototype`（内联 SVG 现状） | 默认图标包的素材来源与 SVG 子集范围评估 |
+
+## 14. 状态与产出记录
+
+| 日期 | 范围 | 状态 | 完成项目 | 验证 |
+| --- | --- | --- | --- | --- |
+| 2026-06-28 | Plan 11 M5 UI asset management `.zui` scope guard | editor_ui_11_m5_ui_asset_management_plan_zui_scope_guard_passed | §1 当前目标已从 `.zui` 单组件 + `.v2.ui.toml` 页面模板改为 `.zui` UI 文档统一入口，并明确 component / view / style / theme_tokens 由 `asset.kind` profile 承载；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前页面模板或布局描述入口。 | 新增 `test_ui_asset_management_plan_uses_zui_for_current_asset_scope`；RED 先失败列出旧 `.v2.ui.toml` 页面模板口径，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |

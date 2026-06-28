@@ -25,7 +25,9 @@ fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         }],
         Vec::new(),
         |extract| {
@@ -81,7 +83,9 @@ fn color_grading_extract_tints_scene_after_post_process() {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: Default::default(),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         }],
         Vec::new(),
         |extract| {
